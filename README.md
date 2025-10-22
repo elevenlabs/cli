@@ -1,6 +1,6 @@
 # ElevenLabs CLI - Agents as Code
 
-![hero](./Cover.png)
+![hero](./assets/Cover.png)
 
 # ElevenLabs CLI
 
