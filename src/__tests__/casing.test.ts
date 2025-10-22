@@ -1,4 +1,4 @@
-import { createAgentApi, updateAgentApi, getAgentApi } from "../elevenlabs-api";
+import { createAgentApi, updateAgentApi, getAgentApi } from "../shared/elevenlabs-api";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 describe("Key casing normalization", () => {

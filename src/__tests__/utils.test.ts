@@ -1,4 +1,4 @@
-import { calculateConfigHash, toCamelCaseKeys, generateUniqueFilename } from "../utils";
+import { calculateConfigHash, toCamelCaseKeys, generateUniqueFilename } from "../shared/utils";
 import fs from "fs-extra";
 import path from "path";
 import os from "os";

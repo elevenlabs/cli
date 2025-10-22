@@ -4,7 +4,7 @@ export default {
   extensionsToTreatAsEsm: ['.ts'],
   testEnvironment: '<rootDir>/jest-environment.cjs',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/__tests__/**/*.ts', '**/*.spec.ts', '**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

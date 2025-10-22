@@ -1,4 +1,4 @@
-import { generateUniqueFilename } from "../utils";
+import { generateUniqueFilename } from "../shared/utils";
 import fs from "fs-extra";
 import path from "path";
 import os from "os";

@@ -24,7 +24,7 @@ const mockCreateToolApi = jest.fn();
 const mockCreateTestApi = jest.fn();
 const mockGetElevenLabsClient = jest.fn();
 
-jest.mock("../elevenlabs-api", () => ({
+jest.mock("../shared/elevenlabs-api", () => ({
   getElevenLabsClient: mockGetElevenLabsClient,
   createAgentApi: mockCreateAgentApi,
   createToolApi: mockCreateToolApi,
@@ -32,10 +32,10 @@ jest.mock("../elevenlabs-api", () => ({
 }));
 
 // Import after mocking
-import { readConfig, writeConfig, generateUniqueFilename, toCamelCaseKeys } from "../utils";
-import { getTemplateByName } from "../templates";
-import { createAgentApi } from "../elevenlabs-api";
-import { getBasicLLMTestTemplate } from "../test-templates";
+import { readConfig, writeConfig, generateUniqueFilename, toCamelCaseKeys } from "../shared/utils";
+import { getTemplateByName } from "../agents/templates";
+import { createAgentApi } from "../shared/elevenlabs-api";
+import { getBasicLLMTestTemplate } from "../tests/templates";
 
 describe("Add Commands - Name-based Filenames", () => {
   let tempDir: string;

@@ -5,8 +5,8 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as os from "os";
-import { getElevenLabsClient } from "../elevenlabs-api";
-import { setResidency, setApiKey } from "../config";
+import { getElevenLabsClient } from "../shared/elevenlabs-api";
+import { setResidency, setApiKey } from "../shared/config";
 import {
   describe,
   it,
@@ -34,7 +34,7 @@ jest.mock("os", () => ({
 }));
 
 // Mock auth module for better isolation
-jest.mock("../auth", () => {
+jest.mock("../shared/auth", () => {
   let storedApiKey: string | undefined;
   return {
     storeApiKey: jest.fn().mockImplementation((key: unknown) => {
@@ -136,7 +136,7 @@ describe("Residency-specific API Client", () => {
     delete process.env.ELEVENLABS_API_KEY;
 
     // Clear the stored API key from the mocked auth module
-    const { removeApiKey } = await import("../config");
+    const { removeApiKey } = await import("../shared/config");
     await removeApiKey();
 
     // Clear the temp directory to remove any stored config
@@ -147,7 +147,7 @@ describe("Residency-specific API Client", () => {
     mockedOs.homedir.mockReturnValue(tempDir);
 
     await expect(getElevenLabsClient()).rejects.toThrow(
-      "No API key found for environment 'prod'. Use 'elevenlabs login --env prod' to authenticate or set ELEVENLABS_API_KEY environment variable."
+      "No API key found for environment 'prod'. Use 'elevenlabs auth login --env prod' to authenticate or set ELEVENLABS_API_KEY environment variable."
     );
   });
 });

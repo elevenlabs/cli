@@ -20,8 +20,6 @@
   "bugs": {
     "url": "https://github.com/elevenlabs/cli/issues"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "bin": {
     "elevenlabs": "./bin/elevenlabs"
   },
