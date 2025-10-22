@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getTemplateOptions } from '../templates.js';
+import { getTemplateOptions, getTemplateByName } from '../templates.js';
 
 export function createTemplatesCommand(): Command {
   const templates = new Command('templates');
@@ -25,7 +25,6 @@ export function createTemplatesCommand(): Command {
     .argument('<template>', 'Template name to display')
     .action((templateName: string) => {
       try {
-        const { getTemplateByName } = require('../../templates.js');
         const template = getTemplateByName('Example', templateName);
         console.log(`Template: ${templateName}`);
         console.log('='.repeat(50));

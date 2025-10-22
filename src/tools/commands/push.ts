@@ -1,7 +1,4 @@
 import { Command } from 'commander';
-import { render } from 'ink';
-import React from 'react';
-import PushToolsView from '../ui/PushToolsView.js';
 import { pushTools } from './impl.js';
 
 export function createPushCommand(): Command {

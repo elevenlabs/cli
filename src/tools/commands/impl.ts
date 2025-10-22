@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
+import { readConfig, generateUniqueFilename } from '../../shared/utils.js';
 import {
   getElevenLabsClient,
   createToolApi,

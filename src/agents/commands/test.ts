@@ -1,7 +1,4 @@
 import { Command } from 'commander';
-import { render } from 'ink';
-import React from 'react';
-import TestView from '../ui/TestView.js';
 import { runAgentTests } from './test-impl.js';
 
 export function createTestCommand(): Command {
