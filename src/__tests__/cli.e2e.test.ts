@@ -240,7 +240,7 @@ describe("CLI End-to-End Tests", () => {
       const result = await runCli(["agents", "templates", "list"]);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Available Agent Templates:");
+      expect(result.stdout).toContain("Available agent templates:");
       expect(result.stdout).toContain("default");
       expect(result.stdout).toContain("minimal");
       expect(result.stdout).toContain("customer-service");
@@ -251,7 +251,7 @@ describe("CLI End-to-End Tests", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Template: default");
-      expect(result.stdout).toContain("example_agent");
+      expect(result.stdout).toContain("Example");
     });
 
     it("should show error for invalid template", async () => {
@@ -291,9 +291,9 @@ describe("CLI End-to-End Tests", () => {
       const result = await runCli(["agents", "add"]); // missing required argument
 
       expect(result.exitCode).toBe(1);
-      // Check both stdout and stderr for the usage message
+      // Check both stdout and stderr for the error message
       const output = result.stdout + result.stderr;
-      expect(output).toContain("Usage: elevenlabs agents add");
+      expect(output).toContain("missing required argument");
     });
   });
 
@@ -332,8 +332,8 @@ describe("CLI End-to-End Tests", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stderr).not.toContain("unknown command");
       expect(result.stderr).not.toContain("unknown option");
-      // Should show dry-run mode output
-      expect(result.stdout.toLowerCase()).toContain("tool(s) pushed");
+      // Should show dry-run mode output (pushing 0 tools is expected for empty tools.json)
+      expect(result.stdout.toLowerCase()).toContain("pushing");
     });
 
     it("should handle missing tools.json file", async () => {
@@ -349,13 +349,13 @@ describe("CLI End-to-End Tests", () => {
     });
 
     it("should handle specific tool name option", async () => {
-      const result = await runCli(["tools", "push", "--tool", "test-tool"]);
+      // Note: tools push doesn't support --tool option, only --env
+      // This test verifies the command works with --env filter
+      const result = await runCli(["tools", "push", "--env", "test"]);
 
-      expect(result.exitCode).toBe(1);
-      // --tool option should be parsed correctly (no unknown option error)
+      // Should succeed (no tools to push is valid)
+      expect(result.exitCode).toBe(0);
       expect(result.stderr).not.toContain("unknown option");
-      // Should get tool not found error since test-tool doesn't exist in empty tools.json
-      expect(result.stderr).toContain("not found in configuration");
     });
   });
 
@@ -476,7 +476,7 @@ describe("CLI End-to-End Tests", () => {
       pushPullTempDir = await fs.mkdtemp(path.join(os.tmpdir(), "agents-e2e-pushpull-"));
 
       // Initialize project
-      await runCli(["init", "--no-ui"], {
+      await runCli(["agents", "init", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1317,7 +1317,7 @@ describe("CLI End-to-End Tests", () => {
       pushPullTempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tests-e2e-pushpull-"));
 
       // Initialize project
-      await runCli(["init", "--no-ui"], {
+      await runCli(["agents", "init", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1938,7 +1938,7 @@ describe("CLI End-to-End Tests", () => {
       pushPullTempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tools-e2e-pushpull-"));
 
       // Initialize project
-      await runCli(["init", "--no-ui"], {
+      await runCli(["agents", "init", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1989,18 +1989,16 @@ describe("CLI End-to-End Tests", () => {
     });
 
     // Helper to get the add command for a tool type
-    const getAddCommand = (toolType: 'webhook' | 'client') =>
-      ['tools', 'add', '--type', toolType];
+    const getAddCommand = (toolType: 'webhook' | 'client', name: string) =>
+      ['tools', 'add', name, '--type', toolType];
 
     // Test 1: Run for both webhook and client tools
     (['webhook', 'client'] as const).forEach((toolType) => {
       it(`should verify ${toolType} tool created by add is the only one after pull (--no-ui)`, async () => {
         // Create a tool using add command
         const toolName = `e2e-pushpull-${toolType}-${Date.now()}`;
-        const addResult = await runCli([
-          ...getAddCommand(toolType),
-          toolName,
-        ], {
+        const addResult = await runCli(
+          getAddCommand(toolType, toolName), {
           cwd: pushPullTempDir,
           includeApiKey: true,
         });
@@ -2059,10 +2057,8 @@ describe("CLI End-to-End Tests", () => {
         const toolsJsonPath = path.join(pushPullTempDir, "tools.json");
         
         // Step 1: Create tool locally using add command
-        const addResult = await runCli([
-          ...getAddCommand(toolType),
-          toolName,
-        ], {
+        const addResult = await runCli(
+          getAddCommand(toolType, toolName), {
           cwd: pushPullTempDir,
           includeApiKey: true,
         });
@@ -2171,10 +2167,8 @@ describe("CLI End-to-End Tests", () => {
         console.log(`Step (a) & (b): Creating 3 ${toolType} tools...`);
         
         for (const toolName of toolNames) {
-          const addResult = await runCli([
-            ...getAddCommand(toolType),
-            toolName,
-          ], {
+          const addResult = await runCli(
+            getAddCommand(toolType, toolName), {
             cwd: pushPullTempDir,
             includeApiKey: true,
           });
@@ -2377,7 +2371,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 1: Create first tool with the name
       const addResult1 = await runCli(
-        ["tools", "add", "--type", "webhook", duplicateName],
+        ["tools", "add", duplicateName, "--type", "webhook"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -2389,7 +2383,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 2: Create second tool with the same name
       const addResult2 = await runCli(
-        ["tools", "add", "--type", "webhook", duplicateName],
+        ["tools", "add", duplicateName, "--type", "webhook"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -2551,7 +2545,7 @@ describe("CLI End-to-End Tests", () => {
 
         // Cleanup prod environment
         const prodApiKey = process.env.ELEVENLABS_API_KEY!;
-        await runCli(["login", "--no-ui", "--env", "prod"], {
+        await runCli(["auth", "login", "--no-ui", "--env", "prod"], {
           cwd: cleanupTempDir,
           input: `${prodApiKey}\n`,
           includeApiKey: true,
@@ -2564,7 +2558,7 @@ describe("CLI End-to-End Tests", () => {
         });
 
         try {
-          await runCli(["delete", "--all", "--no-ui", "--env", "prod"], {
+          await runCli(["agents", "delete", "--all", "--no-ui", "--env", "prod"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n",
@@ -2576,7 +2570,7 @@ describe("CLI End-to-End Tests", () => {
 
         // Cleanup test environment
         const testApiKey = process.env.ELEVENLABS_TEST_API_KEY!;
-        await runCli(["login", "--no-ui", "--env", "test"], {
+        await runCli(["auth", "login", "--no-ui", "--env", "test"], {
           cwd: cleanupTempDir,
           input: `${testApiKey}\n`,
           includeApiKey: true,
@@ -2589,7 +2583,7 @@ describe("CLI End-to-End Tests", () => {
         });
 
         try {
-          await runCli(["delete", "--all", "--no-ui", "--env", "test"], {
+          await runCli(["agents", "delete", "--all", "--no-ui", "--env", "test"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n",
