@@ -70,8 +70,8 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
   };
 
   return (
-    <App 
-      title="ElevenLabs Agents"
+    <App
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {notLoggedIn ? (
@@ -127,7 +127,7 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
             
             <Box marginTop={1}>
               <Text color={theme.colors.text.secondary}>
-                Run 'agents login --env {environment}' to authenticate again
+                Run 'elevenlabs login --env {environment}' to authenticate again
               </Text>
             </Box>
           </>

@@ -77,7 +77,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onComplete, environment = 
 
   return (
     <App
-      title="ElevenLabs Agents"
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {!success ? (

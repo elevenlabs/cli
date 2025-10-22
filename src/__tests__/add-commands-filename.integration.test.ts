@@ -12,7 +12,7 @@ import { tmpdir } from "os";
 
 /**
  * Integration tests for add commands using name-based filenames.
- * These tests verify that agents add, add-webhook-tool, add-client-tool, and add-test
+ * These tests verify that elevenlabs add, add-webhook-tool, add-client-tool, and add-test
  * create config files with human-readable names instead of ID-based names.
  * 
  * This validates the fix from commit 8912a719769b64aace09f3f443cfb663941b913d
@@ -73,7 +73,7 @@ describe("Add Commands - Name-based Filenames", () => {
     jest.clearAllMocks();
   });
 
-  describe("agents add command", () => {
+  describe("elevenlabs add command", () => {
     it("should create config file using agent name, not agent ID", async () => {
       // Mock API to return an agent ID
       const mockAgentId = "agent_abc123xyz";

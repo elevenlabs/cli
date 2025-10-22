@@ -48,7 +48,7 @@ export const PullView: React.FC<PullViewProps> = ({
         // Check if agents.json exists
         const agentsConfigPath = path.resolve('agents.json');
         if (!(await fs.pathExists(agentsConfigPath))) {
-          throw new Error('agents.json not found. Run "agents init" first.');
+          throw new Error('agents.json not found. Run "elevenlabs init" first.');
         }
 
         // Load existing config
@@ -298,7 +298,7 @@ export const PullView: React.FC<PullViewProps> = ({
   const errorCount = agents.filter(a => a.status === 'error').length;
 
   return (
-    <App title="ElevenLabs Agents">
+    <App title="ElevenLabs">
       <Box flexDirection="column">
         {error ? (
           <Box>

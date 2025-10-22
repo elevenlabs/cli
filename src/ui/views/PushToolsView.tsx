@@ -170,8 +170,8 @@ export const PushToolsView: React.FC<PushToolsViewProps> = ({
   const errorCount = pushedTools.filter(t => t.status === 'error').length;
 
   return (
-    <App 
-      title="ElevenLabs Agents" 
+    <App
+      title="ElevenLabs" 
     >
       <Box flexDirection="column">
         {/* Tool Status List - Compact Table */}

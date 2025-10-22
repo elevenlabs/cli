@@ -176,7 +176,7 @@ interface TemplateShowOptions {
 
 program
   .name('elevenlabs')
-  .description('ElevenLabs Agents Manager CLI')
+  .description('ElevenLabs CLI')
   .version(version)
   .configureHelp({
     // Override the default help to use our Ink UI
@@ -280,12 +280,12 @@ ELEVENLABS_API_KEY=your_api_key_here
         
         console.log('\nProject initialized successfully!');
         console.log('Next steps:');
-        console.log('1. Set your ElevenLabs API key: agents login');
-        console.log('2. Create an agent: agents add "My Agent" --template default');
-        console.log('3. Create tools: agents add-webhook-tool "My Webhook" or agents add-client-tool "My Client"');
-        console.log('4. Create tests: agents add-test "My Test" --template basic-llm');
-        console.log('5. Push to ElevenLabs: agents push && agents push-tools && agents push-tests');
-        console.log('6. Run tests: agents test "My Agent"');
+        console.log('1. Set your ElevenLabs API key: elevenlabs login');
+        console.log('2. Create an agent: elevenlabs add "My Agent" --template default');
+        console.log('3. Create tools: elevenlabs add-webhook-tool "My Webhook" or elevenlabs add-client-tool "My Client"');
+        console.log('4. Create tests: elevenlabs add-test "My Test" --template basic-llm');
+        console.log('5. Push to ElevenLabs: elevenlabs push && elevenlabs push-tools && elevenlabs push-tests');
+        console.log('6. Run tests: elevenlabs test "My Agent"');
       }
     } catch (error) {
       console.error(`Error initializing project: ${error}`);
@@ -433,7 +433,7 @@ program
             console.log(`Residency: ${residency}`);
           } else {
             console.log('Not logged in');
-            console.log('Use "agents login" to authenticate');
+            console.log('Use "elevenlabs login" to authenticate');
           }
         }
       }
@@ -516,7 +516,7 @@ program
       // Check if agents.json exists
       const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
       if (!(await fs.pathExists(agentsConfigPath))) {
-        console.error('agents.json not found. Run \'agents init\' first.');
+        console.error('agents.json not found. Run \'elevenlabs init\' first.');
         process.exit(1);
       }
       
@@ -579,7 +579,7 @@ program
       await writeConfig(agentsConfigPath, agentsConfig);
       console.log(`Added agent '${name}' to agents.json`);
       
-      console.log(`Edit ${configPath} to customize your agent, then run 'agents push' to update`);
+      console.log(`Edit ${configPath} to customize your agent, then run 'elevenlabs push' to update`);
       
     } catch (error) {
       console.error(`Error creating agent: ${error}`);
@@ -635,7 +635,7 @@ templatesCommand
       console.log(`   ${description}`);
     }
     
-    console.log('\nUse \'agents add <name> --template <template_name>\' to create an agent with a specific template');
+    console.log('\nUse \'elevenlabs add <name> --template <template_name>\' to create an agent with a specific template');
   });
 
 templatesCommand
@@ -890,7 +890,7 @@ program
           : await listEnvironments();
         
         if (environmentsToPull.length === 0) {
-          console.log('No environments configured. Use "agents login" to add an environment.');
+          console.log('No environments configured. Use "elevenlabs login" to add an environment.');
           return;
         }
         
@@ -935,7 +935,7 @@ program
           : await listEnvironments();
         
         if (environmentsToPull.length === 0) {
-          console.log('No environments configured. Use "agents login" to add an environment.');
+          console.log('No environments configured. Use "elevenlabs login" to add an environment.');
           return;
         }
         
@@ -1031,7 +1031,7 @@ program
         // Use new Ink UI for push-tools
         const toolsConfigPath = path.resolve(TOOLS_CONFIG_FILE);
         if (!(await fs.pathExists(toolsConfigPath))) {
-          throw new Error('tools.json not found. Run \'agents add-webhook-tool\' or \'agents add-client-tool\' first.');
+          throw new Error('tools.json not found. Run \'elevenlabs add-webhook-tool\' or \'elevenlabs add-client-tool\' first.');
         }
 
         const toolsConfig = await readToolsConfig(toolsConfigPath);
@@ -1284,7 +1284,7 @@ async function addTool(name: string, type: 'webhook' | 'client', configPath?: st
     await writeToolsConfig(toolsConfigPath, toolsConfig);
     console.log(`Added tool '${name}' to tools.json`);
     
-    console.log(`Edit ${configPath} to customize your tool, then run 'agents push-tools' to update`);
+    console.log(`Edit ${configPath} to customize your tool, then run 'elevenlabs push-tools' to update`);
     
   } catch (error) {
     console.error(`Error creating tool in ElevenLabs: ${error}`);
@@ -1607,7 +1607,7 @@ async function pullAgents(options: PullOptions): Promise<void> {
     : await listEnvironments();
   
   if (environmentsToPull.length === 0) {
-    console.log('No environments configured. Use "agents login" to add an environment.');
+    console.log('No environments configured. Use "elevenlabs login" to add an environment.');
     return;
   }
   
@@ -1827,7 +1827,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, environment: stri
   } else {
     console.log(`\n✓ Summary: ${operations.create} created, ${operations.update} updated, ${operations.skip} skipped`);
     if (itemsProcessed > 0) {
-      console.log(`You can now edit the config files in '${options.outputDir}/' and run 'agents push' to update`);
+      console.log(`You can now edit the config files in '${options.outputDir}/' and run 'elevenlabs push' to update`);
     }
   }
 }
@@ -1842,7 +1842,7 @@ async function pullTools(options: PullToolsOptions): Promise<void> {
     : await listEnvironments();
   
   if (environmentsToPull.length === 0) {
-    console.log('No environments configured. Use "agents login" to add an environment.');
+    console.log('No environments configured. Use "elevenlabs login" to add an environment.');
     return;
   }
   
@@ -2075,7 +2075,7 @@ async function generateWidget(agentId: string): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
-    throw new Error('agents.json not found. Run \'agents init\' first.');
+    throw new Error('agents.json not found. Run \'elevenlabs init\' first.');
   }
   
   // Check if agent exists in config
@@ -2162,7 +2162,7 @@ async function addTest(name: string, templateType: string = "basic-llm", environ
     await writeConfig(testsConfigPath, testsConfig);
     console.log(`Added test '${name}' to tests.json`);
 
-    console.log(`Edit ${configPath} to customize your test, then run 'agents push-tests' to update`);
+    console.log(`Edit ${configPath} to customize your test, then run 'elevenlabs push-tests' to update`);
 
   } catch (error) {
     console.error(`Error creating test in ElevenLabs: ${error}`);
@@ -2174,7 +2174,7 @@ async function pushTests(testId?: string, dryRun = false, environment?: string):
   // Load tests configuration
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
   if (!(await fs.pathExists(testsConfigPath))) {
-    throw new Error('tests.json not found. Run \'agents add-test\' first.');
+    throw new Error('tests.json not found. Run \'elevenlabs add-test\' first.');
   }
 
   const testsConfig = await readConfig<TestsConfig>(testsConfigPath);
@@ -2283,7 +2283,7 @@ async function pushTools(toolId?: string, dryRun = false, environment?: string):
   // Load tools configuration
   const toolsConfigPath = path.resolve(TOOLS_CONFIG_FILE);
   if (!(await fs.pathExists(toolsConfigPath))) {
-    throw new Error('tools.json not found. Run \'agents add-webhook-tool\' or \'agents add-client-tool\' first.');
+    throw new Error('tools.json not found. Run \'elevenlabs add-webhook-tool\' or \'elevenlabs add-client-tool\' first.');
   }
 
   const toolsConfig = await readToolsConfig(toolsConfigPath);
@@ -2401,7 +2401,7 @@ async function pullTests(options: { test?: string; outputDir: string; dryRun: bo
     : await listEnvironments();
   
   if (environmentsToPull.length === 0) {
-    console.log('No environments configured. Use "agents login" to add an environment.');
+    console.log('No environments configured. Use "elevenlabs login" to add an environment.');
     return;
   }
   
@@ -2600,7 +2600,7 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
   } else {
     console.log(`\n✓ Summary: ${operations.create} created, ${operations.update} updated, ${operations.skip} skipped`);
     if (itemsProcessed > 0) {
-      console.log(`You can now edit the config files in '${options.outputDir}/' and run 'agents push-tests' to update`);
+      console.log(`You can now edit the config files in '${options.outputDir}/' and run 'elevenlabs push-tests' to update`);
     }
   }
 }
@@ -2609,7 +2609,7 @@ async function runAgentTestsWithUI(agentId: string): Promise<void> {
   // Load agents configuration and get agent details
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
-    throw new Error('agents.json not found. Run \'agents init\' first.');
+    throw new Error('agents.json not found. Run \'elevenlabs init\' first.');
   }
 
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
@@ -2652,7 +2652,7 @@ async function runAgentTests(agentId: string): Promise<void> {
   // Load agents configuration and get agent details
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
-    throw new Error('agents.json not found. Run \'agents init\' first.');
+    throw new Error('agents.json not found. Run \'elevenlabs init\' first.');
   }
 
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
@@ -2760,7 +2760,7 @@ async function deleteAgent(agentId: string): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
-    throw new Error('agents.json not found. Run \'agents init\' first.');
+    throw new Error('agents.json not found. Run \'elevenlabs init\' first.');
   }
 
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
@@ -2809,7 +2809,7 @@ async function deleteAllAgents(ui: boolean = true, env?: string): Promise<void> 
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
-    throw new Error('agents.json not found. Run \'agents init\' first.');
+    throw new Error('agents.json not found. Run \'elevenlabs init\' first.');
   }
 
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
@@ -2909,7 +2909,7 @@ async function deleteTool(toolId: string): Promise<void> {
   // Load tools configuration
   const toolsConfigPath = path.resolve(TOOLS_CONFIG_FILE);
   if (!(await fs.pathExists(toolsConfigPath))) {
-    throw new Error('tools.json not found. Run \'agents init\' first.');
+    throw new Error('tools.json not found. Run \'elevenlabs init\' first.');
   }
 
   const toolsConfig = await readToolsConfig(toolsConfigPath);
@@ -2968,7 +2968,7 @@ async function deleteAllTools(ui: boolean = true, env?: string): Promise<void> {
   // Load tools configuration
   const toolsConfigPath = path.resolve(TOOLS_CONFIG_FILE);
   if (!(await fs.pathExists(toolsConfigPath))) {
-    throw new Error('tools.json not found. Run \'agents init\' first.');
+    throw new Error('tools.json not found. Run \'elevenlabs init\' first.');
   }
 
   const toolsConfig = await readToolsConfig(toolsConfigPath);
@@ -3086,7 +3086,7 @@ async function deleteTest(testId: string): Promise<void> {
   // Load tests configuration
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
   if (!(await fs.pathExists(testsConfigPath))) {
-    throw new Error('tests.json not found. Run \'agents init\' first.');
+    throw new Error('tests.json not found. Run \'elevenlabs init\' first.');
   }
 
   const testsConfig = await readConfig<TestsConfig>(testsConfigPath);
@@ -3145,7 +3145,7 @@ async function deleteAllTests(ui: boolean = true, env?: string): Promise<void> {
   // Load tests configuration
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
   if (!(await fs.pathExists(testsConfigPath))) {
-    throw new Error('tests.json not found. Run \'agents init\' first.');
+    throw new Error('tests.json not found. Run \'elevenlabs init\' first.');
   }
 
   const testsConfig = await readConfig<TestsConfig>(testsConfigPath);
@@ -3282,12 +3282,12 @@ if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.error('Usage: elevenlabs add <name> [options]');
     console.error('');
     console.error('Example:');
-    console.error('  agents add "My Agent"');
-    console.error('  agents add "My Agent" --template advanced');
+    console.error('  elevenlabs add "My Agent"');
+    console.error('  elevenlabs add "My Agent" --template advanced');
     console.error('');
     console.error('For other commands, see:');
-    console.error('  agents add-webhook-tool <name>');
-    console.error('  agents add-client-tool <name>');
+    console.error('  elevenlabs add-webhook-tool <name>');
+    console.error('  elevenlabs add-client-tool <name>');
     process.exit(1);
   }
 

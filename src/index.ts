@@ -1,5 +1,5 @@
 /**
- * ElevenLabs Agents Manager
+ * ElevenLabs
  * TypeScript/Node.js implementation
  */
 

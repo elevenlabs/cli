@@ -187,8 +187,8 @@ export const PushView: React.FC<PushViewProps> = ({
   const errorCount = pushedAgents.filter(a => a.status === 'error').length;
 
   return (
-    <App 
-      title="ElevenLabs Agents" 
+    <App
+      title="ElevenLabs" 
     >
       <Box flexDirection="column">
         {/* Agent Status List - Compact Table */}

@@ -184,7 +184,7 @@ export const InitView: React.FC<InitViewProps> = ({ projectPath, override = fals
 
   return (
     <App
-      title="ElevenLabs Agents"
+      title="ElevenLabs"
       headerMarginBottom={1}
     >
       <Box flexDirection="column">
@@ -258,9 +258,9 @@ export const InitView: React.FC<InitViewProps> = ({ projectPath, override = fals
             </Text>
             <Box marginTop={1} flexDirection="column">
               <Text color={theme.colors.text.secondary}>Next steps:</Text>
-              <Text color={theme.colors.text.secondary}>1. Set your API key: agents login</Text>
-              <Text color={theme.colors.text.secondary}>2. Create an agent: agents add "My Agent" --template default</Text>
-              <Text color={theme.colors.text.secondary}>3. Push to ElevenLabs: agents push</Text>
+              <Text color={theme.colors.text.secondary}>1. Set your API key: elevenlabs login</Text>
+              <Text color={theme.colors.text.secondary}>2. Create an agent: elevenlabs add "My Agent" --template default</Text>
+              <Text color={theme.colors.text.secondary}>3. Push to ElevenLabs: elevenlabs push</Text>
             </Box>
           </Box>
         )}

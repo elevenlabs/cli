@@ -33,7 +33,7 @@ export const StatusView: React.FC<StatusViewProps> = ({
         // Load agents configuration
         const agentsConfigPath = path.resolve('agents.json');
         if (!(await fs.pathExists(agentsConfigPath))) {
-          throw new Error('agents.json not found. Run "agents init" first.');
+          throw new Error('agents.json not found. Run "elevenlabs init" first.');
         }
 
         const agentsConfig = await readConfig<any>(agentsConfigPath);
@@ -106,8 +106,8 @@ export const StatusView: React.FC<StatusViewProps> = ({
   const missingCount = agents.filter(a => a.status === 'missing').length;
 
   return (
-    <App 
-      title="ElevenLabs Agents"
+    <App
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {loading ? (

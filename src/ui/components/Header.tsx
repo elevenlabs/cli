@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-  title = 'ElevenLabs Agents', 
+  title = 'ElevenLabs', 
   showLogo = true,
   marginBottom = 2
 }) => {

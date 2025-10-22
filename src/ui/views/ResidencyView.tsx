@@ -70,8 +70,8 @@ export const ResidencyView: React.FC<ResidencyViewProps> = ({
   }));
 
   return (
-    <App 
-      title="ElevenLabs Agents"
+    <App
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {isLoading ? (

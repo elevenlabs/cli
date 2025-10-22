@@ -73,8 +73,8 @@ export const WhoamiView: React.FC<WhoamiViewProps> = ({ onComplete }) => {
   }, [exit, onComplete]);
 
   return (
-    <App 
-      title="ElevenLabs Agents"
+    <App
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {loading ? (
@@ -149,7 +149,7 @@ export const WhoamiView: React.FC<WhoamiViewProps> = ({ onComplete }) => {
             
             <Box marginTop={1}>
               <Text color={theme.colors.text.secondary}>
-                Run 'agents login' to authenticate with your API key
+                Run 'elevenlabs login' to authenticate with your API key
               </Text>
             </Box>
           </>

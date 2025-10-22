@@ -4,9 +4,9 @@
 
 # ElevenLabs CLI
 
-Build multimodal agents with the [ElevenLabs Agents platform](https://elevenlabs.io/docs/agents-platform/overview).
+Build multimodal agents with the [ElevenLabs platform](https://elevenlabs.io/docs/agents-platform/overview).
 
-Manage ElevenLabs Agents with local configuration files. This tool is an experimental exploration of treating agents as code, with features like templates, watch mode, and automatic pushing.
+Manage ElevenLabs with local configuration files. This tool is an experimental exploration of treating agents as code, with features like templates, watch mode, and automatic pushing.
 
 ## Features
 
@@ -49,7 +49,7 @@ Or set environment variable:
 export ELEVENLABS_API_KEY="your_api_key_here"
 ```
 
-> **Note**: For now, your API key must be unrestricted to work with the CLI, as ElevenLabs Agents-restricted keys are not available yet.
+> **Note**: For now, your API key must be unrestricted to work with the CLI, as ElevenLabs-restricted keys are not available yet.
 
 ### Check Status
 

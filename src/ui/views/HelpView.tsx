@@ -1,8 +1,6 @@
 // @ts-nocheck
 import React, { useEffect } from "react";
 import { Box, Text, useApp } from "ink";
-import Gradient from "ink-gradient";
-import BigText from "ink-big-text";
 import App from "../App.js";
 import theme from "../themes/elevenlabs.js";
 import { readFileSync } from "fs";
@@ -188,14 +186,8 @@ export const HelpView: React.FC = () => {
     <App>
       <Box flexDirection="column" marginBottom={1}>
         <Box marginBottom={1}>
-          <Gradient name="passion">
-            <BigText text="elevenlabs" font="chrome" />
-          </Gradient>
-        </Box>
-
-        <Box marginBottom={1}>
           <Text color={theme.colors.text.secondary}>
-            ElevenLabs Agents Manager CLI v{version}
+            ElevenLabs CLI v{version}
           </Text>
         </Box>
       </Box>
@@ -208,7 +200,7 @@ export const HelpView: React.FC = () => {
         </Box>
         <Box marginLeft={2}>
           <Text color={theme.colors.text.primary}>
-            agents [command] [options]
+            elevenlabs [command] [options]
           </Text>
         </Box>
       </Box>
@@ -257,28 +249,28 @@ export const HelpView: React.FC = () => {
         <Box flexDirection="column" marginLeft={2}>
           <Text color={theme.colors.text.secondary}>
             1. Initialize a project:{" "}
-            <Text color={theme.colors.success}>agents init</Text>
+            <Text color={theme.colors.success}>elevenlabs init</Text>
           </Text>
           <Text color={theme.colors.text.secondary}>
             2. Login with API key:{" "}
-            <Text color={theme.colors.success}>agents login</Text>
+            <Text color={theme.colors.success}>elevenlabs login</Text>
           </Text>
           <Text color={theme.colors.text.secondary}>
             3. Create an agent:{" "}
             <Text color={theme.colors.success}>
-              agents add agent "My Agent"
+              elevenlabs add "My Agent"
             </Text>
           </Text>
           <Text color={theme.colors.text.secondary}>
             4. Push to ElevenLabs:{" "}
-            <Text color={theme.colors.success}>agents push</Text>
+            <Text color={theme.colors.success}>elevenlabs push</Text>
           </Text>
         </Box>
       </Box>
 
       <Box marginTop={1}>
         <Text color={theme.colors.text.muted}>
-          For more information on a command, use: agents [command] --help
+          For more information on a command, use: elevenlabs [command] --help
         </Text>
       </Box>
 

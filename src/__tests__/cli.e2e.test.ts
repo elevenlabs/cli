@@ -170,7 +170,7 @@ describe("CLI End-to-End Tests", () => {
     it("should show help", async () => {
       const result = await runCli(["--help"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("ElevenLabs Agents Manager CLI");
+      expect(result.stdout).toContain("ElevenLabs CLI");
       expect(result.stdout).toContain("Usage:");
     });
 
@@ -712,7 +712,7 @@ describe("CLI End-to-End Tests", () => {
       ];
       const agentsJsonPath = path.join(pushPullTempDir, "agents.json");
 
-      // Step (a) & (b): Create 3 agents using agents add command
+      // Step (a) & (b): Create 3 agents using elevenlabs add command
       console.log("Step (a) & (b): Creating 3 agents...");
       
       for (const agentName of agentNames) {

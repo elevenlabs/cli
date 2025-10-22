@@ -333,7 +333,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
 
   return (
     <App
-      title="ElevenLabs Agents CLI"
+      title="ElevenLabs CLI"
     >
       <Box flexDirection="column" gap={1}>
         {!state.loading && !state.error && (
@@ -443,7 +443,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
                   • Use tools in your agent configurations
                 </Text>
                 <Text color={theme.colors.text.muted}>
-                  • Run 'agents push' to deploy agents with tools
+                  • Run 'elevenlabs push' to deploy agents with tools
                 </Text>
               </Box>
             )}

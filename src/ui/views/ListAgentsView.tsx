@@ -30,7 +30,7 @@ export const ListAgentsView: React.FC<ListAgentsViewProps> = ({ onComplete }) =>
         const agentsConfigPath = path.resolve('agents.json');
         
         if (!(await fs.pathExists(agentsConfigPath))) {
-          setError('agents.json not found. Run "agents init" first.');
+          setError('agents.json not found. Run "elevenlabs init" first.');
           setLoading(false);
           return;
         }
@@ -89,8 +89,8 @@ export const ListAgentsView: React.FC<ListAgentsViewProps> = ({ onComplete }) =>
   }));
 
   return (
-    <App 
-      title="ElevenLabs Agents"
+    <App
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {loading ? (
@@ -114,7 +114,7 @@ export const ListAgentsView: React.FC<ListAgentsViewProps> = ({ onComplete }) =>
             />
             <Box marginTop={1}>
               <Text color={theme.colors.text.secondary}>
-                Run 'agents add "agent-name"' to create your first agent
+                Run 'elevenlabs add "agent-name"' to create your first agent
               </Text>
             </Box>
           </>
@@ -173,13 +173,13 @@ export const ListAgentsView: React.FC<ListAgentsViewProps> = ({ onComplete }) =>
                 Commands:
               </Text>
               <Text color={theme.colors.text.muted}>
-                • 'agents status' - Check push status
+                • 'elevenlabs status' - Check push status
               </Text>
               <Text color={theme.colors.text.muted}>
-                • 'agents push' - Deploy to ElevenLabs
+                • 'elevenlabs push' - Deploy to ElevenLabs
               </Text>
               <Text color={theme.colors.text.muted}>
-                • 'agents add' - Add new agent
+                • 'elevenlabs add' - Add new agent
               </Text>
             </Box>
           </>

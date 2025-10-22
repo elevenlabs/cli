@@ -133,7 +133,7 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
 
   return (
     <App
-      title="ElevenLabs Agents"
+      title="ElevenLabs"
     >
       <Box flexDirection="column" gap={1}>
         {/* Step 1: Agent Name */}
