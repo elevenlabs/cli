@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [main, next]
+  pull_request:
+
+permissions:
+  checks: write
+  contents: write
+
+jobs:
+  run-linters:
+    name: Build packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Set up node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install PNPM
+        run: npm i pnpm -g
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Run build
+        run: pnpm run build
