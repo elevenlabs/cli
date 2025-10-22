@@ -29,6 +29,9 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Claude Code
+.claude
+
 # misc
 /.sass-cache
 /connect.lock
