@@ -23,143 +23,132 @@ interface Command {
 const commands: Command[][] = [
   [
     {
-      name: "init [path]",
-      description: "Initialize project (use --override to recreate from scratch)",
-    },
-    {
-      name: "login",
-      description: "Login with your ElevenLabs API key",
-    },
-    {
-      name: "logout",
-      description: "Logout and remove stored API key",
-    },
-    {
-      name: "whoami",
-      description: "Show current login status",
-    },
-    {
-      name: "residency [location]",
-      description: "Set the API residency location",
-    },
-  ],
-  [
-    {
-      name: "add <name>",
-      description: "Create a new agent and push to remote",
-    },
-    {
-      name: "list",
-      description: "List all local agents",
-    },
-    {
-      name: "delete [agent_id]",
-      description: "Delete agent (use --all to delete all agents)",
-    },
-    {
-      name: "status",
-      description: "Show the status of agents",
-    },
-    {
-      name: "push",
-      description: "Push agents to ElevenLabs",
-    },
-    {
-      name: "pull",
-      description: "Pull agents from ElevenLabs",
+      name: "auth",
+      description: "Authentication commands",
       subcommands: [
         {
-          name: "(default)",
-          description: "Pull new items only, skip existing",
+          name: "login",
+          description: "Login with your ElevenLabs API key",
         },
         {
-          name: "--update",
-          description: "Update existing items only, skip new",
+          name: "logout",
+          description: "Logout and remove stored API key",
         },
         {
-          name: "--all",
-          description: "Pull everything (new + existing)",
+          name: "whoami",
+          description: "Show current login status",
         },
         {
-          name: "",
-          description: "",
+          name: "residency [location]",
+          description: "Set the API residency location",
         },
       ],
     },
   ],
   [
     {
-      name: "add-webhook-tool <name>",
-      description: "Add a new webhook tool",
-    },
-    {
-      name: "add-client-tool <name>",
-      description: "Add a new client tool",
-    },
-    {
-      name: "delete-tool [tool_id]",
-      description: "Delete tool (use --all to delete all tools)",
-    },
-    {
-      name: "push-tools",
-      description: "Push tools to ElevenLabs API",
-    },
-    {
-      name: "pull-tools",
-      description: "Pull tools from ElevenLabs (see pull for options)",
-    },
-  ],
-  [
-    {
-      name: "add-test <name>",
-      description: "Add a new test",
-    },
-    {
-      name: "delete-test [test_id]",
-      description: "Delete test (use --all to delete all tests)",
-    },
-    {
-      name: "push-tests",
-      description: "Push tests to ElevenLabs API",
-    },
-    {
-      name: "pull-tests",
-      description: "Pull tests from ElevenLabs (see pull for options)",
-    },
-    {
-      name: "test <agent>",
-      description: "Run tests for an agent",
-    },
-  ],
-  [
-    {
-      name: "templates",
-      description: "Manage agent templates",
+      name: "agents",
+      description: "Agent management commands",
       subcommands: [
+        {
+          name: "init [path]",
+          description: "Initialize project (use --override to recreate)",
+        },
+        {
+          name: "add <name>",
+          description: "Create a new agent and push to remote",
+        },
         {
           name: "list",
-          description: "List available agent templates",
+          description: "List all local agents",
         },
         {
-          name: "show <template>",
-          description: "Show template configuration",
+          name: "delete [agent_id]",
+          description: "Delete agent (use --all for all)",
+        },
+        {
+          name: "status",
+          description: "Show the status of agents",
+        },
+        {
+          name: "push",
+          description: "Push agents to ElevenLabs",
+        },
+        {
+          name: "pull",
+          description: "Pull agents (--update, --all options)",
+        },
+        {
+          name: "test <agent>",
+          description: "Run tests for an agent",
+        },
+        {
+          name: "templates",
+          description: "Manage agent templates (list, show)",
+        },
+        {
+          name: "widget <name>",
+          description: "Generate HTML widget snippet",
         },
       ],
     },
   ],
   [
     {
-      name: "widget <name>",
-      description: "Generate HTML widget snippet for an agent",
+      name: "tools",
+      description: "Tool management commands",
+      subcommands: [
+        {
+          name: "add <name>",
+          description: "Add tool (--type webhook|client)",
+        },
+        {
+          name: "delete [tool_id]",
+          description: "Delete tool (use --all for all)",
+        },
+        {
+          name: "push",
+          description: "Push tools to ElevenLabs API",
+        },
+        {
+          name: "pull",
+          description: "Pull tools (--update, --all options)",
+        },
+      ],
     },
+  ],
+  [
+    {
+      name: "tests",
+      description: "Test management commands",
+      subcommands: [
+        {
+          name: "add <name>",
+          description: "Add a new test",
+        },
+        {
+          name: "delete [test_id]",
+          description: "Delete test (use --all for all)",
+        },
+        {
+          name: "push",
+          description: "Push tests to ElevenLabs API",
+        },
+        {
+          name: "pull",
+          description: "Pull tests (--update, --all options)",
+        },
+      ],
+    },
+  ],
+  [
     {
       name: "components",
-      description:
-        "Import components from the ElevenLabs UI registry (https://ui.elevenlabs.io)",
+      description: "UI component management",
       subcommands: [
         {
           name: "add [name]",
-          description: "Add component from registry",
+          description: "Add component from ElevenLabs UI registry",
         },
       ],
     },
@@ -245,21 +234,21 @@ export const HelpView: React.FC = () => {
         <Box flexDirection="column" marginLeft={2}>
           <Text color={theme.colors.text.secondary}>
             1. Initialize a project:{" "}
-            <Text color={theme.colors.success}>elevenlabs init</Text>
+            <Text color={theme.colors.success}>elevenlabs agents init</Text>
           </Text>
           <Text color={theme.colors.text.secondary}>
             2. Login with API key:{" "}
-            <Text color={theme.colors.success}>elevenlabs login</Text>
+            <Text color={theme.colors.success}>elevenlabs auth login</Text>
           </Text>
           <Text color={theme.colors.text.secondary}>
             3. Create an agent:{" "}
             <Text color={theme.colors.success}>
-              elevenlabs add "My Agent"
+              elevenlabs agents add "My Agent"
             </Text>
           </Text>
           <Text color={theme.colors.text.secondary}>
             4. Push to ElevenLabs:{" "}
-            <Text color={theme.colors.success}>elevenlabs push</Text>
+            <Text color={theme.colors.success}>elevenlabs agents push</Text>
           </Text>
         </Box>
       </Box>

@@ -14,7 +14,7 @@ import {
   isLoggedIn,
   getResidency,
   setResidency,
-} from "../config";
+} from "../shared/config";
 import {
   describe,
   it,
@@ -31,7 +31,7 @@ jest.mock("os", () => ({
 }));
 
 // Mock auth module for better isolation
-jest.mock("../auth", () => {
+jest.mock("../shared/auth", () => {
   let storedApiKey: string | undefined;
   const resetStoredApiKey = () => {
     storedApiKey = undefined;
@@ -74,7 +74,7 @@ describe("Config Management", () => {
     // Mock os.homedir to return our temp directory
     mockedOs.homedir.mockReturnValue(tempDir);
     // Reset mock state
-    const authMock = jest.mocked(await import("../auth.js"));
+    const authMock = jest.mocked(await import("../shared/auth.js"));
     if (
       "__resetStoredApiKey" in authMock &&
       typeof authMock.__resetStoredApiKey === "function"

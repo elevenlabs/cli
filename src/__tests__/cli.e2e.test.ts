@@ -183,7 +183,7 @@ describe("CLI End-to-End Tests", () => {
 
   describe("[local] init command", () => {
     it("should initialize a new project", async () => {
-      const result = await runCli(["init"]);
+      const result = await runCli(["agents", "init"]);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Initializing project");
@@ -218,14 +218,14 @@ describe("CLI End-to-End Tests", () => {
 
     it("should not overwrite existing files", async () => {
       // Create project first
-      await runCli(["init"]);
+      await runCli(["agents", "init"]);
 
       // Modify agents.json
       const agentsJsonPath = path.join(tempDir, "agents.json");
       await fs.writeFile(agentsJsonPath, '{"agents": [{"name": "test"}]}');
 
       // Init again
-      const result = await runCli(["init"]);
+      const result = await runCli(["agents", "init"]);
 
       expect(result.exitCode).toBe(0);
 
@@ -237,25 +237,25 @@ describe("CLI End-to-End Tests", () => {
 
   describe("[local] templates command", () => {
     it("should list available templates", async () => {
-      const result = await runCli(["templates", "list"]);
+      const result = await runCli(["agents", "templates", "list"]);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Available Agent Templates:");
+      expect(result.stdout).toContain("Available agent templates:");
       expect(result.stdout).toContain("default");
       expect(result.stdout).toContain("minimal");
       expect(result.stdout).toContain("customer-service");
     });
 
     it("should show template details", async () => {
-      const result = await runCli(["templates", "show", "default"]);
+      const result = await runCli(["agents", "templates", "show", "default"]);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Template: default");
-      expect(result.stdout).toContain("example_agent");
+      expect(result.stdout).toContain("Example");
     });
 
     it("should show error for invalid template", async () => {
-      const result = await runCli(["templates", "show", "invalid"]);
+      const result = await runCli(["agents", "templates", "show", "invalid"]);
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Unknown template type");
@@ -264,7 +264,7 @@ describe("CLI End-to-End Tests", () => {
 
   describe("[local] whoami command", () => {
     it("should show not logged in when no API key", async () => {
-      const result = await runCli(["whoami"]);
+      const result = await runCli(["auth", "whoami"]);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Not logged in");
@@ -274,7 +274,7 @@ describe("CLI End-to-End Tests", () => {
   describe("[local] project workflow", () => {
     it("should handle basic project workflow without API key", async () => {
       // Initialize project
-      let result = await runCli(["init"]);
+      let result = await runCli(["agents", "init"]);
       expect(result.exitCode).toBe(0);
     });
   });
@@ -288,19 +288,19 @@ describe("CLI End-to-End Tests", () => {
     });
 
     it("should handle invalid arguments", async () => {
-      const result = await runCli(["add"]); // missing required argument
+      const result = await runCli(["agents", "add"]); // missing required argument
 
       expect(result.exitCode).toBe(1);
-      // Check both stdout and stderr for the usage message
+      // Check both stdout and stderr for the error message
       const output = result.stdout + result.stderr;
-      expect(output).toContain("Usage: elevenlabs add");
+      expect(output).toContain("missing required argument");
     });
   });
 
   describe("[local] configuration handling", () => {
     it("should handle agents.json operations", async () => {
       // Initialize project
-      await runCli(["init"]);
+      await runCli(["agents", "init"]);
 
       // Check that agents.json was created with correct structure
       const agentsJsonPath = path.join(tempDir, "agents.json");
@@ -314,11 +314,11 @@ describe("CLI End-to-End Tests", () => {
   describe("[local] push-tools command", () => {
     beforeEach(async () => {
       // Initialize project for each test
-      await runCli(["init"]);
+      await runCli(["agents", "init"]);
     });
 
     it("should show help for push-tools command", async () => {
-      const result = await runCli(["push-tools", "--help", "--no-ui"]);
+      const result = await runCli(["tools", "push", "--help", "--no-ui"]);
 
       // Command should be recognized, even if help doesn't work perfectly
       // The important thing is it's not "unknown command"
@@ -326,14 +326,14 @@ describe("CLI End-to-End Tests", () => {
     });
 
     it("should recognize push-tools command with dry-run option", async () => {
-      const result = await runCli(["push-tools", "--dry-run"]);
+      const result = await runCli(["tools", "push", "--dry-run"]);
 
       // Should succeed in dry-run mode with valid tools.json (created by init)
       expect(result.exitCode).toBe(0);
       expect(result.stderr).not.toContain("unknown command");
       expect(result.stderr).not.toContain("unknown option");
-      // Should show dry-run mode output
-      expect(result.stdout.toLowerCase()).toContain("tool(s) pushed");
+      // Should show dry-run mode output (pushing 0 tools is expected for empty tools.json)
+      expect(result.stdout.toLowerCase()).toContain("pushing");
     });
 
     it("should handle missing tools.json file", async () => {
@@ -341,7 +341,7 @@ describe("CLI End-to-End Tests", () => {
       const toolsJsonPath = path.join(tempDir, "tools.json");
       await fs.remove(toolsJsonPath);
 
-      const result = await runCli(["push-tools"]);
+      const result = await runCli(["tools", "push"]);
 
       expect(result.exitCode).toBe(1);
       // Should get tools.json not found error
@@ -349,13 +349,13 @@ describe("CLI End-to-End Tests", () => {
     });
 
     it("should handle specific tool name option", async () => {
-      const result = await runCli(["push-tools", "--tool", "test-tool"]);
+      // Note: tools push doesn't support --tool option, only --env
+      // This test verifies the command works with --env filter
+      const result = await runCli(["tools", "push", "--env", "test"]);
 
-      expect(result.exitCode).toBe(1);
-      // --tool option should be parsed correctly (no unknown option error)
+      // Should succeed (no tools to push is valid)
+      expect(result.exitCode).toBe(0);
       expect(result.stderr).not.toContain("unknown option");
-      // Should get tool not found error since test-tool doesn't exist in empty tools.json
-      expect(result.stderr).toContain("not found in configuration");
     });
   });
 
@@ -375,7 +375,7 @@ describe("CLI End-to-End Tests", () => {
       const apiKey = process.env.ELEVENLABS_API_KEY!;
 
       // Step 1: Initialize project
-      const initResult = await runCli(["init", "--no-ui"], {
+      const initResult = await runCli(["agents", "init", "--no-ui"], {
         includeApiKey: true,
       });
       expect(initResult.exitCode).toBe(0);
@@ -391,7 +391,7 @@ describe("CLI End-to-End Tests", () => {
       expect(toolsJsonExists).toBe(true);
 
       // Step 2: Login
-      const loginResult = await runCli(["login", "--no-ui"], {
+      const loginResult = await runCli(["auth", "login", "--no-ui"], {
         input: `${apiKey}\n`,
         includeApiKey: true,
       });
@@ -399,21 +399,21 @@ describe("CLI End-to-End Tests", () => {
       expect(loginResult.stdout).toBeTruthy();
 
       // Step 3: Check whoami
-      const whoamiResult = await runCli(["whoami", "--no-ui"], {
+      const whoamiResult = await runCli(["auth", "whoami", "--no-ui"], {
         includeApiKey: true,
       });
       expect(whoamiResult.exitCode).toBe(0);
       expect(whoamiResult.stdout).toBeTruthy();
 
       // Step 4: Check status
-      const statusResult = await runCli(["status", "--no-ui"], {
+      const statusResult = await runCli(["agents", "status", "--no-ui"], {
         includeApiKey: true,
       });
       expect(statusResult.exitCode).toBe(0);
       expect(statusResult.stdout).toBeTruthy();
 
       // Step 5: List agents
-      const listResult = await runCli(["list", "--no-ui"], {
+      const listResult = await runCli(["agents", "list", "--no-ui"], {
         includeApiKey: true,
       });
       expect(listResult.exitCode).toBe(0);
@@ -434,21 +434,21 @@ describe("CLI End-to-End Tests", () => {
       
       try {
         // Initialize project
-        await runCli(["init", "--no-ui"], {
+        await runCli(["agents", "init", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
         });
 
         // Login
         const apiKey = process.env.ELEVENLABS_API_KEY!;
-        await runCli(["login", "--no-ui"], {
+        await runCli(["auth", "login", "--no-ui"], {
           cwd: cleanupTempDir,
           input: `${apiKey}\n`,
           includeApiKey: true,
         });
 
         // Pull all agents from remote
-        await runCli(["pull", "--all", "--no-ui"], {
+        await runCli(["agents", "pull", "--all", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -456,7 +456,7 @@ describe("CLI End-to-End Tests", () => {
 
         // Delete all agents at once
         try {
-          await runCli(["delete", "--all", "--no-ui"], {
+          await runCli(["agents", "delete", "--all", "--no-ui"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n", // Answer the "Are you sure?" prompt
@@ -476,7 +476,7 @@ describe("CLI End-to-End Tests", () => {
       pushPullTempDir = await fs.mkdtemp(path.join(os.tmpdir(), "agents-e2e-pushpull-"));
 
       // Initialize project
-      await runCli(["init", "--no-ui"], {
+      await runCli(["agents", "init", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -501,7 +501,7 @@ describe("CLI End-to-End Tests", () => {
       
       // Pull all agents to ensure we have the current server state
       try {
-        await runCli(["pull", "--all", "--no-ui"], {
+        await runCli(["agents", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -530,6 +530,7 @@ describe("CLI End-to-End Tests", () => {
       // Create an agent using add command
       const agentName = `e2e-pushpull-test-${Date.now()}`;
       const addResult = await runCli([
+        "agents",
         "add",
         agentName,
         "--template",
@@ -566,7 +567,7 @@ describe("CLI End-to-End Tests", () => {
       );
 
       // Pull all agents from remote
-      const pullResult = await runCli(["pull", "--all", "--no-ui"], {
+      const pullResult = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -604,6 +605,7 @@ describe("CLI End-to-End Tests", () => {
       
       // Step 1: Create agent locally using add command
       const addResult = await runCli([
+        "agents",
         "add",
         agentName,
         "--template",
@@ -639,7 +641,7 @@ describe("CLI End-to-End Tests", () => {
       await fs.remove(createdAgentConfigPath);
 
       // Step 3: Pull all agents from remote
-      const pullResult = await runCli(["pull", "--all", "--no-ui"], {
+      const pullResult = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -673,7 +675,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(`✓ Pulled agent config matches original`);
 
       // Step 5: Delete the agent
-      const deleteResult = await runCli(["delete", createdAgentId, "--no-ui"], {
+      const deleteResult = await runCli(["agents", "delete", createdAgentId, "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -687,7 +689,7 @@ describe("CLI End-to-End Tests", () => {
         JSON.stringify({ agents: [] }, null, 2)
       );
 
-      const finalPullResult = await runCli(["pull", "--all", "--no-ui"], {
+      const finalPullResult = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -759,7 +761,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step (d): Pull -> check that nothing changed
       console.log("Step (d): Pulling without --all, expecting no changes...");
-      const pullResult1 = await runCli(["pull", "--no-ui"], {
+      const pullResult1 = await runCli(["agents", "pull", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -791,7 +793,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(
         "Step (f): Pulling to restore third agent, first two unchanged..."
       );
-      const pullResult2 = await runCli(["pull", "--no-ui"], {
+      const pullResult2 = await runCli(["agents", "pull", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -831,7 +833,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(
         "Step (h): Pulling with --update, expecting first to be overridden..."
       );
-      const pullResult3 = await runCli(["pull", "--update", "--no-ui"], {
+      const pullResult3 = await runCli(["agents", "pull", "--update", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -884,7 +886,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(
         "Step (j): Pulling with --all, expecting all overridden and third restored..."
       );
-      const pullResult4 = await runCli(["pull", "--all", "--no-ui"], {
+      const pullResult4 = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -944,7 +946,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 1: Create first agent with the name
       const addResult1 = await runCli(
-        ["add", duplicateName, "--template", "minimal", "--no-ui"],
+        ["agents", "add", duplicateName, "--template", "minimal", "--no-ui"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -956,7 +958,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 2: Create second agent with the same name
       const addResult2 = await runCli(
-        ["add", duplicateName, "--template", "minimal", "--no-ui"],
+        ["agents", "add", duplicateName, "--template", "minimal", "--no-ui"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -1013,7 +1015,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 4: Pull agents from remote
       console.log(`Pulling agents from remote...`);
-      const pullResult = await runCli(["pull", "--all", "--no-ui"], {
+      const pullResult = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -1145,7 +1147,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(`✓ Created two local agents with the same name`);
 
       // Step 3: Push to create them remotely and get IDs
-      const pushResult = await runCli(["push", "--no-ui"], {
+      const pushResult = await runCli(["agents", "push", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1189,7 +1191,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(`✓ Removed local config files and cleared agents.json`);
 
       // Step 5: Pull agents back from remote
-      const pullResult = await runCli(["pull", "--all", "--no-ui"], {
+      const pullResult = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -1273,21 +1275,21 @@ describe("CLI End-to-End Tests", () => {
       
       try {
         // Initialize project
-        await runCli(["init", "--no-ui"], {
+        await runCli(["agents", "init", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
         });
 
         // Login
         const apiKey = process.env.ELEVENLABS_API_KEY!;
-        await runCli(["login", "--no-ui"], {
+        await runCli(["auth", "login", "--no-ui"], {
           cwd: cleanupTempDir,
           input: `${apiKey}\n`,
           includeApiKey: true,
         });
 
         // Pull all tests from remote
-        await runCli(["pull-tests", "--all", "--no-ui"], {
+        await runCli(["tests", "pull", "--all", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -1295,7 +1297,7 @@ describe("CLI End-to-End Tests", () => {
 
         // Delete all tests at once
         try {
-          await runCli(["delete-test", "--all", "--no-ui"], {
+          await runCli(["tests", "delete", "--all", "--no-ui"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n", // Answer the "Are you sure?" prompt
@@ -1315,7 +1317,7 @@ describe("CLI End-to-End Tests", () => {
       pushPullTempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tests-e2e-pushpull-"));
 
       // Initialize project
-      await runCli(["init", "--no-ui"], {
+      await runCli(["agents", "init", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1340,7 +1342,7 @@ describe("CLI End-to-End Tests", () => {
       
       // Pull all tests to ensure we have the current server state
       try {
-        await runCli(["pull-tests", "--all", "--no-ui"], {
+        await runCli(["tests", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -1369,7 +1371,8 @@ describe("CLI End-to-End Tests", () => {
       // Create a test using add-test command
       const testName = `e2e-pushpull-test-${Date.now()}`;
       const addResult = await runCli([
-        "add-test",
+        "tests",
+        "add",
         testName,
         "--template",
         "basic-llm",
@@ -1399,7 +1402,7 @@ describe("CLI End-to-End Tests", () => {
       );
 
       // Pull all tests from remote
-      const pullResult = await runCli(["pull-tests", "--all", "--no-ui"], {
+      const pullResult = await runCli(["tests", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -1431,7 +1434,8 @@ describe("CLI End-to-End Tests", () => {
       
       // Step 1: Create test locally using add-test command
       const addResult = await runCli([
-        "add-test",
+        "tests",
+        "add",
         testName,
         "--template",
         "basic-llm",
@@ -1466,7 +1470,7 @@ describe("CLI End-to-End Tests", () => {
       await fs.remove(createdTestConfigPath);
 
       // Step 3: Pull all tests from remote
-      const pullResult = await runCli(["pull-tests", "--all", "--no-ui"], {
+      const pullResult = await runCli(["tests", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -1501,7 +1505,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(`✓ Pulled test config matches original`);
 
       // Step 5: Delete the test
-      const deleteResult = await runCli(["delete-test", createdTestId, "--no-ui"], {
+      const deleteResult = await runCli(["tests", "delete", createdTestId, "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1515,7 +1519,7 @@ describe("CLI End-to-End Tests", () => {
         JSON.stringify({ tests: [] }, null, 2)
       );
 
-      const finalPullResult = await runCli(["pull-tests", "--all", "--no-ui"], {
+      const finalPullResult = await runCli(["tests", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -1587,7 +1591,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step (d): Pull -> check that nothing changed
       console.log("Step (d): Pulling without --all, expecting no changes...");
-      const pullResult1 = await runCli(["pull-tests", "--no-ui"], {
+      const pullResult1 = await runCli(["tests", "pull", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -1617,7 +1621,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(
         "Step (f): Pulling to restore third test, first two unchanged..."
       );
-      const pullResult2 = await runCli(["pull-tests", "--no-ui"], {
+      const pullResult2 = await runCli(["tests", "pull", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -1655,7 +1659,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(
         "Step (h): Pulling with --update, expecting first to be overridden..."
       );
-      const pullResult3 = await runCli(["pull-tests", "--update", "--no-ui"], {
+      const pullResult3 = await runCli(["tests", "pull", "--update", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -1702,7 +1706,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(
         "Step (j): Pulling with --all, expecting all overridden and third restored..."
       );
-      const pullResult4 = await runCli(["pull-tests", "--all", "--no-ui"], {
+      const pullResult4 = await runCli(["tests", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -1752,7 +1756,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 1: Create first test with the name
       const addResult1 = await runCli(
-        ["add-test", duplicateName, "--template", "basic-llm", "--no-ui"],
+        ["tests", "add", duplicateName, "--template", "basic-llm", "--no-ui"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -1764,7 +1768,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 2: Create second test with the same name
       const addResult2 = await runCli(
-        ["add-test", duplicateName, "--template", "basic-llm", "--no-ui"],
+        ["tests", "add", duplicateName, "--template", "basic-llm", "--no-ui"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -1815,7 +1819,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 4: Pull tests from remote
       console.log(`Pulling tests from remote...`);
-      const pullResult = await runCli(["pull-tests", "--all", "--no-ui"], {
+      const pullResult = await runCli(["tests", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -1892,21 +1896,21 @@ describe("CLI End-to-End Tests", () => {
       
       try {
         // Initialize project
-        await runCli(["init", "--no-ui"], {
+        await runCli(["agents", "init", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
         });
 
         // Login
         const apiKey = process.env.ELEVENLABS_API_KEY!;
-        await runCli(["login", "--no-ui"], {
+        await runCli(["auth", "login", "--no-ui"], {
           cwd: cleanupTempDir,
           input: `${apiKey}\n`,
           includeApiKey: true,
         });
 
         // Pull all tools from remote
-        await runCli(["pull-tools", "--all", "--no-ui"], {
+        await runCli(["tools", "pull", "--all", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -1914,7 +1918,7 @@ describe("CLI End-to-End Tests", () => {
 
         // Delete all tools at once
         try {
-          await runCli(["delete-tool", "--all", "--no-ui"], {
+          await runCli(["tools", "delete", "--all", "--no-ui"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n", // Answer the "Are you sure?" prompt
@@ -1934,7 +1938,7 @@ describe("CLI End-to-End Tests", () => {
       pushPullTempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tools-e2e-pushpull-"));
 
       // Initialize project
-      await runCli(["init", "--no-ui"], {
+      await runCli(["agents", "init", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1959,7 +1963,7 @@ describe("CLI End-to-End Tests", () => {
       
       // Pull all tools to ensure we have the current server state
       try {
-        await runCli(["pull-tools", "--all", "--no-ui"], {
+        await runCli(["tools", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -1985,18 +1989,16 @@ describe("CLI End-to-End Tests", () => {
     });
 
     // Helper to get the add command for a tool type
-    const getAddCommand = (toolType: 'webhook' | 'client') => 
-      toolType === 'webhook' ? 'add-webhook-tool' : 'add-client-tool';
+    const getAddCommand = (toolType: 'webhook' | 'client', name: string) =>
+      ['tools', 'add', name, '--type', toolType];
 
     // Test 1: Run for both webhook and client tools
     (['webhook', 'client'] as const).forEach((toolType) => {
       it(`should verify ${toolType} tool created by add is the only one after pull (--no-ui)`, async () => {
         // Create a tool using add command
         const toolName = `e2e-pushpull-${toolType}-${Date.now()}`;
-        const addResult = await runCli([
-          getAddCommand(toolType),
-          toolName,
-        ], {
+        const addResult = await runCli(
+          getAddCommand(toolType, toolName), {
           cwd: pushPullTempDir,
           includeApiKey: true,
         });
@@ -2021,7 +2023,7 @@ describe("CLI End-to-End Tests", () => {
         );
 
         // Pull all tools from remote
-        const pullResult = await runCli(["pull-tools", "--all", "--no-ui"], {
+        const pullResult = await runCli(["tools", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -2041,7 +2043,7 @@ describe("CLI End-to-End Tests", () => {
         console.log(`✓ Verified ${toolType} tool '${toolName}' is the only tool after pull`);
 
         // Clean up: delete the tool
-        await runCli(["delete-tool", createdTool.id, "--no-ui"], {
+        await runCli(["tools", "delete", createdTool.id, "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
         });
@@ -2055,10 +2057,8 @@ describe("CLI End-to-End Tests", () => {
         const toolsJsonPath = path.join(pushPullTempDir, "tools.json");
         
         // Step 1: Create tool locally using add command
-        const addResult = await runCli([
-          getAddCommand(toolType),
-          toolName,
-        ], {
+        const addResult = await runCli(
+          getAddCommand(toolType, toolName), {
           cwd: pushPullTempDir,
           includeApiKey: true,
         });
@@ -2088,7 +2088,7 @@ describe("CLI End-to-End Tests", () => {
         await fs.remove(createdToolConfigPath);
 
         // Step 3: Pull all tools from remote
-        const pullResult = await runCli(["pull-tools", "--all", "--no-ui"], {
+        const pullResult = await runCli(["tools", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Proceed?" prompt
@@ -2121,7 +2121,7 @@ describe("CLI End-to-End Tests", () => {
         console.log(`✓ Pulled ${toolType} tool config matches original`);
 
         // Step 5: Delete the tool
-        const deleteResult = await runCli(["delete-tool", createdToolId, "--no-ui"], {
+        const deleteResult = await runCli(["tools", "delete", createdToolId, "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
         });
@@ -2135,7 +2135,7 @@ describe("CLI End-to-End Tests", () => {
           JSON.stringify({ tools: [] }, null, 2)
         );
 
-        const finalPullResult = await runCli(["pull-tools", "--all", "--no-ui"], {
+        const finalPullResult = await runCli(["tools", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n",
@@ -2167,10 +2167,8 @@ describe("CLI End-to-End Tests", () => {
         console.log(`Step (a) & (b): Creating 3 ${toolType} tools...`);
         
         for (const toolName of toolNames) {
-          const addResult = await runCli([
-            getAddCommand(toolType),
-            toolName,
-          ], {
+          const addResult = await runCli(
+            getAddCommand(toolType, toolName), {
             cwd: pushPullTempDir,
             includeApiKey: true,
           });
@@ -2207,7 +2205,7 @@ describe("CLI End-to-End Tests", () => {
 
         // Step (d): Pull -> check that nothing changed
         console.log("Step (d): Pulling without --all, expecting no changes...");
-        const pullResult1 = await runCli(["pull-tools", "--no-ui"], {
+        const pullResult1 = await runCli(["tools", "pull", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n",
@@ -2237,7 +2235,7 @@ describe("CLI End-to-End Tests", () => {
         console.log(
           "Step (f): Pulling to restore third tool, first two unchanged..."
         );
-        const pullResult2 = await runCli(["pull-tools", "--no-ui"], {
+        const pullResult2 = await runCli(["tools", "pull", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n",
@@ -2275,7 +2273,7 @@ describe("CLI End-to-End Tests", () => {
         console.log(
           "Step (h): Pulling with --update, expecting first to be overridden..."
         );
-        const pullResult3 = await runCli(["pull-tools", "--update", "--no-ui"], {
+        const pullResult3 = await runCli(["tools", "pull", "--update", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n",
@@ -2322,7 +2320,7 @@ describe("CLI End-to-End Tests", () => {
         console.log(
           "Step (j): Pulling with --all, expecting all overridden and third restored..."
         );
-        const pullResult4 = await runCli(["pull-tools", "--all", "--no-ui"], {
+        const pullResult4 = await runCli(["tools", "pull", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n",
@@ -2373,7 +2371,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 1: Create first tool with the name
       const addResult1 = await runCli(
-        ["add-webhook-tool", duplicateName],
+        ["tools", "add", duplicateName, "--type", "webhook"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -2385,7 +2383,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 2: Create second tool with the same name
       const addResult2 = await runCli(
-        ["add-webhook-tool", duplicateName],
+        ["tools", "add", duplicateName, "--type", "webhook"],
         {
           cwd: pushPullTempDir,
           includeApiKey: true,
@@ -2443,7 +2441,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 4: Pull tools from remote
       console.log(`Pulling tools from remote...`);
-      const pullResult = await runCli(["pull-tools", "--all", "--no-ui"], {
+      const pullResult = await runCli(["tools", "pull", "--all", "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
         input: "y\n", // Answer the "Proceed?" prompt
@@ -2540,27 +2538,27 @@ describe("CLI End-to-End Tests", () => {
       
       try {
         // Initialize project
-        await runCli(["init", "--no-ui"], {
+        await runCli(["agents", "init", "--no-ui"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
         });
 
         // Cleanup prod environment
         const prodApiKey = process.env.ELEVENLABS_API_KEY!;
-        await runCli(["login", "--no-ui", "--env", "prod"], {
+        await runCli(["auth", "login", "--no-ui", "--env", "prod"], {
           cwd: cleanupTempDir,
           input: `${prodApiKey}\n`,
           includeApiKey: true,
         });
 
-        await runCli(["pull", "--all", "--no-ui", "--env", "prod"], {
+        await runCli(["agents", "pull", "--all", "--no-ui", "--env", "prod"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
           input: "y\n",
         });
 
         try {
-          await runCli(["delete", "--all", "--no-ui", "--env", "prod"], {
+          await runCli(["agents", "delete", "--all", "--no-ui", "--env", "prod"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n",
@@ -2572,20 +2570,20 @@ describe("CLI End-to-End Tests", () => {
 
         // Cleanup test environment
         const testApiKey = process.env.ELEVENLABS_TEST_API_KEY!;
-        await runCli(["login", "--no-ui", "--env", "test"], {
+        await runCli(["auth", "login", "--no-ui", "--env", "test"], {
           cwd: cleanupTempDir,
           input: `${testApiKey}\n`,
           includeApiKey: true,
         });
 
-        await runCli(["pull", "--all", "--no-ui", "--env", "test"], {
+        await runCli(["agents", "pull", "--all", "--no-ui", "--env", "test"], {
           cwd: cleanupTempDir,
           includeApiKey: true,
           input: "y\n",
         });
 
         try {
-          await runCli(["delete", "--all", "--no-ui", "--env", "test"], {
+          await runCli(["agents", "delete", "--all", "--no-ui", "--env", "test"], {
             cwd: cleanupTempDir,
             includeApiKey: true,
             input: "y\n",
@@ -2613,7 +2611,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 1: Initialize project
       console.log("Step 1: Initializing project...");
-      const initResult = await runCli(["init", "--no-ui"], {
+      const initResult = await runCli(["agents", "init", "--no-ui"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
       });
@@ -2639,7 +2637,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Verify both environments are logged in
       // Don't include API key env var so whoami reads from stored keys
-      const whoamiResult = await runCli(["whoami", "--no-ui"], {
+      const whoamiResult = await runCli(["auth", "whoami", "--no-ui"], {
         cwd: multiEnvTempDir,
         includeApiKey: false,
       });
@@ -2649,7 +2647,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 4: Add agent to prod (default)
       console.log("Step 4: Adding agent to prod environment...");
-      const addProdResult = await runCli(["add", "prod-agent", "--no-ui"], {
+      const addProdResult = await runCli(["agents", "add", "prod-agent", "--no-ui"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
       });
@@ -2657,7 +2655,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 5: Add agent to test environment
       console.log("Step 5: Adding agent to test environment...");
-      const addTestResult = await runCli(["add", "test-agent", "--no-ui", "--env", "test"], {
+      const addTestResult = await runCli(["agents", "add", "test-agent", "--no-ui", "--env", "test"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
       });
@@ -2684,7 +2682,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 7: Pull from test environment only
       console.log("Step 7: Pulling from test environment...");
-      const pullTestResult = await runCli(["pull", "--all", "--no-ui", "--env", "test"], {
+      const pullTestResult = await runCli(["agents", "pull", "--all", "--no-ui", "--env", "test"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -2705,7 +2703,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 9: Pull from prod environment
       console.log("Step 9: Pulling from prod environment...");
-      const pullProdResult = await runCli(["pull", "--all", "--no-ui", "--env", "prod"], {
+      const pullProdResult = await runCli(["agents", "pull", "--all", "--no-ui", "--env", "prod"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -2742,7 +2740,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 12: Push changes
       console.log("Step 12: Pushing changes...");
-      const pushResult = await runCli(["push", "--no-ui"], {
+      const pushResult = await runCli(["agents", "push", "--no-ui"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
       });
@@ -2756,7 +2754,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 14: Pull from test environment
       console.log("Step 14: Pulling from test environment...");
-      await runCli(["pull", "--all", "--no-ui", "--env", "test"], {
+      await runCli(["agents", "pull", "--all", "--no-ui", "--env", "test"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -2774,7 +2772,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 16: Pull from prod environment
       console.log("Step 16: Pulling from prod environment...");
-      await runCli(["pull", "--all", "--no-ui", "--env", "prod"], {
+      await runCli(["agents", "pull", "--all", "--no-ui", "--env", "prod"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -2793,7 +2791,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 18: Delete all agents
       console.log("Step 18: Deleting all agents...");
-      const deleteAllResult = await runCli(["delete", "--all", "--no-ui"], {
+      const deleteAllResult = await runCli(["agents", "delete", "--all", "--no-ui"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
         input: "y\n",
@@ -2807,7 +2805,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Step 19: Pull from both environments
       console.log("Step 19: Pulling from both environments...");
-      const finalPullResult = await runCli(["pull", "--all", "--no-ui"], {
+      const finalPullResult = await runCli(["agents", "pull", "--all", "--no-ui"], {
         cwd: multiEnvTempDir,
         includeApiKey: true,
         input: "y\n",
