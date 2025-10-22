@@ -149,10 +149,6 @@ const commands: Command[][] = [
   ],
   [
     {
-      name: "watch",
-      description: "Watch for config changes and auto-push",
-    },
-    {
       name: "widget <name>",
       description: "Generate HTML widget snippet for an agent",
     },

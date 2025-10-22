@@ -145,11 +145,6 @@ interface StatusOptions {
   agent?: string;
 }
 
-interface WatchOptions {
-  agent?: string;
-  interval: string;
-}
-
 interface PullOptions {
   agent?: string; // Agent ID to pull specifically
   outputDir: string;
@@ -727,19 +722,6 @@ program
       }
     } catch (error) {
       console.error(`Error showing status: ${error}`);
-      process.exit(1);
-    }
-  });
-
-program
-  .command('watch')
-  .description('Watch for config changes and auto-push agents')
-  .option('--interval <seconds>', 'Check interval in seconds', '5')
-  .action(async (options: WatchOptions) => {
-    try {
-      await watchForChanges(parseInt(options.interval));
-    } catch (error) {
-      console.error(`Error in watch mode: ${error}`);
       process.exit(1);
     }
   });
@@ -1464,89 +1446,6 @@ async function showStatus(): Promise<void> {
       }
     } else {
       console.log('   Status: Config file not found');
-    }
-  }
-}
-
-async function watchForChanges(interval = 5): Promise<void> {
-  console.log(`Watching for config changes (checking every ${interval}s)...`);
-  console.log('Agent: All agents');
-  console.log('Press Ctrl+C to stop');
-  
-  // Track file modification times
-  const fileTimestamps = new Map<string, number>();
-  
-  const getFileMtime = async (filePath: string): Promise<number> => {
-    try {
-      const exists = await fs.pathExists(filePath);
-      if (!exists) return 0;
-      const stats = await fs.stat(filePath);
-      return stats.mtime.getTime();
-    } catch {
-      return 0;
-    }
-  };
-  
-  const checkForChanges = async (): Promise<boolean> => {
-    // Load agents configuration
-    const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
-    if (!(await fs.pathExists(agentsConfigPath))) {
-      return false;
-    }
-    
-    try {
-      const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
-      
-      const agentsToWatch = agentsConfig.agents;
-      
-      // Check agents.json itself
-      const agentsMtime = await getFileMtime(agentsConfigPath);
-      if (fileTimestamps.get(agentsConfigPath) !== agentsMtime) {
-        fileTimestamps.set(agentsConfigPath, agentsMtime);
-        console.log(`Detected change in ${AGENTS_CONFIG_FILE}`);
-        return true;
-      }
-      
-      // Check individual agent config files
-      for (const agentDef of agentsToWatch) {
-        const configPath = agentDef.config;
-        if (configPath && await fs.pathExists(configPath)) {
-          const configMtime = await getFileMtime(configPath);
-          if (fileTimestamps.get(configPath) !== configMtime) {
-            fileTimestamps.set(configPath, configMtime);
-            console.log(`Detected change in ${configPath}`);
-            return true;
-          }
-        }
-      }
-      
-      return false;
-    } catch {
-      return false;
-    }
-  };
-  
-  // Initialize file timestamps
-  await checkForChanges();
-  
-  try {
-    while (true) {
-      if (await checkForChanges()) {
-        console.log('Running push...');
-        try {
-          await pushAgents(false);
-        } catch (error) {
-          console.log(`Error during push: ${error}`);
-        }
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, interval * 1000));
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'SIGINT') {
-      console.log('\nStopping watch mode');
-    } else {
-      throw error;
     }
   }
 }

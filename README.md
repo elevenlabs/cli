@@ -6,14 +6,13 @@
 
 Build multimodal agents with the [ElevenLabs platform](https://elevenlabs.io/docs/agents-platform/overview).
 
-Manage ElevenLabs with local configuration files. This tool is an experimental exploration of treating agents as code, with features like templates, watch mode, and automatic pushing.
+Manage ElevenLabs with local configuration files. This tool is an experimental exploration of treating agents as code, with features like templates and automatic pushing.
 
 ## Features
 
 - **Agent Configuration**: Full ElevenLabs agent schema support
 - **Templates**: Pre-built templates for common use cases
 - **Smart Updates**: Hash-based change detection
-- **Watch Mode**: Automatic sync on file changes
 - **Import/Export**: Fetch existing agents and tools from workspace
 - **Tool Management**: Import and manage tools from ElevenLabs workspace
 - **Widget Generation**: HTML widget snippets
@@ -152,9 +151,6 @@ elevenlabs add "Support Bot" --template customer-service
 
 # 5. Sync to ElevenLabs
 elevenlabs push
-
-# 6. Watch for changes (optional)
-elevenlabs watch
 ```
 
 > **Note**: This example uses the default 'prod' environment. For multi-environment workflows, see [Multi-Environment Management](#multi-environment-management) and [Multi-Environment Workflows](#multi-environment-workflows).
@@ -227,9 +223,6 @@ elevenlabs push-tests [--env prod] [--dry-run]
 
 # Check status
 elevenlabs status [--agent "Agent Name"]
-
-# Watch for changes
-elevenlabs watch [--agent "Agent Name"] [--interval 5]
 
 # Pull agents from ElevenLabs (pulls from all environments by default)
 elevenlabs pull [--search "term"] [--env prod] [--dry-run]
@@ -366,13 +359,6 @@ elevenlabs pull-tools
 # Tools will have 'env' field - modify if needed
 # Reference tools in your agent configurations
 elevenlabs push
-```
-
-**Development:**
-
-```bash
-elevenlabs watch --interval 5
-# Edit configs in another terminal - auto-pushes!
 ```
 
 **Delete Agent:**
