@@ -68,5 +68,3 @@ jobs:
 
       - name: Publish package
         run: pnpm publish --access=public --no-git-checks --tag $PUBLISH_TAG
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.ELEVENLABS_NPM_TOKEN }}
