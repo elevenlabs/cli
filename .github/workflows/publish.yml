@@ -23,14 +23,11 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      - name: Install PNPM
-        run: npm i pnpm -g
-
-      - name: Install dependencies
-        run: pnpm i
+      - name: Update npm
+        run: npm i -g npm@latest
 
       - name: Build package
-        run: pnpm run build
+        run: npm run build
 
       - name: Determine publish tag
         id: extract
@@ -67,4 +64,4 @@ jobs:
           echo "Publish tag is $PUBLISH_TAG"
 
       - name: Publish package
-        run: pnpm publish --access=public --no-git-checks --tag $PUBLISH_TAG
+        run: npm publish
