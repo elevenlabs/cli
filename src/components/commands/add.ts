@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { spawnSync } from 'child_process';
+import { URL } from 'url';
 
 export function createAddCommand(): Command {
   return new Command('add')
