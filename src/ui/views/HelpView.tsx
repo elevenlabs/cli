@@ -14,145 +14,32 @@ const packageJson = JSON.parse(
 );
 const { version } = packageJson;
 
-interface Command {
+interface Module {
   name: string;
   description: string;
-  subcommands?: Command[];
 }
 
-const commands: Command[][] = [
-  [
-    {
-      name: "auth",
-      description: "Authentication commands",
-      subcommands: [
-        {
-          name: "login",
-          description: "Login with your ElevenLabs API key",
-        },
-        {
-          name: "logout",
-          description: "Logout and remove stored API key",
-        },
-        {
-          name: "whoami",
-          description: "Show current login status",
-        },
-        {
-          name: "residency [location]",
-          description: "Set the API residency location",
-        },
-      ],
-    },
-  ],
-  [
-    {
-      name: "agents",
-      description: "Agent management commands",
-      subcommands: [
-        {
-          name: "init [path]",
-          description: "Initialize project (use --override to recreate)",
-        },
-        {
-          name: "add <name>",
-          description: "Create a new agent and push to remote",
-        },
-        {
-          name: "list",
-          description: "List all local agents",
-        },
-        {
-          name: "delete [agent_id]",
-          description: "Delete agent (use --all for all)",
-        },
-        {
-          name: "status",
-          description: "Show the status of agents",
-        },
-        {
-          name: "push",
-          description: "Push agents to ElevenLabs",
-        },
-        {
-          name: "pull",
-          description: "Pull agents (--update, --all options)",
-        },
-        {
-          name: "test <agent>",
-          description: "Run tests for an agent",
-        },
-        {
-          name: "templates",
-          description: "Manage agent templates (list, show)",
-        },
-        {
-          name: "widget <name>",
-          description: "Generate HTML widget snippet",
-        },
-      ],
-    },
-  ],
-  [
-    {
-      name: "tools",
-      description: "Tool management commands",
-      subcommands: [
-        {
-          name: "add <name>",
-          description: "Add tool (--type webhook|client)",
-        },
-        {
-          name: "delete [tool_id]",
-          description: "Delete tool (use --all for all)",
-        },
-        {
-          name: "push",
-          description: "Push tools to ElevenLabs API",
-        },
-        {
-          name: "pull",
-          description: "Pull tools (--update, --all options)",
-        },
-      ],
-    },
-  ],
-  [
-    {
-      name: "tests",
-      description: "Test management commands",
-      subcommands: [
-        {
-          name: "add <name>",
-          description: "Add a new test",
-        },
-        {
-          name: "delete [test_id]",
-          description: "Delete test (use --all for all)",
-        },
-        {
-          name: "push",
-          description: "Push tests to ElevenLabs API",
-        },
-        {
-          name: "pull",
-          description: "Pull tests (--update, --all options)",
-        },
-      ],
-    },
-  ],
-  [
-    {
-      name: "components",
-      description: "UI component management",
-      subcommands: [
-        {
-          name: "add [name]",
-          description: "Add component from ElevenLabs UI registry",
-        },
-      ],
-    },
-  ],
+const modules: Module[] = [
+  {
+    name: "auth",
+    description: "Authentication commands",
+  },
+  {
+    name: "agents",
+    description: "Agent management commands",
+  },
+  {
+    name: "tools",
+    description: "Tool management commands",
+  },
+  {
+    name: "tests",
+    description: "Test management commands",
+  },
+  {
+    name: "components",
+    description: "UI component management",
+  },
 ];
 
 export const HelpView: React.FC = () => {
@@ -193,35 +80,20 @@ export const HelpView: React.FC = () => {
       <Box flexDirection="column" marginBottom={1}>
         <Box marginBottom={1}>
           <Text color={theme.colors.accent.primary} bold>
-            Commands:
+            Modules:
           </Text>
         </Box>
 
-        {commands.map((group, groupIndex) => (
-          <Box key={groupIndex} flexDirection="column" marginBottom={1}>
-            {group.map((cmd, cmdIndex) => (
-              <Box key={cmdIndex} flexDirection="column">
-                <Box marginLeft={2}>
-                  <Box width={24}>
-                    <Text color={theme.colors.text.primary}>{cmd.name}</Text>
-                  </Box>
-                  <Text color={theme.colors.text.secondary}>{cmd.description}</Text>
-                </Box>
-                {cmd.subcommands &&
-                  cmd.subcommands.map((subcmd, subIndex) => (
-                    <Box key={subIndex} marginLeft={4}>
-                      <Box width={22}>
-                        <Text color={theme.colors.text.muted}>{subcmd.name}</Text>
-                      </Box>
-                      <Text color={theme.colors.text.muted}>
-                        {subcmd.description}
-                      </Text>
-                    </Box>
-                  ))}
+        <Box flexDirection="column">
+          {modules.map((module, index) => (
+            <Box key={index} marginLeft={2}>
+              <Box width={16}>
+                <Text color={theme.colors.text.primary}>{module.name}</Text>
               </Box>
-            ))}
-          </Box>
-        ))}
+              <Text color={theme.colors.text.secondary}>{module.description}</Text>
+            </Box>
+          ))}
+        </Box>
       </Box>
 
       <Box flexDirection="column" marginTop={1}>
@@ -255,7 +127,7 @@ export const HelpView: React.FC = () => {
 
       <Box marginTop={1}>
         <Text color={theme.colors.text.muted}>
-          For more information on a command, use: elevenlabs [command] --help
+          For more information on a module, use: elevenlabs &lt;module&gt; --help
         </Text>
       </Box>
 

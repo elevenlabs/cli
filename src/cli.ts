@@ -52,9 +52,12 @@ program.addCommand(createToolsCommand());
 program.addCommand(createTestsCommand());
 program.addCommand(createComponentsCommand());
 
-// Show help if no arguments provided
+// Show help if no arguments provided or if only help flag is provided
 const args = process.argv.slice(2);
-if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+const isMainHelp = args.length === 0 ||
+  (args.length === 1 && (args[0] === '--help' || args[0] === '-h'));
+
+if (isMainHelp) {
   (async () => {
     const { waitUntilExit } = render(
       React.createElement(HelpView)

@@ -187,7 +187,7 @@ elevenlabs agents init --override         # Override existing files and recreate
 **Override mode** (`--override`): When you need to reset your project:
 - Overwrites all configuration files
 - Recreates directory structure from scratch
-- ⚠️ **Warning**: This will delete all existing configurations in `agent_configs/`, `tool_configs/`, and `test_configs/`
+- **Warning**: This will delete all existing configurations in `agent_configs/`, `tool_configs/`, and `test_configs/`
 
 Use `--override` when:
 - You want to start fresh with a clean configuration
