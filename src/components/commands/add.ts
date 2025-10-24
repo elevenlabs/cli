@@ -14,17 +14,17 @@ export function createAddCommand(): Command {
           process.exit(1);
         }
 
-        console.log('Launching shadcn/ui CLI...');
-        console.log('Source: https://ui.elevenlabs.io\n');
+        const component = componentName || 'all';
+        const targetUrl = new URL(`/r/${component}.json`, 'https://ui.elevenlabs.io').toString();
 
-        // Prepare command arguments
-        const args = ['shadcn@latest', 'add'];
-        if (componentName) {
-          args.push(componentName);
-        }
+        console.log(`Installing ${component} from ElevenLabs UI registry...`);
+        console.log(`Source: ${targetUrl}\n`);
+
+        // Prepare command with custom registry URL
+        const fullCommand = `npx -y shadcn@latest add ${targetUrl}`;
 
         // Run shadcn add command interactively
-        const result = spawnSync('npx', args, {
+        const result = spawnSync(fullCommand, {
           stdio: 'inherit', // Allow interactive prompts
           shell: true
         });
