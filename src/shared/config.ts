@@ -43,7 +43,7 @@ export async function loadConfig(): Promise<CliConfig> {
       const configContent = await fs.readFile(configPath, 'utf-8');
       return JSON.parse(configContent);
     }
-  } catch (error) {
+  } catch {
     // If config file is corrupted or unreadable, start fresh
     console.warn('Warning: Config file corrupted, starting fresh');
   }

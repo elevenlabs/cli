@@ -25,7 +25,7 @@ export function createAgentsCommand(): Command {
   agents.option('-h, --help', 'Display help information');
 
   // Custom action when agents command is run without subcommands
-  agents.action(async (options) => {
+  agents.action(async () => {
     const { waitUntilExit } = render(
       React.createElement(AgentsHelpView)
     );

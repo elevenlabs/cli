@@ -19,7 +19,7 @@ export function createAuthCommand(): Command {
   auth.option('-h, --help', 'Display help information');
 
   // Custom action when auth command is run without subcommands
-  auth.action(async (options) => {
+  auth.action(async () => {
     const { waitUntilExit } = render(
       React.createElement(AuthHelpView)
     );

@@ -78,7 +78,7 @@ async function migrateLegacyApiKey(): Promise<void> {
     
     // Remove legacy file
     await fs.remove(legacyFile);
-  } catch (error) {
+  } catch {
     // If migration fails, silently continue
   }
 }
@@ -97,7 +97,7 @@ async function loadApiKeys(): Promise<ApiKeysStorage> {
       const content = await fs.readFile(keysFile, 'utf-8');
       return JSON.parse(content) as ApiKeysStorage;
     }
-  } catch (error) {
+  } catch {
     // If file is corrupted, start fresh
   }
   
@@ -142,7 +142,7 @@ export async function retrieveApiKey(environment: string = 'prod'): Promise<stri
   try {
     const storage = await loadApiKeys();
     return storage[environment];
-  } catch (error) {
+  } catch {
     // File not readable
   }
 
@@ -166,7 +166,7 @@ export async function removeApiKey(environment: string = 'prod'): Promise<void> 
     } else {
       await saveApiKeys(storage);
     }
-  } catch (error) {
+  } catch {
     // Ignore errors
   }
 }
@@ -186,7 +186,7 @@ export async function listEnvironments(): Promise<string[]> {
   try {
     const storage = await loadApiKeys();
     return Object.keys(storage);
-  } catch (error) {
+  } catch {
     return [];
   }
 }

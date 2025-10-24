@@ -50,7 +50,7 @@ async function addTest(name: string, templateType: string = "basic-llm", environ
 
   try {
     testsConfig = await readConfig<TestsConfig>(testsConfigPath);
-  } catch (error) {
+  } catch {
     // Initialize tests.json if it doesn't exist
     testsConfig = { tests: [] };
     await writeConfig(testsConfigPath, testsConfig);
@@ -242,7 +242,7 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
 
   try {
     testsConfig = await readConfig<TestsConfig>(testsConfigPath);
-  } catch (error) {
+  } catch {
     testsConfig = { tests: [] };
     await writeConfig(testsConfigPath, testsConfig);
     console.log(`Created ${TESTS_CONFIG_FILE}`);
