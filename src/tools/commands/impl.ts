@@ -45,7 +45,7 @@ async function addTool(name: string, type: 'webhook' | 'client', configPath?: st
   
   try {
     toolsConfig = await readToolsConfig(toolsConfigPath);
-  } catch (error) {
+  } catch {
     // Initialize tools.json if it doesn't exist
     toolsConfig = { tools: [] };
     await writeToolsConfig(toolsConfigPath, toolsConfig);

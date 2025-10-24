@@ -19,7 +19,7 @@ export function createToolsCommand(): Command {
   tools.option('-h, --help', 'Display help information');
 
   // Custom action when tools command is run without subcommands
-  tools.action(async (options) => {
+  tools.action(async () => {
     const { waitUntilExit } = render(
       React.createElement(ToolsHelpView)
     );

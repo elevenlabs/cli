@@ -19,7 +19,7 @@ export function createTestsCommand(): Command {
   tests.option('-h, --help', 'Display help information');
 
   // Custom action when tests command is run without subcommands
-  tests.action(async (options) => {
+  tests.action(async () => {
     const { waitUntilExit } = render(
       React.createElement(TestsHelpView)
     );

@@ -20,7 +20,7 @@ export async function getAgentName(configPath: string): Promise<string> {
       return config.name || 'Unnamed Agent';
     }
     return 'Unknown Agent';
-  } catch (error) {
+  } catch {
     return 'Unknown Agent';
   }
 }

@@ -16,7 +16,7 @@ export function createComponentsCommand(): Command {
   components.option('-h, --help', 'Display help information');
 
   // Custom action when components command is run without subcommands
-  components.action(async (options) => {
+  components.action(async () => {
     const { waitUntilExit } = render(
       React.createElement(ComponentsHelpView)
     );
