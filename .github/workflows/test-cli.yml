@@ -15,26 +15,21 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-      
+          cache: 'npm'
+
       - name: Install dependencies
-        run: pnpm install
-      
+        run: npm ci
+
       - name: Build
-        run: pnpm build
+        run: npm run build
 
       - name: Run E2E tests
-        run: pnpm test:e2e
+        run: npm run test:e2e
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_TEST_API_KEY }}
           ELEVENLABS_TEST_API_KEY: ${{ secrets.ELEVENLABS_TEST_API_KEY_SECONDARY }}
