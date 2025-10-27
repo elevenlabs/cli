@@ -26,19 +26,19 @@ interface AgentDefinition {
 
 interface AddOptions {
   configPath?: string;
-  template: string;
+  template?: string;
   env: string;
 }
 
 export function createAddCommand(): Command {
   return new Command('add')
     .description('Add a new agent - creates config, uploads to ElevenLabs, and saves ID')
-    .argument('<name>', 'Name of the agent to create')
+    .argument('[name]', 'Name of the agent to create')
     .option('--config-path <path>', 'Custom config path (optional)')
-    .option('--template <template>', 'Template type to use', 'default')
+    .option('--template <template>', 'Template type to use')
     .option('--env <environment>', 'Environment to create agent in', 'prod')
     .option('--no-ui', 'Disable interactive UI')
-    .action(async (name: string, options: AddOptions & { ui: boolean }) => {
+    .action(async (name: string | undefined, options: AddOptions & { ui: boolean }) => {
       try {
         if (options.ui !== false && !options.configPath) {
           // Use Ink UI for agent creation
@@ -52,6 +52,13 @@ export function createAddCommand(): Command {
           await waitUntilExit();
           return;
         }
+
+        // Non-UI path requires name to be provided
+        if (!name) {
+          console.error('Error: Agent name is required when using --no-ui or --config-path');
+          process.exit(1);
+        }
+
         // Check if agents.json exists
         const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
         if (!(await fs.pathExists(agentsConfigPath))) {
@@ -65,7 +72,7 @@ export function createAddCommand(): Command {
         // Create agent config using template (in memory first)
         let agentConfig: AgentConfig;
         try {
-          agentConfig = getTemplateByName(name, options.template);
+          agentConfig = getTemplateByName(name, options.template || 'default');
         } catch (error) {
           console.error(`${error}`);
           process.exit(1);
@@ -104,7 +111,7 @@ export function createAddCommand(): Command {
         await fs.ensureDir(path.dirname(configFilePath));
 
         await writeConfig(configFilePath, agentConfig);
-        console.log(`Created config file: ${configPath} (template: ${options.template})`);
+        console.log(`Created config file: ${configPath} (template: ${options.template || 'default'})`);
 
         // Store agent ID in index file
         const newAgent: AgentDefinition = {
