@@ -21,16 +21,18 @@ interface AddAgentViewProps {
 
 type Step = 'name' | 'template' | 'confirm' | 'creating';
 
-export const AddAgentView: React.FC<AddAgentViewProps> = ({ 
+export const AddAgentView: React.FC<AddAgentViewProps> = ({
   initialName,
-  template = 'default',
+  template,
   environment = 'prod',
-  onComplete 
+  onComplete
 }) => {
   const { exit } = useApp();
-  const [currentStep, setCurrentStep] = useState<Step>(initialName ? 'template' : 'name');
+  const [currentStep, setCurrentStep] = useState<Step>(
+    initialName && template ? 'confirm' : initialName ? 'template' : 'name'
+  );
   const [agentName, setAgentName] = useState(initialName || '');
-  const [selectedTemplate, setSelectedTemplate] = useState(template);
+  const [selectedTemplate, setSelectedTemplate] = useState(template || 'default');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
