@@ -28,7 +28,9 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
   onComplete 
 }) => {
   const { exit } = useApp();
-  const [currentStep, setCurrentStep] = useState<Step>(initialName ? 'template' : 'name');
+  const [currentStep, setCurrentStep] = useState<Step>(
+    initialName && template ? 'confirm' : initialName ? 'template' : 'name'
+  );
   const [agentName, setAgentName] = useState(initialName || '');
   const [selectedTemplate, setSelectedTemplate] = useState(template);
   const [isCreating, setIsCreating] = useState(false);
