@@ -15,7 +15,6 @@ interface AgentsConfig {
   agents: Array<{
     config: string;
     id?: string;
-    env?: string;
   }>;
 }
 
@@ -23,7 +22,6 @@ interface TestsConfig {
   tests: Array<{
     config: string;
     id?: string;
-    env?: string;
   }>;
 }
 

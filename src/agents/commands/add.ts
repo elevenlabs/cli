@@ -14,20 +14,17 @@ interface AgentsConfig {
   agents: Array<{
     config: string;
     id?: string;
-    env?: string;
   }>;
 }
 
 interface AgentDefinition {
   config: string;
   id?: string;
-  env?: string;
 }
 
 interface AddOptions {
   configPath?: string;
   template?: string;
-  env: string;
 }
 
 export function createAddCommand(): Command {
@@ -36,7 +33,6 @@ export function createAddCommand(): Command {
     .argument('[name]', 'Name of the agent to create')
     .option('--config-path <path>', 'Custom config path (optional)')
     .option('--template <template>', 'Template type to use')
-    .option('--env <environment>', 'Environment to create agent in', 'prod')
     .option('--no-ui', 'Disable interactive UI')
     .action(async (name: string | undefined, options: AddOptions & { ui: boolean }) => {
       try {
@@ -45,8 +41,7 @@ export function createAddCommand(): Command {
           const { waitUntilExit } = render(
             React.createElement(AddAgentView, {
               initialName: name,
-              template: options.template,
-              environment: options.env || 'prod'
+              template: options.template
             })
           );
           await waitUntilExit();
@@ -79,7 +74,7 @@ export function createAddCommand(): Command {
         }
 
         // Create agent in ElevenLabs first to get ID
-        const environment = options.env || 'prod';
+        const environment = 'prod';
         console.log(`Creating agent '${name}' in ElevenLabs (environment: ${environment})...`);
 
         const client = await getElevenLabsClient(environment);
@@ -116,8 +111,7 @@ export function createAddCommand(): Command {
         // Store agent ID in index file
         const newAgent: AgentDefinition = {
           config: configPath,
-          id: agentId,
-          env: environment
+          id: agentId
         };
         agentsConfig.agents.push(newAgent);
 

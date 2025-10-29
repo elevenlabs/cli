@@ -8,7 +8,6 @@ interface AgentsConfig {
   agents: Array<{
     config: string;
     id?: string;
-    env?: string;
   }>;
 }
 
@@ -44,9 +43,8 @@ export async function listConfiguredAgents(): Promise<void> {
   for (let i = 0; i < agentsConfig.agents.length; i++) {
     const agentDef = agentsConfig.agents[i];
     const agentName = await getAgentName(agentDef.config);
-    const environment = agentDef.env || 'prod';
     const agentId = agentDef.id || 'No ID';
-    console.log(`${i + 1}. ${agentName} [${environment}]`);
+    console.log(`${i + 1}. ${agentName}`);
     console.log(`   ID: ${agentId}`);
     const configPath = agentDef.config || 'No config path';
     console.log(`   Config: ${configPath}`);

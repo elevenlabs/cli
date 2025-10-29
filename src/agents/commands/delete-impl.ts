@@ -9,7 +9,6 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
-  env?: string;
 }
 
 interface AgentsConfig {
@@ -35,9 +34,9 @@ export async function deleteAgent(agentId: string): Promise<void> {
   const agentDef = agentsConfig.agents[agentIndex];
   const agentName = await getAgentName(agentDef.config);
   const configPath = agentDef.config;
-  const environment = agentDef.env || 'prod';
+  const environment = 'prod';
 
-  console.log(`Deleting agent '${agentName}' (ID: ${agentId}) [${environment}]...`);
+  console.log(`Deleting agent '${agentName}' (ID: ${agentId})...`);
 
   // Delete from ElevenLabs (globally)
   console.log('Deleting from ElevenLabs...');
@@ -65,7 +64,7 @@ export async function deleteAgent(agentId: string): Promise<void> {
   console.log(`\n✓ Successfully deleted agent '${agentName}'`);
 }
 
-export async function deleteAllAgents(ui: boolean = true, env?: string): Promise<void> {
+export async function deleteAllAgents(ui: boolean = true): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
@@ -79,32 +78,19 @@ export async function deleteAllAgents(ui: boolean = true, env?: string): Promise
     return;
   }
 
-  // Filter agents by environment if specified
-  const agentsToDelete = env
-    ? agentsConfig.agents.filter(agent => (agent.env || 'prod') === env)
-    : agentsConfig.agents;
-
-  if (agentsToDelete.length === 0) {
-    console.log(env ? `No agents found in environment '${env}'` : 'No agents found to delete');
-    return;
-  }
+  const agentsToDelete = agentsConfig.agents;
 
   // Show what will be deleted
-  const envInfo = env ? ` in environment '${env}'` : '';
-  console.log(`\nFound ${agentsToDelete.length} agent(s) to delete${envInfo}:`);
+  console.log(`\nFound ${agentsToDelete.length} agent(s) to delete:`);
   for (let i = 0; i < agentsToDelete.length; i++) {
     const agent = agentsToDelete[i];
     const agentName = await getAgentName(agent.config);
-    const agentEnv = agent.env || 'prod';
-    console.log(`  ${i + 1}. ${agentName} (${agent.id}) [${agentEnv}]`);
+    console.log(`  ${i + 1}. ${agentName} (${agent.id})`);
   }
 
   // Confirm deletion (skip if --no-ui)
   if (ui) {
-    const warningMsg = env
-      ? `\nWARNING: This will delete ${agentsToDelete.length} agent(s) from environment '${env}' in both local configuration and ElevenLabs.`
-      : '\nWARNING: This will delete ALL agents from both local configuration and ElevenLabs.';
-    console.log(warningMsg);
+    console.log('\nWARNING: This will delete ALL agents from both local configuration and ElevenLabs.');
     const confirmed = await promptForConfirmation('Are you sure you want to delete these agents?');
 
     if (!confirmed) {
@@ -123,8 +109,8 @@ export async function deleteAllAgents(ui: boolean = true, env?: string): Promise
   for (const agentDef of agentsToDelete) {
     try {
       const agentName = await getAgentName(agentDef.config);
-      const environment = agentDef.env || 'prod';
-      console.log(`Deleting '${agentName}' (${agentDef.id}) [${environment}]...`);
+      const environment = 'prod';
+      console.log(`Deleting '${agentName}' (${agentDef.id})...`);
 
       // Delete from ElevenLabs
       if (agentDef.id) {

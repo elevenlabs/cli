@@ -84,53 +84,22 @@ The ElevenLabs CLI supports managing agents, tools, and tests across multiple is
 #### Login to Multiple Environments
 
 ```bash
-# Login to production
-elevenlabs auth login --env prod
-
-# Login to staging
-elevenlabs auth login --env staging
-
-# Login to development
-elevenlabs auth login --env dev
+# Login with your API key
+elevenlabs auth login
 ```
 
-Each environment stores its API key securely and independently.
-
-#### Check All Environments
+#### Check Authentication Status
 
 ```bash
 elevenlabs auth whoami
-# Shows all configured environments and their authentication status
+# Shows your authentication status
 ```
 
-#### Logout from Specific Environment
+#### Logout
 
 ```bash
-elevenlabs auth logout --env dev
+elevenlabs auth logout
 ```
-
-#### Environment Field in Configurations
-
-Agent, tool, and test definitions include an `env` field:
-
-```json
-{
-  "agents": [
-    {
-      "config": "agent_configs/support_bot.json",
-      "id": "agent_123",
-      "env": "prod"
-    },
-    {
-      "config": "agent_configs/support_bot_dev.json", 
-      "id": "agent_456",
-      "env": "dev"
-    }
-  ]
-}
-```
-
-When `env` is not specified, it defaults to `prod`.
 
 ## Quick Start
 
@@ -141,7 +110,7 @@ elevenlabs agents init
 # Or override existing configuration
 elevenlabs agents init --override
 
-# 2. Login with API key (defaults to 'prod' environment)
+# 2. Login with API key
 elevenlabs auth login
 
 # 3. Create agent with template
@@ -204,37 +173,37 @@ elevenlabs auth logout
 elevenlabs auth whoami
 
 # Create agent
-elevenlabs agents add "Agent Name" [--template customer-service] [--env prod]
+elevenlabs agents add "Agent Name" [--template customer-service]
 
 # Create webhook tool
-elevenlabs tools add-webhook "Tool Name" [--config-path path] [--env prod]
+elevenlabs tools add-webhook "Tool Name" [--config-path path]
 
 # Create client tool
-elevenlabs tools add-client "Tool Name" [--config-path path] [--env prod]
+elevenlabs tools add-client "Tool Name" [--config-path path]
 
-# Push changes (operates on all environments by default)
-elevenlabs agents push [--agent "Agent Name"] [--env prod] [--dry-run]
+# Push changes
+elevenlabs agents push [--agent "Agent Name"] [--dry-run]
 
-# Sync tools (operates on all environments by default)
-elevenlabs tools push [--tool "Tool Name"] [--env prod] [--dry-run]
+# Sync tools
+elevenlabs tools push [--tool "Tool Name"] [--dry-run]
 
-# Sync tests (operates on all environments by default)
-elevenlabs tests push [--env prod] [--dry-run]
+# Sync tests
+elevenlabs tests push [--dry-run]
 
 # Check status
 elevenlabs agents status [--agent "Agent Name"]
 
-# Pull agents from ElevenLabs (pulls from all environments by default)
-elevenlabs agents pull [--search "term"] [--env prod] [--dry-run]
+# Pull agents from ElevenLabs
+elevenlabs agents pull [--search "term"] [--dry-run]
 
-# Pull tools from ElevenLabs (pulls from all environments by default)
-elevenlabs tools pull [--search "term"] [--tool "tool-name"] [--env prod] [--dry-run] [--output-dir tool_configs]
+# Pull tools from ElevenLabs
+elevenlabs tools pull [--search "term"] [--tool "tool-name"] [--dry-run] [--output-dir tool_configs]
 
-# Import tests from ElevenLabs (pulls from all environments by default)
-elevenlabs tests pull [--output-dir test_configs] [--env prod] [--dry-run]
+# Import tests from ElevenLabs
+elevenlabs tests pull [--output-dir test_configs] [--dry-run]
 
 # Create and run test
-elevenlabs tests add "Test Name" [--template basic-llm] [--env prod]
+elevenlabs tests add "Test Name" [--template basic-llm]
 
 # Run tests
 elevenlabs agents test "Agent Name"
@@ -254,17 +223,11 @@ elevenlabs tools delete <tool_id>
 # Delete all tools
 elevenlabs tools delete --all
 
-# Delete all tools in specific environment
-elevenlabs tools delete --all --env prod
-
 # Delete test locally and from ElevenLabs
 elevenlabs tests delete <test_id>
 
 # Delete all tests
 elevenlabs tests delete --all
-
-# Delete all tests in specific environment
-elevenlabs tests delete --all --env dev
 
 # Add componenents from [ui.elevenlabs.io](https://ui.elevenlabs.io)
 elevenlabs components add "Component Name"
@@ -371,62 +334,7 @@ elevenlabs agents list
 elevenlabs agents delete agent_123456789
 ```
 
-> **Tip**: When `--env` is not specified, most commands operate across all configured environments.
-
-## Multi-Environment Workflows
-
-**Setup Multiple Environments:**
-
-```bash
-# Initialise project
-elevenlabs agents init
-
-# Login to all environments
-elevenlabs auth login --env dev
-elevenlabs auth login --env staging
-elevenlabs auth login --env prod
-
-# Verify all environments
-elevenlabs auth whoami
-```
-
-**Develop and Promote Agents:**
-
-```bash
-# Create agent in dev environment
-elevenlabs agents add "My Agent" --template assistant --env dev
-
-# Edit and test in dev
-# Edit agent_configs/my_agent.json
-elevenlabs agents push --env dev
-
-# Pull to promote to staging
-elevenlabs agents pull --env dev
-# Update env field in agents.json from "dev" to "staging"
-elevenlabs agents push --env staging
-
-# Promote to production
-# Update env field to "prod"
-elevenlabs agents push --env prod
-```
-
-**Environment-Specific Operations:**
-
-```bash
-# Push only dev agents
-elevenlabs agents push --env dev
-
-# Pull only prod agents
-elevenlabs agents pull --env prod
-
-# Delete all dev tools
-elevenlabs tools delete --all --env dev
-
-# Pull tests from staging
-elevenlabs tests pull --env staging
-```
-
-**Cross-Environment Management:**
+## Workflow Examples
 
 ```bash
 # List all agents across all environments

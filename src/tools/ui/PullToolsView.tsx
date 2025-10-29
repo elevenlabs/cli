@@ -20,7 +20,6 @@ import { generateUniqueFilename } from '../../shared/utils.js';
 interface PullTool {
   name: string;
   id: string;
-  env: string;
   type?: string;
   status: 'pending' | 'pulling' | 'completed' | 'error' | 'skipped';
   action?: 'create' | 'update' | 'skip';
@@ -81,10 +80,9 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
         for (const environment of environments) {
           const client = await getElevenLabsClient(environment);
 
-          // Build ID-based map for existing tools in this environment
+          // Build ID-based map for existing tools
           const existingToolIds = new Map(
             toolsConfig.tools
-              .filter((t: ToolDefinition) => (t.env || 'prod') === environment)
               .map((tool: ToolDefinition) => [tool.id, tool])
           );
 
@@ -145,7 +143,6 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
             allToolsToPull.push({
               name: toolName,
               id: toolId,
-              env: environment,
               type: (toolItem as any).tool_config?.type || (toolItem as any).type,
               action,
               status,
@@ -221,7 +218,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
       }
 
       try {
-        const client = await getElevenLabsClient(toolToPull.env);
+        const client = await getElevenLabsClient('prod');
         const toolDetails = await getToolApi(client, toolToPull.id);
 
         // Extract the tool_config from the response
@@ -277,8 +274,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
           const newTool: ToolDefinition = {
             type: toolType as 'webhook' | 'client',
             config: configPath,
-            id: toolToPull.id,
-            env: toolToPull.env
+            id: toolToPull.id
           };
 
           toolsConfig.tools.push(newTool);
@@ -412,7 +408,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
                       <StatusCard
                         title={tool.name}
                         status={getStatusType(tool.status)}
-                        message={tool.message || `Type: ${tool.type || 'unknown'} | Env: ${tool.env}`}
+                        message={tool.message || `Type: ${tool.type || 'unknown'}`}
                         borderStyle="single"
                       />
                     </Box>

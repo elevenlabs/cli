@@ -8,7 +8,6 @@ import theme from '../../ui/themes/elevenlabs.js';
 
 interface AddTestViewProps {
   initialName?: string;
-  environment?: string;
   onComplete?: () => void;
 }
 
@@ -45,7 +44,6 @@ const templateOptions: TemplateOption[] = [
 
 export const AddTestView: React.FC<AddTestViewProps> = ({
   initialName = '',
-  environment = 'prod',
   onComplete
 }) => {
   const { exit } = useApp();
@@ -152,7 +150,7 @@ export const AddTestView: React.FC<AddTestViewProps> = ({
 
       // Create test in ElevenLabs first to get ID
       const { getElevenLabsClient, createTestApi } = await import('../../shared/elevenlabs-api.js');
-      const client = await getElevenLabsClient(environment);
+      const client = await getElevenLabsClient('prod');
 
       const { toCamelCaseKeys, generateUniqueFilename } = await import('../../shared/utils.js');
       const testApiConfig = toCamelCaseKeys(testConfig) as unknown as any;
@@ -171,7 +169,7 @@ export const AddTestView: React.FC<AddTestViewProps> = ({
 
       // Create/update tests.json
       const testsConfigPath = path.resolve('tests.json');
-      let testsConfig: { tests: Array<{ config: string; type: string; id?: string; env?: string }> };
+      let testsConfig: { tests: Array<{ config: string; type: string; id?: string }> };
 
       try {
         testsConfig = await readConfig(testsConfigPath);
@@ -185,15 +183,13 @@ export const AddTestView: React.FC<AddTestViewProps> = ({
         testsConfig.tests[existingTestIndex] = {
           config: configPath,
           type: selectedTemplate,
-          id: testId,
-          env: environment
+          id: testId
         };
       } else {
         testsConfig.tests.push({
           config: configPath,
           type: selectedTemplate,
-          id: testId,
-          env: environment
+          id: testId
         });
       }
 

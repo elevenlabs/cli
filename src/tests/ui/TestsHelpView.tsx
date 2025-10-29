@@ -16,7 +16,6 @@ const commands: Command[] = [
     description: "Add a new test",
     options: [
       { flag: "--template <template>", description: "Test template type (default: 'basic-llm')" },
-      { flag: "--env <environment>", description: "Environment to create test in (default: 'prod')" },
     ],
   },
   {
@@ -24,14 +23,12 @@ const commands: Command[] = [
     description: "Delete a test locally and from ElevenLabs",
     options: [
       { flag: "--all", description: "Delete all tests" },
-      { flag: "--env <environment>", description: "Filter tests by environment (use with --all)" },
     ],
   },
   {
     name: "push",
     description: "Push tests to ElevenLabs API",
     options: [
-      { flag: "--env <environment>", description: "Filter tests by environment" },
       { flag: "--dry-run", description: "Show what would be done without making changes" },
     ],
   },
@@ -44,7 +41,6 @@ const commands: Command[] = [
       { flag: "--dry-run", description: "Show what would be done without making changes" },
       { flag: "--update", description: "Update existing items only, skip new" },
       { flag: "--all", description: "Pull all (new + existing)" },
-      { flag: "--env <environment>", description: "Environment to pull from" },
     ],
   },
 ];

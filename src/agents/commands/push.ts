@@ -14,7 +14,6 @@ interface AgentsConfig {
   agents: Array<{
     config: string;
     id?: string;
-    env?: string;
   }>;
 }
 
@@ -25,10 +24,9 @@ interface PushOptions {
 export function createPushCommand(): Command {
   return new Command('push')
     .description('Push agents to ElevenLabs API when configs change')
-    .option('--env <environment>', 'Filter agents by environment (defaults to all environments)')
     .option('--dry-run', 'Show what would be done without making changes', false)
     .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: PushOptions & { ui: boolean; env?: string }) => {
+    .action(async (options: PushOptions & { ui: boolean }) => {
       try {
         if (options.ui !== false) {
           // Use new Ink UI for push
@@ -39,15 +37,7 @@ export function createPushCommand(): Command {
 
           const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
 
-          // Filter agents by environment if specified
-          const agentsToProcess = options.env
-            ? agentsConfig.agents.filter(agent => (agent.env || 'prod') === options.env)
-            : agentsConfig.agents;
-
-          if (options.env && agentsToProcess.length === 0) {
-            console.log(`No agents found for environment '${options.env}'`);
-            return;
-          }
+          const agentsToProcess = agentsConfig.agents;
 
           // Prepare agents for UI
           const pushAgentsData = await Promise.all(
@@ -55,8 +45,7 @@ export function createPushCommand(): Command {
               name: await getAgentName(agent.config),
               configPath: agent.config,
               status: 'pending' as const,
-              agentId: agent.id,
-              env: agent.env || 'prod'
+              agentId: agent.id
             }))
           );
 
@@ -69,7 +58,7 @@ export function createPushCommand(): Command {
           await waitUntilExit();
         } else {
           // Use existing non-UI push
-          await pushAgents(options.dryRun, options.env);
+          await pushAgents(options.dryRun);
         }
       } catch (error) {
         console.error(`Error during push: ${error}`);

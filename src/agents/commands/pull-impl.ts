@@ -11,7 +11,6 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
-  env?: string;
 }
 
 interface AgentsConfig {
@@ -24,34 +23,15 @@ interface PullOptions {
   dryRun: boolean;
   update?: boolean;
   all?: boolean;
-  env?: string;
 }
 
 export async function pullAgents(options: PullOptions): Promise<void> {
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
+  const environment = 'prod';
 
-  // Determine which environments to pull from
-  const environmentsToPull: string[] = options.env
-    ? [options.env]
-    : await listEnvironments();
+  console.log(`Pulling from environment: ${environment}`);
 
-  if (environmentsToPull.length === 0) {
-    console.log('No environments configured. Use "elevenlabs auth login" to add an environment.');
-    return;
-  }
-
-  if (!options.env) {
-    console.log(`Pulling from ${environmentsToPull.length} environment(s): ${environmentsToPull.join(', ')}`);
-  }
-
-  // Pull from each environment
-  for (const environment of environmentsToPull) {
-    console.log(`\n${'='.repeat(50)}`);
-    console.log(`Environment: ${environment}`);
-    console.log('='.repeat(50));
-
-    await pullAgentsFromEnvironment(options, environment, agentsConfigPath);
-  }
+  await pullAgentsFromEnvironment(options, environment, agentsConfigPath);
 }
 
 async function pullAgentsFromEnvironment(options: PullOptions, environment: string, agentsConfigPath: string): Promise<void> {
@@ -99,10 +79,9 @@ async function pullAgentsFromEnvironment(options: PullOptions, environment: stri
     console.log(`Found ${agentsList.length} agent(s)`);
   }
 
-  // Build map of existing agents by ID for this environment
+  // Build map of existing agents by ID
   const existingAgentIds = new Map(
     agentsConfig.agents
-      .filter(agent => (agent.env || 'prod') === environment)
       .map(agent => [agent.id, agent])
   );
 
@@ -228,8 +207,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, environment: stri
 
         const newAgent: AgentDefinition = {
           config: configPath,
-          id: agent.id,
-          env: environment
+          id: agent.id
         };
 
         agentsConfig.agents.push(newAgent);

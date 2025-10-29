@@ -10,7 +10,6 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
-  env?: string;
 }
 
 interface AgentsConfig {
@@ -50,7 +49,7 @@ export async function runAgentTests(agentId: string): Promise<void> {
   const testIds = attachedTests.map(test => test.test_id);
 
   // Get agent environment
-  const environment = agentDef.env || 'prod';
+  const environment = 'prod';
 
   console.log(`Running ${testIds.length} test(s) for agent '${agentName}' [${environment}]...`);
   console.log('');
