@@ -288,12 +288,12 @@ describe("CLI End-to-End Tests", () => {
     });
 
     it("should handle invalid arguments", async () => {
-      const result = await runCli(["agents", "add"]); // missing required argument
+      const result = await runCli(["agents", "add", "test-agent", "--invalid-flag"]); // invalid flag
 
       expect(result.exitCode).toBe(1);
       // Check both stdout and stderr for the error message
       const output = result.stdout + result.stderr;
-      expect(output).toContain("missing required argument");
+      expect(output).toContain("unknown option");
     });
   });
 
