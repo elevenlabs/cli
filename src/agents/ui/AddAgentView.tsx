@@ -15,7 +15,6 @@ import fs from 'fs-extra';
 interface AddAgentViewProps {
   initialName?: string;
   template?: string;
-  environment?: string;
   onComplete?: () => void;
 }
 
@@ -24,7 +23,6 @@ type Step = 'name' | 'template' | 'confirm' | 'creating';
 export const AddAgentView: React.FC<AddAgentViewProps> = ({
   initialName,
   template,
-  environment = 'prod',
   onComplete
 }) => {
   const { exit } = useApp();
@@ -69,8 +67,8 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
       const agentConfig = getTemplateByName(agentName, selectedTemplate);
       
       // Step 2: Upload to ElevenLabs first to get ID
-      setStatusMessage(`Creating agent in ElevenLabs (${environment})...`);
-      const client = await getElevenLabsClient(environment);
+      setStatusMessage('Creating agent in ElevenLabs...');
+      const client = await getElevenLabsClient('prod');
       const conversationConfig = agentConfig.conversation_config || {};
       const platformSettings = agentConfig.platform_settings;
       const tags = agentConfig.tags || [];
@@ -107,8 +105,7 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
       // Add new agent with ID
       agentsConfig.agents.push({
         config: relativeConfigPath,
-        id: agentId,
-        env: environment
+        id: agentId
       });
       
       await fs.writeJson(agentsConfigPath, agentsConfig, { spaces: 2 });

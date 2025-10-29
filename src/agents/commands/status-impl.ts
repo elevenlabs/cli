@@ -9,7 +9,6 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
-  env?: string;
 }
 
 interface AgentsConfig {

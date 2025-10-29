@@ -9,14 +9,13 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
-  env?: string;
 }
 
 interface AgentsConfig {
   agents: AgentDefinition[];
 }
 
-export async function pushAgents(dryRun: boolean = false, environment?: string): Promise<void> {
+export async function pushAgents(dryRun: boolean = false): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
@@ -25,26 +24,15 @@ export async function pushAgents(dryRun: boolean = false, environment?: string):
 
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
 
-  // Filter agents by environment if specified
-  const agentsToProcess = environment
-    ? agentsConfig.agents.filter(agent => (agent.env || 'prod') === environment)
-    : agentsConfig.agents;
+  const agentsToProcess = agentsConfig.agents;
+  const environment = 'prod';
 
-  if (environment && agentsToProcess.length === 0) {
-    console.log(`No agents found for environment '${environment}'`);
-    return;
-  }
-
-  if (!environment) {
-    const envs = [...new Set(agentsToProcess.map(a => a.env || 'prod'))];
-    console.log(`Pushing ${agentsToProcess.length} agent(s) across ${envs.length} environment(s): ${envs.join(', ')}`);
-  }
+  console.log(`Pushing ${agentsToProcess.length} agent(s) to environment: ${environment}`);
 
   let changesMade = false;
 
   for (const agentDef of agentsToProcess) {
     const configPath = agentDef.config;
-    const environment = agentDef.env || 'prod';
 
     if (!configPath) {
       console.log(`Warning: No config path found for agent`);

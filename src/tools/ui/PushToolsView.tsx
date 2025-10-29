@@ -14,7 +14,6 @@ interface PushTool {
   status: 'pending' | 'checking' | 'pushing' | 'completed' | 'error' | 'skipped';
   message?: string;
   toolId?: string;
-  env: string;
 }
 
 interface PushToolsViewProps {
@@ -96,7 +95,7 @@ export const PushToolsView: React.FC<PushToolsViewProps> = ({
           );
 
           // Get ElevenLabs client for this tool's environment
-          const client = await getElevenLabsClient(tool.env);
+          const client = await getElevenLabsClient('prod');
 
           if (!toolId) {
             // Create new tool
@@ -185,9 +184,6 @@ export const PushToolsView: React.FC<PushToolsViewProps> = ({
             <Box width={30}>
               <Text color={theme.colors.text.muted} bold>NAME</Text>
             </Box>
-            <Box width={10}>
-              <Text color={theme.colors.text.muted} bold>ENV</Text>
-            </Box>
             <Box width={15}>
               <Text color={theme.colors.text.muted} bold>STATUS</Text>
             </Box>
@@ -236,9 +232,6 @@ export const PushToolsView: React.FC<PushToolsViewProps> = ({
               <Box key={index}>
                 <Box width={30}>
                   <Text color={theme.colors.text.primary}>{displayName}</Text>
-                </Box>
-                <Box width={10}>
-                  <Text color={theme.colors.accent.secondary}>{tool.env}</Text>
                 </Box>
                 <Box width={15}>
                   <Text color={statusColor}>{statusText}</Text>

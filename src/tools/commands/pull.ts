@@ -10,7 +10,6 @@ interface PullToolsOptions {
   dryRun: boolean;
   update?: boolean;
   all?: boolean;
-  env?: string;
 }
 
 export function createPullCommand(): Command {
@@ -21,13 +20,12 @@ export function createPullCommand(): Command {
     .option('--dry-run', 'Show what would be done without making changes', false)
     .option('--update', 'Update existing items only, skip new')
     .option('--all', 'Pull all (new + existing)')
-    .option('--env <environment>', 'Environment to pull from')
     .option('--no-ui', 'Disable interactive UI')
     .action(async (options: PullToolsOptions & { ui: boolean }) => {
       try {
         if (options.ui !== false) {
           // Use Ink UI for pull
-          const environments = options.env ? [options.env] : ['prod'];
+          const environments = ['prod'];
           const { waitUntilExit } = render(
             React.createElement(PullToolsView, {
               tool: options.tool,

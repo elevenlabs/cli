@@ -14,23 +14,14 @@ const commands: Command[] = [
   {
     name: "login",
     description: "Login with your ElevenLabs API key",
-    options: [
-      { flag: "--env <environment>", description: "Environment name (default: 'prod')" },
-    ],
   },
   {
     name: "logout",
     description: "Logout and remove stored API key",
-    options: [
-      { flag: "--env <environment>", description: "Environment to logout from" },
-    ],
   },
   {
     name: "whoami",
     description: "Show current login status",
-    options: [
-      { flag: "--env <environment>", description: "Environment to check" },
-    ],
   },
   {
     name: "residency [location]",

@@ -43,7 +43,7 @@ export function getApiBaseUrl(residency?: Location): string {
 export async function getElevenLabsClient(environment: string = 'prod'): Promise<ElevenLabsClient> {
   const apiKey = await getApiKey(environment);
   if (!apiKey) {
-    throw new Error(`No API key found for environment '${environment}'. Use 'elevenlabs auth login --env ${environment}' to authenticate or set ELEVENLABS_API_KEY environment variable.`);
+    throw new Error(`No API key found for environment '${environment}'. Use 'elevenlabs auth login' to authenticate or set ELEVENLABS_API_KEY environment variable.`);
   }
   
   const config = await loadConfig();

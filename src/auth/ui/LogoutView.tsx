@@ -7,10 +7,9 @@ import { isLoggedIn, removeApiKey } from '../../shared/config.js';
 
 interface LogoutViewProps {
   onComplete?: () => void;
-  environment?: string;
 }
 
-export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment = 'prod' }) => {
+export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete }) => {
   const { exit } = useApp();
   const [confirming, setConfirming] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -30,7 +29,7 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
 
   useEffect(() => {
     const checkLoginStatus = async () => {
-      const loggedIn = await isLoggedIn(environment);
+      const loggedIn = await isLoggedIn('prod');
       if (!loggedIn) {
         setNotLoggedIn(true);
         setConfirming(false);
@@ -45,14 +44,14 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
     };
 
     checkLoginStatus();
-  }, [exit, onComplete, environment]);
+  }, [exit, onComplete]);
 
   const handleLogout = async () => {
     setConfirming(false);
     setProcessing(true);
 
     try {
-      await removeApiKey(environment);
+      await removeApiKey('prod');
       setProcessing(false);
       setSuccess(true);
 
@@ -79,7 +78,7 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
             <StatusCard
               title="Not Logged In"
               status="warning"
-              message={`You are not logged in to environment '${environment}'`}
+              message="You are not logged in"
             />
             <Box marginTop={1}>
               <Text color={theme.colors.text.secondary}>
@@ -92,10 +91,10 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
             <StatusCard
               title="Confirm Logout"
               status="warning"
-              message={`Logout from environment '${environment}'?`}
+              message="Logout from ElevenLabs?"
               details={[
-                "This will remove your stored API key for this environment",
-                "You'll need to login again to use the CLI with this environment"
+                "This will remove your stored API key",
+                "You'll need to login again to use the CLI"
               ]}
             />
             
@@ -109,14 +108,14 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
           <StatusCard
             title="Logging Out"
             status="loading"
-            message={`Removing credentials for '${environment}'...`}
+            message="Removing credentials..."
           />
         ) : success ? (
           <>
             <StatusCard
               title="Logout Successful"
               status="success"
-              message={`Logged out from '${environment}'`}
+              message="Logged out successfully"
             />
             
             <Box marginTop={1}>
@@ -127,7 +126,7 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete, environment 
             
             <Box marginTop={1}>
               <Text color={theme.colors.text.secondary}>
-                Run 'elevenlabs auth login --env {environment}' to authenticate again
+                Run 'elevenlabs auth login' to authenticate again
               </Text>
             </Box>
           </>

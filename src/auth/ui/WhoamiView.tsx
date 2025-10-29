@@ -126,7 +126,7 @@ export const WhoamiView: React.FC<WhoamiViewProps> = ({ onComplete }) => {
 
             <Box marginTop={1}>
               <Text color={theme.colors.text.muted}>
-                Use 'elevenlabs auth logout --env &lt;name&gt;' to sign out from specific environment
+                Use 'elevenlabs auth logout' to sign out
               </Text>
             </Box>
           </>

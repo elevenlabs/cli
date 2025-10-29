@@ -18,7 +18,6 @@ interface TestDefinition {
   config: string;
   type?: string;
   id?: string;
-  env?: string;
 }
 
 interface TestsConfig {
@@ -41,7 +40,7 @@ async function promptForConfirmation(message: string): Promise<boolean> {
   });
 }
 
-async function addTest(name: string, templateType: string = "basic-llm", environment?: string): Promise<void> {
+async function addTest(name: string, templateType: string = "basic-llm"): Promise<void> {
   const { getTestTemplateByName } = await import('../templates.js');
 
   // Check if tests.json exists
@@ -61,7 +60,7 @@ async function addTest(name: string, templateType: string = "basic-llm", environ
   const testConfig = getTestTemplateByName(name, templateType);
 
   // Create test in ElevenLabs first to get ID
-  const env = environment || 'prod';
+  const env = 'prod';
   console.log(`Creating test '${name}' in ElevenLabs (environment: ${env})...`);
 
   const client = await getElevenLabsClient(env);
@@ -87,8 +86,7 @@ async function addTest(name: string, templateType: string = "basic-llm", environ
     const newTest: TestDefinition = {
       config: configPath,
       type: templateType,
-      id: testId,
-      env: env
+      id: testId
     };
     testsConfig.tests.push(newTest);
     await writeConfig(testsConfigPath, testsConfig);
@@ -101,7 +99,7 @@ async function addTest(name: string, templateType: string = "basic-llm", environ
     process.exit(1);
   }
 }
-async function pushTests(testId?: string, dryRun = false, environment?: string): Promise<void> {
+async function pushTests(testId?: string, dryRun = false): Promise<void> {
   // Load tests configuration
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
   if (!(await fs.pathExists(testsConfigPath))) {
@@ -110,35 +108,24 @@ async function pushTests(testId?: string, dryRun = false, environment?: string):
 
   const testsConfig = await readConfig<TestsConfig>(testsConfigPath);
 
-  // Filter tests by environment and/or test ID
+  // Filter tests by test ID if specified
   let testsToProcess = testsConfig.tests;
-  
-  if (environment) {
-    testsToProcess = testsToProcess.filter(test => (test.env || 'prod') === environment);
-  }
-  
+
   if (testId) {
     testsToProcess = testsToProcess.filter(test => test.id === testId);
     if (testsToProcess.length === 0) {
       throw new Error(`Test with ID '${testId}' not found in configuration`);
     }
   }
-  
-  if (environment && testsToProcess.length === 0) {
-    console.log(`No tests found for environment '${environment}'`);
-    return;
-  }
-  
-  if (!environment) {
-    const envs = [...new Set(testsToProcess.map(t => t.env || 'prod'))];
-    console.log(`Pushing ${testsToProcess.length} test(s) across ${envs.length} environment(s): ${envs.join(', ')}`);
-  }
+
+  const environment = 'prod';
+  console.log(`Pushing ${testsToProcess.length} test(s) to environment: ${environment}`);
 
   let changesMade = false;
 
   for (const testDef of testsToProcess) {
     const configPath = testDef.config;
-    const environment = testDef.env || 'prod';
+    const environment = 'prod';
 
     // Check if config file exists
     if (!(await fs.pathExists(configPath))) {
@@ -209,32 +196,14 @@ async function pushTests(testId?: string, dryRun = false, environment?: string):
     await writeConfig(testsConfigPath, testsConfig);
   }
 }
-async function pullTests(options: { test?: string; outputDir: string; dryRun: boolean; update?: boolean; all?: boolean; env?: string }): Promise<void> {
+async function pullTests(options: { test?: string; outputDir: string; dryRun: boolean; update?: boolean; all?: boolean }): Promise<void> {
   // Check if tests.json exists
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
-  
-  // Determine which environments to pull from
-  const environmentsToPull: string[] = options.env 
-    ? [options.env] 
-    : await listEnvironments();
-  
-  if (environmentsToPull.length === 0) {
-    console.log('No environments configured. Use "elevenlabs auth login" to add an environment.');
-    return;
-  }
-  
-  if (!options.env) {
-    console.log(`Pulling from ${environmentsToPull.length} environment(s): ${environmentsToPull.join(', ')}`);
-  }
-  
-  // Pull from each environment
-  for (const environment of environmentsToPull) {
-    console.log(`\n${'='.repeat(50)}`);
-    console.log(`Environment: ${environment}`);
-    console.log('='.repeat(50));
-    
-    await pullTestsFromEnvironment(options, environment, testsConfigPath);
-  }
+  const environment = 'prod';
+
+  console.log(`Pulling from environment: ${environment}`);
+
+  await pullTestsFromEnvironment(options, environment, testsConfigPath);
 }
 
 async function pullTestsFromEnvironment(options: { test?: string; outputDir: string; dryRun: boolean; update?: boolean; all?: boolean }, environment: string, testsConfigPath: string): Promise<void> {
@@ -283,7 +252,6 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
   // Build map of existing tests by ID for this environment
   const existingTestIds = new Map(
     testsConfig.tests
-      .filter(test => (test.env || 'prod') === environment)
       .map(test => [test.id, test])
   );
 
@@ -390,8 +358,7 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
         const newTest: TestDefinition = {
           config: configPath,
           id: test.id,
-          type: testDetailsTyped.type || 'conversational',
-          env: environment
+          type: testDetailsTyped.type || 'conversational'
         };
         
         testsConfig.tests.push(newTest);
@@ -440,7 +407,7 @@ async function deleteTest(testId: string): Promise<void> {
   
   const testDef = testsConfig.tests[testIndex];
   const configPath = testDef.config;
-  const environment = testDef.env || 'prod';
+  const environment = 'prod';
   
   // Read test name from config if available
   let testName = testId;
@@ -480,7 +447,7 @@ async function deleteTest(testId: string): Promise<void> {
   
   console.log(`\n✓ Successfully deleted test '${testName}'`);
 }
-async function deleteAllTests(ui: boolean = true, env?: string): Promise<void> {
+async function deleteAllTests(ui: boolean = true): Promise<void> {
   // Load tests configuration
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
   if (!(await fs.pathExists(testsConfigPath))) {
@@ -488,25 +455,16 @@ async function deleteAllTests(ui: boolean = true, env?: string): Promise<void> {
   }
 
   const testsConfig = await readConfig<TestsConfig>(testsConfigPath);
-  
+
   if (testsConfig.tests.length === 0) {
     console.log('No tests found to delete');
     return;
   }
 
-  // Filter tests by environment if specified
-  const testsToDelete = env 
-    ? testsConfig.tests.filter(test => (test.env || 'prod') === env)
-    : testsConfig.tests;
-  
-  if (testsToDelete.length === 0) {
-    console.log(env ? `No tests found in environment '${env}'` : 'No tests found to delete');
-    return;
-  }
-  
+  const testsToDelete = testsConfig.tests;
+
   // Show what will be deleted
-  const envInfo = env ? ` in environment '${env}'` : '';
-  console.log(`\nFound ${testsToDelete.length} test(s) to delete${envInfo}:`);
+  console.log(`\nFound ${testsToDelete.length} test(s) to delete:`);
   for (let i = 0; i < testsToDelete.length; i++) {
     const test = testsToDelete[i];
     let testName = test.id || 'Unknown';
@@ -518,16 +476,12 @@ async function deleteAllTests(ui: boolean = true, env?: string): Promise<void> {
         // Use ID if config read fails
       }
     }
-    const testEnv = test.env || 'prod';
-    console.log(`  ${i + 1}. ${testName} (${test.id}) [${testEnv}]`);
+    console.log(`  ${i + 1}. ${testName} (${test.id})`);
   }
   
   // Confirm deletion (skip if --no-ui)
   if (ui) {
-    const warningMsg = env 
-      ? `\nWARNING: This will delete ${testsToDelete.length} test(s) from environment '${env}' in both local configuration and ElevenLabs.`
-      : '\nWARNING: This will delete ALL tests from both local configuration and ElevenLabs.';
-    console.log(warningMsg);
+    console.log('\nWARNING: This will delete ALL tests from both local configuration and ElevenLabs.');
     const confirmed = await promptForConfirmation('Are you sure you want to delete these tests?');
     
     if (!confirmed) {
@@ -545,8 +499,8 @@ async function deleteAllTests(ui: boolean = true, env?: string): Promise<void> {
   // Delete each test
   for (const testDef of testsToDelete) {
     try {
-      const environment = testDef.env || 'prod';
-      
+      const environment = 'prod';
+
       // Read test name from config if available
       let testName = testDef.id || 'Unknown';
       if (testDef.config && await fs.pathExists(testDef.config)) {

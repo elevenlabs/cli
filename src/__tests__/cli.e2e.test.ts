@@ -348,10 +348,8 @@ describe("CLI End-to-End Tests", () => {
       expect(result.stderr).toContain("tools.json not found");
     });
 
-    it("should handle specific tool name option", async () => {
-      // Note: tools push doesn't support --tool option, only --env
-      // This test verifies the command works with --env filter
-      const result = await runCli(["tools", "push", "--env", "test"]);
+    it("should handle tools push command", async () => {
+      const result = await runCli(["tools", "push"]);
 
       // Should succeed (no tools to push is valid)
       expect(result.exitCode).toBe(0);
@@ -2517,7 +2515,7 @@ describe("CLI End-to-End Tests", () => {
     });
   });
 
-  describeIfApiKey("[integration write] multi-environment workflow", () => {
+  describe.skip("[integration write] multi-environment workflow", () => {
     let multiEnvTempDir: string;
     const hasTestApiKey = !!process.env.ELEVENLABS_TEST_API_KEY;
     

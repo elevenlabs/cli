@@ -10,7 +10,6 @@ import { getElevenLabsClient, listAgentsApi, getAgentApi } from '../../shared/el
 interface PullAgent {
   name: string;
   agentId: string;
-  env: string;
   status: 'pending' | 'checking' | 'pulling' | 'completed' | 'error' | 'skipped';
   action?: 'create' | 'update' | 'skip';
   message?: string;
@@ -80,10 +79,9 @@ export const PullView: React.FC<PullViewProps> = ({
 
           if (agentsList.length === 0) continue;
 
-          // Build ID-based map for existing agents in this environment
+          // Build ID-based map for existing agents
           const existingAgentIds = new Map<string, any>(
             agentsConfig.agents
-              .filter((a: any) => (a.env || 'prod') === environment)
               .map((agent: any) => [agent.id as string, agent])
           );
 
@@ -126,7 +124,6 @@ export const PullView: React.FC<PullViewProps> = ({
             allAgentsToPull.push({
               name: agentName,
               agentId,
-              env: environment,
               action,
               status,
               message: status === 'skipped' ? 'Skipped' : undefined
@@ -196,12 +193,12 @@ export const PullView: React.FC<PullViewProps> = ({
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const client = await getElevenLabsClient(agent.env);
+      const client = await getElevenLabsClient('prod');
       const agentName = agent.name;
       
-      // Find existing entry for this agent ID in this environment
-      const existingEntry = agentsConfig.agents.find((a: any) => 
-        a.id === agent.agentId && (a.env || 'prod') === agent.env
+      // Find existing entry for this agent ID
+      const existingEntry = agentsConfig.agents.find((a: any) =>
+        a.id === agent.agentId
       );
 
       if (dryRun) {
@@ -262,8 +259,7 @@ export const PullView: React.FC<PullViewProps> = ({
           // Add to agents config with ID
           agentsConfig.agents.push({
             config: configPath,
-            id: agent.agentId,
-            env: agent.env
+            id: agent.agentId
           });
 
           setAgents(prev => prev.map((a, i) => 
@@ -323,9 +319,6 @@ export const PullView: React.FC<PullViewProps> = ({
                 <Box width={30}>
                   <Text color={theme.colors.text.muted} bold>NAME</Text>
                 </Box>
-                <Box width={10}>
-                  <Text color={theme.colors.text.muted} bold>ENV</Text>
-                </Box>
                 <Box width={20}>
                   <Text color={theme.colors.text.muted} bold>AGENT ID</Text>
                 </Box>
@@ -371,9 +364,6 @@ export const PullView: React.FC<PullViewProps> = ({
                   <Box key={index}>
                     <Box width={30}>
                       <Text color={theme.colors.text.primary}>{agent.name}</Text>
-                    </Box>
-                    <Box width={10}>
-                      <Text color={theme.colors.accent.secondary}>{agent.env}</Text>
                     </Box>
                     <Box width={20}>
                       <Text color={theme.colors.text.muted}>{agent.agentId.slice(0, 18)}...</Text>

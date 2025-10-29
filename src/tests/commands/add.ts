@@ -9,21 +9,19 @@ export function createAddCommand(): Command {
     .description('Add a new test')
     .argument('<name>', 'Name of the test to create')
     .option('--template <template>', 'Test template type', 'basic-llm')
-    .option('--env <environment>', 'Environment to create test in', 'prod')
     .option('--no-ui', 'Disable interactive UI')
-    .action(async (name: string, options: { template: string; env: string; ui: boolean }) => {
+    .action(async (name: string, options: { template: string; ui: boolean }) => {
       try {
         if (options.ui !== false) {
           // Use Ink UI for test creation
           const { waitUntilExit } = render(
             React.createElement(AddTestView, {
-              initialName: name,
-              environment: options.env || 'prod'
+              initialName: name
             })
           );
           await waitUntilExit();
         } else {
-          await addTest(name, options.template, options.env);
+          await addTest(name, options.template);
         }
       } catch (error) {
         console.error(`Error creating test: ${error}`);

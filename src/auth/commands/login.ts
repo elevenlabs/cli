@@ -10,16 +10,15 @@ import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 export function createLoginCommand(): Command {
   return new Command('login')
     .description('Login with your ElevenLabs API key')
-    .option('--env <environment>', 'Environment name', 'prod')
     .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: { ui: boolean; env: string }) => {
+    .action(async (options: { ui: boolean }) => {
       try {
-        const environment = options.env || 'prod';
+        const environment = 'prod';
 
         if (options.ui !== false) {
           // Use Ink UI for login
           const { waitUntilExit } = render(
-            React.createElement(LoginView, { environment })
+            React.createElement(LoginView, {})
           );
           await waitUntilExit();
         } else {

@@ -24,7 +24,6 @@ const commands: Command[] = [
     options: [
       { flag: "--config-path <path>", description: "Custom config path" },
       { flag: "--template <template>", description: "Template type to use (default: 'default')" },
-      { flag: "--env <environment>", description: "Environment to create agent in (default: 'prod')" },
     ],
   },
   {
