@@ -469,8 +469,7 @@ async function deleteTool(toolId: string): Promise<void> {
   
   const toolDef = toolsConfig.tools[toolIndex];
   const configPath = toolDef.config;
-  const environment = 'prod';
-  
+
   // Read tool name from config if available
   let toolName = toolId;
   if (configPath && await fs.pathExists(configPath)) {
@@ -481,8 +480,8 @@ async function deleteTool(toolId: string): Promise<void> {
       // If reading fails, just use ID
     }
   }
-  
-  console.log(`Deleting tool '${toolName}' (ID: ${toolId}) [${environment}]...`);
+
+  console.log(`Deleting tool '${toolName}' (ID: ${toolId})...`);
 
   // Delete from ElevenLabs
   console.log('Deleting from ElevenLabs...');
@@ -568,8 +567,6 @@ async function deleteAllTools(ui: boolean = true): Promise<void> {
   // Delete each tool
   for (const toolDef of toolsToDelete) {
     try {
-      const environment = 'prod';
-      
       // Read tool name from config if available
       let toolName = toolDef.id || 'Unknown';
       if (toolDef.config && await fs.pathExists(toolDef.config)) {
@@ -580,8 +577,8 @@ async function deleteAllTools(ui: boolean = true): Promise<void> {
           // If reading fails, just use ID
         }
       }
-      
-      console.log(`Deleting '${toolName}' (${toolDef.id}) [${environment}]...`);
+
+      console.log(`Deleting '${toolName}' (${toolDef.id})...`);
       
       // Delete from ElevenLabs
       if (toolDef.id) {

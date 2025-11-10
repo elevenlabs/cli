@@ -102,9 +102,9 @@ elevenlabs agents push
 
 ```
 your_project/
-├── agents.json              # Central configuration with env field per agent
-├── tools.json               # Tool configurations with env field per tool
-├── tests.json               # Test configurations with env field per test
+├── agents.json              # Central configuration
+├── tools.json               # Tool configurations
+├── tests.json               # Test configurations
 ├── agent_configs/           # Agent configuration files
 ├── tool_configs/            # Tool configurations
 └── test_configs/            # Test configurations
@@ -311,13 +311,13 @@ elevenlabs agents delete agent_123456789
 ## Workflow Examples
 
 ```bash
-# List all agents across all environments
+# List all agents
 elevenlabs agents list
 
-# Push all agents to their respective environments
+# Push all agents
 elevenlabs agents push
 
-# Pull agents from all configured environments
+# Pull agents
 elevenlabs agents pull
 ```
 

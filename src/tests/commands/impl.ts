@@ -244,7 +244,7 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
     console.log(`Found ${testsList.length} test(s)`);
   }
 
-  // Build map of existing tests by ID for this environment
+  // Build map of existing tests by ID
   const existingTestIds = new Map(
     testsConfig.tests
       .map(test => [test.id, test])
