@@ -90,9 +90,12 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
             const toolDetailsTyped = toolDetails as { tool_id?: string; toolId?: string; id?: string; tool_config?: { name?: string } };
             const toolId = toolDetailsTyped.tool_id || toolDetailsTyped.toolId || toolDetailsTyped.id || tool;
             const toolName = toolDetailsTyped.tool_config?.name;
-            
-            if (!toolName) continue;
-            
+
+            if (!toolName) {
+              setState(prev => ({ ...prev, error: `Tool with ID ${tool} found but has no name`, loading: false }));
+              return;
+            }
+
             filteredTools = [{
               tool_id: toolId,
               toolId: toolId,
@@ -217,7 +220,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
       }
 
       try {
-        const client = await getElevenLabsClient('prod');
+        const client = await getElevenLabsClient();
         const toolDetails = await getToolApi(client, toolToPull.id);
 
         // Extract the tool_config from the response

@@ -17,7 +17,6 @@ import {
   ToolDefinition,
   type Tool
 } from '../../shared/tools.js';
-import { listEnvironments } from '../../shared/config.js';
 
 const TOOLS_CONFIG_FILE = "tools.json";
 
@@ -98,10 +97,9 @@ async function addTool(name: string, type: 'webhook' | 'client', configPath?: st
   }
   
   // Create tool in ElevenLabs first to get ID
-  const env = 'prod';
-  console.log(`Creating ${type} tool '${name}' in ElevenLabs (environment: ${env})...`);
-  
-  const client = await getElevenLabsClient(env);
+  console.log(`Creating ${type} tool '${name}' in ElevenLabs...`);
+
+  const client = await getElevenLabsClient();
   
   try {
     const response = await createToolApi(client, toolConfig);
@@ -190,10 +188,10 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
     const toolId = toolDef.id;
 
     // Always push (force override)
-    console.log(`${toolDefName} [${environment}]: Will push (force override)`);
+    console.log(`${toolDefName}: Will push (force override)`);
 
     if (dryRun) {
-      console.log(`[DRY RUN] Would update tool: ${toolDefName} [${environment}]`);
+      console.log(`[DRY RUN] Would update tool: ${toolDefName}`);
       continue;
     }
 
@@ -213,15 +211,15 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
         // Create new tool
         const response = await createToolApi(client, toolConfig);
         const newToolId = (response as { toolId?: string }).toolId || `tool_${Date.now()}`;
-        console.log(`Created tool ${toolDefName} (ID: ${newToolId}) [${environment}]`);
-        
+        console.log(`Created tool ${toolDefName} (ID: ${newToolId})`);
+
         // Store tool ID in index file
         toolDef.id = newToolId;
         changesMade = true;
       } else {
         // Update existing tool
         await updateToolApi(client, toolId, toolConfig);
-        console.log(`Updated tool ${toolDefName} (ID: ${toolId}) [${environment}]`);
+        console.log(`Updated tool ${toolDefName} (ID: ${toolId})`);
       }
 
       changesMade = true;
@@ -426,7 +424,7 @@ async function pullToolsFromEnvironment(options: PullToolsOptions, toolsConfigPa
         };
         
         toolsConfig.tools.push(newTool);
-        console.log(`  ✓ Added '${tool.name}' (config: ${configPath}, type: ${toolType}) [${environment}]`);
+        console.log(`  ✓ Added '${tool.name}' (config: ${configPath}, type: ${toolType})`);
       }
       
       itemsProcessed++;

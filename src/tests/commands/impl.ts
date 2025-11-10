@@ -9,7 +9,6 @@ import {
   getTestApi,
   deleteTestApi
 } from '../../shared/elevenlabs-api.js';
-import { listEnvironments } from '../../shared/config.js';
 import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
 
 const TESTS_CONFIG_FILE = "tests.json";
@@ -60,10 +59,9 @@ async function addTest(name: string, templateType: string = "basic-llm"): Promis
   const testConfig = getTestTemplateByName(name, templateType);
 
   // Create test in ElevenLabs first to get ID
-  const env = 'prod';
-  console.log(`Creating test '${name}' in ElevenLabs (environment: ${env})...`);
+  console.log(`Creating test '${name}' in ElevenLabs...`);
 
-  const client = await getElevenLabsClient(env);
+  const client = await getElevenLabsClient();
 
   try {
     const testApiConfig = toCamelCaseKeys(testConfig) as unknown as ElevenLabs.conversationalAi.CreateUnitTestRequest;
@@ -171,15 +169,15 @@ async function pushTests(testId?: string, dryRun = false): Promise<void> {
         // Create new test
         const response = await createTestApi(client, testApiConfig);
         const newTestId = response.id;
-        console.log(`Created test ${testDefName} (ID: ${newTestId}) [${environment}]`);
-        
+        console.log(`Created test ${testDefName} (ID: ${newTestId})`);
+
         // Store test ID in index file
         testDef.id = newTestId;
         changesMade = true;
       } else {
         // Update existing test
         await updateTestApi(client, testId, testApiConfig as ElevenLabs.conversationalAi.UpdateUnitTestRequest);
-        console.log(`Updated test ${testDefName} (ID: ${testId}) [${environment}]`);
+        console.log(`Updated test ${testDefName} (ID: ${testId})`);
       }
 
       changesMade = true;
@@ -359,7 +357,7 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
         };
         
         testsConfig.tests.push(newTest);
-        console.log(`  ✓ Added '${test.name}' (config: ${configPath}) [${environment}]`);
+        console.log(`  ✓ Added '${test.name}' (config: ${configPath})`);
       }
       
       itemsProcessed++;

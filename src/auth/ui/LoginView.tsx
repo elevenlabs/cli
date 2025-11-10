@@ -58,7 +58,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onComplete }) => {
     setError(null);
 
     try {
-      await setApiKey(apiKey, 'prod');
+      await setApiKey(apiKey);
       setSuccess(true);
       
       setTimeout(() => {

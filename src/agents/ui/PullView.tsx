@@ -192,7 +192,7 @@ export const PullView: React.FC<PullViewProps> = ({
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const client = await getElevenLabsClient('prod');
+      const client = await getElevenLabsClient();
       const agentName = agent.name;
       
       // Find existing entry for this agent ID

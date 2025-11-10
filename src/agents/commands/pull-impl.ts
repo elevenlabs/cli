@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
 import { getElevenLabsClient, listAgentsApi, getAgentApi } from '../../shared/elevenlabs-api.js';
 import { AgentConfig } from '../templates.js';
-import { listEnvironments } from '../../shared/config.js';
 import { promptForConfirmation } from './utils.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
@@ -210,7 +209,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         };
 
         agentsConfig.agents.push(newAgent);
-        console.log(`  ✓ Added '${agent.name}' (config: ${configPath}) [${environment}]`);
+        console.log(`  ✓ Added '${agent.name}' (config: ${configPath})`);
       }
 
       itemsProcessed++;

@@ -59,20 +59,20 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
     const agentId = agentDef.id;
 
     // Always push (force override)
-    console.log(`${agentDefName} [${environment}]: Will push (force override)`);
+    console.log(`${agentDefName}: Will push (force override)`);
 
     if (dryRun) {
-      console.log(`[DRY RUN] Would update agent: ${agentDefName} [${environment}]`);
+      console.log(`[DRY RUN] Would update agent: ${agentDefName}`);
       continue;
     }
 
-    // Initialize ElevenLabs client for this agent's environment
+    // Initialize ElevenLabs client
     let client;
     try {
-      client = await getElevenLabsClient(environment);
+      client = await getElevenLabsClient();
     } catch (error) {
       console.log(`Error: ${error}`);
-      console.log(`Skipping agent ${agentDefName} - environment '${environment}' not configured`);
+      console.log(`Skipping agent ${agentDefName} - not configured`);
       continue;
     }
 
@@ -94,7 +94,7 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
           platformSettings,
           tags
         );
-        console.log(`Created agent ${agentDefName} (ID: ${newAgentId}) [${environment}]`);
+        console.log(`Created agent ${agentDefName} (ID: ${newAgentId})`);
 
         // Store agent ID in index file
         agentDef.id = newAgentId;
@@ -109,7 +109,7 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
           platformSettings,
           tags
         );
-        console.log(`Updated agent ${agentDefName} (ID: ${agentId}) [${environment}]`);
+        console.log(`Updated agent ${agentDefName} (ID: ${agentId})`);
       }
 
       changesMade = true;
