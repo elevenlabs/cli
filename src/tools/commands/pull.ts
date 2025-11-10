@@ -25,15 +25,13 @@ export function createPullCommand(): Command {
       try {
         if (options.ui !== false) {
           // Use Ink UI for pull
-          const environments = ['prod'];
           const { waitUntilExit } = render(
             React.createElement(PullToolsView, {
               tool: options.tool,
               outputDir: options.outputDir,
               dryRun: options.dryRun,
               update: options.update,
-              all: options.all,
-              environments
+              all: options.all
             })
           );
           await waitUntilExit();

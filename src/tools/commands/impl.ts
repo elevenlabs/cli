@@ -17,7 +17,6 @@ import {
   ToolDefinition,
   type Tool
 } from '../../shared/tools.js';
-import { listEnvironments } from '../../shared/config.js';
 
 const TOOLS_CONFIG_FILE = "tools.json";
 
@@ -98,10 +97,9 @@ async function addTool(name: string, type: 'webhook' | 'client', configPath?: st
   }
   
   // Create tool in ElevenLabs first to get ID
-  const env = 'prod';
-  console.log(`Creating ${type} tool '${name}' in ElevenLabs (environment: ${env})...`);
-  
-  const client = await getElevenLabsClient(env);
+  console.log(`Creating ${type} tool '${name}' in ElevenLabs...`);
+
+  const client = await getElevenLabsClient();
   
   try {
     const response = await createToolApi(client, toolConfig);
@@ -157,14 +155,12 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
     }
   }
 
-  const environment = 'prod';
-  console.log(`Pushing ${toolsToProcess.length} tool(s) to environment: ${environment}`);
+  console.log(`Pushing ${toolsToProcess.length} tool(s) to ElevenLabs...`);
 
   let changesMade = false;
 
   for (const toolDef of toolsToProcess) {
     const configPath = toolDef.config;
-    const environment = 'prod';
 
     if (!configPath) {
       console.log(`Warning: No config path specified`);
@@ -192,20 +188,20 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
     const toolId = toolDef.id;
 
     // Always push (force override)
-    console.log(`${toolDefName} [${environment}]: Will push (force override)`);
+    console.log(`${toolDefName}: Will push (force override)`);
 
     if (dryRun) {
-      console.log(`[DRY RUN] Would update tool: ${toolDefName} [${environment}]`);
+      console.log(`[DRY RUN] Would update tool: ${toolDefName}`);
       continue;
     }
 
-    // Initialize ElevenLabs client for this tool's environment
+    // Initialize ElevenLabs client
     let client;
     try {
-      client = await getElevenLabsClient(environment);
+      client = await getElevenLabsClient();
     } catch (error) {
       console.log(`Error: ${error}`);
-      console.log(`Skipping tool ${toolDefName} - environment '${environment}' not configured`);
+      console.log(`Skipping tool ${toolDefName} - not configured`);
       continue;
     }
 
@@ -215,15 +211,15 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
         // Create new tool
         const response = await createToolApi(client, toolConfig);
         const newToolId = (response as { toolId?: string }).toolId || `tool_${Date.now()}`;
-        console.log(`Created tool ${toolDefName} (ID: ${newToolId}) [${environment}]`);
-        
+        console.log(`Created tool ${toolDefName} (ID: ${newToolId})`);
+
         // Store tool ID in index file
         toolDef.id = newToolId;
         changesMade = true;
       } else {
         // Update existing tool
         await updateToolApi(client, toolId, toolConfig);
-        console.log(`Updated tool ${toolDefName} (ID: ${toolId}) [${environment}]`);
+        console.log(`Updated tool ${toolDefName} (ID: ${toolId})`);
       }
 
       changesMade = true;
@@ -241,14 +237,13 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
 async function pullTools(options: PullToolsOptions): Promise<void> {
   // Check if tools.json exists, create if not
   const toolsConfigPath = path.resolve(TOOLS_CONFIG_FILE);
-  const environment = 'prod';
 
-  console.log(`Pulling from environment: ${environment}`);
+  console.log(`Pulling tools from ElevenLabs...`);
 
-  await pullToolsFromEnvironment(options, environment, toolsConfigPath);
+  await pullToolsFromEnvironment(options, toolsConfigPath);
 }
 
-async function pullToolsFromEnvironment(options: PullToolsOptions, environment: string, toolsConfigPath: string): Promise<void> {
+async function pullToolsFromEnvironment(options: PullToolsOptions, toolsConfigPath: string): Promise<void> {
   let toolsConfig: ToolsConfig;
 
   if (!(await fs.pathExists(toolsConfigPath))) {
@@ -259,7 +254,7 @@ async function pullToolsFromEnvironment(options: PullToolsOptions, environment: 
     toolsConfig = await readToolsConfig(toolsConfigPath);
   }
 
-  const client = await getElevenLabsClient(environment);
+  const client = await getElevenLabsClient();
 
   let filteredTools: unknown[];
 
@@ -429,7 +424,7 @@ async function pullToolsFromEnvironment(options: PullToolsOptions, environment: 
         };
         
         toolsConfig.tools.push(newTool);
-        console.log(`  ✓ Added '${tool.name}' (config: ${configPath}, type: ${toolType}) [${environment}]`);
+        console.log(`  ✓ Added '${tool.name}' (config: ${configPath}, type: ${toolType})`);
       }
       
       itemsProcessed++;
@@ -474,8 +469,7 @@ async function deleteTool(toolId: string): Promise<void> {
   
   const toolDef = toolsConfig.tools[toolIndex];
   const configPath = toolDef.config;
-  const environment = 'prod';
-  
+
   // Read tool name from config if available
   let toolName = toolId;
   if (configPath && await fs.pathExists(configPath)) {
@@ -486,12 +480,12 @@ async function deleteTool(toolId: string): Promise<void> {
       // If reading fails, just use ID
     }
   }
-  
-  console.log(`Deleting tool '${toolName}' (ID: ${toolId}) [${environment}]...`);
-  
+
+  console.log(`Deleting tool '${toolName}' (ID: ${toolId})...`);
+
   // Delete from ElevenLabs
   console.log('Deleting from ElevenLabs...');
-  const client = await getElevenLabsClient(environment);
+  const client = await getElevenLabsClient();
   
   try {
     await deleteToolApi(client, toolId);
@@ -573,8 +567,6 @@ async function deleteAllTools(ui: boolean = true): Promise<void> {
   // Delete each tool
   for (const toolDef of toolsToDelete) {
     try {
-      const environment = 'prod';
-      
       // Read tool name from config if available
       let toolName = toolDef.id || 'Unknown';
       if (toolDef.config && await fs.pathExists(toolDef.config)) {
@@ -585,13 +577,13 @@ async function deleteAllTools(ui: boolean = true): Promise<void> {
           // If reading fails, just use ID
         }
       }
-      
-      console.log(`Deleting '${toolName}' (${toolDef.id}) [${environment}]...`);
+
+      console.log(`Deleting '${toolName}' (${toolDef.id})...`);
       
       // Delete from ElevenLabs
       if (toolDef.id) {
         try {
-          const client = await getElevenLabsClient(environment);
+          const client = await getElevenLabsClient();
           await deleteToolApi(client, toolDef.id);
           console.log(`  ✓ Deleted from ElevenLabs`);
         } catch (error) {

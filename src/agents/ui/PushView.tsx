@@ -93,8 +93,8 @@ export const PushView: React.FC<PushViewProps> = ({
             )
           );
 
-          // Get ElevenLabs client for this agent's environment
-          const client = await getElevenLabsClient('prod');
+          // Get ElevenLabs client
+          const client = await getElevenLabsClient();
 
           // Extract config components
           const conversationConfig = agentConfig.conversation_config || {};

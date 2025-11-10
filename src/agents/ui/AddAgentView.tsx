@@ -68,7 +68,7 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
       
       // Step 2: Upload to ElevenLabs first to get ID
       setStatusMessage('Creating agent in ElevenLabs...');
-      const client = await getElevenLabsClient('prod');
+      const client = await getElevenLabsClient();
       const conversationConfig = agentConfig.conversation_config || {};
       const platformSettings = agentConfig.platform_settings;
       const tags = agentConfig.tags || [];

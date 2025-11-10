@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
 import { getElevenLabsClient, listAgentsApi, getAgentApi } from '../../shared/elevenlabs-api.js';
 import { AgentConfig } from '../templates.js';
-import { listEnvironments } from '../../shared/config.js';
 import { promptForConfirmation } from './utils.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
@@ -27,15 +26,14 @@ interface PullOptions {
 
 export async function pullAgents(options: PullOptions): Promise<void> {
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
-  const environment = 'prod';
 
-  console.log(`Pulling from environment: ${environment}`);
+  console.log(`Pulling agents from ElevenLabs...`);
 
-  await pullAgentsFromEnvironment(options, environment, agentsConfigPath);
+  await pullAgentsFromEnvironment(options, agentsConfigPath);
 }
 
-async function pullAgentsFromEnvironment(options: PullOptions, environment: string, agentsConfigPath: string): Promise<void> {
-  const client = await getElevenLabsClient(environment);
+async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath: string): Promise<void> {
+  const client = await getElevenLabsClient();
 
   // Load existing config
   let agentsConfig: AgentsConfig;
@@ -211,7 +209,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, environment: stri
         };
 
         agentsConfig.agents.push(newAgent);
-        console.log(`  ✓ Added '${agent.name}' (config: ${configPath}) [${environment}]`);
+        console.log(`  ✓ Added '${agent.name}' (config: ${configPath})`);
       }
 
       itemsProcessed++;

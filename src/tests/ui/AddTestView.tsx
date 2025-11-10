@@ -150,7 +150,7 @@ export const AddTestView: React.FC<AddTestViewProps> = ({
 
       // Create test in ElevenLabs first to get ID
       const { getElevenLabsClient, createTestApi } = await import('../../shared/elevenlabs-api.js');
-      const client = await getElevenLabsClient('prod');
+      const client = await getElevenLabsClient();
 
       const { toCamelCaseKeys, generateUniqueFilename } = await import('../../shared/utils.js');
       const testApiConfig = toCamelCaseKeys(testConfig) as unknown as any;

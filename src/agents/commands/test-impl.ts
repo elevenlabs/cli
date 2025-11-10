@@ -48,14 +48,11 @@ export async function runAgentTests(agentId: string): Promise<void> {
 
   const testIds = attachedTests.map(test => test.test_id);
 
-  // Get agent environment
-  const environment = 'prod';
-
-  console.log(`Running ${testIds.length} test(s) for agent '${agentName}' [${environment}]...`);
+  console.log(`Running ${testIds.length} test(s) for agent '${agentName}'...`);
   console.log('');
 
   // Run tests without UI
-  const client = await getElevenLabsClient(environment);
+  const client = await getElevenLabsClient();
 
   try {
     // Import the API functions we need

@@ -74,10 +74,9 @@ export function createAddCommand(): Command {
         }
 
         // Create agent in ElevenLabs first to get ID
-        const environment = 'prod';
-        console.log(`Creating agent '${name}' in ElevenLabs (environment: ${environment})...`);
+        console.log(`Creating agent '${name}' in ElevenLabs...`);
 
-        const client = await getElevenLabsClient(environment);
+        const client = await getElevenLabsClient();
 
         // Extract config components
         const conversationConfig = agentConfig.conversation_config || {};

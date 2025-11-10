@@ -77,30 +77,6 @@ elevenlabs auth residency global  # or 'us'
 elevenlabs auth logout
 ```
 
-### Multi-Environment Management
-
-The ElevenLabs CLI supports managing agents, tools, and tests across multiple isolated environments (e.g., dev, staging, prod).
-
-#### Login to Multiple Environments
-
-```bash
-# Login with your API key
-elevenlabs auth login
-```
-
-#### Check Authentication Status
-
-```bash
-elevenlabs auth whoami
-# Shows your authentication status
-```
-
-#### Logout
-
-```bash
-elevenlabs auth logout
-```
-
 ## Quick Start
 
 ```bash
@@ -122,15 +98,13 @@ elevenlabs agents add "Support Bot" --template customer-service
 elevenlabs agents push
 ```
 
-> **Note**: This example uses the default 'prod' environment. For multi-environment workflows, see [Multi-Environment Management](#multi-environment-management) and [Multi-Environment Workflows](#multi-environment-workflows).
-
 ## Directory Structure
 
 ```
 your_project/
-├── agents.json              # Central configuration with env field per agent
-├── tools.json               # Tool configurations with env field per tool
-├── tests.json               # Test configurations with env field per test
+├── agents.json              # Central configuration
+├── tools.json               # Tool configurations
+├── tests.json               # Test configurations
 ├── agent_configs/           # Agent configuration files
 ├── tool_configs/            # Tool configurations
 └── test_configs/            # Test configurations
@@ -337,13 +311,13 @@ elevenlabs agents delete agent_123456789
 ## Workflow Examples
 
 ```bash
-# List all agents across all environments
+# List all agents
 elevenlabs agents list
 
-# Push all agents to their respective environments
+# Push all agents
 elevenlabs agents push
 
-# Pull agents from all configured environments
+# Pull agents
 elevenlabs agents pull
 ```
 

@@ -94,8 +94,8 @@ export const PushToolsView: React.FC<PushToolsViewProps> = ({
             )
           );
 
-          // Get ElevenLabs client for this tool's environment
-          const client = await getElevenLabsClient('prod');
+          // Get ElevenLabs client
+          const client = await getElevenLabsClient();
 
           if (!toolId) {
             // Create new tool

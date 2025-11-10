@@ -29,7 +29,7 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete }) => {
 
   useEffect(() => {
     const checkLoginStatus = async () => {
-      const loggedIn = await isLoggedIn('prod');
+      const loggedIn = await isLoggedIn();
       if (!loggedIn) {
         setNotLoggedIn(true);
         setConfirming(false);
@@ -51,7 +51,7 @@ export const LogoutView: React.FC<LogoutViewProps> = ({ onComplete }) => {
     setProcessing(true);
 
     try {
-      await removeApiKey('prod');
+      await removeApiKey();
       setProcessing(false);
       setSuccess(true);
 
