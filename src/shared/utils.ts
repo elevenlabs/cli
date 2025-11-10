@@ -139,14 +139,21 @@ export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion = fa
   return value;
 }
 
-export function toSnakeCaseKeys<T = unknown>(value: T): T {
+export function toSnakeCaseKeys<T = unknown>(value: T, skipHeaderConversion = false): T {
   if (Array.isArray(value)) {
-    return (value.map((v) => toSnakeCaseKeys(v)) as unknown) as T;
+    return (value.map((v) => toSnakeCaseKeys(v, skipHeaderConversion)) as unknown) as T;
   }
   if (isPlainObject(value)) {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
-      result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v);
+      if (skipHeaderConversion) {
+        // Inside request_headers/requestHeaders: preserve all keys as-is to avoid converting
+        // header names like "X-Api-Key" or nested keys like "secret_id"
+        result[k] = toSnakeCaseKeys(v, true);
+      } else {
+        // Normal conversion
+        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, k === 'request_headers' || k === 'requestHeaders');
+      }
     }
     return (result as unknown) as T;
   }
