@@ -481,7 +481,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Login
       const apiKey = process.env.ELEVENLABS_API_KEY!;
-      await runCli(["login", "--no-ui"], {
+      await runCli(["auth", "login", "--no-ui"], {
         cwd: pushPullTempDir,
         input: `${apiKey}\n`,
         includeApiKey: true,
@@ -510,7 +510,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Delete all agents at once
       try {
-        await runCli(["delete", "--all", "--no-ui"], {
+        await runCli(["agents", "delete", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Are you sure?" prompt
@@ -591,7 +591,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(`✓ Verified agent '${agentName}' is the only agent after pull`);
 
       // Clean up: delete the agent
-      await runCli(["delete", createdAgent.id, "--no-ui"], {
+      await runCli(["agents", "delete", createdAgent.id, "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -717,6 +717,7 @@ describe("CLI End-to-End Tests", () => {
       
       for (const agentName of agentNames) {
         const addResult = await runCli([
+          "agents",
           "add",
           agentName,
           "--template",
@@ -1322,7 +1323,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Login
       const apiKey = process.env.ELEVENLABS_API_KEY!;
-      await runCli(["login", "--no-ui"], {
+      await runCli(["auth", "login", "--no-ui"], {
         cwd: pushPullTempDir,
         input: `${apiKey}\n`,
         includeApiKey: true,
@@ -1351,7 +1352,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Delete all tests at once
       try {
-        await runCli(["delete-test", "--all", "--no-ui"], {
+        await runCli(["tests", "delete", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Are you sure?" prompt
@@ -1420,7 +1421,7 @@ describe("CLI End-to-End Tests", () => {
       console.log(`✓ Verified test '${testName}' is the only test after pull`);
 
       // Clean up: delete the test
-      await runCli(["delete-test", createdTest.id, "--no-ui"], {
+      await runCli(["tests", "delete", createdTest.id, "--no-ui"], {
         cwd: pushPullTempDir,
         includeApiKey: true,
       });
@@ -1547,7 +1548,8 @@ describe("CLI End-to-End Tests", () => {
       
       for (const testName of testNames) {
         const addResult = await runCli([
-          "add-test",
+          "tests",
+          "add",
           testName,
           "--template",
           "basic-llm",
@@ -1943,7 +1945,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Login
       const apiKey = process.env.ELEVENLABS_API_KEY!;
-      await runCli(["login", "--no-ui"], {
+      await runCli(["auth", "login", "--no-ui"], {
         cwd: pushPullTempDir,
         input: `${apiKey}\n`,
         includeApiKey: true,
@@ -1972,7 +1974,7 @@ describe("CLI End-to-End Tests", () => {
 
       // Delete all tools at once
       try {
-        await runCli(["delete-tool", "--all", "--no-ui"], {
+        await runCli(["tools", "delete", "--all", "--no-ui"], {
           cwd: pushPullTempDir,
           includeApiKey: true,
           input: "y\n", // Answer the "Are you sure?" prompt
