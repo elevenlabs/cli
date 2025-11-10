@@ -6,7 +6,6 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { render } from 'ink';
 import React from 'react';
-import dotenv from 'dotenv';
 import HelpView from './ui/views/HelpView.js';
 
 // Import command groups
@@ -15,9 +14,6 @@ import { createAgentsCommand } from './agents/commands/index.js';
 import { createToolsCommand } from './tools/commands/index.js';
 import { createTestsCommand } from './tests/commands/index.js';
 import { createComponentsCommand } from './components/commands/index.js';
-
-// Load environment variables
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
