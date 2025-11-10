@@ -81,6 +81,7 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
       // Extract config components
       const conversationConfig = agentConfig.conversation_config || {};
       const platformSettings = agentConfig.platform_settings;
+      const workflow = agentConfig.workflow;
       const tags = agentConfig.tags || [];
 
       const agentDisplayName = agentConfig.name;
@@ -92,6 +93,7 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
           agentDisplayName,
           conversationConfig,
           platformSettings,
+          workflow,
           tags
         );
         console.log(`Created agent ${agentDefName} (ID: ${newAgentId})`);
@@ -107,6 +109,7 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
           agentDisplayName,
           conversationConfig,
           platformSettings,
+          workflow,
           tags
         );
         console.log(`Updated agent ${agentDefName} (ID: ${agentId})`);

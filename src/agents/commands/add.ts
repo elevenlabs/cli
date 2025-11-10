@@ -81,6 +81,7 @@ export function createAddCommand(): Command {
         // Extract config components
         const conversationConfig = agentConfig.conversation_config || {};
         const platformSettings = agentConfig.platform_settings;
+        const workflow = agentConfig.workflow;
         const tags = agentConfig.tags || [];
 
         // Create new agent
@@ -89,6 +90,7 @@ export function createAddCommand(): Command {
           name,
           conversationConfig,
           platformSettings,
+          workflow,
           tags
         );
 

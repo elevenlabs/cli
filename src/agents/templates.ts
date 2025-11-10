@@ -54,6 +54,7 @@ export interface AgentConfig {
     };
     [key: string]: unknown;
   };
+  workflow?: unknown;
   tags: string[];
 }
 

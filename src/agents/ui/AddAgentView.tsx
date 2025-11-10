@@ -71,12 +71,14 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
       const client = await getElevenLabsClient();
       const conversationConfig = agentConfig.conversation_config || {};
       const platformSettings = agentConfig.platform_settings;
+      const workflow = agentConfig.workflow;
       const tags = agentConfig.tags || [];
       const agentId = await createAgentApi(
         client,
         agentName,
         conversationConfig,
         platformSettings,
+        workflow,
         tags
       );
       
