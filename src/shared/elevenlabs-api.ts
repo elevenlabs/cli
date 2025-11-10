@@ -16,6 +16,35 @@ function isConversationalConfig(config: unknown): config is ConversationalConfig
 function isPlatformSettings(settings: unknown): settings is AgentPlatformSettingsRequestModel {
   return typeof settings === 'object' && settings !== null;
 }
+
+/**
+ * Cleans conversation config before sending to API.
+ * Removes the deprecated 'tools' field if 'tool_ids' is present to avoid API conflicts.
+ * The API returns both fields, but only accepts one when creating/updating.
+ */
+function cleanConversationConfigForApi(config: Record<string, unknown>): Record<string, unknown> {
+  const cleaned = { ...config };
+
+  // Handle nested agent.prompt structure
+  if (cleaned.agent && typeof cleaned.agent === 'object') {
+    const agent = { ...(cleaned.agent as Record<string, unknown>) };
+
+    if (agent.prompt && typeof agent.prompt === 'object') {
+      const prompt = { ...(agent.prompt as Record<string, unknown>) };
+
+      // If tool_ids exists, remove tools (deprecated field) to avoid API error
+      if (prompt.tool_ids !== undefined || prompt.toolIds !== undefined) {
+        delete prompt.tools;
+      }
+
+      agent.prompt = prompt;
+    }
+
+    cleaned.agent = agent;
+  }
+
+  return cleaned;
+}
 /**
  * Gets the API base URL based on residency configuration
  */
@@ -80,8 +109,11 @@ export async function createAgentApi(
     throw new Error('Invalid conversation config provided');
   }
 
+  // Clean config to remove deprecated 'tools' if 'tool_ids' exists
+  const cleanedConfig = cleanConversationConfigForApi(conversationConfigDict);
+
   // Normalize to camelCase for API
-  const convConfig = toCamelCaseKeys(conversationConfigDict) as ConversationalConfig;
+  const convConfig = toCamelCaseKeys(cleanedConfig) as ConversationalConfig;
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
 
   const response = await client.conversationalAi.agents.create({
@@ -116,7 +148,10 @@ export async function updateAgentApi(
   workflow?: unknown,
   tags?: string[]
 ): Promise<string> {
-  const convConfig = conversationConfigDict && isConversationalConfig(conversationConfigDict) ? toCamelCaseKeys(conversationConfigDict) as ConversationalConfig : undefined;
+  // Clean config to remove deprecated 'tools' if 'tool_ids' exists
+  const cleanedConfig = conversationConfigDict ? cleanConversationConfigForApi(conversationConfigDict) : undefined;
+
+  const convConfig = cleanedConfig && isConversationalConfig(cleanedConfig) ? toCamelCaseKeys(cleanedConfig) as ConversationalConfig : undefined;
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
 
   const response = await client.conversationalAi.agents.update(agentId, {
