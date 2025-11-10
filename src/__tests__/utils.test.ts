@@ -1,4 +1,4 @@
-import { calculateConfigHash, toCamelCaseKeys, generateUniqueFilename } from "../shared/utils";
+import { calculateConfigHash, toCamelCaseKeys, toSnakeCaseKeys, generateUniqueFilename } from "../shared/utils";
 import fs from "fs-extra";
 import path from "path";
 import os from "os";
@@ -363,6 +363,121 @@ describe("Utils", () => {
         config: {
           displayName: "John Doe",
         },
+      });
+    });
+
+    it("should preserve request_headers in toSnakeCaseKeys for symmetry", () => {
+      const input = {
+        conversationConfig: {
+          agent: {
+            prompt: {
+              tools: [
+                {
+                  type: "webhook",
+                  apiSchema: {
+                    url: "https://example.com/webhook",
+                    method: "GET",
+                    requestHeaders: {
+                      "Content-Type": "application/json",
+                      "X-Api-Key": {
+                        secretId: "abc"
+                      },
+                      "Authorization": {
+                        variableName: "auth_token"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        conversation_config: {
+          agent: {
+            prompt: {
+              tools: [
+                {
+                  type: "webhook",
+                  api_schema: {
+                    url: "https://example.com/webhook",
+                    method: "GET",
+                    request_headers: {
+                      "Content-Type": "application/json",
+                      "X-Api-Key": {
+                        secretId: "abc" // Should NOT be converted to secret_id
+                      },
+                      "Authorization": {
+                        variableName: "auth_token" // Should NOT be converted to variable_name
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      });
+    });
+
+    it("should maintain round-trip conversion symmetry for request_headers", () => {
+      const original = {
+        conversation_config: {
+          agent: {
+            prompt: {
+              tools: [
+                {
+                  type: "webhook",
+                  api_schema: {
+                    url: "https://example.com/webhook",
+                    method: "POST",
+                    request_headers: {
+                      "Content-Type": "application/json",
+                      "X-Api-Key": {
+                        secretId: "my_secret_123"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      };
+
+      // Simulate pull (API → local file): camelCase → snake_case
+      const afterPull = toSnakeCaseKeys(toCamelCaseKeys(original));
+
+      // Simulate push (local file → API): snake_case → camelCase
+      const afterPush = toCamelCaseKeys(afterPull);
+
+      // After round-trip, request_headers internals should be preserved
+      expect(afterPush).toEqual({
+        conversationConfig: {
+          agent: {
+            prompt: {
+              tools: [
+                {
+                  type: "webhook",
+                  apiSchema: {
+                    url: "https://example.com/webhook",
+                    method: "POST",
+                    requestHeaders: {
+                      "Content-Type": "application/json",
+                      "X-Api-Key": {
+                        secretId: "my_secret_123" // Should be preserved through round-trip
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
       });
     });
   });
