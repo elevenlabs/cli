@@ -99,6 +99,7 @@ export const PushView: React.FC<PushViewProps> = ({
           // Extract config components
           const conversationConfig = agentConfig.conversation_config || {};
           const platformSettings = agentConfig.platform_settings;
+          const workflow = agentConfig.workflow;
           const tags = agentConfig.tags || [];
           const agentDisplayName = agentConfig.name || 'Unnamed Agent';
 
@@ -109,6 +110,7 @@ export const PushView: React.FC<PushViewProps> = ({
               agentDisplayName,
               conversationConfig,
               platformSettings,
+              workflow,
               tags
             );
 
@@ -139,6 +141,7 @@ export const PushView: React.FC<PushViewProps> = ({
               agentDisplayName,
               conversationConfig,
               platformSettings,
+              workflow,
               tags
             );
 

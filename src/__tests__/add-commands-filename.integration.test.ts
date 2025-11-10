@@ -84,7 +84,7 @@ describe("Add Commands - Name-based Filenames", () => {
       const agentConfig = getTemplateByName(agentName, "default");
 
       // Call the API
-      const agentId = await createAgentApi({} as never, agentName, {}, {}, []);
+      const agentId = await createAgentApi({} as never, agentName, {}, {}, undefined, []);
 
       // Generate config path using name (not ID)
       const configPath = await generateUniqueFilename(

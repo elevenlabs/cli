@@ -175,11 +175,13 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         conversation_config: Record<string, unknown>;
         platformSettings: Record<string, unknown>;
         platform_settings: Record<string, unknown>;
+        workflow?: unknown;
         tags: string[];
       };
 
       const conversationConfig = agentDetailsTyped.conversationConfig || agentDetailsTyped.conversation_config || {};
       const platformSettings = agentDetailsTyped.platformSettings || agentDetailsTyped.platform_settings || {};
+      const workflow = agentDetailsTyped.workflow;
       const tags = agentDetailsTyped.tags || [];
 
       // Create agent config structure (without agent_id - it goes in index file)
@@ -189,6 +191,11 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         platform_settings: platformSettings,
         tags
       };
+
+      // Only include workflow if it exists
+      if (workflow !== undefined && workflow !== null) {
+        agentConfig.workflow = workflow;
+      }
 
       if (action === 'update' && existingEntry) {
         // Update existing entry - overwrite the config file

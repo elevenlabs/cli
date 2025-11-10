@@ -49,6 +49,7 @@ describe("Key casing normalization", () => {
       "Name",
       conversation_config,
       platform_settings,
+      undefined,
       ["prod"]
     );
 
@@ -88,6 +89,7 @@ describe("Key casing normalization", () => {
       "agent_123",
       "Name",
       conversation_config,
+      undefined,
       undefined,
       ["prod"]
     );

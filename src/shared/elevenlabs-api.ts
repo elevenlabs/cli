@@ -59,11 +59,12 @@ export async function getElevenLabsClient(): Promise<ElevenLabsClient> {
 
 /**
  * Creates a new agent using the ElevenLabs API.
- * 
+ *
  * @param client - An initialized ElevenLabs client
  * @param name - The name of the agent
  * @param conversationConfigDict - A dictionary for ConversationalConfig
  * @param platformSettingsDict - An optional dictionary for AgentPlatformSettings
+ * @param workflow - An optional workflow configuration
  * @param tags - An optional list of tags
  * @returns Promise that resolves to the agent_id of the newly created agent
  */
@@ -72,34 +73,37 @@ export async function createAgentApi(
   name: string,
   conversationConfigDict: Record<string, unknown>,
   platformSettingsDict?: Record<string, unknown>,
+  workflow?: unknown,
   tags?: string[]
 ): Promise<string> {
   if (!isConversationalConfig(conversationConfigDict)) {
     throw new Error('Invalid conversation config provided');
   }
-  
+
   // Normalize to camelCase for API
   const convConfig = toCamelCaseKeys(conversationConfigDict) as ConversationalConfig;
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
-  
+
   const response = await client.conversationalAi.agents.create({
     name,
     conversationConfig: convConfig,
     platformSettings,
+    workflow,
     tags
   });
-  
+
   return response.agentId;
 }
 
 /**
  * Updates an existing agent using the ElevenLabs API.
- * 
+ *
  * @param client - An initialized ElevenLabs client
  * @param agentId - The ID of the agent to update
  * @param name - Optional new name for the agent
  * @param conversationConfigDict - Optional new dictionary for ConversationalConfig
  * @param platformSettingsDict - Optional new dictionary for AgentPlatformSettings
+ * @param workflow - Optional workflow configuration
  * @param tags - Optional new list of tags
  * @returns Promise that resolves to the agent_id of the updated agent
  */
@@ -109,18 +113,20 @@ export async function updateAgentApi(
   name?: string,
   conversationConfigDict?: Record<string, unknown>,
   platformSettingsDict?: Record<string, unknown>,
+  workflow?: unknown,
   tags?: string[]
 ): Promise<string> {
   const convConfig = conversationConfigDict && isConversationalConfig(conversationConfigDict) ? toCamelCaseKeys(conversationConfigDict) as ConversationalConfig : undefined;
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
-    
+
   const response = await client.conversationalAi.agents.update(agentId, {
     name,
     conversationConfig: convConfig,
     platformSettings,
+    workflow,
     tags
   });
-  
+
   return response.agentId;
 }
 
