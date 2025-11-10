@@ -110,7 +110,6 @@ export function getDefaultAgentTemplate(name: string): AgentConfig {
           llm: "gemini-2.0-flash",
           temperature: 0.0,
           max_tokens: -1,
-          tools: [],
           tool_ids: [],
           mcp_server_ids: [],
           native_mcp_server_ids: [],
