@@ -25,9 +25,8 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
 
   const agentsToProcess = agentsConfig.agents;
-  const environment = 'prod';
 
-  console.log(`Pushing ${agentsToProcess.length} agent(s) to environment: ${environment}`);
+  console.log(`Pushing ${agentsToProcess.length} agent(s) to ElevenLabs...`);
 
   let changesMade = false;
 

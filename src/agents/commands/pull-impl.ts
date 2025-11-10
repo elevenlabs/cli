@@ -27,15 +27,14 @@ interface PullOptions {
 
 export async function pullAgents(options: PullOptions): Promise<void> {
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
-  const environment = 'prod';
 
-  console.log(`Pulling from environment: ${environment}`);
+  console.log(`Pulling agents from ElevenLabs...`);
 
-  await pullAgentsFromEnvironment(options, environment, agentsConfigPath);
+  await pullAgentsFromEnvironment(options, agentsConfigPath);
 }
 
-async function pullAgentsFromEnvironment(options: PullOptions, environment: string, agentsConfigPath: string): Promise<void> {
-  const client = await getElevenLabsClient(environment);
+async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath: string): Promise<void> {
+  const client = await getElevenLabsClient();
 
   // Load existing config
   let agentsConfig: AgentsConfig;

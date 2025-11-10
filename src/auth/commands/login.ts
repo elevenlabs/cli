@@ -13,8 +13,6 @@ export function createLoginCommand(): Command {
     .option('--no-ui', 'Disable interactive UI')
     .action(async (options: { ui: boolean }) => {
       try {
-        const environment = 'prod';
-
         if (options.ui !== false) {
           // Use Ink UI for login
           const { waitUntilExit } = render(
@@ -25,7 +23,7 @@ export function createLoginCommand(): Command {
           // Fallback to text-based login
           const { read } = await import('read');
 
-          console.log(`Logging in to environment: ${environment}`);
+          console.log('Logging in to ElevenLabs...');
           const apiKey = await read({
             prompt: 'Enter your ElevenLabs API key: ',
             silent: true,
@@ -64,8 +62,8 @@ export function createLoginCommand(): Command {
             process.exit(1);
           }
 
-          await setApiKey(apiKey.trim(), environment);
-          console.log(`Login successful! API key saved securely for environment '${environment}'.`);
+          await setApiKey(apiKey.trim());
+          console.log('Login successful! API key saved securely.');
         }
       } catch (error) {
         console.error(`Error during login: ${error}`);

@@ -22,18 +22,16 @@ interface PullViewProps {
   dryRun: boolean;
   update?: boolean;
   all?: boolean;
-  environments: string[]; // Array of environments to pull from
   onComplete?: () => void;
 }
 
-export const PullView: React.FC<PullViewProps> = ({ 
+export const PullView: React.FC<PullViewProps> = ({
   agent,
   outputDir,
   dryRun,
   update,
   all,
-  environments,
-  onComplete 
+  onComplete
 }) => {
   const { exit } = useApp();
   const [agents, setAgents] = useState<PullAgent[]>([]);
@@ -54,16 +52,14 @@ export const PullView: React.FC<PullViewProps> = ({
         const agentsConfig = await readConfig<any>(agentsConfigPath);
         const existingAgentNames = new Set<string>(agentsConfig.agents.map((a: any) => a.name as string));
         
-        // Collect all agents from all environments
+        // Collect all agents
         const allAgentsToPull: PullAgent[] = [];
 
-        // Loop through each environment
-        for (const environment of environments) {
-          const client = await getElevenLabsClient(environment);
+        const client = await getElevenLabsClient();
 
-          // Fetch agents list - either specific agent by ID or all agents
-          let agentsList: unknown[];
-          if (agent) {
+        // Fetch agents list - either specific agent by ID or all agents
+        let agentsList: unknown[];
+        if (agent) {
             // Pull specific agent by ID
             const agentDetails = await getAgentApi(client, agent);
             const agentDetailsTyped = agentDetails as { agentId?: string; agent_id?: string; name: string };
@@ -77,16 +73,20 @@ export const PullView: React.FC<PullViewProps> = ({
             agentsList = await listAgentsApi(client, 30);
           }
 
-          if (agentsList.length === 0) continue;
+        if (agentsList.length === 0) {
+          setError('No agents found in your ElevenLabs workspace.');
+          setComplete(true);
+          return;
+        }
 
-          // Build ID-based map for existing agents
-          const existingAgentIds = new Map<string, any>(
-            agentsConfig.agents
-              .map((agent: any) => [agent.id as string, agent])
-          );
+        // Build ID-based map for existing agents
+        const existingAgentIds = new Map<string, any>(
+          agentsConfig.agents
+            .map((agent: any) => [agent.id as string, agent])
+        );
 
-          // Prepare agents for display with action determination
-          for (const agentMeta of agentsList) {
+        // Prepare agents for display with action determination
+        for (const agentMeta of agentsList) {
             const agentMetaTyped = agentMeta as { agentId?: string; agent_id?: string; name: string };
             const agentId = agentMetaTyped.agentId || agentMetaTyped.agent_id;
             
@@ -121,18 +121,17 @@ export const PullView: React.FC<PullViewProps> = ({
               }
             }
 
-            allAgentsToPull.push({
-              name: agentName,
-              agentId,
-              action,
-              status,
-              message: status === 'skipped' ? 'Skipped' : undefined
-            });
-          }
+          allAgentsToPull.push({
+            name: agentName,
+            agentId,
+            action,
+            status,
+            message: status === 'skipped' ? 'Skipped' : undefined
+          });
         }
 
         if (allAgentsToPull.length === 0) {
-          setError('No agents found in any environment.');
+          setError('No agents found.');
           setComplete(true);
           return;
         }
@@ -304,12 +303,6 @@ export const PullView: React.FC<PullViewProps> = ({
           <>
             {/* Agent Status List - Compact Table */}
             <Box flexDirection="column">
-              <Box marginBottom={1}>
-                <Text color={theme.colors.text.primary} bold>
-                  Pulling from {environments.length} environment{environments.length > 1 ? 's' : ''}: 
-                </Text>
-                <Text color={theme.colors.accent.secondary}> {environments.join(', ')}</Text>
-              </Box>
               <Text color={theme.colors.text.primary} bold>
                 Agents:
               </Text>

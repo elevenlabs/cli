@@ -10,11 +10,8 @@ import {
   storeApiKey,
   retrieveApiKey,
   removeApiKey as removeStoredApiKey,
-  hasApiKey,
-  listEnvironments
+  hasApiKey
 } from './auth.js';
-
-export { listEnvironments };
 export const LOCATIONS = ["us", "global", "eu-residency", "in-residency"] as const;
 export type Location = (typeof LOCATIONS)[number];
 
@@ -75,29 +72,29 @@ export async function saveConfig(config: CliConfig): Promise<void> {
 /**
  * Get API key from storage or environment variable
  */
-export async function getApiKey(environment: string = 'prod'): Promise<string | undefined> {
-  return await retrieveApiKey(environment);
+export async function getApiKey(): Promise<string | undefined> {
+  return await retrieveApiKey();
 }
 
 /**
  * Set API key in secure storage
  */
-export async function setApiKey(apiKey: string, environment: string = 'prod'): Promise<void> {
-  await storeApiKey(apiKey, environment);
+export async function setApiKey(apiKey: string): Promise<void> {
+  await storeApiKey(apiKey);
 }
 
 /**
  * Remove API key from storage
  */
-export async function removeApiKey(environment: string = 'prod'): Promise<void> {
-  await removeStoredApiKey(environment);
+export async function removeApiKey(): Promise<void> {
+  await removeStoredApiKey();
 }
 
 /**
  * Check if user is logged in (has API key)
  */
-export async function isLoggedIn(environment: string = 'prod'): Promise<boolean> {
-  return await hasApiKey(environment);
+export async function isLoggedIn(): Promise<boolean> {
+  return await hasApiKey();
 }
 
 /**

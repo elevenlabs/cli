@@ -10,8 +10,6 @@ export function createLogoutCommand(): Command {
     .option('--no-ui', 'Disable interactive UI')
     .action(async (options: { ui: boolean }) => {
       try {
-        const environment = 'prod';
-
         if (options.ui !== false) {
           // Use Ink UI for logout
           const { waitUntilExit } = render(
@@ -20,14 +18,14 @@ export function createLogoutCommand(): Command {
           await waitUntilExit();
         } else {
           // Fallback to text-based logout
-          const loggedIn = await isLoggedIn(environment);
+          const loggedIn = await isLoggedIn();
           if (!loggedIn) {
-            console.log(`You are not logged in to environment '${environment}'`);
+            console.log('You are not logged in');
             return;
           }
 
-          await removeApiKey(environment);
-          console.log(`Logged out successfully from environment '${environment}'. API key removed.`);
+          await removeApiKey();
+          console.log('Logged out successfully. API key removed.');
         }
       } catch (error) {
         console.error(`Error during logout: ${error}`);

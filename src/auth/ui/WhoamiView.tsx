@@ -3,55 +3,29 @@ import { Box, Text, useApp } from 'ink';
 import App from '../../ui/App.js';
 import StatusCard from '../../ui/components/StatusCard.js';
 import theme from '../../ui/themes/elevenlabs.js';
-import { getApiKey, getResidency, listEnvironments } from '../../shared/config.js';
+import { getApiKey, getResidency } from '../../shared/config.js';
 
 interface WhoamiViewProps {
   onComplete?: () => void;
 }
 
-interface EnvironmentInfo {
-  name: string;
-  maskedKey: string;
-}
-
 export const WhoamiView: React.FC<WhoamiViewProps> = ({ onComplete }) => {
   const { exit } = useApp();
   const [loading, setLoading] = useState(true);
-  const [environments, setEnvironments] = useState<EnvironmentInfo[]>([]);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [residency, setResidency] = useState<string | null>(null);
   const [usingEnvVar, setUsingEnvVar] = useState(false);
 
   useEffect(() => {
     const loadStatus = async () => {
       try {
-        // Check if using environment variable
-        const hasEnvVar = !!process.env.ELEVENLABS_API_KEY;
-        setUsingEnvVar(hasEnvVar);
-        
-        if (hasEnvVar) {
-          // If using env var, show it for prod environment only
-          const apiKey = process.env.ELEVENLABS_API_KEY!;
-          const maskedKey = apiKey.slice(0, 8) + '...' + apiKey.slice(-4);
-          setEnvironments([{ name: 'prod (from env)', maskedKey }]);
-        } else {
-          // Load all configured environments
-          const envs = await listEnvironments();
-          const envInfo: EnvironmentInfo[] = [];
-          
-          for (const env of envs) {
-            const apiKey = await getApiKey(env);
-            if (apiKey) {
-              const maskedKey = apiKey.slice(0, 8) + '...' + apiKey.slice(-4);
-              envInfo.push({ name: env, maskedKey });
-            }
-          }
-          
-          setEnvironments(envInfo);
-        }
-        
+        const key = await getApiKey();
+        setApiKey(key || null);
+        setUsingEnvVar(!!process.env.ELEVENLABS_API_KEY);
+
         const res = await getResidency();
         setResidency(res);
-        
+
         setLoading(false);
       } catch (error) {
         setLoading(false);
@@ -83,37 +57,22 @@ export const WhoamiView: React.FC<WhoamiViewProps> = ({ onComplete }) => {
             status="loading"
             message="Checking authentication status..."
           />
-        ) : environments.length > 0 ? (
+        ) : apiKey ? (
           <>
             <StatusCard
               title="Authentication Status"
               status="success"
-              message={`Logged in to ${environments.length} environment${environments.length > 1 ? 's' : ''}`}
+              message="Logged in to ElevenLabs"
               details={[
-                `Total environments: ${environments.length}`,
-                `Residency: ${residency || 'Global'}`
+                `Residency: ${residency || 'Global'}`,
+                usingEnvVar ? 'Source: Environment Variable' : 'Source: Stored API Key'
               ]}
             />
-            
-            <Box marginTop={1} flexDirection="column" gap={1}>
-              <Box>
-                <Text color={theme.colors.text.primary}>
-                  Configured Environments:
-                </Text>
-              </Box>
-              
-              <Box marginLeft={2} flexDirection="column">
-                {environments.map((env, index) => (
-                  <Text key={index} color={theme.colors.text.secondary}>
-                    • <Text color={theme.colors.accent.primary} bold>{env.name}</Text>
-                    {': '}
-                    <Text color={theme.colors.text.muted}>{env.maskedKey}</Text>
-                  </Text>
-                ))}
-              </Box>
-            </Box>
 
             <Box marginTop={1} flexDirection="column">
+              <Text color={theme.colors.text.secondary}>
+                • API Key: <Text color={theme.colors.text.muted}>{apiKey.slice(0, 8)}...{apiKey.slice(-4)}</Text>
+              </Text>
               <Text color={theme.colors.text.secondary}>
                 • Region: <Text color={theme.colors.accent.primary}>{residency || 'Global'}</Text>
               </Text>

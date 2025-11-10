@@ -157,14 +157,12 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
     }
   }
 
-  const environment = 'prod';
-  console.log(`Pushing ${toolsToProcess.length} tool(s) to environment: ${environment}`);
+  console.log(`Pushing ${toolsToProcess.length} tool(s) to ElevenLabs...`);
 
   let changesMade = false;
 
   for (const toolDef of toolsToProcess) {
     const configPath = toolDef.config;
-    const environment = 'prod';
 
     if (!configPath) {
       console.log(`Warning: No config path specified`);
@@ -199,13 +197,13 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
       continue;
     }
 
-    // Initialize ElevenLabs client for this tool's environment
+    // Initialize ElevenLabs client
     let client;
     try {
-      client = await getElevenLabsClient(environment);
+      client = await getElevenLabsClient();
     } catch (error) {
       console.log(`Error: ${error}`);
-      console.log(`Skipping tool ${toolDefName} - environment '${environment}' not configured`);
+      console.log(`Skipping tool ${toolDefName} - not configured`);
       continue;
     }
 
@@ -241,14 +239,13 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
 async function pullTools(options: PullToolsOptions): Promise<void> {
   // Check if tools.json exists, create if not
   const toolsConfigPath = path.resolve(TOOLS_CONFIG_FILE);
-  const environment = 'prod';
 
-  console.log(`Pulling from environment: ${environment}`);
+  console.log(`Pulling tools from ElevenLabs...`);
 
-  await pullToolsFromEnvironment(options, environment, toolsConfigPath);
+  await pullToolsFromEnvironment(options, toolsConfigPath);
 }
 
-async function pullToolsFromEnvironment(options: PullToolsOptions, environment: string, toolsConfigPath: string): Promise<void> {
+async function pullToolsFromEnvironment(options: PullToolsOptions, toolsConfigPath: string): Promise<void> {
   let toolsConfig: ToolsConfig;
 
   if (!(await fs.pathExists(toolsConfigPath))) {
@@ -259,7 +256,7 @@ async function pullToolsFromEnvironment(options: PullToolsOptions, environment: 
     toolsConfig = await readToolsConfig(toolsConfigPath);
   }
 
-  const client = await getElevenLabsClient(environment);
+  const client = await getElevenLabsClient();
 
   let filteredTools: unknown[];
 
@@ -488,10 +485,10 @@ async function deleteTool(toolId: string): Promise<void> {
   }
   
   console.log(`Deleting tool '${toolName}' (ID: ${toolId}) [${environment}]...`);
-  
+
   // Delete from ElevenLabs
   console.log('Deleting from ElevenLabs...');
-  const client = await getElevenLabsClient(environment);
+  const client = await getElevenLabsClient();
   
   try {
     await deleteToolApi(client, toolId);
@@ -591,7 +588,7 @@ async function deleteAllTools(ui: boolean = true): Promise<void> {
       // Delete from ElevenLabs
       if (toolDef.id) {
         try {
-          const client = await getElevenLabsClient(environment);
+          const client = await getElevenLabsClient();
           await deleteToolApi(client, toolDef.id);
           console.log(`  ✓ Deleted from ElevenLabs`);
         } catch (error) {

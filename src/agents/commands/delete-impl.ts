@@ -34,13 +34,12 @@ export async function deleteAgent(agentId: string): Promise<void> {
   const agentDef = agentsConfig.agents[agentIndex];
   const agentName = await getAgentName(agentDef.config);
   const configPath = agentDef.config;
-  const environment = 'prod';
 
   console.log(`Deleting agent '${agentName}' (ID: ${agentId})...`);
 
   // Delete from ElevenLabs (globally)
   console.log('Deleting from ElevenLabs...');
-  const client = await getElevenLabsClient(environment);
+  const client = await getElevenLabsClient();
 
   try {
     await deleteAgentApi(client, agentId);
@@ -109,13 +108,12 @@ export async function deleteAllAgents(ui: boolean = true): Promise<void> {
   for (const agentDef of agentsToDelete) {
     try {
       const agentName = await getAgentName(agentDef.config);
-      const environment = 'prod';
       console.log(`Deleting '${agentName}' (${agentDef.id})...`);
 
       // Delete from ElevenLabs
       if (agentDef.id) {
         try {
-          const client = await getElevenLabsClient(environment);
+          const client = await getElevenLabsClient();
           await deleteAgentApi(client, agentDef.id);
           console.log(`  ✓ Deleted from ElevenLabs`);
         } catch (error) {
