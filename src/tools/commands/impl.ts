@@ -416,15 +416,16 @@ async function pullToolsFromEnvironment(options: PullToolsOptions, toolsConfigPa
         const configFilePath = path.resolve(configPath);
         await fs.ensureDir(path.dirname(configFilePath));
         await writeToolConfig(configFilePath, toolConfig as Tool);
-        
+
         const newTool: ToolDefinition = {
           type: toolType as 'webhook' | 'client',
           config: configPath,
           id: tool.id,
         };
-        
+
         toolsConfig.tools.push(newTool);
         console.log(`  ✓ Added '${tool.name}' (config: ${configPath}, type: ${toolType})`);
+
       }
       
       itemsProcessed++;
