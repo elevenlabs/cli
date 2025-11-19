@@ -23,20 +23,22 @@ interface AgentDefinition {
 }
 
 interface AddOptions {
-  configPath?: string;
+  outputPath?: string;
   template?: string;
+  fromFile?: string;
 }
 
 export function createAddCommand(): Command {
   return new Command('add')
     .description('Add a new agent - creates config, uploads to ElevenLabs, and saves ID')
     .argument('[name]', 'Name of the agent to create')
-    .option('--config-path <path>', 'Custom config path (optional)')
-    .option('--template <template>', 'Template type to use')
+    .option('--output-path <path>', 'Custom output path for the config file (optional)')
+    .option('--template <template>', 'Template type to use (default, minimal, voice-only, text-only, customer-service, assistant)')
+    .option('--from-file <path>', 'Create agent from an existing config file')
     .option('--no-ui', 'Disable interactive UI')
     .action(async (name: string | undefined, options: AddOptions & { ui: boolean }) => {
       try {
-        if (options.ui !== false && !options.configPath) {
+        if (options.ui !== false && !options.outputPath && !options.fromFile) {
           // Use Ink UI for agent creation
           const { waitUntilExit } = render(
             React.createElement(AddAgentView, {
@@ -48,9 +50,15 @@ export function createAddCommand(): Command {
           return;
         }
 
-        // Non-UI path requires name to be provided
-        if (!name) {
-          console.error('Error: Agent name is required when using --no-ui or --config-path');
+        // Validate options
+        if (options.fromFile && options.template) {
+          console.error('Error: Cannot use both --from-file and --template options together');
+          process.exit(1);
+        }
+
+        // Non-UI path requires name to be provided (or --from-file with name in the file)
+        if (!name && !options.fromFile) {
+          console.error('Error: Agent name is required when using --no-ui or --output-path');
           process.exit(1);
         }
 
@@ -64,17 +72,43 @@ export function createAddCommand(): Command {
         // Load existing config
         const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
 
-        // Create agent config using template (in memory first)
+        // Create or load agent config
         let agentConfig: AgentConfig;
-        try {
-          agentConfig = getTemplateByName(name, options.template || 'default');
-        } catch (error) {
-          console.error(`${error}`);
-          process.exit(1);
+        let agentName: string;
+
+        if (options.fromFile) {
+          // Load config from existing file
+          console.log(`Loading agent config from '${options.fromFile}'...`);
+          try {
+            agentConfig = await readConfig<AgentConfig>(options.fromFile);
+            // Use provided name or name from config file
+            agentName = name || agentConfig.name;
+            // Override the name in config if a name was explicitly provided
+            if (name) {
+              agentConfig.name = name;
+            }
+            console.log(`Loaded config for agent: ${agentName}`);
+          } catch (error) {
+            console.error(`Error reading config file '${options.fromFile}': ${error}`);
+            process.exit(1);
+          }
+        } else {
+          // Create agent config using template (in memory first)
+          if (!name) {
+            console.error('Error: Agent name is required when using templates');
+            process.exit(1);
+          }
+          agentName = name;
+          try {
+            agentConfig = getTemplateByName(name, options.template || 'default');
+          } catch (error) {
+            console.error(`${error}`);
+            process.exit(1);
+          }
         }
 
         // Create agent in ElevenLabs first to get ID
-        console.log(`Creating agent '${name}' in ElevenLabs...`);
+        console.log(`Creating agent '${agentName}' in ElevenLabs...`);
 
         const client = await getElevenLabsClient();
 
@@ -87,7 +121,7 @@ export function createAddCommand(): Command {
         // Create new agent
         const agentId = await createAgentApi(
           client,
-          name,
+          agentName,
           conversationConfig,
           platformSettings,
           workflow,
@@ -97,9 +131,9 @@ export function createAddCommand(): Command {
         console.log(`Created agent in ElevenLabs with ID: ${agentId}`);
 
         // Generate config path using agent name (or custom path if provided)
-        let configPath = options.configPath;
+        let configPath = options.outputPath;
         if (!configPath) {
-          configPath = await generateUniqueFilename('agent_configs', name);
+          configPath = await generateUniqueFilename('agent_configs', agentName);
         }
 
         // Create config directory and file
@@ -107,7 +141,12 @@ export function createAddCommand(): Command {
         await fs.ensureDir(path.dirname(configFilePath));
 
         await writeConfig(configFilePath, agentConfig);
-        console.log(`Created config file: ${configPath} (template: ${options.template || 'default'})`);
+
+        if (options.fromFile) {
+          console.log(`Created config file: ${configPath} (from: ${options.fromFile})`);
+        } else {
+          console.log(`Created config file: ${configPath} (template: ${options.template || 'default'})`);
+        }
 
         // Store agent ID in index file
         const newAgent: AgentDefinition = {
@@ -118,7 +157,7 @@ export function createAddCommand(): Command {
 
         // Save updated agents.json
         await writeConfig(agentsConfigPath, agentsConfig);
-        console.log(`Added agent '${name}' to agents.json`);
+        console.log(`Added agent '${agentName}' to agents.json`);
 
         console.log(`Edit ${configPath} to customize your agent, then run 'elevenlabs agents push' to update`);
 
