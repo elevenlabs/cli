@@ -294,7 +294,7 @@ describe("Utils", () => {
       });
     });
 
-    it("should preserve secret_id and other keys in request_headers object format", () => {
+    it("should preserve header names but convert nested object keys in request_headers", () => {
       const input = {
         conversation_config: {
           agent: {
@@ -333,11 +333,11 @@ describe("Utils", () => {
                     url: "https://example.com/webhook",
                     method: "GET",
                     requestHeaders: {
-                      "Content-Type": "application/json",
-                      "X-Api-Key": {
-                        secret_id: "abc" // Should NOT be converted to secretId
+                      "Content-Type": "application/json", // Header name preserved
+                      "X-Api-Key": {  // Header name preserved
+                        secretId: "abc" // BUT nested key IS converted
                       },
-                      "foo_bar": "baz" // Should NOT be converted to fooBar
+                      "foo_bar": "baz" // Header name preserved (string value, no nested conversion)
                     }
                   }
                 }
@@ -366,7 +366,64 @@ describe("Utils", () => {
       });
     });
 
-    it("should preserve request_headers in toSnakeCaseKeys for symmetry", () => {
+    it("should preserve header names but convert secretId to snake_case in workspace_overrides", () => {
+      const input = {
+        workspace_overrides: {
+          conversation_initiation_client_data_webhook: {
+            request_headers: {
+              "x-elevenlabs-hoxhunt-token": {
+                secret_id: "test-secret-123"
+              }
+            }
+          }
+        }
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        workspaceOverrides: {
+          conversationInitiationClientDataWebhook: {
+            requestHeaders: {
+              "x-elevenlabs-hoxhunt-token": { // Header name preserved
+                secretId: "test-secret-123" // Nested key converted to camelCase
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it("should preserve header names but convert secretId to snake_case when converting from API", () => {
+      // Simulating API response (camelCase)
+      const input = {
+        workspaceOverrides: {
+          conversationInitiationClientDataWebhook: {
+            requestHeaders: {
+              "x-elevenlabs-hoxhunt-token": {
+                secretId: "test-secret-123"
+              }
+            }
+          }
+        }
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        workspace_overrides: {
+          conversation_initiation_client_data_webhook: {
+            request_headers: {
+              "x-elevenlabs-hoxhunt-token": { // Header name preserved
+                secret_id: "test-secret-123" // Nested key converted to snake_case
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it("should preserve header names but convert nested object keys in requestHeaders for toSnakeCaseKeys", () => {
       const input = {
         conversationConfig: {
           agent: {
@@ -407,12 +464,12 @@ describe("Utils", () => {
                     url: "https://example.com/webhook",
                     method: "GET",
                     request_headers: {
-                      "Content-Type": "application/json",
-                      "X-Api-Key": {
-                        secretId: "abc" // Should NOT be converted to secret_id
+                      "Content-Type": "application/json", // Header name preserved
+                      "X-Api-Key": { // Header name preserved
+                        secret_id: "abc" // BUT nested key IS converted
                       },
-                      "Authorization": {
-                        variableName: "auth_token" // Should NOT be converted to variable_name
+                      "Authorization": { // Header name preserved
+                        variable_name: "auth_token" // BUT nested key IS converted
                       }
                     }
                   }
@@ -424,7 +481,7 @@ describe("Utils", () => {
       });
     });
 
-    it("should maintain round-trip conversion symmetry for request_headers", () => {
+    it("should maintain round-trip conversion symmetry for request_headers with proper key conversion", () => {
       const original = {
         conversation_config: {
           agent: {
@@ -438,7 +495,7 @@ describe("Utils", () => {
                     request_headers: {
                       "Content-Type": "application/json",
                       "X-Api-Key": {
-                        secretId: "my_secret_123"
+                        secret_id: "my_secret_123"
                       }
                     }
                   }
@@ -455,7 +512,7 @@ describe("Utils", () => {
       // Simulate push (local file → API): snake_case → camelCase
       const afterPush = toCamelCaseKeys(afterPull);
 
-      // After round-trip, request_headers internals should be preserved
+      // After round-trip, header names preserved but nested keys converted
       expect(afterPush).toEqual({
         conversationConfig: {
           agent: {
@@ -467,9 +524,9 @@ describe("Utils", () => {
                     url: "https://example.com/webhook",
                     method: "POST",
                     requestHeaders: {
-                      "Content-Type": "application/json",
-                      "X-Api-Key": {
-                        secretId: "my_secret_123" // Should be preserved through round-trip
+                      "Content-Type": "application/json", // Header name preserved
+                      "X-Api-Key": { // Header name preserved
+                        secretId: "my_secret_123" // Nested key converted through round-trip
                       }
                     }
                   }

@@ -216,20 +216,27 @@ export const PullView: React.FC<PullViewProps> = ({
           conversation_config?: Record<string, unknown>;
           platformSettings?: Record<string, unknown>;
           platform_settings?: Record<string, unknown>;
+          workflow?: unknown;
           tags?: string[];
         };
 
         const conversationConfig = agentDetailsTyped.conversationConfig || agentDetailsTyped.conversation_config || {};
         const platformSettings = agentDetailsTyped.platformSettings || agentDetailsTyped.platform_settings || {};
+        const workflow = agentDetailsTyped.workflow;
         const tags = agentDetailsTyped.tags || [];
 
         // Create agent config structure (without agent_id - it goes in index file)
-        const agentConfig = {
+        const agentConfig: any = {
           name: agentName,
           conversation_config: conversationConfig,
           platform_settings: platformSettings,
           tags
         };
+
+        // Only include workflow if it exists
+        if (workflow !== undefined && workflow !== null) {
+          agentConfig.workflow = workflow;
+        }
 
         let configPath: string;
         
