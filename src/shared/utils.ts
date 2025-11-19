@@ -118,20 +118,22 @@ function toSnakeCaseKey(key: string): string {
     .toLowerCase();
 }
 
-export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion = false): T {
+export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion: boolean | 'names-only' = false): T {
   if (Array.isArray(value)) {
     return (value.map((v) => toCamelCaseKeys(v, skipHeaderConversion)) as unknown) as T;
   }
   if (isPlainObject(value)) {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
-      if (skipHeaderConversion) {
-        // Inside request_headers: preserve all keys as-is to avoid converting
-        // header names like "X-Api-Key" or nested keys like "secret_id"
+      if (skipHeaderConversion === true) {
+        // Deep inside request_headers: preserve all keys (for backwards compatibility with arrays)
         result[k] = toCamelCaseKeys(v, true);
+      } else if (skipHeaderConversion === 'names-only') {
+        // Inside request_headers object: preserve header names (keys) but convert nested objects
+        result[k] = toCamelCaseKeys(v, false);
       } else {
         // Normal conversion
-        result[toCamelCaseKey(k)] = toCamelCaseKeys(v, k === 'request_headers');
+        result[toCamelCaseKey(k)] = toCamelCaseKeys(v, k === 'request_headers' ? 'names-only' : false);
       }
     }
     return (result as unknown) as T;
@@ -139,20 +141,22 @@ export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion = fa
   return value;
 }
 
-export function toSnakeCaseKeys<T = unknown>(value: T, skipHeaderConversion = false): T {
+export function toSnakeCaseKeys<T = unknown>(value: T, skipHeaderConversion: boolean | 'names-only' = false): T {
   if (Array.isArray(value)) {
     return (value.map((v) => toSnakeCaseKeys(v, skipHeaderConversion)) as unknown) as T;
   }
   if (isPlainObject(value)) {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
-      if (skipHeaderConversion) {
-        // Inside request_headers/requestHeaders: preserve all keys as-is to avoid converting
-        // header names like "X-Api-Key" or nested keys like "secret_id"
+      if (skipHeaderConversion === true) {
+        // Deep inside request_headers: preserve all keys (for backwards compatibility with arrays)
         result[k] = toSnakeCaseKeys(v, true);
+      } else if (skipHeaderConversion === 'names-only') {
+        // Inside request_headers object: preserve header names (keys) but convert nested objects
+        result[k] = toSnakeCaseKeys(v, false);
       } else {
         // Normal conversion
-        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, k === 'request_headers' || k === 'requestHeaders');
+        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, k === 'request_headers' || k === 'requestHeaders' ? 'names-only' : false);
       }
     }
     return (result as unknown) as T;
