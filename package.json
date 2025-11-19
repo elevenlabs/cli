@@ -1,6 +1,6 @@
 {
   "name": "@elevenlabs/cli",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "CLI tool to manage ElevenLabs agents",
   "type": "module",
   "keywords": [
