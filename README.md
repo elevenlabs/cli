@@ -146,8 +146,11 @@ elevenlabs auth login
 elevenlabs auth logout
 elevenlabs auth whoami
 
-# Create agent
-elevenlabs agents add "Agent Name" [--template customer-service]
+# Create agent from template
+elevenlabs agents add "Agent Name" [--template customer-service] [--output-path path]
+
+# Create agent from existing config file
+elevenlabs agents add [name] --from-file existing-config.json [--output-path path]
 
 # Create webhook tool
 elevenlabs tools add-webhook "Tool Name" [--config-path path]
@@ -277,13 +280,28 @@ elevenlabs agents add "My Agent" --template assistant
 elevenlabs agents push
 ```
 
-**Import Existing:**
+**Import Existing from ElevenLabs:**
 
 ```bash
 elevenlabs agents init
 elevenlabs auth login
 elevenlabs agents pull
 elevenlabs agents push
+```
+
+**Create Agent from Local Config File:**
+
+```bash
+# You have an existing agent config file (e.g., my-template.json)
+# Import it and register it with ElevenLabs
+elevenlabs agents init
+elevenlabs auth login
+elevenlabs agents add --from-file my-template.json
+# This will:
+# - Upload the agent to ElevenLabs
+# - Get an agent ID
+# - Register it in agents.json
+# - Save a copy to agent_configs/
 ```
 
 **Import and Use Tools:**

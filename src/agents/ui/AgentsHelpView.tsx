@@ -19,11 +19,12 @@ const commands: Command[] = [
     ],
   },
   {
-    name: "add <name>",
+    name: "add [name]",
     description: "Create a new agent and push to remote",
     options: [
-      { flag: "--config-path <path>", description: "Custom config path" },
-      { flag: "--template <template>", description: "Template type to use (default: 'default')" },
+      { flag: "--output-path <path>", description: "Custom output path for config file" },
+      { flag: "--from-file <path>", description: "Create agent from existing config file" },
+      { flag: "--template <template>", description: "Template type to use (default, minimal, voice-only, text-only, customer-service, assistant)" },
     ],
   },
   {
