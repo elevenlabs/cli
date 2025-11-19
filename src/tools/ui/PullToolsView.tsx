@@ -311,7 +311,7 @@ export const PullToolsView: React.FC<PullToolsViewProps> = ({
     };
 
     pullNextTool();
-  }, [currentToolIndex, state.phase, tools, dryRun, outputDir, exit, onComplete]);
+  }, [currentToolIndex, state.phase, dryRun, outputDir, exit, onComplete]);
 
   const getStatusSummary = () => {
     const completed = tools.filter(t => t.status === 'completed').length;
