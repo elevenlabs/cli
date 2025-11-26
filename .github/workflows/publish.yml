@@ -17,20 +17,23 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Set up node
         uses: actions/setup-node@v3
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+          cache: pnpm
 
-      - name: Update npm
-        run: npm i -g npm@latest
-   
-      - name: CI npm
-        run: npm ci
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: npm run build
+        run: pnpm run build
 
       - name: Determine publish tag
         id: extract
@@ -67,4 +70,4 @@ jobs:
           echo "Publish tag is $PUBLISH_TAG"
 
       - name: Publish package
-        run: npm publish
+        run: pnpm publish --no-git-checks
