@@ -3,6 +3,20 @@ name: Publish package
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to publish (e.g., 0.3.1)'
+        required: true
+        type: string
+      publish_tag:
+        description: 'npm publish tag'
+        required: true
+        type: choice
+        options:
+          - latest
+          - beta
+        default: latest
 
 jobs:
   publish-npm:
@@ -13,7 +27,7 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Set up node
         uses: actions/setup-node@v6
@@ -35,17 +49,21 @@ jobs:
       - name: Determine publish tag
         id: extract
         run: |
-          FULL_TAG_NAME=${{ github.event.release.tag_name }}
-          if [[ "$FULL_TAG_NAME" == *"beta"* ]]; then
-            PUBLISH_TAG="beta"
+          if [ -n "${{ inputs.publish_tag }}" ]; then
+            PUBLISH_TAG="${{ inputs.publish_tag }}"
           else
-            PUBLISH_TAG="latest"
+            FULL_TAG_NAME=${{ github.event.release.tag_name }}
+            if [[ "$FULL_TAG_NAME" == *"beta"* ]]; then
+              PUBLISH_TAG="beta"
+            else
+              PUBLISH_TAG="latest"
+            fi
           fi
           echo "PUBLISH_TAG=$PUBLISH_TAG" >> $GITHUB_ENV
 
       - name: Validate tag matches package.json version
         run: |
-          TAG_VERSION="${{ github.event.release.tag_name }}"
+          TAG_VERSION="${{ github.event.release.tag_name || inputs.tag }}"
           # Remove package name prefix if present (e.g., @elevenlabs/cli@0.3.1 -> 0.3.1)
           TAG_VERSION=$(echo "$TAG_VERSION" | sed 's/.*@//')
           PACKAGE_JSON_VERSION=$(node -p "require('./package.json').version")
