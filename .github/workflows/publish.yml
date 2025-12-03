@@ -37,8 +37,6 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -85,4 +83,9 @@ jobs:
           echo "Publish tag is $PUBLISH_TAG"
 
       - name: Publish package
-        run: pnpm publish --access public --no-git-checks --tag $PUBLISH_TAG --provenance
+        run: |
+          # Configure pnpm to use local npm v11.6.4 for OIDC support
+          NPM_BIN="$PWD/node_modules/.bin/npm"
+          pnpm config set npm-path "$NPM_BIN"
+          # Use pnpm publish with --provenance for OIDC authentication
+          pnpm publish --access public --no-git-checks --tag $PUBLISH_TAG --provenance
