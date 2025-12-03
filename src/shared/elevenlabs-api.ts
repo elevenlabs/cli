@@ -2,7 +2,8 @@ import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
 import {
   ConversationalConfig,
-  AgentPlatformSettingsRequestModel
+  AgentPlatformSettingsRequestModel,
+  AgentWorkflowRequestModel
 } from '@elevenlabs/elevenlabs-js/api';
 import { getApiKey, loadConfig, Location } from './config.js';
 import { toCamelCaseKeys, toSnakeCaseKeys } from './utils.js';
@@ -120,7 +121,7 @@ export async function createAgentApi(
     name,
     conversationConfig: convConfig,
     platformSettings,
-    workflow,
+    workflow: workflow as AgentWorkflowRequestModel | undefined,
     tags
   });
 
@@ -158,7 +159,7 @@ export async function updateAgentApi(
     name,
     conversationConfig: convConfig,
     platformSettings,
-    workflow,
+    workflow: workflow as AgentWorkflowRequestModel | undefined,
     tags
   });
 
