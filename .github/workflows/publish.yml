@@ -85,9 +85,4 @@ jobs:
           echo "Publish tag is $PUBLISH_TAG"
 
       - name: Publish package
-        run: |
-          # Configure pnpm to use local npm for OIDC support
-          NPM_BIN="$PWD/node_modules/.bin/npm"
-          pnpm config set npm-path "$NPM_BIN"
-          # Use pnpm publish with --provenance for OIDC authentication
-          pnpm publish --access public --no-git-checks --tag $PUBLISH_TAG --provenance
+        run: pnpm publish --access public --no-git-checks --tag $PUBLISH_TAG --provenance
