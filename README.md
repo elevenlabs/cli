@@ -27,9 +27,9 @@ pnpm install -g @elevenlabs/cli
 npm install -g @elevenlabs/cli
 
 # One-time usage
-pnpm dlx @elevenlabs/cli init
+pnpm dlx @elevenlabs/cli agents init
 # OR
-npx @elevenlabs/cli init
+npx @elevenlabs/cli agents init
 ```
 
 ## Setup
