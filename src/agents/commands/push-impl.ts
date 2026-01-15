@@ -15,7 +15,7 @@ interface AgentsConfig {
   agents: AgentDefinition[];
 }
 
-export async function pushAgents(dryRun: boolean = false): Promise<void> {
+export async function pushAgents(dryRun: boolean = false, agentId?: string): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
@@ -24,7 +24,14 @@ export async function pushAgents(dryRun: boolean = false): Promise<void> {
 
   const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
 
-  const agentsToProcess = agentsConfig.agents;
+  let agentsToProcess = agentsConfig.agents;
+  // Filter to specific agent if agentId is provided
+  if (agentId) {
+    agentsToProcess = agentsToProcess.filter(agent => agent.id === agentId);
+    if (agentsToProcess.length === 0) {
+      throw new Error(`Agent with ID ${agentId} not found in agents.json`);
+    }
+  }
 
   console.log(`Pushing ${agentsToProcess.length} agent(s) to ElevenLabs...`);
 
