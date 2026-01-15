@@ -14,6 +14,7 @@ import { createAgentsCommand } from './agents/commands/index.js';
 import { createToolsCommand } from './tools/commands/index.js';
 import { createTestsCommand } from './tests/commands/index.js';
 import { createComponentsCommand } from './components/commands/index.js';
+import { createCompletionCommand } from './completion/commands/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,6 +48,7 @@ program.addCommand(createAgentsCommand());
 program.addCommand(createToolsCommand());
 program.addCommand(createTestsCommand());
 program.addCommand(createComponentsCommand());
+program.addCommand(createCompletionCommand());
 
 // Show help if no arguments provided or if only help flag is provided
 const args = process.argv.slice(2);
