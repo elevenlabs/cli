@@ -171,7 +171,7 @@ elevenlabs tests push [--dry-run]
 elevenlabs agents status [--agent "Agent Name"]
 
 # Pull agents from ElevenLabs
-elevenlabs agents pull [--search "term"] [--dry-run]
+elevenlabs agents pull [--search "term"] [--update] [--dry-run]
 
 # Pull tools from ElevenLabs
 elevenlabs tools pull [--search "term"] [--tool "tool-name"] [--dry-run] [--output-dir tool_configs]
@@ -289,6 +289,19 @@ elevenlabs agents pull
 elevenlabs agents push
 ```
 
+**Update Local Agents with Remote Changes:**
+
+```bash
+# By default, 'agents pull' skips agents that already exist locally
+# Use --update to override local configurations with remote changes
+elevenlabs agents pull --update
+```
+
+Use `--update` when:
+- You've made changes to an agent in the browser or via the API
+- You want to sync remote changes to your local configuration
+- Your local agent configuration is out of sync with ElevenLabs
+
 **Create Agent from Local Config File:**
 
 ```bash
@@ -335,8 +348,11 @@ elevenlabs agents list
 # Push all agents
 elevenlabs agents push
 
-# Pull agents
+# Pull agents (skips existing local agents)
 elevenlabs agents pull
+
+# Pull and update agents (overrides local with remote)
+elevenlabs agents pull --update
 ```
 
 ## Troubleshooting
