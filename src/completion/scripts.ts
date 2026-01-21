@@ -69,7 +69,7 @@ _elevenlabs_completion() {
                 ;;
               push)
                 if [[ "$prev" == "--agent" ]]; then
-                  local agent_source=\$(jq -r '.agents[].id' agents.json 2>/dev/null | sort -u)
+                  local agent_source=$(jq -r '.agents[].id' agents.json 2>/dev/null | sort -u)
                   _add_completions "$agent_source"
                 else
                   _add_completions "$agents_push_flags"
@@ -79,9 +79,9 @@ _elevenlabs_completion() {
                 if [[ "$prev" == "--agent" ]]; then
                   local agent_source
                   if [[ " \${COMP_WORDS[@]} " =~ " --update " ]]; then
-                    agent_source=\$(jq -r '.agents[].id' agents.json 2>/dev/null | sort -u)
+                    agent_source=$(jq -r '.agents[].id' agents.json 2>/dev/null | sort -u)
                   else
-                    agent_source=\$(elevenlabs agents pull --all --dry-run --no-ui 2>/dev/null | grep -o 'agent_[a-z0-9]*' | sort -u)
+                    agent_source=$(elevenlabs agents pull --all --dry-run --no-ui 2>/dev/null | grep -o 'agent_[a-z0-9]*' | sort -u)
                   fi
                   _add_completions "$agent_source"
                 else
@@ -233,7 +233,7 @@ _elevenlabs_completion() {
             ;;
           push)
             if [[ "$COMP_WORDS[-2]" == "--agent" ]]; then
-              local agent_list=(\$(jq -r '.agents[] | "\\(.id):\\(.config | split(\\"/\\") | .[-1] | sub(\\".json$\\"; \\"\\"))"' agents.json 2>/dev/null | sort -u))
+              local agent_list=($(jq -r '.agents[] | "\\(.id):\\(.config | split(\\"/\\") | .[-1] | sub(\\".json$\\"; \\"\\"))"' agents.json 2>/dev/null | sort -u))
               _describe "agent ID" agent_list
             else
               _describe "agents push option" agents_push_opts
@@ -243,9 +243,9 @@ _elevenlabs_completion() {
             if [[ "$COMP_WORDS[-2]" == "--agent" ]]; then
               local agent_list
               if [[ " \${COMP_WORDS[@]} " =~ " --update " ]]; then
-                agent_list=(\$(jq -r '.agents[] | "\\(.id):\\(.config | split(\\"/\\") | .[-1] | sub(\\".json$\\"; \\"\\"))"' agents.json 2>/dev/null | sort -u))
+                agent_list=($(jq -r '.agents[] | "\\(.id):\\(.config | split(\\"/\\") | .[-1] | sub(\\".json$\\"; \\"\\"))"' agents.json 2>/dev/null | sort -u))
               else
-                agent_list=(\$(elevenlabs agents pull --all --dry-run --no-ui 2>/dev/null | grep -o 'agent_[a-z0-9]*' | sort -u))
+                agent_list=($(elevenlabs agents pull --all --dry-run --no-ui 2>/dev/null | grep -o 'agent_[a-z0-9]*' | sort -u))
               fi
               _describe "agent ID" agent_list
             else
