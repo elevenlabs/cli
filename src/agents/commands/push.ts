@@ -18,12 +18,14 @@ interface AgentsConfig {
 }
 
 interface PushOptions {
+  agent?: string;
   dryRun: boolean;
 }
 
 export function createPushCommand(): Command {
   return new Command('push')
     .description('Push agents to ElevenLabs API when configs change')
+    .option('--agent <agent_id>', 'Specific agent ID to push')
     .option('--dry-run', 'Show what would be done without making changes', false)
     .option('--no-ui', 'Disable interactive UI')
     .action(async (options: PushOptions & { ui: boolean }) => {
@@ -37,7 +39,14 @@ export function createPushCommand(): Command {
 
           const agentsConfig = await readConfig<AgentsConfig>(agentsConfigPath);
 
-          const agentsToProcess = agentsConfig.agents;
+          let agentsToProcess = agentsConfig.agents;
+          // Filter to specific agent if --agent is provided
+          if (options.agent) {
+            agentsToProcess = agentsToProcess.filter(agent => agent.id === options.agent);
+            if (agentsToProcess.length === 0) {
+              throw new Error(`Agent with ID ${options.agent} not found in agents.json`);
+            }
+          }
 
           // Prepare agents for UI
           const pushAgentsData = await Promise.all(
@@ -58,7 +67,7 @@ export function createPushCommand(): Command {
           await waitUntilExit();
         } else {
           // Use existing non-UI push
-          await pushAgents(options.dryRun);
+          await pushAgents(options.dryRun, options.agent);
         }
       } catch (error) {
         console.error(`Error during push: ${error}`);
