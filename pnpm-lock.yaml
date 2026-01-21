@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@elevenlabs/elevenlabs-js':
-        specifier: 2.26.0
-        version: 2.26.0
+        specifier: 2.29.0
+        version: 2.29.0
       '@inkjs/ui':
         specifier: ^2.0.0
         version: 2.0.0(ink@6.5.1(@types/react@19.2.1)(react@19.2.1))
@@ -271,8 +271,8 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@elevenlabs/elevenlabs-js@2.26.0':
-    resolution: {integrity: sha512-MkRV1/bIhIKWSZ2y79q83+6AEhZfznfAHYMPq+H0Dm016mEOUq6YQNhGdpLJkzLQ3G6yJMHVkXQIyLZvZkzPRg==}
+  '@elevenlabs/elevenlabs-js@2.29.0':
+    resolution: {integrity: sha512-yxmWq7gBjNFzR5h88UmsShGeUqQBdjWVA3JYeFhy7ylMh6o4ws0ZUaJ0ydmrOTA96os7ez1q8IupvWHoVBnX2w==}
     engines: {node: '>=18.0.0'}
 
   '@esbuild/android-arm64@0.18.20':
@@ -2463,7 +2463,7 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@elevenlabs/elevenlabs-js@2.26.0':
+  '@elevenlabs/elevenlabs-js@2.29.0':
     dependencies:
       command-exists: 1.2.9
       node-fetch: 2.7.0
