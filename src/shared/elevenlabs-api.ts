@@ -117,11 +117,14 @@ export async function createAgentApi(
   const convConfig = toCamelCaseKeys(cleanedConfig) as ConversationalConfig;
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
 
+  // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
+  const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
+
   const response = await client.conversationalAi.agents.create({
     name,
     conversationConfig: convConfig,
     platformSettings,
-    workflow: workflow as AgentWorkflowRequestModel | undefined,
+    workflow: workflowConfig,
     tags
   });
 
@@ -154,12 +157,14 @@ export async function updateAgentApi(
 
   const convConfig = cleanedConfig && isConversationalConfig(cleanedConfig) ? toCamelCaseKeys(cleanedConfig) as ConversationalConfig : undefined;
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
+  // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
+  const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
 
   const response = await client.conversationalAi.agents.update(agentId, {
     name,
     conversationConfig: convConfig,
     platformSettings,
-    workflow: workflow as AgentWorkflowRequestModel | undefined,
+    workflow: workflowConfig,
     tags
   });
 
