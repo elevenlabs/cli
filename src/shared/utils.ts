@@ -133,7 +133,9 @@ export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion: boo
         result[k] = toCamelCaseKeys(v, false);
       } else {
         // Normal conversion
-        result[toCamelCaseKey(k)] = toCamelCaseKeys(v, k === 'request_headers' ? 'names-only' : false);
+        // Preserve keys for request_headers (HTTP header names) and dynamic_variables (user-defined variable names)
+        const preserveKeys = k === 'request_headers' || k === 'dynamic_variables';
+        result[toCamelCaseKey(k)] = toCamelCaseKeys(v, preserveKeys ? 'names-only' : false);
       }
     }
     return (result as unknown) as T;
@@ -156,7 +158,9 @@ export function toSnakeCaseKeys<T = unknown>(value: T, skipHeaderConversion: boo
         result[k] = toSnakeCaseKeys(v, false);
       } else {
         // Normal conversion
-        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, k === 'request_headers' || k === 'requestHeaders' ? 'names-only' : false);
+        // Preserve keys for request_headers (HTTP header names) and dynamic_variables (user-defined variable names)
+        const preserveKeys = k === 'request_headers' || k === 'requestHeaders' || k === 'dynamic_variables' || k === 'dynamicVariables';
+        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, preserveKeys ? 'names-only' : false);
       }
     }
     return (result as unknown) as T;
