@@ -204,6 +204,101 @@ describe("Key casing normalization", () => {
     expect(payload.conversationConfig.agent.prompt.toolIds).toEqual(["tool_789"]);
   });
 
+  it("createAgentApi camelizes workflow edge conditions (forward_condition, backward_condition)", async () => {
+    const client = makeMockClient();
+    const conversation_config = {
+      agent: { prompt: { prompt: "hi", temperature: 0 } },
+    } as unknown as Record<string, unknown>;
+
+    // This is what a workflow looks like after being pulled from the API (snake_case)
+    const workflow = {
+      nodes: {
+        start_node: { type: "start" },
+        agent_node: { type: "agent", agent_id: "abc123" }
+      },
+      edges: {
+        edge_start_to_agent: {
+          source: "start_node",
+          target: "agent_node",
+          forward_condition: { type: "unconditional" }
+        },
+        edge_agent_to_end: {
+          source: "agent_node",
+          target: "end_node",
+          backward_condition: { type: "result", result_key: "success" }
+        }
+      }
+    };
+
+    await createAgentApi(
+      client,
+      "Workflow Agent",
+      conversation_config,
+      undefined,
+      workflow,
+      []
+    );
+
+    expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
+    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+
+    // Verify workflow edge conditions are converted to camelCase
+    expect(payload.workflow).toBeDefined();
+    expect(payload.workflow.edges.edgeStartToAgent).toEqual({
+      source: "start_node",
+      target: "agent_node",
+      forwardCondition: { type: "unconditional" }
+    });
+    expect(payload.workflow.edges.edgeAgentToEnd).toEqual({
+      source: "agent_node",
+      target: "end_node",
+      backwardCondition: { type: "result", resultKey: "success" }
+    });
+  });
+
+  it("updateAgentApi camelizes workflow edge conditions (forward_condition, backward_condition)", async () => {
+    const client = makeMockClient();
+    const conversation_config = {
+      agent: { prompt: { prompt: "hi", temperature: 0 } },
+    } as unknown as Record<string, unknown>;
+
+    // This is what a workflow looks like after being pulled from the API (snake_case)
+    const workflow = {
+      nodes: {
+        start_node: { type: "start" },
+        agent_node: { type: "agent", agent_id: "abc123" }
+      },
+      edges: {
+        edge_start_to_agent: {
+          source: "start_node",
+          target: "agent_node",
+          forward_condition: { type: "llm", description: "When user asks for help" }
+        }
+      }
+    };
+
+    await updateAgentApi(
+      client,
+      "agent_123",
+      "Workflow Agent",
+      conversation_config,
+      undefined,
+      workflow,
+      []
+    );
+
+    expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
+    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
+
+    // Verify workflow edge conditions are converted to camelCase
+    expect(payload.workflow).toBeDefined();
+    expect(payload.workflow.edges.edgeStartToAgent).toEqual({
+      source: "start_node",
+      target: "agent_node",
+      forwardCondition: { type: "llm", description: "When user asks for help" }
+    });
+  });
+
   it("createAgentApi preserves 'tools' field when 'tool_ids' is not present", async () => {
     const client = makeMockClient();
     const conversation_config = {
