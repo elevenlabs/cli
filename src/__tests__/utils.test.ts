@@ -537,6 +537,103 @@ describe("Utils", () => {
         }
       });
     });
+
+    it("should preserve dynamic_variables keys in toCamelCaseKeys", () => {
+      // This is what a test config looks like after being pulled from the API (snake_case)
+      const input = {
+        test_config: {
+          dynamic_variables: {
+            "damage_id": "123",
+            "user_name": "Jan",
+            "order_status": "pending"
+          },
+          some_other_field: "value"
+        }
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      // dynamic_variables keys should be preserved (they are user-defined variable names)
+      expect(result).toEqual({
+        testConfig: {
+          dynamicVariables: {
+            "damage_id": "123",      // preserved - user-defined variable name
+            "user_name": "Jan",      // preserved - user-defined variable name
+            "order_status": "pending" // preserved - user-defined variable name
+          },
+          someOtherField: "value"    // converted - regular field
+        }
+      });
+    });
+
+    it("should preserve dynamicVariables keys in toSnakeCaseKeys", () => {
+      // This is what a test config looks like after being returned from the API (camelCase)
+      const input = {
+        testConfig: {
+          dynamicVariables: {
+            "damage_id": "123",
+            "user_name": "Jan",
+            "order_status": "pending"
+          },
+          someOtherField: "value"
+        }
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      // dynamicVariables keys should be preserved (they are user-defined variable names)
+      expect(result).toEqual({
+        test_config: {
+          dynamic_variables: {
+            "damage_id": "123",      // preserved - user-defined variable name
+            "user_name": "Jan",      // preserved - user-defined variable name
+            "order_status": "pending" // preserved - user-defined variable name
+          },
+          some_other_field: "value"  // converted - regular field
+        }
+      });
+    });
+
+    it("should maintain round-trip conversion symmetry for dynamic_variables", () => {
+      // Simulate pull → push cycle for tests
+      const originalTestConfig = {
+        dynamic_variables: {
+          "damage_id": "123",
+          "user_name": "Jan",
+          "complex_key_name": "value"
+        },
+        success_examples: [],
+        failure_examples: []
+      };
+
+      // Simulate push (local file → API): snake_case → camelCase
+      const afterPush = toCamelCaseKeys(originalTestConfig);
+
+      // Verify variable names are preserved after push
+      expect(afterPush).toEqual({
+        dynamicVariables: {
+          "damage_id": "123",        // preserved
+          "user_name": "Jan",        // preserved
+          "complex_key_name": "value" // preserved
+        },
+        successExamples: [],
+        failureExamples: []
+      });
+
+      // Simulate pull (API → local file): camelCase → snake_case
+      const afterPull = toSnakeCaseKeys(afterPush);
+
+      // Verify round-trip preserves variable names
+      expect(afterPull).toEqual({
+        dynamic_variables: {
+          "damage_id": "123",        // preserved through round-trip
+          "user_name": "Jan",        // preserved through round-trip
+          "complex_key_name": "value" // preserved through round-trip
+        },
+        success_examples: [],
+        failure_examples: []
+      });
+    });
   });
 
   describe("generateUniqueFilename", () => {
