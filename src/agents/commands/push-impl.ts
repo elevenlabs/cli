@@ -9,13 +9,15 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
+  branch_id?: string;
+  version_id?: string;
 }
 
 interface AgentsConfig {
   agents: AgentDefinition[];
 }
 
-export async function pushAgents(dryRun: boolean = false, agentId?: string): Promise<void> {
+export async function pushAgents(dryRun: boolean = false, agentId?: string, versionDescription?: string): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
@@ -110,16 +112,21 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string): Pro
         changesMade = true;
       } else {
         // Update existing agent
-        await updateAgentApi(
+        const result = await updateAgentApi(
           client,
           agentId,
           agentDisplayName,
           conversationConfig,
           platformSettings,
           workflow,
-          tags
+          tags,
+          versionDescription
         );
         console.log(`Updated agent ${agentDefName} (ID: ${agentId})`);
+
+        // Update version/branch info
+        if (result.versionId) agentDef.version_id = result.versionId;
+        if (result.branchId) agentDef.branch_id = result.branchId;
       }
 
       changesMade = true;

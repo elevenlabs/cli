@@ -12,6 +12,8 @@ interface AgentStatus {
   configPath: string;
   configExists: boolean;
   agentId?: string;
+  branchId?: string;
+  versionId?: string;
   status: 'created' | 'not-pushed' | 'missing';
 }
 
@@ -75,6 +77,8 @@ export const StatusView: React.FC<StatusViewProps> = ({
             configPath,
             configExists,
             agentId,
+            branchId: (agentDef as any).branch_id,
+            versionId: (agentDef as any).version_id,
             status
           });
         }
@@ -152,11 +156,17 @@ export const StatusView: React.FC<StatusViewProps> = ({
               
               {/* Table Header */}
               <Box marginTop={1}>
-                <Box width={30}>
+                <Box width={25}>
                   <Text color={theme.colors.text.muted} bold>NAME</Text>
                 </Box>
-                <Box width={20}>
+                <Box width={15}>
                   <Text color={theme.colors.text.muted} bold>STATUS</Text>
+                </Box>
+                <Box width={22}>
+                  <Text color={theme.colors.text.muted} bold>BRANCH</Text>
+                </Box>
+                <Box width={22}>
+                  <Text color={theme.colors.text.muted} bold>VERSION</Text>
                 </Box>
                 <Box>
                   <Text color={theme.colors.text.muted} bold>AGENT ID</Text>
@@ -193,11 +203,21 @@ export const StatusView: React.FC<StatusViewProps> = ({
 
                 return (
                   <Box key={index}>
-                    <Box width={30}>
+                    <Box width={25}>
                       <Text color={theme.colors.text.primary}>{agent.name}</Text>
                     </Box>
-                    <Box width={20}>
+                    <Box width={15}>
                       <Text color={statusColor}>{statusText}</Text>
+                    </Box>
+                    <Box width={22}>
+                      <Text color={theme.colors.text.muted}>
+                        {agent.branchId ? agent.branchId.slice(0, 20) : '-'}
+                      </Text>
+                    </Box>
+                    <Box width={22}>
+                      <Text color={theme.colors.text.muted}>
+                        {agent.versionId ? agent.versionId.slice(0, 20) : '-'}
+                      </Text>
                     </Box>
                     <Box>
                       <Text color={theme.colors.text.muted}>

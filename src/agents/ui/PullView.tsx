@@ -218,6 +218,8 @@ export const PullView: React.FC<PullViewProps> = ({
           platform_settings?: Record<string, unknown>;
           workflow?: unknown;
           tags?: string[];
+          version_id?: string;
+          branch_id?: string;
         };
 
         const conversationConfig = agentDetailsTyped.conversationConfig || agentDetailsTyped.conversation_config || {};
@@ -246,13 +248,17 @@ export const PullView: React.FC<PullViewProps> = ({
           const configFilePath = path.resolve(configPath);
           await fs.ensureDir(path.dirname(configFilePath));
           await writeConfig(configFilePath, agentConfig);
-          
-          setAgents(prev => prev.map((a, i) => 
-            i === index ? { 
-              ...a, 
-              status: 'completed' as const, 
+
+          // Update version/branch info in agents.json entry
+          if (agentDetailsTyped.version_id) existingEntry.version_id = agentDetailsTyped.version_id;
+          if (agentDetailsTyped.branch_id) existingEntry.branch_id = agentDetailsTyped.branch_id;
+
+          setAgents(prev => prev.map((a, i) =>
+            i === index ? {
+              ...a,
+              status: 'completed' as const,
               message: 'Updated successfully',
-              configPath 
+              configPath
             } : a
           ));
         } else {
@@ -262,10 +268,12 @@ export const PullView: React.FC<PullViewProps> = ({
           await fs.ensureDir(path.dirname(configFilePath));
           await writeConfig(configFilePath, agentConfig);
 
-          // Add to agents config with ID
+          // Add to agents config with ID and version/branch info
           agentsConfig.agents.push({
             config: configPath,
-            id: agent.agentId
+            id: agent.agentId,
+            version_id: agentDetailsTyped.version_id,
+            branch_id: agentDetailsTyped.branch_id
           });
 
           setAgents(prev => prev.map((a, i) => 

@@ -10,6 +10,8 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
+  branch_id?: string;
+  version_id?: string;
 }
 
 interface AgentsConfig {
@@ -177,6 +179,8 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         platform_settings: Record<string, unknown>;
         workflow?: unknown;
         tags: string[];
+        version_id?: string;
+        branch_id?: string;
       };
 
       const conversationConfig = agentDetailsTyped.conversationConfig || agentDetailsTyped.conversation_config || {};
@@ -202,6 +206,11 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         const configFilePath = path.resolve(existingEntry.config);
         await fs.ensureDir(path.dirname(configFilePath));
         await writeConfig(configFilePath, agentConfig);
+
+        // Update version/branch info in agents.json entry
+        if (agentDetailsTyped.version_id) existingEntry.version_id = agentDetailsTyped.version_id;
+        if (agentDetailsTyped.branch_id) existingEntry.branch_id = agentDetailsTyped.branch_id;
+
         console.log(`  ✓ Updated '${agent.name}' (config: ${existingEntry.config})`);
       } else {
         // Create new entry
@@ -212,7 +221,9 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
 
         const newAgent: AgentDefinition = {
           config: configPath,
-          id: agent.id
+          id: agent.id,
+          version_id: agentDetailsTyped.version_id,
+          branch_id: agentDetailsTyped.branch_id
         };
 
         agentsConfig.agents.push(newAgent);

@@ -18,13 +18,15 @@ interface PushAgent {
 interface PushViewProps {
   agents: PushAgent[];
   dryRun?: boolean;
+  versionDescription?: string;
   onComplete?: () => void;
   agentsConfigPath?: string;
 }
 
-export const PushView: React.FC<PushViewProps> = ({ 
-  agents, 
+export const PushView: React.FC<PushViewProps> = ({
+  agents,
   dryRun = false,
+  versionDescription,
   onComplete,
   agentsConfigPath = 'agents.json'
 }) => {
@@ -122,11 +124,11 @@ export const PushView: React.FC<PushViewProps> = ({
               await writeConfig(path.resolve(agentsConfigPath), agentsConfig);
             }
 
-            setPushedAgents(prev => 
-              prev.map((a, i) => i === currentAgentIndex 
-                ? { 
-                    ...a, 
-                    status: 'completed', 
+            setPushedAgents(prev =>
+              prev.map((a, i) => i === currentAgentIndex
+                ? {
+                    ...a,
+                    status: 'completed',
                     message: 'Successfully pushed',
                     agentId: newAgentId
                   }
@@ -135,21 +137,31 @@ export const PushView: React.FC<PushViewProps> = ({
             );
           } else {
             // Update existing agent
-            await updateAgentApi(
+            const result = await updateAgentApi(
               client,
               agentId,
               agentDisplayName,
               conversationConfig,
               platformSettings,
               workflow,
-              tags
+              tags,
+              versionDescription
             );
 
-            setPushedAgents(prev => 
-              prev.map((a, i) => i === currentAgentIndex 
-                ? { 
-                    ...a, 
-                    status: 'completed', 
+            // Update version/branch info in agents.json
+            const agentsConfig = await readConfig<any>(path.resolve(agentsConfigPath));
+            const agentDef = agentsConfig.agents.find((a: any) => a.config === agent.configPath);
+            if (agentDef) {
+              if (result.versionId) agentDef.version_id = result.versionId;
+              if (result.branchId) agentDef.branch_id = result.branchId;
+              await writeConfig(path.resolve(agentsConfigPath), agentsConfig);
+            }
+
+            setPushedAgents(prev =>
+              prev.map((a, i) => i === currentAgentIndex
+                ? {
+                    ...a,
+                    status: 'completed',
                     message: 'Successfully pushed',
                     agentId
                   }
