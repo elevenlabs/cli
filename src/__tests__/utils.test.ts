@@ -594,6 +594,133 @@ describe("Utils", () => {
       });
     });
 
+    it("should preserve workflow nodes keys in toCamelCaseKeys", () => {
+      const input = {
+        workflow: {
+          nodes: {
+            "start_node": {
+              type: "start",
+              position: { x: 128, y: 64 },
+              edge_order: []
+            },
+            "agent_node": {
+              type: "agent",
+              position: { x: 200, y: 100 },
+              agent_id: "some_agent"
+            }
+          },
+          edges: {
+            "edge_start_to_agent": {
+              from: "start_node",
+              to: "agent_node"
+            }
+          },
+          prevent_subagent_loops: false
+        }
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        workflow: {
+          nodes: {
+            "start_node": {              // preserved - node identifier
+              type: "start",
+              position: { x: 128, y: 64 },
+              edgeOrder: []              // converted - schema field
+            },
+            "agent_node": {              // preserved - node identifier
+              type: "agent",
+              position: { x: 200, y: 100 },
+              agentId: "some_agent"      // converted - schema field
+            }
+          },
+          edges: {
+            "edge_start_to_agent": {     // preserved - edge identifier
+              from: "start_node",
+              to: "agent_node"
+            }
+          },
+          preventSubagentLoops: false    // converted - schema field
+        }
+      });
+    });
+
+    it("should preserve workflow nodes keys in toSnakeCaseKeys", () => {
+      // Simulating API response (camelCase) being converted to snake_case for storage
+      const input = {
+        workflow: {
+          nodes: {
+            "start_node": {
+              type: "start",
+              position: { x: 128, y: 64 },
+              edgeOrder: []
+            }
+          },
+          edges: {},
+          preventSubagentLoops: false
+        }
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        workflow: {
+          nodes: {
+            "start_node": {              // preserved - node identifier
+              type: "start",
+              position: { x: 128, y: 64 },
+              edge_order: []             // converted - schema field
+            }
+          },
+          edges: {},
+          prevent_subagent_loops: false   // converted - schema field
+        }
+      });
+    });
+
+    it("should maintain round-trip conversion symmetry for workflow nodes", () => {
+      // This is the exact scenario from issue #57:
+      // pull (API returns camelCase) -> save as snake_case -> push (convert to camelCase)
+      const originalWorkflow = {
+        workflow: {
+          nodes: {
+            "start_node": {
+              type: "start",
+              position: { x: 128, y: 64 },
+              edge_order: []
+            }
+          },
+          edges: {},
+          prevent_subagent_loops: false
+        }
+      };
+
+      // Simulate push: snake_case -> camelCase for API
+      const afterPush = toCamelCaseKeys(originalWorkflow);
+
+      // start_node must remain as-is for the API to recognize the start node
+      expect(afterPush).toEqual({
+        workflow: {
+          nodes: {
+            "start_node": {
+              type: "start",
+              position: { x: 128, y: 64 },
+              edgeOrder: []
+            }
+          },
+          edges: {},
+          preventSubagentLoops: false
+        }
+      });
+
+      // Simulate pull: camelCase -> snake_case for local storage
+      const afterPull = toSnakeCaseKeys(afterPush);
+
+      // Should match original
+      expect(afterPull).toEqual(originalWorkflow);
+    });
+
     it("should maintain round-trip conversion symmetry for dynamic_variables", () => {
       // Simulate pull → push cycle for tests
       const originalTestConfig = {
