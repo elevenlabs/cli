@@ -338,7 +338,7 @@ export async function getToolDependentAgentsApi(client: ElevenLabsClient, toolId
  * @param testConfig - The test configuration object
  * @returns Promise that resolves to the created test with ID
  */
-export async function createTestApi(client: ElevenLabsClient, testConfig: ElevenLabs.conversationalAi.CreateUnitTestRequest): Promise<{ id: string }> {
+export async function createTestApi(client: ElevenLabsClient, testConfig: ElevenLabs.conversationalAi.TestsCreateRequestBody): Promise<{ id: string }> {
   const response = await client.conversationalAi.tests.create(testConfig);
   return response as { id: string };
 }
@@ -375,7 +375,7 @@ export async function listTestsApi(client: ElevenLabsClient, pageSize: number = 
  * @param testConfig - The updated test configuration object
  * @returns Promise that resolves to the updated test object
  */
-export async function updateTestApi(client: ElevenLabsClient, testId: string, testConfig: ElevenLabs.conversationalAi.UpdateUnitTestRequest): Promise<unknown> {
+export async function updateTestApi(client: ElevenLabsClient, testId: string, testConfig: ElevenLabs.conversationalAi.TestsUpdateRequestBody): Promise<unknown> {
   const response = await client.conversationalAi.tests.update(testId, testConfig);
   return toSnakeCaseKeys(response);
 }
