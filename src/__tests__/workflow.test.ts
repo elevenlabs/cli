@@ -92,17 +92,18 @@ describe("Workflow support in agents", () => {
       expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
       const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
 
-      // Workflow should be converted to camelCase for the API
+      // Workflow node/edge identifier keys should be preserved (not camel-cased)
+      // Only schema fields within nodes/edges should be converted
       expect(payload).toEqual(
         expect.objectContaining({
           name: "Agent with Workflow",
           workflow: expect.objectContaining({
             nodes: expect.objectContaining({
-              start: expect.any(Object),
-              end: expect.any(Object),
+              start: expect.any(Object),   // "start" has no underscore, stays as-is
+              end: expect.any(Object),     // "end" has no underscore, stays as-is
             }),
             edges: expect.objectContaining({
-              edge1: expect.any(Object),  // edge_1 becomes edge1 in camelCase
+              edge_1: expect.any(Object),  // edge_1 preserved as identifier
             }),
           }),
           tags: ["workflow"],
@@ -175,14 +176,14 @@ describe("Workflow support in agents", () => {
       ).mock.calls[0];
 
       expect(agentId).toBe("agent_workflow_123");
-      // Workflow should be converted to camelCase for the API
+      // Workflow node/edge identifier keys should be preserved (not camel-cased)
       expect(payload).toEqual(
         expect.objectContaining({
           name: "Updated Agent",
           workflow: expect.objectContaining({
             nodes: expect.objectContaining({
-              updatedStart: expect.any(Object),  // updated_start becomes updatedStart
-              updatedEnd: expect.any(Object),    // updated_end becomes updatedEnd
+              updated_start: expect.any(Object),  // preserved as identifier
+              updated_end: expect.any(Object),    // preserved as identifier
             }),
           }),
           tags: ["updated"],
@@ -323,20 +324,19 @@ describe("Workflow support in agents", () => {
 
       const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
 
-      // Workflow should be converted to camelCase for the API
-      // All snake_case keys become camelCase
-      expect(payload.workflow.nodes).toHaveProperty("start1");      // start_1 → start1
-      expect(payload.workflow.nodes).toHaveProperty("agent1");      // agent_1 → agent1
-      expect(payload.workflow.nodes).toHaveProperty("tool1");       // tool_1 → tool1
-      expect(payload.workflow.nodes).toHaveProperty("end1");        // end_1 → end1
-      expect(payload.workflow.edges).toHaveProperty("edgeStartToAgent");  // edge_start_to_agent → edgeStartToAgent
-      expect(payload.workflow.edges).toHaveProperty("edgeAgentToTool");   // edge_agent_to_tool → edgeAgentToTool
-      expect(payload.workflow.edges).toHaveProperty("edgeToolToEnd");     // edge_tool_to_end → edgeToolToEnd
+      // Workflow node/edge identifier keys should be preserved (not camel-cased)
+      expect(payload.workflow.nodes).toHaveProperty("start_1");     // preserved as identifier
+      expect(payload.workflow.nodes).toHaveProperty("agent_1");     // preserved as identifier
+      expect(payload.workflow.nodes).toHaveProperty("tool_1");      // preserved as identifier
+      expect(payload.workflow.nodes).toHaveProperty("end_1");       // preserved as identifier
+      expect(payload.workflow.edges).toHaveProperty("edge_start_to_agent");  // preserved as identifier
+      expect(payload.workflow.edges).toHaveProperty("edge_agent_to_tool");   // preserved as identifier
+      expect(payload.workflow.edges).toHaveProperty("edge_tool_to_end");     // preserved as identifier
 
-      // Verify nested properties are also converted
-      expect(payload.workflow.nodes.start1.config).toHaveProperty("initialMessage"); // initial_message → initialMessage
-      expect(payload.workflow.nodes.agent1).toHaveProperty("agentId");    // agent_id → agentId
-      expect(payload.workflow.nodes.tool1).toHaveProperty("toolId");      // tool_id → toolId
+      // Verify nested schema properties ARE still converted to camelCase
+      expect(payload.workflow.nodes.start_1.config).toHaveProperty("initialMessage"); // initial_message → initialMessage
+      expect(payload.workflow.nodes.agent_1).toHaveProperty("agentId");    // agent_id → agentId
+      expect(payload.workflow.nodes.tool_1).toHaveProperty("toolId");      // tool_id → toolId
     });
   });
 });

@@ -118,6 +118,15 @@ function toSnakeCaseKey(key: string): string {
     .toLowerCase();
 }
 
+// Keys whose children are user-defined identifiers and should not be case-converted.
+// Both snake_case and camelCase variants are listed so the check works in either direction.
+const PRESERVE_CHILD_KEYS = new Set([
+  'request_headers', 'requestHeaders',
+  'dynamic_variables', 'dynamicVariables',
+  'nodes',
+  'edges',
+]);
+
 export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion: boolean | 'names-only' = false): T {
   if (Array.isArray(value)) {
     return (value.map((v) => toCamelCaseKeys(v, skipHeaderConversion)) as unknown) as T;
@@ -133,9 +142,7 @@ export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion: boo
         result[k] = toCamelCaseKeys(v, false);
       } else {
         // Normal conversion
-        // Preserve keys for request_headers (HTTP header names) and dynamic_variables (user-defined variable names)
-        const preserveKeys = k === 'request_headers' || k === 'dynamic_variables';
-        result[toCamelCaseKey(k)] = toCamelCaseKeys(v, preserveKeys ? 'names-only' : false);
+        result[toCamelCaseKey(k)] = toCamelCaseKeys(v, PRESERVE_CHILD_KEYS.has(k) ? 'names-only' : false);
       }
     }
     return (result as unknown) as T;
@@ -158,9 +165,7 @@ export function toSnakeCaseKeys<T = unknown>(value: T, skipHeaderConversion: boo
         result[k] = toSnakeCaseKeys(v, false);
       } else {
         // Normal conversion
-        // Preserve keys for request_headers (HTTP header names) and dynamic_variables (user-defined variable names)
-        const preserveKeys = k === 'request_headers' || k === 'requestHeaders' || k === 'dynamic_variables' || k === 'dynamicVariables';
-        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, preserveKeys ? 'names-only' : false);
+        result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, PRESERVE_CHILD_KEYS.has(k) ? 'names-only' : false);
       }
     }
     return (result as unknown) as T;
