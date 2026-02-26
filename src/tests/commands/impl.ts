@@ -64,7 +64,7 @@ async function addTest(name: string, templateType: string = "basic-llm"): Promis
   const client = await getElevenLabsClient();
 
   try {
-    const testApiConfig = toCamelCaseKeys(testConfig) as unknown as ElevenLabs.conversationalAi.CreateUnitTestRequest;
+    const testApiConfig = toCamelCaseKeys(testConfig) as unknown as ElevenLabs.conversationalAi.TestsCreateRequestBody;
     const response = await createTestApi(client, testApiConfig);
     const testId = response.id;
 
@@ -163,7 +163,7 @@ async function pushTests(testId?: string, dryRun = false): Promise<void> {
 
     // Perform API operation
     try {
-      const testApiConfig = toCamelCaseKeys(testConfig) as unknown as ElevenLabs.conversationalAi.CreateUnitTestRequest;
+      const testApiConfig = toCamelCaseKeys(testConfig) as unknown as ElevenLabs.conversationalAi.TestsCreateRequestBody;
 
       if (!testId) {
         // Create new test
@@ -176,7 +176,7 @@ async function pushTests(testId?: string, dryRun = false): Promise<void> {
         changesMade = true;
       } else {
         // Update existing test
-        await updateTestApi(client, testId, testApiConfig as ElevenLabs.conversationalAi.UpdateUnitTestRequest);
+        await updateTestApi(client, testId, testApiConfig as ElevenLabs.conversationalAi.TestsUpdateRequestBody);
         console.log(`Updated test ${testDefName} (ID: ${testId})`);
       }
 

@@ -63,7 +63,7 @@ describe("Test API Functions", () => {
 
       const result = await createTestApi(
         mockClient as unknown as ElevenLabsClient,
-        testConfig as ElevenLabs.conversationalAi.CreateUnitTestRequest
+        testConfig as ElevenLabs.conversationalAi.TestsCreateRequestBody
       );
 
       expect(mockClient.conversationalAi.tests.create).toHaveBeenCalledWith(
@@ -82,7 +82,7 @@ describe("Test API Functions", () => {
       await expect(
         createTestApi(
           mockClient as unknown as ElevenLabsClient,
-          testConfig as ElevenLabs.conversationalAi.CreateUnitTestRequest
+          testConfig as ElevenLabs.conversationalAi.TestsCreateRequestBody
         )
       ).rejects.toThrow("API Error");
     });
@@ -181,6 +181,7 @@ describe("Test API Functions", () => {
       mockClient.conversationalAi.tests.update.mockResolvedValue(mockResponse);
 
       const testConfig = {
+        type: "llm" as const,
         name: "Updated Test",
         chatHistory: [{ role: "user" as const, timeInCallSecs: 1 }],
         successCondition: "The agent responds appropriately",
@@ -392,6 +393,7 @@ describe("Test API Functions", () => {
       );
 
       const validTestConfig = {
+        type: "llm" as const,
         name: "Test",
         chatHistory: [{ role: "user" as const, timeInCallSecs: 1 }],
         successCondition: "Test condition",
