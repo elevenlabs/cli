@@ -9,6 +9,8 @@ const AGENTS_CONFIG_FILE = "agents.json";
 interface AgentDefinition {
   config: string;
   id?: string;
+  branch_id?: string;
+  version_id?: string;
 }
 
 interface AgentsConfig {
@@ -47,6 +49,13 @@ export async function showStatus(): Promise<void> {
     // Get agent ID from index file
     const agentId = agentDef.id || 'Not created yet';
     console.log(`   Agent ID: ${agentId}`);
+
+    if (agentDef.branch_id) {
+      console.log(`   Branch ID: ${agentDef.branch_id}`);
+    }
+    if (agentDef.version_id) {
+      console.log(`   Version ID: ${agentDef.version_id}`);
+    }
 
     // Check config file status
     if (await fs.pathExists(configPath)) {

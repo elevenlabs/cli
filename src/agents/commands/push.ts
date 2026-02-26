@@ -20,6 +20,7 @@ interface AgentsConfig {
 interface PushOptions {
   agent?: string;
   dryRun: boolean;
+  versionDescription?: string;
 }
 
 export function createPushCommand(): Command {
@@ -27,6 +28,7 @@ export function createPushCommand(): Command {
     .description('Push agents to ElevenLabs API when configs change')
     .option('--agent <agent_id>', 'Specific agent ID to push')
     .option('--dry-run', 'Show what would be done without making changes', false)
+    .option('--version-description <text>', 'Description for the new version (only applies to updates)')
     .option('--no-ui', 'Disable interactive UI')
     .action(async (options: PushOptions & { ui: boolean }) => {
       try {
@@ -61,13 +63,14 @@ export function createPushCommand(): Command {
           const { waitUntilExit } = render(
             React.createElement(PushView, {
               agents: pushAgentsData,
-              dryRun: options.dryRun
+              dryRun: options.dryRun,
+              versionDescription: options.versionDescription
             })
           );
           await waitUntilExit();
         } else {
           // Use existing non-UI push
-          await pushAgents(options.dryRun, options.agent);
+          await pushAgents(options.dryRun, options.agent, options.versionDescription);
         }
       } catch (error) {
         console.error(`Error during push: ${error}`);

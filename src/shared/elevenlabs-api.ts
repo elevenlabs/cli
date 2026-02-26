@@ -150,8 +150,9 @@ export async function updateAgentApi(
   conversationConfigDict?: Record<string, unknown>,
   platformSettingsDict?: Record<string, unknown>,
   workflow?: unknown,
-  tags?: string[]
-): Promise<string> {
+  tags?: string[],
+  versionDescription?: string
+): Promise<{ agentId: string; versionId?: string; branchId?: string }> {
   // Clean config to remove deprecated 'tools' if 'tool_ids' exists
   const cleanedConfig = conversationConfigDict ? cleanConversationConfigForApi(conversationConfigDict) : undefined;
 
@@ -165,10 +166,15 @@ export async function updateAgentApi(
     conversationConfig: convConfig,
     platformSettings,
     workflow: workflowConfig,
-    tags
+    tags,
+    versionDescription
   });
 
-  return response.agentId;
+  return {
+    agentId: response.agentId,
+    versionId: response.versionId,
+    branchId: response.branchId
+  };
 }
 
 /**
