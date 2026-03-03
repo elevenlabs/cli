@@ -255,7 +255,7 @@ General purpose AI assistant configuration. Balanced creativity settings with he
     "agent": {
       "prompt": {
         "prompt": "You are a helpful customer service representative.",
-        "llm": "gemini-2.0-flash",
+        "llm": "gemini-2.5-flash",
         "temperature": 0.1
       },
       "language": "en"
