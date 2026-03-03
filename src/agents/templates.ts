@@ -107,7 +107,7 @@ export function getDefaultAgentTemplate(name: string): AgentConfig {
         },
         prompt: {
           prompt: `You are ${name}, a helpful AI assistant.`,
-          llm: "gemini-2.0-flash",
+          llm: "gemini-2.5-flash",
           temperature: 0.0,
           max_tokens: -1,
           tool_ids: [],
@@ -286,7 +286,7 @@ export function getMinimalAgentTemplate(name: string): AgentConfig {
       agent: {
         prompt: {
           prompt: `You are ${name}, a helpful AI assistant.`,
-          llm: "gemini-2.0-flash",
+          llm: "gemini-2.5-flash",
           temperature: 0.0
         },
         language: "en"
