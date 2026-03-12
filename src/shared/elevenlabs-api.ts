@@ -276,8 +276,8 @@ export async function resolveBranchId(
     return branchNameOrId;
   }
 
-  // Otherwise, resolve name to ID
-  const branches = await listBranchesApi(client, agentId);
+  // Otherwise, resolve name to ID (include archived so resolution doesn't silently fail)
+  const branches = await listBranchesApi(client, agentId, true);
   const match = branches.find(b => b.name === branchNameOrId);
   if (!match) {
     throw new Error(

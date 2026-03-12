@@ -163,8 +163,33 @@ export const PushView: React.FC<PushViewProps> = ({
             if (agentDef) {
               if (result.versionId) agentDef.version_id = result.versionId;
               if (result.branchId) agentDef.branch_id = result.branchId;
-              await writeConfig(path.resolve(agentsConfigPath), agentsConfig);
             }
+
+            // Auto-push registered branch configs (when no specific --branch is given)
+            if (!branch && agentDef?.branches) {
+              for (const [branchName, branchDef] of Object.entries(agentDef.branches) as [string, any][]) {
+                try {
+                  if (!(await fs.pathExists(branchDef.config))) continue;
+                  const branchConfig = await readConfig<any>(branchDef.config);
+                  const branchResult = await updateAgentApi(
+                    client,
+                    agentId,
+                    branchConfig.name,
+                    branchConfig.conversation_config || {},
+                    branchConfig.platform_settings,
+                    branchConfig.workflow,
+                    branchConfig.tags || [],
+                    versionDescription,
+                    branchDef.branch_id
+                  );
+                  if (branchResult.versionId) branchDef.version_id = branchResult.versionId;
+                } catch {
+                  // Continue pushing other branches even if one fails
+                }
+              }
+            }
+
+            await writeConfig(path.resolve(agentsConfigPath), agentsConfig);
 
             setPushedAgents(prev =>
               prev.map((a, i) => i === currentAgentIndex

@@ -134,7 +134,7 @@ describe("Agent branch support", () => {
       expect(result).toBe("agtbrch_feat456");
       expect(
         client.conversationalAi.agents.branches.list
-      ).toHaveBeenCalledWith("agent_123", { includeArchived: false });
+      ).toHaveBeenCalledWith("agent_123", { includeArchived: true });
     });
 
     it("should throw error when branch name is not found", async () => {

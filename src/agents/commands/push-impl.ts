@@ -77,6 +77,18 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
     // Always push (force override)
     console.log(`${agentDefName}: Will push (force override)`);
 
+    if (dryRun) {
+      console.log(`[DRY RUN] Would update agent: ${agentDefName}`);
+      if (branch) {
+        console.log(`  [DRY RUN] Would push to branch '${branch}'`);
+      } else if (agentDef.branches && currentAgentId) {
+        for (const branchName of Object.keys(agentDef.branches)) {
+          console.log(`  [DRY RUN] Would push branch '${branchName}'`);
+        }
+      }
+      continue;
+    }
+
     // Initialize ElevenLabs client
     let client;
     try {
@@ -92,17 +104,6 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
     if (branch && currentAgentId) {
       branchId = await resolveBranchId(client, currentAgentId, branch);
       console.log(`Pushing to branch: ${branch}`);
-    }
-
-    if (dryRun) {
-      console.log(`[DRY RUN] Would update agent: ${agentDefName}`);
-      // Show branch dry-run previews too
-      if (!branch && agentDef.branches && currentAgentId) {
-        for (const branchName of Object.keys(agentDef.branches)) {
-          console.log(`  [DRY RUN] Would push branch '${branchName}'`);
-        }
-      }
-      continue;
     }
 
     // Perform API operation

@@ -319,8 +319,8 @@ async function pullAllBranches(
   for (const branch of branches) {
     if (branch.isArchived) continue;
 
-    // Skip if this is the main branch (same as agent's branch_id)
-    if (branch.id === agentEntry.branch_id) continue;
+    // Skip if this is the main branch (same as agent's branch_id, or name "main" when branch_id is unset)
+    if (branch.id === agentEntry.branch_id || (!agentEntry.branch_id && branch.name === 'main')) continue;
 
     const branchName = branch.name;
 

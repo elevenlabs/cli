@@ -30,6 +30,11 @@ export function createPullCommand(): Command {
         if (options.branch && !options.agent) {
           throw new Error('--branch requires --agent to be specified, since branch names are per-agent.');
         }
+        // --all-branches requires the non-UI codepath (the UI view doesn't support it)
+        if (options.allBranches) {
+          await pullAgents(options);
+          return;
+        }
         if (options.ui !== false) {
           // Use Ink UI for pull
           const { waitUntilExit } = render(
