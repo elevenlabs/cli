@@ -15,6 +15,7 @@ Manage ElevenLabs with local configuration files. This tool is an experimental e
 - **Smart Updates**: Hash-based change detection
 - **Import/Export**: Fetch existing agents and tools from workspace
 - **Tool Management**: Import and manage tools from ElevenLabs workspace
+- **Branch Support**: Pull/push specific agent branches, CI/CD-friendly multi-branch workflows
 - **Widget Generation**: HTML widget snippets
 - **Secure Storage**: OS keychain integration with secure file fallback
 
@@ -102,10 +103,12 @@ elevenlabs agents push
 
 ```
 your_project/
-├── agents.json              # Central configuration
+├── agents.json              # Central configuration (includes branch mappings)
 ├── tools.json               # Tool configurations
 ├── tests.json               # Test configurations
 ├── agent_configs/           # Agent configuration files
+│   ├── My-Agent.json        # Main branch config
+│   └── My-Agent.staging.json # Branch config (auto-created by --all-branches)
 ├── tool_configs/            # Tool configurations
 └── test_configs/            # Test configurations
 ```
@@ -158,8 +161,14 @@ elevenlabs tools add-webhook "Tool Name" [--config-path path]
 # Create client tool
 elevenlabs tools add-client "Tool Name" [--config-path path]
 
-# Push changes
-elevenlabs agents push [--agent "Agent Name"] [--dry-run]
+# Push changes (main + all registered branches)
+elevenlabs agents push [--agent <agent_id>] [--dry-run]
+
+# Push to a specific branch
+elevenlabs agents push --agent <agent_id> --branch <branch_name_or_id>
+
+# List branches for an agent
+elevenlabs agents branches list --agent <agent_id> [--include-archived]
 
 # Sync tools
 elevenlabs tools push [--tool "Tool Name"] [--dry-run]
@@ -172,6 +181,12 @@ elevenlabs agents status [--agent "Agent Name"]
 
 # Pull agents from ElevenLabs
 elevenlabs agents pull [--search "term"] [--update] [--dry-run]
+
+# Pull from a specific branch
+elevenlabs agents pull --agent <agent_id> --branch <branch_name_or_id>
+
+# Pull all branches for each agent (stores as separate config files)
+elevenlabs agents pull --all --all-branches
 
 # Pull tools from ElevenLabs
 elevenlabs tools pull [--search "term"] [--tool "tool-name"] [--dry-run] [--output-dir tool_configs]
@@ -339,13 +354,59 @@ elevenlabs agents list
 elevenlabs agents delete agent_123456789
 ```
 
+## Branch Workflows
+
+Agent branches let you manage different configurations (e.g., staging vs production) alongside the main agent. Branch configs are stored as separate files in `agent_configs/` and tracked in `agents.json`, making them git-friendly and CI/CD-ready.
+
+**Work with branches locally:**
+
+```bash
+# List branches for an agent
+elevenlabs agents branches list --agent <agent_id>
+
+# Pull a specific branch config
+elevenlabs agents pull --agent <agent_id> --branch staging
+
+# Push to a specific branch
+elevenlabs agents push --agent <agent_id> --branch staging
+```
+
+**CI/CD pipeline (sync all branches):**
+
+```bash
+elevenlabs agents pull --all --all-branches --update --no-ui
+# Make config changes...
+elevenlabs agents push --no-ui
+# Push auto-pushes main + all registered branch configs
+```
+
+Branch configs in `agents.json`:
+
+```json
+{
+  "agents": [{
+    "config": "agent_configs/My-Agent.json",
+    "id": "agent_123",
+    "branches": {
+      "staging": {
+        "config": "agent_configs/My-Agent.staging.json",
+        "branch_id": "agtbrch_xxx",
+        "version_id": "ver_xxx"
+      }
+    }
+  }]
+}
+```
+
+The `--branch` flag accepts both human-readable names (`staging`) and branch IDs (`agtbrch_xxx`).
+
 ## Workflow Examples
 
 ```bash
 # List all agents
 elevenlabs agents list
 
-# Push all agents
+# Push all agents (main + branches)
 elevenlabs agents push
 
 # Pull agents (skips existing local agents)
