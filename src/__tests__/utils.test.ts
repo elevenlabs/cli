@@ -594,6 +594,109 @@ describe("Utils", () => {
       });
     });
 
+    it("should preserve language_presets locale keys in toCamelCaseKeys", () => {
+      const input = {
+        conversation_config: {
+          language_presets: {
+            "pt-br": {
+              overrides: {
+                agent: {
+                  first_message: "Olá!"
+                }
+              }
+            },
+            "en": {
+              overrides: {
+                agent: {
+                  first_message: "Hello!"
+                }
+              }
+            }
+          }
+        }
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        conversationConfig: {
+          languagePresets: {
+            "pt-br": {              // preserved - locale code, NOT converted to "ptBr"
+              overrides: {
+                agent: {
+                  firstMessage: "Olá!"  // converted - schema field
+                }
+              }
+            },
+            "en": {                 // preserved - locale code
+              overrides: {
+                agent: {
+                  firstMessage: "Hello!" // converted - schema field
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it("should preserve languagePresets locale keys in toSnakeCaseKeys", () => {
+      const input = {
+        conversationConfig: {
+          languagePresets: {
+            "pt-br": {
+              overrides: {
+                agent: {
+                  firstMessage: "Olá!"
+                }
+              }
+            }
+          }
+        }
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        conversation_config: {
+          language_presets: {
+            "pt-br": {              // preserved - locale code, NOT converted to "pt_br"
+              overrides: {
+                agent: {
+                  first_message: "Olá!"  // converted - schema field
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it("should maintain round-trip conversion symmetry for language_presets", () => {
+      const original = {
+        conversation_config: {
+          language_presets: {
+            "pt-br": {
+              overrides: {
+                agent: {
+                  first_message: "Olá!"
+                }
+              },
+              first_message_translation: {
+                source_hash: "test",
+                text: "Olá!"
+              }
+            }
+          }
+        }
+      };
+
+      const afterPush = toCamelCaseKeys(original);
+      const afterPull = toSnakeCaseKeys(afterPush);
+
+      expect(afterPull).toEqual(original);
+    });
+
     it("should preserve workflow nodes keys in toCamelCaseKeys", () => {
       const input = {
         workflow: {
