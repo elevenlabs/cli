@@ -84,14 +84,14 @@ export const BranchesListView: React.FC<BranchesListViewProps> = ({
               <Text color={theme.colors.text.muted}>{'─'.repeat(100)}</Text>
             </Box>
 
-            {branches.map((branch, index) => {
+            {branches.map((branch) => {
               const status = branch.isArchived ? 'archived' : 'active';
               const statusColor = branch.isArchived ? theme.colors.text.muted : theme.colors.success;
               const traffic = `${branch.currentLivePercentage ?? 0}%`;
               const lastUpdated = new Date(branch.lastCommittedAt * 1000).toISOString().split('T')[0];
 
               return (
-                <Box key={index}>
+                <Box key={branch.id}>
                   <Box width={25}>
                     <Text color={theme.colors.text.primary}>{branch.name}</Text>
                   </Box>
