@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
-import { getElevenLabsClient, listAgentsApi, getAgentApi } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, listAgentsApi, getAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 import { AgentConfig } from '../templates.js';
 import { promptForConfirmation } from './utils.js';
 
@@ -20,6 +20,7 @@ interface AgentsConfig {
 
 interface PullOptions {
   agent?: string;
+  branch?: string;
   outputDir: string;
   dryRun: boolean;
   update?: boolean;
@@ -36,6 +37,13 @@ export async function pullAgents(options: PullOptions): Promise<void> {
 
 async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath: string): Promise<void> {
   const client = await getElevenLabsClient();
+
+  // Resolve branch ID if specified
+  let branchId: string | undefined;
+  if (options.branch && options.agent) {
+    console.log(`Pulling from branch: ${options.branch}`);
+    branchId = await resolveBranchId(client, options.agent, options.branch);
+  }
 
   // Load existing config
   let agentsConfig: AgentsConfig;
@@ -54,7 +62,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
     // Pull specific agent by ID
     console.log(`Pulling agent with ID: ${options.agent}...`);
     try {
-      const agentDetails = await getAgentApi(client, options.agent);
+      const agentDetails = await getAgentApi(client, options.agent, branchId);
       const agentDetailsTyped = agentDetails as { agentId?: string; agent_id?: string; name: string };
       const agentId = agentDetailsTyped.agentId || agentDetailsTyped.agent_id || options.agent;
       agentsList = [{
@@ -169,7 +177,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
     try {
       // Fetch detailed agent configuration
       console.log(`${action === 'update' ? '↻ Updating' : '+ Pulling'} config for '${agent.name}'...`);
-      const agentDetails = await getAgentApi(client, agent.id);
+      const agentDetails = await getAgentApi(client, agent.id, branchId);
 
       // Extract configuration components
       const agentDetailsTyped = agentDetails as {

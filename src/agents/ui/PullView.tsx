@@ -5,7 +5,7 @@ import theme from '../../ui/themes/elevenlabs.js';
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
-import { getElevenLabsClient, listAgentsApi, getAgentApi } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, listAgentsApi, getAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 
 interface PullAgent {
   name: string;
@@ -18,6 +18,7 @@ interface PullAgent {
 
 interface PullViewProps {
   agent?: string; // Agent ID to pull specifically
+  branch?: string; // Branch name or ID to pull from
   outputDir: string;
   dryRun: boolean;
   update?: boolean;
@@ -27,6 +28,7 @@ interface PullViewProps {
 
 export const PullView: React.FC<PullViewProps> = ({
   agent,
+  branch,
   outputDir,
   dryRun,
   update,
@@ -57,11 +59,17 @@ export const PullView: React.FC<PullViewProps> = ({
 
         const client = await getElevenLabsClient();
 
+        // Resolve branch ID if specified
+        let branchId: string | undefined;
+        if (branch && agent) {
+          branchId = await resolveBranchId(client, agent, branch);
+        }
+
         // Fetch agents list - either specific agent by ID or all agents
         let agentsList: unknown[];
         if (agent) {
             // Pull specific agent by ID
-            const agentDetails = await getAgentApi(client, agent);
+            const agentDetails = await getAgentApi(client, agent, branchId);
             const agentDetailsTyped = agentDetails as { agentId?: string; agent_id?: string; name: string };
             const agentId = agentDetailsTyped.agentId || agentDetailsTyped.agent_id || agent;
             agentsList = [{ 
@@ -209,8 +217,14 @@ export const PullView: React.FC<PullViewProps> = ({
         // Update to pulling
         setAgents(prev => prev.map((a, i) => i === index ? { ...a, status: 'pulling' as const } : a));
 
+        // Resolve branch if needed
+        let branchId: string | undefined;
+        if (branch && agent.agentId) {
+          branchId = await resolveBranchId(client, agent.agentId, branch);
+        }
+
         // Fetch agent details
-        const agentDetails = await getAgentApi(client, agent.agentId);
+        const agentDetails = await getAgentApi(client, agent.agentId, branchId);
         const agentDetailsTyped = agentDetails as {
           conversationConfig?: Record<string, unknown>;
           conversation_config?: Record<string, unknown>;

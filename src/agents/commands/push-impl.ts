@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig } from '../../shared/utils.js';
-import { getElevenLabsClient, createAgentApi, updateAgentApi } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 import { AgentConfig } from '../templates.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
@@ -17,7 +17,7 @@ interface AgentsConfig {
   agents: AgentDefinition[];
 }
 
-export async function pushAgents(dryRun: boolean = false, agentId?: string, versionDescription?: string): Promise<void> {
+export async function pushAgents(dryRun: boolean = false, agentId?: string, versionDescription?: string, branch?: string): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
@@ -85,6 +85,13 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
       continue;
     }
 
+    // Resolve branch ID if specified
+    let branchId: string | undefined;
+    if (branch && agentId) {
+      branchId = await resolveBranchId(client, agentId, branch);
+      console.log(`Pushing to branch: ${branch}`);
+    }
+
     // Perform API operation
     try {
       // Extract config components
@@ -120,7 +127,8 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
           platformSettings,
           workflow,
           tags,
-          versionDescription
+          versionDescription,
+          branchId
         );
         console.log(`Updated agent ${agentDefName} (ID: ${agentId})`);
 

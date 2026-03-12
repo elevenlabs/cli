@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useApp } from 'ink';
 import App from '../../ui/App.js';
 import theme from '../../ui/themes/elevenlabs.js';
-import { getElevenLabsClient, createAgentApi, updateAgentApi } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 import { readConfig, writeConfig } from '../../shared/utils.js';
 import fs from 'fs-extra';
 import path from 'path';
@@ -19,6 +19,7 @@ interface PushViewProps {
   agents: PushAgent[];
   dryRun?: boolean;
   versionDescription?: string;
+  branch?: string;
   onComplete?: () => void;
   agentsConfigPath?: string;
 }
@@ -27,6 +28,7 @@ export const PushView: React.FC<PushViewProps> = ({
   agents,
   dryRun = false,
   versionDescription,
+  branch,
   onComplete,
   agentsConfigPath = 'agents.json'
 }) => {
@@ -98,6 +100,12 @@ export const PushView: React.FC<PushViewProps> = ({
           // Get ElevenLabs client
           const client = await getElevenLabsClient();
 
+          // Resolve branch if needed
+          let branchId: string | undefined;
+          if (branch && agentId) {
+            branchId = await resolveBranchId(client, agentId, branch);
+          }
+
           // Extract config components
           const conversationConfig = agentConfig.conversation_config || {};
           const platformSettings = agentConfig.platform_settings;
@@ -145,7 +153,8 @@ export const PushView: React.FC<PushViewProps> = ({
               platformSettings,
               workflow,
               tags,
-              versionDescription
+              versionDescription,
+              branchId
             );
 
             // Update version/branch info in agents.json

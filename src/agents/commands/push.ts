@@ -19,6 +19,7 @@ interface AgentsConfig {
 
 interface PushOptions {
   agent?: string;
+  branch?: string;
   dryRun: boolean;
   versionDescription?: string;
 }
@@ -27,11 +28,15 @@ export function createPushCommand(): Command {
   return new Command('push')
     .description('Push agents to ElevenLabs API when configs change')
     .option('--agent <agent_id>', 'Specific agent ID to push')
+    .option('--branch <branch>', 'Specific branch name or ID to push to')
     .option('--dry-run', 'Show what would be done without making changes', false)
     .option('--version-description <text>', 'Description for the new version (only applies to updates)')
     .option('--no-ui', 'Disable interactive UI')
     .action(async (options: PushOptions & { ui: boolean }) => {
       try {
+        if (options.branch && !options.agent) {
+          throw new Error('--branch requires --agent to be specified, since branch names are per-agent.');
+        }
         if (options.ui !== false) {
           // Use new Ink UI for push
           const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
@@ -64,13 +69,14 @@ export function createPushCommand(): Command {
             React.createElement(PushView, {
               agents: pushAgentsData,
               dryRun: options.dryRun,
-              versionDescription: options.versionDescription
+              versionDescription: options.versionDescription,
+              branch: options.branch
             })
           );
           await waitUntilExit();
         } else {
           // Use existing non-UI push
-          await pushAgents(options.dryRun, options.agent, options.versionDescription);
+          await pushAgents(options.dryRun, options.agent, options.versionDescription, options.branch);
         }
       } catch (error) {
         console.error(`Error during push: ${error}`);

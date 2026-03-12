@@ -45,13 +45,25 @@ const commands: Command[] = [
   {
     name: "push",
     description: "Push agents to ElevenLabs",
+    options: [
+      { flag: "--branch <branch>", description: "Push to a specific branch" },
+    ],
   },
   {
     name: "pull",
     description: "Pull agents from ElevenLabs",
     options: [
+      { flag: "--branch <branch>", description: "Pull from a specific branch" },
       { flag: "--update", description: "Update existing agents" },
       { flag: "--all", description: "Pull all agents" },
+    ],
+  },
+  {
+    name: "branches list",
+    description: "List branches for an agent",
+    options: [
+      { flag: "--agent <agent_id>", description: "Agent ID (required)" },
+      { flag: "--include-archived", description: "Include archived branches" },
     ],
   },
   {
