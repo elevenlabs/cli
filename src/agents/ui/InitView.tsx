@@ -261,6 +261,10 @@ export const InitView: React.FC<InitViewProps> = ({ projectPath, override = fals
               <Text color={theme.colors.text.secondary}>1. Set your API key: elevenlabs auth login</Text>
               <Text color={theme.colors.text.secondary}>2. Create an agent: elevenlabs agents add "My Agent" --template default</Text>
               <Text color={theme.colors.text.secondary}>3. Push to ElevenLabs: elevenlabs agents push</Text>
+              <Text color={theme.colors.text.secondary}></Text>
+              <Text color={theme.colors.text.muted}>Branch workflow (CI/CD):</Text>
+              <Text color={theme.colors.text.muted}>  Pull all branches: elevenlabs agents pull --all --all-branches</Text>
+              <Text color={theme.colors.text.muted}>  Push all (main + branches): elevenlabs agents push</Text>
             </Box>
           </Box>
         )}

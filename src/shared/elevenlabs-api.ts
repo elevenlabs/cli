@@ -151,7 +151,8 @@ export async function updateAgentApi(
   platformSettingsDict?: Record<string, unknown>,
   workflow?: unknown,
   tags?: string[],
-  versionDescription?: string
+  versionDescription?: string,
+  branchId?: string
 ): Promise<{ agentId: string; versionId?: string; branchId?: string }> {
   // Clean config to remove deprecated 'tools' if 'tool_ids' exists
   const cleanedConfig = conversationConfigDict ? cleanConversationConfigForApi(conversationConfigDict) : undefined;
@@ -167,7 +168,8 @@ export async function updateAgentApi(
     platformSettings,
     workflow: workflowConfig,
     tags,
-    versionDescription
+    versionDescription,
+    ...(branchId ? { branchId } : {})
   });
 
   return {
@@ -227,10 +229,63 @@ export async function listAgentsApi(
  * @param agentId - The ID of the agent to retrieve
  * @returns Promise that resolves to an object containing the full agent configuration
  */
-export async function getAgentApi(client: ElevenLabsClient, agentId: string): Promise<unknown> {
-  const response = await client.conversationalAi.agents.get(agentId);
+export async function getAgentApi(client: ElevenLabsClient, agentId: string, branchId?: string): Promise<unknown> {
+  const response = branchId
+    ? await client.conversationalAi.agents.get(agentId, { branchId })
+    : await client.conversationalAi.agents.get(agentId);
   // Normalize response to snake_case for downstream writing
   return toSnakeCaseKeys(response);
+}
+
+/**
+ * Lists branches for a specific agent from the ElevenLabs API.
+ *
+ * @param client - An initialized ElevenLabs client
+ * @param agentId - The ID of the agent
+ * @param includeArchived - Whether to include archived branches (default: false)
+ * @returns Promise that resolves to a list of branch summary objects
+ */
+export async function listBranchesApi(
+  client: ElevenLabsClient,
+  agentId: string,
+  includeArchived: boolean = false
+): Promise<ElevenLabs.AgentBranchSummary[]> {
+  const response = await client.conversationalAi.agents.branches.list(agentId, {
+    includeArchived
+  });
+  return response.results;
+}
+
+/**
+ * Resolves a branch name or ID to a branch ID.
+ * If the input starts with 'agtbrch_', it's treated as an ID directly.
+ * Otherwise, it's treated as a branch name and resolved via the branches list.
+ *
+ * @param client - An initialized ElevenLabs client
+ * @param agentId - The ID of the agent
+ * @param branchNameOrId - Branch name or ID to resolve
+ * @returns Promise that resolves to the branch ID
+ */
+export async function resolveBranchId(
+  client: ElevenLabsClient,
+  agentId: string,
+  branchNameOrId: string
+): Promise<string> {
+  // If it looks like a branch ID, return it directly
+  if (branchNameOrId.startsWith('agtbrch_')) {
+    return branchNameOrId;
+  }
+
+  // Otherwise, resolve name to ID (include archived so resolution doesn't silently fail)
+  const branches = await listBranchesApi(client, agentId, true);
+  const match = branches.find(b => b.name === branchNameOrId);
+  if (!match) {
+    throw new Error(
+      `Branch '${branchNameOrId}' not found for agent '${agentId}'. ` +
+      `Use 'elevenlabs agents branches list --agent ${agentId}' to see available branches.`
+    );
+  }
+  return match.id;
 }
 
 /**

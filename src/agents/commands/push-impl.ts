@@ -1,23 +1,30 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig } from '../../shared/utils.js';
-import { getElevenLabsClient, createAgentApi, updateAgentApi } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 import { AgentConfig } from '../templates.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
+
+interface BranchDefinition {
+  config: string;
+  branch_id: string;
+  version_id?: string;
+}
 
 interface AgentDefinition {
   config: string;
   id?: string;
   branch_id?: string;
   version_id?: string;
+  branches?: Record<string, BranchDefinition>;
 }
 
 interface AgentsConfig {
   agents: AgentDefinition[];
 }
 
-export async function pushAgents(dryRun: boolean = false, agentId?: string, versionDescription?: string): Promise<void> {
+export async function pushAgents(dryRun: boolean = false, agentId?: string, versionDescription?: string, branch?: string): Promise<void> {
   // Load agents configuration
   const agentsConfigPath = path.resolve(AGENTS_CONFIG_FILE);
   if (!(await fs.pathExists(agentsConfigPath))) {
@@ -65,13 +72,20 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
     const agentDefName = agentConfig.name || 'Unnamed Agent';
 
     // Get agent ID from index file
-    const agentId = agentDef.id;
+    const currentAgentId = agentDef.id;
 
     // Always push (force override)
     console.log(`${agentDefName}: Will push (force override)`);
 
     if (dryRun) {
       console.log(`[DRY RUN] Would update agent: ${agentDefName}`);
+      if (branch) {
+        console.log(`  [DRY RUN] Would push to branch '${branch}'`);
+      } else if (agentDef.branches && currentAgentId) {
+        for (const branchName of Object.keys(agentDef.branches)) {
+          console.log(`  [DRY RUN] Would push branch '${branchName}'`);
+        }
+      }
       continue;
     }
 
@@ -85,6 +99,13 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
       continue;
     }
 
+    // Resolve branch ID if specified
+    let branchId: string | undefined;
+    if (branch && currentAgentId) {
+      branchId = await resolveBranchId(client, currentAgentId, branch);
+      console.log(`Pushing to branch: ${branch}`);
+    }
+
     // Perform API operation
     try {
       // Extract config components
@@ -95,7 +116,7 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
 
       const agentDisplayName = agentConfig.name;
 
-      if (!agentId) {
+      if (!currentAgentId) {
         // Create new agent
         const newAgentId = await createAgentApi(
           client,
@@ -114,15 +135,16 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
         // Update existing agent
         const result = await updateAgentApi(
           client,
-          agentId,
+          currentAgentId,
           agentDisplayName,
           conversationConfig,
           platformSettings,
           workflow,
           tags,
-          versionDescription
+          versionDescription,
+          branchId
         );
-        console.log(`Updated agent ${agentDefName} (ID: ${agentId})`);
+        console.log(`Updated agent ${agentDefName} (ID: ${currentAgentId})`);
 
         // Update version/branch info
         if (result.versionId) agentDef.version_id = result.versionId;
@@ -130,6 +152,42 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
       }
 
       changesMade = true;
+
+      // Push all registered branch configs (unless a specific --branch was given)
+      if (!branch && agentDef.branches && currentAgentId) {
+        for (const [branchName, branchDef] of Object.entries(agentDef.branches)) {
+          try {
+            if (!(await fs.pathExists(branchDef.config))) {
+              console.log(`  Warning: Branch config file not found: ${branchDef.config}`);
+              continue;
+            }
+
+            const branchConfig = await readConfig<AgentConfig>(branchDef.config);
+            const branchConversationConfig = branchConfig.conversation_config || {};
+            const branchPlatformSettings = branchConfig.platform_settings;
+            const branchWorkflow = branchConfig.workflow;
+            const branchTags = branchConfig.tags || [];
+
+            console.log(`  Pushing branch '${branchName}'...`);
+            const branchResult = await updateAgentApi(
+              client,
+              currentAgentId,
+              branchConfig.name,
+              branchConversationConfig,
+              branchPlatformSettings,
+              branchWorkflow,
+              branchTags,
+              versionDescription,
+              branchDef.branch_id
+            );
+
+            if (branchResult.versionId) branchDef.version_id = branchResult.versionId;
+            console.log(`  ✓ Pushed branch '${branchName}'`);
+          } catch (error) {
+            console.log(`  ✗ Error pushing branch '${branchName}': ${error}`);
+          }
+        }
+      }
 
     } catch (error) {
       console.log(`Error processing ${agentDefName}: ${error}`);

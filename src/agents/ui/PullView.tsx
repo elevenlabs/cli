@@ -5,7 +5,7 @@ import theme from '../../ui/themes/elevenlabs.js';
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
-import { getElevenLabsClient, listAgentsApi, getAgentApi } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, listAgentsApi, getAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 
 interface PullAgent {
   name: string;
@@ -18,6 +18,8 @@ interface PullAgent {
 
 interface PullViewProps {
   agent?: string; // Agent ID to pull specifically
+  branch?: string; // Branch name or ID to pull from
+  allBranches?: boolean; // Pull all branches for each agent
   outputDir: string;
   dryRun: boolean;
   update?: boolean;
@@ -27,6 +29,8 @@ interface PullViewProps {
 
 export const PullView: React.FC<PullViewProps> = ({
   agent,
+  branch,
+  allBranches,
   outputDir,
   dryRun,
   update,
@@ -57,11 +61,17 @@ export const PullView: React.FC<PullViewProps> = ({
 
         const client = await getElevenLabsClient();
 
+        // Resolve branch ID if specified
+        let branchId: string | undefined;
+        if (branch && agent) {
+          branchId = await resolveBranchId(client, agent, branch);
+        }
+
         // Fetch agents list - either specific agent by ID or all agents
         let agentsList: unknown[];
         if (agent) {
             // Pull specific agent by ID
-            const agentDetails = await getAgentApi(client, agent);
+            const agentDetails = await getAgentApi(client, agent, branchId);
             const agentDetailsTyped = agentDetails as { agentId?: string; agent_id?: string; name: string };
             const agentId = agentDetailsTyped.agentId || agentDetailsTyped.agent_id || agent;
             agentsList = [{ 
@@ -141,7 +151,7 @@ export const PullView: React.FC<PullViewProps> = ({
         // Start processing if there are agents to pull
         if (allAgentsToPull.some(a => a.status === 'pending')) {
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          processNextAgent(allAgentsToPull, 0, agentsConfig, agentsConfigPath);
+          processNextAgent(allAgentsToPull, 0, agentsConfig, agentsConfigPath, branchId);
         } else {
           setComplete(true);
           setTimeout(() => {
@@ -163,7 +173,8 @@ export const PullView: React.FC<PullViewProps> = ({
     agentsList: PullAgent[],
     index: number,
     agentsConfig: any,
-    agentsConfigPath: string
+    agentsConfigPath: string,
+    branchId?: string
   ): Promise<void> => {
     if (index >= agentsList.length) {
       // Save files after all agents are processed (if not dry run)
@@ -183,7 +194,7 @@ export const PullView: React.FC<PullViewProps> = ({
     // Skip if already marked as skipped
     if (agent.status === 'skipped') {
       setCurrentIndex(index + 1);
-      processNextAgent(agentsList, index + 1, agentsConfig, agentsConfigPath);
+      processNextAgent(agentsList, index + 1, agentsConfig, agentsConfigPath, branchId);
       return;
     }
 
@@ -209,8 +220,8 @@ export const PullView: React.FC<PullViewProps> = ({
         // Update to pulling
         setAgents(prev => prev.map((a, i) => i === index ? { ...a, status: 'pulling' as const } : a));
 
-        // Fetch agent details
-        const agentDetails = await getAgentApi(client, agent.agentId);
+        // Fetch agent details (branchId already resolved in initial effect)
+        const agentDetails = await getAgentApi(client, agent.agentId, branchId);
         const agentDetailsTyped = agentDetails as {
           conversationConfig?: Record<string, unknown>;
           conversation_config?: Record<string, unknown>;
@@ -288,7 +299,7 @@ export const PullView: React.FC<PullViewProps> = ({
       }
 
       setCurrentIndex(index + 1);
-      processNextAgent(agentsList, index + 1, agentsConfig, agentsConfigPath);
+      processNextAgent(agentsList, index + 1, agentsConfig, agentsConfigPath, branchId);
 
     } catch (err) {
       setAgents(prev => prev.map((a, i) => 
@@ -299,7 +310,7 @@ export const PullView: React.FC<PullViewProps> = ({
         } : a
       ));
       setCurrentIndex(index + 1);
-      processNextAgent(agentsList, index + 1, agentsConfig, agentsConfigPath);
+      processNextAgent(agentsList, index + 1, agentsConfig, agentsConfigPath, branchId);
     }
   };
 

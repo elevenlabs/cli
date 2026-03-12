@@ -11,6 +11,7 @@ import { createPullCommand } from './pull.js';
 import { createTemplatesCommand } from './templates.js';
 import { createWidgetCommand } from './widget.js';
 import { createTestCommand } from './test.js';
+import { createBranchesCommand } from './branches.js';
 import AgentsHelpView from '../ui/AgentsHelpView.js';
 
 export function createAgentsCommand(): Command {
@@ -43,6 +44,7 @@ export function createAgentsCommand(): Command {
   agents.addCommand(createTemplatesCommand());
   agents.addCommand(createWidgetCommand());
   agents.addCommand(createTestCommand());
+  agents.addCommand(createBranchesCommand());
 
   return agents;
 }
