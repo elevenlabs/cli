@@ -19,6 +19,7 @@ interface PullAgent {
 interface PullViewProps {
   agent?: string; // Agent ID to pull specifically
   branch?: string; // Branch name or ID to pull from
+  allBranches?: boolean; // Pull all branches for each agent
   outputDir: string;
   dryRun: boolean;
   update?: boolean;
@@ -29,6 +30,7 @@ interface PullViewProps {
 export const PullView: React.FC<PullViewProps> = ({
   agent,
   branch,
+  allBranches,
   outputDir,
   dryRun,
   update,

@@ -54,6 +54,7 @@ const commands: Command[] = [
     description: "Pull agents from ElevenLabs",
     options: [
       { flag: "--branch <branch>", description: "Pull from a specific branch" },
+      { flag: "--all-branches", description: "Pull all branches for each agent" },
       { flag: "--update", description: "Update existing agents" },
       { flag: "--all", description: "Pull all agents" },
     ],

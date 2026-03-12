@@ -6,11 +6,18 @@ import { AgentConfig } from '../templates.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
 
+interface BranchDefinition {
+  config: string;
+  branch_id: string;
+  version_id?: string;
+}
+
 interface AgentDefinition {
   config: string;
   id?: string;
   branch_id?: string;
   version_id?: string;
+  branches?: Record<string, BranchDefinition>;
 }
 
 interface AgentsConfig {
@@ -138,6 +145,47 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
       }
 
       changesMade = true;
+
+      // Push all registered branch configs (unless a specific --branch was given)
+      if (!branch && agentDef.branches && agentId) {
+        for (const [branchName, branchDef] of Object.entries(agentDef.branches)) {
+          try {
+            if (!(await fs.pathExists(branchDef.config))) {
+              console.log(`  Warning: Branch config file not found: ${branchDef.config}`);
+              continue;
+            }
+
+            const branchConfig = await readConfig<AgentConfig>(branchDef.config);
+            const branchConversationConfig = branchConfig.conversation_config || {};
+            const branchPlatformSettings = branchConfig.platform_settings;
+            const branchWorkflow = branchConfig.workflow;
+            const branchTags = branchConfig.tags || [];
+
+            if (dryRun) {
+              console.log(`  [DRY RUN] Would push branch '${branchName}'`);
+              continue;
+            }
+
+            console.log(`  Pushing branch '${branchName}'...`);
+            const branchResult = await updateAgentApi(
+              client,
+              agentId,
+              branchConfig.name,
+              branchConversationConfig,
+              branchPlatformSettings,
+              branchWorkflow,
+              branchTags,
+              versionDescription,
+              branchDef.branch_id
+            );
+
+            if (branchResult.versionId) branchDef.version_id = branchResult.versionId;
+            console.log(`  ✓ Pushed branch '${branchName}'`);
+          } catch (error) {
+            console.log(`  ✗ Error pushing branch '${branchName}': ${error}`);
+          }
+        }
+      }
 
     } catch (error) {
       console.log(`Error processing ${agentDefName}: ${error}`);

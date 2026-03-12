@@ -262,3 +262,158 @@ describe("Agent branch support", () => {
     });
   });
 });
+
+describe("Branch persistence in agents.json", () => {
+  let tempDir: string;
+  let agentsConfigPath: string;
+
+  beforeEach(async () => {
+    const fs = await import("fs-extra");
+    const path = await import("path");
+    const { tmpdir } = await import("os");
+    tempDir = await fs.mkdtemp(path.join(tmpdir(), "test-branches-"));
+    agentsConfigPath = path.join(tempDir, "agents.json");
+  });
+
+  afterEach(async () => {
+    const fs = await import("fs-extra");
+    await fs.remove(tempDir);
+  });
+
+  it("should store branch configs in agents.json branches map", async () => {
+    const { writeConfig, readConfig } = await import("../shared/utils");
+
+    const agentsConfig = {
+      agents: [
+        {
+          config: "agent_configs/My-Agent.json",
+          id: "agent_123",
+          version_id: "ver_abc",
+          branch_id: "agtbrch_main",
+          branches: {
+            staging: {
+              config: "agent_configs/My-Agent.staging.json",
+              branch_id: "agtbrch_feat456",
+              version_id: "ver_def",
+            },
+          },
+        },
+      ],
+    };
+
+    await writeConfig(agentsConfigPath, agentsConfig);
+    const loaded = (await readConfig(agentsConfigPath)) as typeof agentsConfig;
+
+    expect(loaded.agents[0].branches).toBeDefined();
+    expect(loaded.agents[0].branches!.staging).toBeDefined();
+    expect(loaded.agents[0].branches!.staging.config).toBe(
+      "agent_configs/My-Agent.staging.json"
+    );
+    expect(loaded.agents[0].branches!.staging.branch_id).toBe(
+      "agtbrch_feat456"
+    );
+    expect(loaded.agents[0].branches!.staging.version_id).toBe("ver_def");
+  });
+
+  it("should support multiple branches per agent", async () => {
+    const { writeConfig, readConfig } = await import("../shared/utils");
+
+    const agentsConfig = {
+      agents: [
+        {
+          config: "agent_configs/My-Agent.json",
+          id: "agent_123",
+          version_id: "ver_abc",
+          branch_id: "agtbrch_main",
+          branches: {
+            staging: {
+              config: "agent_configs/My-Agent.staging.json",
+              branch_id: "agtbrch_stag",
+              version_id: "ver_1",
+            },
+            "dev-experiment": {
+              config: "agent_configs/My-Agent.dev-experiment.json",
+              branch_id: "agtbrch_dev",
+              version_id: "ver_2",
+            },
+          },
+        },
+      ],
+    };
+
+    await writeConfig(agentsConfigPath, agentsConfig);
+    const loaded = (await readConfig(agentsConfigPath)) as typeof agentsConfig;
+
+    expect(Object.keys(loaded.agents[0].branches!)).toHaveLength(2);
+    expect(loaded.agents[0].branches!.staging.branch_id).toBe("agtbrch_stag");
+    expect(loaded.agents[0].branches!["dev-experiment"].branch_id).toBe(
+      "agtbrch_dev"
+    );
+  });
+
+  it("should be backward compatible with agents without branches", async () => {
+    const { writeConfig, readConfig } = await import("../shared/utils");
+
+    const agentsConfig = {
+      agents: [
+        {
+          config: "agent_configs/Old-Agent.json",
+          id: "agent_old",
+          version_id: "ver_old",
+        },
+        {
+          config: "agent_configs/New-Agent.json",
+          id: "agent_new",
+          version_id: "ver_new",
+          branches: {
+            staging: {
+              config: "agent_configs/New-Agent.staging.json",
+              branch_id: "agtbrch_stag",
+              version_id: "ver_stag",
+            },
+          },
+        },
+      ],
+    };
+
+    await writeConfig(agentsConfigPath, agentsConfig);
+    const loaded = (await readConfig(agentsConfigPath)) as typeof agentsConfig;
+
+    // Old agent has no branches property
+    expect((loaded.agents[0] as any).branches).toBeUndefined();
+    // New agent has branches
+    expect(loaded.agents[1].branches).toBeDefined();
+    expect(loaded.agents[1].branches!.staging.branch_id).toBe("agtbrch_stag");
+  });
+
+  it("should update branch version_id on subsequent pushes", async () => {
+    const { writeConfig, readConfig } = await import("../shared/utils");
+
+    const agentsConfig = {
+      agents: [
+        {
+          config: "agent_configs/My-Agent.json",
+          id: "agent_123",
+          branches: {
+            staging: {
+              config: "agent_configs/My-Agent.staging.json",
+              branch_id: "agtbrch_stag",
+              version_id: "ver_1",
+            },
+          },
+        },
+      ],
+    };
+
+    await writeConfig(agentsConfigPath, agentsConfig);
+
+    // Simulate push updating the branch version
+    const loaded = (await readConfig(agentsConfigPath)) as typeof agentsConfig;
+    loaded.agents[0].branches!.staging.version_id = "ver_2";
+    await writeConfig(agentsConfigPath, loaded);
+
+    const final = (await readConfig(agentsConfigPath)) as typeof agentsConfig;
+    expect(final.agents[0].branches!.staging.version_id).toBe("ver_2");
+    expect(final.agents[0].branches!.staging.branch_id).toBe("agtbrch_stag");
+  });
+});

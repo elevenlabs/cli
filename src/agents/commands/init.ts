@@ -118,6 +118,9 @@ ELEVENLABS_API_KEY=your_api_key_here
           console.log('4. Create tests: elevenlabs tests add "My Test" --template basic-llm');
           console.log('5. Push to ElevenLabs: elevenlabs agents push && elevenlabs tools push && elevenlabs tests push');
           console.log('6. Run tests: elevenlabs agents test "My Agent"');
+          console.log('\nBranch workflow (CI/CD):');
+          console.log('  Pull all branches: elevenlabs agents pull --all --all-branches');
+          console.log('  Push all (main + branches): elevenlabs agents push');
         }
       } catch (error) {
         console.error(`Error initializing project: ${error}`);

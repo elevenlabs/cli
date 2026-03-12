@@ -7,6 +7,7 @@ import { pullAgents } from './pull-impl.js';
 interface PullOptions {
   agent?: string;
   branch?: string;
+  allBranches?: boolean;
   outputDir: string;
   dryRun: boolean;
   update?: boolean;
@@ -18,6 +19,7 @@ export function createPullCommand(): Command {
     .description('Pull agents from ElevenLabs')
     .option('--agent <agent_id>', 'Specific agent ID to pull')
     .option('--branch <branch>', 'Specific branch name or ID to pull from')
+    .option('--all-branches', 'Pull all branches for each agent', false)
     .option('--output-dir <directory>', 'Output directory for configs', 'agent_configs')
     .option('--dry-run', 'Show what would be done without making changes', false)
     .option('--update', 'Update existing items only, skip new')
@@ -34,6 +36,7 @@ export function createPullCommand(): Command {
             React.createElement(PullView, {
               agent: options.agent,
               branch: options.branch,
+              allBranches: options.allBranches,
               outputDir: options.outputDir,
               dryRun: options.dryRun,
               update: options.update,

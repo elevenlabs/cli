@@ -1,17 +1,24 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
-import { getElevenLabsClient, listAgentsApi, getAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, listAgentsApi, getAgentApi, resolveBranchId, listBranchesApi } from '../../shared/elevenlabs-api.js';
 import { AgentConfig } from '../templates.js';
 import { promptForConfirmation } from './utils.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
+
+interface BranchDefinition {
+  config: string;
+  branch_id: string;
+  version_id?: string;
+}
 
 interface AgentDefinition {
   config: string;
   id?: string;
   branch_id?: string;
   version_id?: string;
+  branches?: Record<string, BranchDefinition>;
 }
 
 interface AgentsConfig {
@@ -21,6 +28,7 @@ interface AgentsConfig {
 interface PullOptions {
   agent?: string;
   branch?: string;
+  allBranches?: boolean;
   outputDir: string;
   dryRun: boolean;
   update?: boolean;
@@ -209,6 +217,8 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         agentConfig.workflow = workflow;
       }
 
+      let agentEntry: AgentDefinition;
+
       if (action === 'update' && existingEntry) {
         // Update existing entry - overwrite the config file
         const configFilePath = path.resolve(existingEntry.config);
@@ -219,6 +229,7 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         if (agentDetailsTyped.version_id) existingEntry.version_id = agentDetailsTyped.version_id;
         if (agentDetailsTyped.branch_id) existingEntry.branch_id = agentDetailsTyped.branch_id;
 
+        agentEntry = existingEntry;
         console.log(`  ✓ Updated '${agent.name}' (config: ${existingEntry.config})`);
       } else {
         // Create new entry
@@ -235,7 +246,32 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
         };
 
         agentsConfig.agents.push(newAgent);
+        agentEntry = newAgent;
         console.log(`  ✓ Added '${agent.name}' (config: ${configPath})`);
+      }
+
+      // If --branch was specified, store the branch config persistently
+      if (options.branch && branchId) {
+        const branchConfigPath = await generateUniqueFilename(
+          options.outputDir,
+          `${agent.name}.${options.branch}`
+        );
+        const branchConfigFilePath = path.resolve(branchConfigPath);
+        await fs.ensureDir(path.dirname(branchConfigFilePath));
+        await writeConfig(branchConfigFilePath, agentConfig);
+
+        if (!agentEntry.branches) agentEntry.branches = {};
+        agentEntry.branches[options.branch] = {
+          config: branchConfigPath,
+          branch_id: branchId,
+          version_id: agentDetailsTyped.version_id
+        };
+        console.log(`  ✓ Stored branch '${options.branch}' config (${branchConfigPath})`);
+      }
+
+      // If --all-branches was specified, pull all branches
+      if (options.allBranches && agent.id) {
+        await pullAllBranches(client, agent.id, agent.name, agentEntry, options);
       }
 
       itemsProcessed++;
@@ -260,5 +296,93 @@ async function pullAgentsFromEnvironment(options: PullOptions, agentsConfigPath:
     if (itemsProcessed > 0) {
       console.log(`You can now edit the config files in '${options.outputDir}/' and run 'elevenlabs agents push' to update`);
     }
+  }
+}
+
+async function pullAllBranches(
+  client: Awaited<ReturnType<typeof getElevenLabsClient>>,
+  agentId: string,
+  agentName: string,
+  agentEntry: AgentDefinition,
+  options: PullOptions
+): Promise<void> {
+  console.log(`  Fetching branches for '${agentName}'...`);
+  const branches = await listBranchesApi(client, agentId);
+
+  if (branches.length === 0) {
+    console.log(`  No branches found for '${agentName}'`);
+    return;
+  }
+
+  if (!agentEntry.branches) agentEntry.branches = {};
+
+  for (const branch of branches) {
+    if (branch.isArchived) continue;
+
+    // Skip if this is the main branch (same as agent's branch_id)
+    if (branch.id === agentEntry.branch_id) continue;
+
+    const branchName = branch.name;
+
+    if (options.dryRun) {
+      console.log(`  [DRY RUN] Would pull branch '${branchName}'`);
+      continue;
+    }
+
+    try {
+      const branchDetails = await getAgentApi(client, agentId, branch.id);
+      const branchDetailsTyped = branchDetails as {
+        conversation_config: Record<string, unknown>;
+        platform_settings: Record<string, unknown>;
+        workflow?: unknown;
+        tags: string[];
+        version_id?: string;
+      };
+
+      const branchConfig: AgentConfig = {
+        name: agentName,
+        conversation_config: branchDetailsTyped.conversation_config as AgentConfig['conversation_config'],
+        platform_settings: branchDetailsTyped.platform_settings,
+        tags: branchDetailsTyped.tags || []
+      };
+
+      if (branchDetailsTyped.workflow !== undefined && branchDetailsTyped.workflow !== null) {
+        branchConfig.workflow = branchDetailsTyped.workflow;
+      }
+
+      // Determine config path for this branch
+      const existingBranch = agentEntry.branches[branchName];
+      let branchConfigPath: string;
+
+      if (existingBranch) {
+        // Update existing branch config file
+        branchConfigPath = existingBranch.config;
+      } else {
+        // Create new branch config file
+        branchConfigPath = await generateUniqueFilename(
+          options.outputDir,
+          `${agentName}.${branchName}`
+        );
+      }
+
+      const branchConfigFilePath = path.resolve(branchConfigPath);
+      await fs.ensureDir(path.dirname(branchConfigFilePath));
+      await writeConfig(branchConfigFilePath, branchConfig);
+
+      agentEntry.branches[branchName] = {
+        config: branchConfigPath,
+        branch_id: branch.id,
+        version_id: branchDetailsTyped.version_id
+      };
+
+      console.log(`  ✓ Branch '${branchName}' (${branchConfigPath})`);
+    } catch (error) {
+      console.log(`  ✗ Error pulling branch '${branchName}': ${error}`);
+    }
+  }
+
+  const branchCount = Object.keys(agentEntry.branches).length;
+  if (branchCount > 0) {
+    console.log(`  ${branchCount} branch(es) stored`);
   }
 }
