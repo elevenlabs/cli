@@ -123,6 +123,7 @@ function toSnakeCaseKey(key: string): string {
 const PRESERVE_CHILD_KEYS = new Set([
   'request_headers', 'requestHeaders',
   'dynamic_variables', 'dynamicVariables',
+  'language_presets', 'languagePresets',
   'nodes',
   'edges',
 ]);
