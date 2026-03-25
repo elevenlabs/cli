@@ -20,10 +20,11 @@ export function createPullCommand(): Command {
     .option('--dry-run', 'Show what would be done without making changes', false)
     .option('--update', 'Update existing items only, skip new')
     .option('--all', 'Pull all (new + existing)')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: PullToolsOptions & { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: PullToolsOptions & { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for pull
           const { waitUntilExit } = render(
             React.createElement(PullToolsView, {

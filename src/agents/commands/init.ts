@@ -29,11 +29,12 @@ export function createInitCommand(): Command {
   return new Command('init')
     .description('Initialize a new agent management project')
     .argument('[path]', 'Path to initialize the project in', '.')
-    .option('--no-ui', 'Disable interactive UI')
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
     .option('--override', 'Override existing files and recreate from scratch', false)
-    .action(async (projectPath: string, options: { ui: boolean; override: boolean }) => {
+    .action(async (projectPath: string, options: { ui: boolean; override: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for initialization
           const { waitUntilExit } = render(
             React.createElement(InitView, { projectPath, override: options.override })

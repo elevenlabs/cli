@@ -8,10 +8,11 @@ export function createResidencyCommand(): Command {
   return new Command('residency')
     .description('Set the API residency location')
     .argument('[residency]', `Residency location (${LOCATIONS.join(', ')})`)
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (residency: string | undefined, options: { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (residency: string | undefined, options: { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false && !residency) {
+        if (options.humanFriendly && !residency) {
           // Use Ink UI for interactive residency selection
           const { waitUntilExit } = render(
             React.createElement(ResidencyView)
@@ -29,7 +30,7 @@ export function createResidencyCommand(): Command {
             process.exit(1);
           }
 
-          if (options.ui !== false) {
+          if (options.humanFriendly) {
             // Use UI even with direct argument
             const { waitUntilExit } = render(
               React.createElement(ResidencyView, { initialResidency: residency })

@@ -18,10 +18,11 @@ export function createBranchesCommand(): Command {
     .description('List branches for an agent')
     .requiredOption('--agent <agent_id>', 'Agent ID to list branches for')
     .option('--include-archived', 'Include archived branches', false)
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: BranchesListOptions & { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: BranchesListOptions & { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           const { waitUntilExit } = render(
             React.createElement(BranchesListView, {
               agent: options.agent,

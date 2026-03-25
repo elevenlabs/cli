@@ -34,7 +34,7 @@ _elevenlabs_completion() {
       local agents_cmds="init add list delete status push pull templates widget test -h --help"
       local agents_add_flags="--template --skip-upload"
       local agents_push_flags="--agent --dry-run"
-      local agents_pull_flags="--agent --output-dir --dry-run --update --all --no-ui"
+      local agents_pull_flags="--agent --output-dir --dry-run --update --all --no-ui --human-friendly"
       local agents_templates_cmds="list show"
       local template_types="default minimal voice-only text-only customer-service assistant"
       
@@ -190,7 +190,8 @@ _elevenlabs_completion() {
     "--dry-run:Preview changes without downloading"
     "--update:Update existing items only, skip new"
     "--all:Pull all (both new and existing)"
-    "--no-ui:Disable interactive UI"
+    "--no-ui:Disable interactive UI (default, kept for backwards compatibility)"
+    "--human-friendly:Enable interactive terminal UI"
   )
   
   tools_cmds=(

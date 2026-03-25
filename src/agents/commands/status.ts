@@ -11,10 +11,11 @@ interface StatusOptions {
 export function createStatusCommand(): Command {
   return new Command('status')
     .description('Show the status of agents')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: StatusOptions & { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: StatusOptions & { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for status display
           const { waitUntilExit } = render(
             React.createElement(StatusView, {})

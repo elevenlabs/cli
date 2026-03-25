@@ -5,8 +5,9 @@ export function createPushCommand(): Command {
   return new Command('push')
     .description('Push tools to ElevenLabs API')
     .option('--dry-run', 'Show what would be done without making changes', false)
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: { dryRun: boolean; ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: { dryRun: boolean; ui: boolean; humanFriendly?: boolean }) => {
       try {
         if (options.ui !== false) {
           // PushToolsView requires tools array to be prepared

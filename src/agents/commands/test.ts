@@ -5,8 +5,9 @@ export function createTestCommand(): Command {
   return new Command('test')
     .description('Run tests for an agent')
     .argument('<agent>', 'Name or ID of the agent to test')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (agentId: string, options: { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (agentId: string, options: { ui: boolean; humanFriendly?: boolean }) => {
       try {
         if (options.ui !== false) {
           // Use Ink UI for testing

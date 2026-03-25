@@ -6,8 +6,9 @@ export function createDeleteCommand(): Command {
     .description('Delete a tool locally and from ElevenLabs')
     .argument('[tool_id]', 'ID of the tool to delete (omit with --all to delete all tools)')
     .option('--all', 'Delete all tools', false)
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (toolId: string | undefined, options: { all: boolean; ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (toolId: string | undefined, options: { all: boolean; ui: boolean; humanFriendly?: boolean }) => {
       try {
         if (options.all && toolId) {
           console.error('Error: Cannot specify both tool_id and --all flag');
@@ -20,7 +21,7 @@ export function createDeleteCommand(): Command {
         }
 
         if (options.all) {
-          await deleteAllTools(options.ui);
+          await deleteAllTools(options.humanFriendly === true);
         } else {
           await deleteTool(toolId!);
         }

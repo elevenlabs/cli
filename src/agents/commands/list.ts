@@ -6,10 +6,11 @@ import ListAgentsView from '../ui/ListAgentsView.js';
 export function createListCommand(): Command {
   return new Command('list')
     .description('List all configured agents')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for list-agents
           const { waitUntilExit } = render(
             React.createElement(ListAgentsView)

@@ -7,10 +7,11 @@ import { removeApiKey, isLoggedIn } from '../../shared/config.js';
 export function createLogoutCommand(): Command {
   return new Command('logout')
     .description('Logout and remove stored API key')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for logout
           const { waitUntilExit } = render(
             React.createElement(LogoutView, {})

@@ -8,8 +8,9 @@ export function createDeleteCommand(): Command {
     .description('Delete an agent locally and from ElevenLabs')
     .argument('[agent_id]', 'ID of the agent to delete (omit with --all to delete all agents)')
     .option('--all', 'Delete all agents', false)
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (agentId: string | undefined, options: { all: boolean; ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (agentId: string | undefined, options: { all: boolean; ui: boolean; humanFriendly?: boolean }) => {
       try {
         if (options.all && agentId) {
           console.error('Error: Cannot specify both agent_id and --all flag');
@@ -22,7 +23,7 @@ export function createDeleteCommand(): Command {
         }
 
         if (options.all) {
-          await deleteAllAgents(options.ui);
+          await deleteAllAgents(options.humanFriendly === true);
         } else {
           await deleteAgent(agentId!);
         }
