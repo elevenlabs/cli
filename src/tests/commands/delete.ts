@@ -6,8 +6,9 @@ export function createDeleteCommand(): Command {
     .description('Delete a test locally and from ElevenLabs')
     .argument('[test_id]', 'ID of the test to delete (omit with --all to delete all tests)')
     .option('--all', 'Delete all tests', false)
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (testId: string | undefined, options: { all: boolean; ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (testId: string | undefined, options: { all: boolean; ui: boolean; humanFriendly?: boolean }) => {
       try {
         if (options.all && testId) {
           console.error('Error: Cannot specify both test_id and --all flag');
@@ -20,7 +21,7 @@ export function createDeleteCommand(): Command {
         }
 
         if (options.all) {
-          await deleteAllTests(options.ui);
+          await deleteAllTests(options.humanFriendly === true);
         } else {
           await deleteTest(testId!);
         }

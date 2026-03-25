@@ -9,10 +9,11 @@ export function createAddCommand(): Command {
     .description('Add a new test')
     .argument('<name>', 'Name of the test to create')
     .option('--template <template>', 'Test template type', 'basic-llm')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (name: string, options: { template: string; ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (name: string, options: { template: string; ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for test creation
           const { waitUntilExit } = render(
             React.createElement(AddTestView, {

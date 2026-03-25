@@ -21,25 +21,52 @@ const __dirname = dirname(__filename);
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 const { version } = packageJson;
 
+function printPlainHelp() {
+  console.log(`ElevenLabs CLI v${version}\n`);
+  console.log('Usage:');
+  console.log('  elevenlabs [command] [options]\n');
+  console.log('Modules:');
+  const modules = [
+    { name: 'auth', description: 'Authentication commands' },
+    { name: 'agents', description: 'Agent management commands' },
+    { name: 'tools', description: 'Tool management commands' },
+    { name: 'tests', description: 'Test management commands' },
+    { name: 'components', description: 'UI component management' },
+  ];
+  for (const mod of modules) {
+    console.log(`  ${mod.name.padEnd(16)}${mod.description}`);
+  }
+  console.log('\nQuick Start:');
+  console.log('  1. Initialize a project: elevenlabs agents init');
+  console.log('  2. Login with API key: elevenlabs auth login');
+  console.log('  3. Create an agent: elevenlabs agents add "My Agent"');
+  console.log('  4. Push to ElevenLabs: elevenlabs agents push');
+  console.log('\nFor more information on a module, use: elevenlabs <module> --help');
+  console.log('Enable interactive UI with --human-friendly flag for any command');
+}
+
 const program = new Command();
 
 program
   .name('elevenlabs')
   .description('ElevenLabs CLI')
   .version(version)
+  .option('--human-friendly', 'Enable interactive terminal UI')
   .configureHelp({
     // Override the default help to use our Ink UI
     formatHelp: () => ''
   })
   .helpOption('-h, --help', 'Display help information')
   .on('option:help', async () => {
-    // Show Ink-based help view
-    const { waitUntilExit } = render(
-      React.createElement(HelpView)
-    );
-    await waitUntilExit();
+    if (process.argv.includes('--human-friendly')) {
+      const { waitUntilExit } = render(
+        React.createElement(HelpView)
+      );
+      await waitUntilExit();
+    } else {
+      printPlainHelp();
+    }
     process.exit(0);
-
   });
 
 // Add new command groups
@@ -52,15 +79,20 @@ program.addCommand(createCompletionCommand());
 
 // Show help if no arguments provided or if only help flag is provided
 const args = process.argv.slice(2);
-const isMainHelp = args.length === 0 ||
-  (args.length === 1 && (args[0] === '--help' || args[0] === '-h'));
+const nonFlagArgs = args.filter(a => a !== '--human-friendly' && a !== '--no-ui');
+const isMainHelp = nonFlagArgs.length === 0 ||
+  (nonFlagArgs.length === 1 && (nonFlagArgs[0] === '--help' || nonFlagArgs[0] === '-h'));
 
 if (isMainHelp) {
   (async () => {
-    const { waitUntilExit } = render(
-      React.createElement(HelpView)
-    );
-    await waitUntilExit();
+    if (args.includes('--human-friendly')) {
+      const { waitUntilExit } = render(
+        React.createElement(HelpView)
+      );
+      await waitUntilExit();
+    } else {
+      printPlainHelp();
+    }
     process.exit(0);
   })();
 } else {

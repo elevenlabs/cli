@@ -35,10 +35,11 @@ export function createAddCommand(): Command {
     .option('--output-path <path>', 'Custom output path for the config file (optional)')
     .option('--template <template>', 'Template type to use (default, minimal, voice-only, text-only, customer-service, assistant)')
     .option('--from-file <path>', 'Create agent from an existing config file')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (name: string | undefined, options: AddOptions & { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (name: string | undefined, options: AddOptions & { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false && !options.outputPath && !options.fromFile) {
+        if (options.humanFriendly && !options.outputPath && !options.fromFile) {
           // Use Ink UI for agent creation
           const { waitUntilExit } = render(
             React.createElement(AddAgentView, {
@@ -58,7 +59,7 @@ export function createAddCommand(): Command {
 
         // Non-UI path requires name to be provided (or --from-file with name in the file)
         if (!name && !options.fromFile) {
-          console.error('Error: Agent name is required when using --no-ui or --output-path');
+          console.error('Error: Agent name is required in non-interactive mode');
           process.exit(1);
         }
 

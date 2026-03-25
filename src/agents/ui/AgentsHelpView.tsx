@@ -155,7 +155,7 @@ export const AgentsHelpView: React.FC = () => {
 
       <Box marginTop={1}>
         <Text color={theme.colors.text.muted}>
-          Disable UI mode with --no-ui flag for any command
+          Enable interactive UI with --human-friendly flag for any command
         </Text>
       </Box>
     </App>

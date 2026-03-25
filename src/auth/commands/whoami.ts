@@ -7,10 +7,11 @@ import { getApiKey, getResidency } from '../../shared/config.js';
 export function createWhoamiCommand(): Command {
   return new Command('whoami')
     .description('Show current login status')
-    .option('--no-ui', 'Disable interactive UI')
-    .action(async (options: { ui: boolean }) => {
+    .option('--no-ui', 'Disable interactive UI (default, kept for backwards compatibility)')
+    .option('--human-friendly', 'Enable interactive terminal UI')
+    .action(async (options: { ui: boolean; humanFriendly?: boolean }) => {
       try {
-        if (options.ui !== false) {
+        if (options.humanFriendly) {
           // Use Ink UI for whoami
           const { waitUntilExit } = render(
             React.createElement(WhoamiView)
