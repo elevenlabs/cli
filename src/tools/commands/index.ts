@@ -43,8 +43,8 @@ export function createToolsCommand(): Command {
   tools.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when tools command is run without subcommands
-  tools.action(async (options: { humanFriendly?: boolean }) => {
-    if (options.humanFriendly) {
+  tools.action(async () => {
+    if (process.argv.includes('--human-friendly')) {
       const { waitUntilExit } = render(
         React.createElement(ToolsHelpView)
       );

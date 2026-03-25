@@ -43,8 +43,8 @@ export function createTestsCommand(): Command {
   tests.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when tests command is run without subcommands
-  tests.action(async (options: { humanFriendly?: boolean }) => {
-    if (options.humanFriendly) {
+  tests.action(async () => {
+    if (process.argv.includes('--human-friendly')) {
       const { waitUntilExit } = render(
         React.createElement(TestsHelpView)
       );

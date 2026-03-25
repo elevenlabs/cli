@@ -57,8 +57,8 @@ export function createAgentsCommand(): Command {
   agents.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when agents command is run without subcommands
-  agents.action(async (options: { humanFriendly?: boolean }) => {
-    if (options.humanFriendly) {
+  agents.action(async () => {
+    if (process.argv.includes('--human-friendly')) {
       const { waitUntilExit } = render(
         React.createElement(AgentsHelpView)
       );

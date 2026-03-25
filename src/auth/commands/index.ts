@@ -37,8 +37,8 @@ export function createAuthCommand(): Command {
   auth.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when auth command is run without subcommands
-  auth.action(async (options: { humanFriendly?: boolean }) => {
-    if (options.humanFriendly) {
+  auth.action(async () => {
+    if (process.argv.includes('--human-friendly')) {
       const { waitUntilExit } = render(
         React.createElement(AuthHelpView)
       );

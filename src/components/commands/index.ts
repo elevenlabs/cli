@@ -31,8 +31,8 @@ export function createComponentsCommand(): Command {
   components.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when components command is run without subcommands
-  components.action(async (options: { humanFriendly?: boolean }) => {
-    if (options.humanFriendly) {
+  components.action(async () => {
+    if (process.argv.includes('--human-friendly')) {
       const { waitUntilExit } = render(
         React.createElement(ComponentsHelpView)
       );
