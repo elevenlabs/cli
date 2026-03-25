@@ -36,7 +36,8 @@ function printAgentsHelp() {
     console.log(`  ${cmd.name.padEnd(28)}${cmd.description}`);
     if (cmd.options) {
       for (const opt of cmd.options) {
-        console.log(`    ${opt}`);
+        const [flag, ...descParts] = opt.split('  ');
+        console.log(`      ${flag.padEnd(26)}${descParts.join('  ')}`);
       }
     }
   }
