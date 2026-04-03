@@ -124,6 +124,7 @@ const PRESERVE_CHILD_KEYS = new Set([
   'request_headers', 'requestHeaders',
   'dynamic_variables', 'dynamicVariables',
   'language_presets', 'languagePresets',
+  'model_usage', 'modelUsage',
   'nodes',
   'edges',
 ]);
