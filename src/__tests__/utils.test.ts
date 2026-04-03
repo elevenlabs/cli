@@ -824,6 +824,90 @@ describe("Utils", () => {
       expect(afterPull).toEqual(originalWorkflow);
     });
 
+    it("should preserve model_usage keys in toCamelCaseKeys", () => {
+      const input = {
+        from_conversation_metadata: {
+          original_agent_reply: {
+            llm_usage: {
+              model_usage: {
+                "gpt_5.2": { input_tokens: 100, output_tokens: 50 },
+                "gpt-4o-mini": { input_tokens: 200, output_tokens: 100 },
+                "gemini-2.5-flash": { input_tokens: 300, output_tokens: 150 },
+                "claude-3-opus": { input_tokens: 400, output_tokens: 200 }
+              }
+            }
+          }
+        }
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        fromConversationMetadata: {
+          originalAgentReply: {
+            llmUsage: {
+              modelUsage: {
+                "gpt_5.2": { inputTokens: 100, outputTokens: 50 },          // preserved - model name
+                "gpt-4o-mini": { inputTokens: 200, outputTokens: 100 },      // preserved - model name
+                "gemini-2.5-flash": { inputTokens: 300, outputTokens: 150 }, // preserved - model name
+                "claude-3-opus": { inputTokens: 400, outputTokens: 200 }     // preserved - model name
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it("should preserve modelUsage keys in toSnakeCaseKeys", () => {
+      const input = {
+        fromConversationMetadata: {
+          originalAgentReply: {
+            llmUsage: {
+              modelUsage: {
+                "gpt-5.2": { inputTokens: 100, outputTokens: 50 },
+                "gpt-4o-mini": { inputTokens: 200, outputTokens: 100 }
+              }
+            }
+          }
+        }
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        from_conversation_metadata: {
+          original_agent_reply: {
+            llm_usage: {
+              model_usage: {
+                "gpt-5.2": { input_tokens: 100, output_tokens: 50 },   // preserved - model name
+                "gpt-4o-mini": { input_tokens: 200, output_tokens: 100 } // preserved - model name
+              }
+            }
+          }
+        }
+      });
+    });
+
+    it("should maintain round-trip conversion symmetry for model_usage", () => {
+      const original = {
+        from_conversation_metadata: {
+          original_agent_reply: {
+            llm_usage: {
+              model_usage: {
+                "gpt_5.2": { input_tokens: 100, output_tokens: 50 },
+                "gpt-4o-mini": { input_tokens: 200, output_tokens: 100 }
+              }
+            }
+          }
+        }
+      };
+
+      const afterPush = toCamelCaseKeys(original);
+      const afterPull = toSnakeCaseKeys(afterPush);
+
+      expect(afterPull).toEqual(original);
+    });
+
     it("should maintain round-trip conversion symmetry for dynamic_variables", () => {
       // Simulate pull → push cycle for tests
       const originalTestConfig = {
