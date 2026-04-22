@@ -299,6 +299,102 @@ describe("Key casing normalization", () => {
     });
   });
 
+  it("createAgentApi preserves data_collection child keys (user-defined identifiers)", async () => {
+    const client = makeMockClient();
+    const conversation_config = {
+      agent: { prompt: { prompt: "hi", temperature: 0 } },
+    } as unknown as Record<string, unknown>;
+    const platform_settings = {
+      data_collection: {
+        need_callback: { type: "boolean", description: "Whether to call back" },
+        call_end_reason: { type: "string", description: "Why the call ended" },
+        human_reached: { type: "boolean", description: "Was a human reached" },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await createAgentApi(
+      client,
+      "Agent with data_collection",
+      conversation_config,
+      platform_settings,
+      undefined,
+      []
+    );
+
+    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+
+    // data_collection top-level key is camelized to dataCollection (envelope convention)
+    expect(payload.platformSettings).toHaveProperty("dataCollection");
+    // Children are user-defined identifiers — must be preserved as-is (snake_case stays snake_case)
+    expect(payload.platformSettings.dataCollection).toHaveProperty("need_callback");
+    expect(payload.platformSettings.dataCollection).toHaveProperty("call_end_reason");
+    expect(payload.platformSettings.dataCollection).toHaveProperty("human_reached");
+    // Leaf values under each identifier — nested schema fields like 'type'/'description' stay as-is (no underscores to convert)
+    expect(payload.platformSettings.dataCollection.need_callback).toEqual({
+      type: "boolean",
+      description: "Whether to call back",
+    });
+  });
+
+  it("updateAgentApi preserves data_collection child keys (user-defined identifiers)", async () => {
+    const client = makeMockClient();
+    const conversation_config = {
+      agent: { prompt: { prompt: "updated", temperature: 0 } },
+    } as unknown as Record<string, unknown>;
+    const platform_settings = {
+      data_collection: {
+        need_callback: { type: "boolean", description: "Callback requested" },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await updateAgentApi(
+      client,
+      "agent_123",
+      "Updated",
+      conversation_config,
+      platform_settings,
+      undefined,
+      []
+    );
+
+    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
+
+    expect(payload.platformSettings).toHaveProperty("dataCollection");
+    expect(payload.platformSettings.dataCollection).toHaveProperty("need_callback");
+  });
+
+  it("getAgentApi preserves data_collection child keys on inbound snake_case conversion", async () => {
+    const getWithDataCollection = jest.fn().mockResolvedValue({
+      agentId: "agent_123",
+      name: "Test",
+      conversationConfig: {
+        agent: { prompt: { prompt: "hi", temperature: 0 } },
+      },
+      platformSettings: {
+        dataCollection: {
+          need_callback: { type: "boolean", description: "Callback" },
+          call_end_reason: { type: "string" },
+        },
+      },
+      tags: [],
+    });
+    const client = {
+      conversationalAi: { agents: { get: getWithDataCollection } },
+    } as unknown as ElevenLabsClient;
+
+    const response = await getAgentApi(client, "agent_123") as Record<string, any>;
+
+    // Envelope snake_cases back for disk
+    expect(response.platform_settings).toHaveProperty("data_collection");
+    // User-defined identifiers preserved as-is — no round-trip corruption
+    expect(response.platform_settings.data_collection).toHaveProperty("need_callback");
+    expect(response.platform_settings.data_collection).toHaveProperty("call_end_reason");
+    expect(response.platform_settings.data_collection.need_callback).toEqual({
+      type: "boolean",
+      description: "Callback",
+    });
+  });
+
   it("createAgentApi preserves 'tools' field when 'tool_ids' is not present", async () => {
     const client = makeMockClient();
     const conversation_config = {
