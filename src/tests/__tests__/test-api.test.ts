@@ -133,6 +133,7 @@ describe("Test API Functions", () => {
           { id: "test_1", name: "Test 1" },
           { id: "test_2", name: "Test 2" },
         ],
+        hasMore: false,
       };
 
       mockClient.conversationalAi.tests.list.mockResolvedValue(mockResponse);
@@ -142,13 +143,13 @@ describe("Test API Functions", () => {
       );
 
       expect(mockClient.conversationalAi.tests.list).toHaveBeenCalledWith({
-        pageSize: 30,
+        pageSize: 100,
       });
       expect(result).toEqual(mockResponse.tests);
     });
 
     it("should list tests with custom page size", async () => {
-      const mockResponse = { tests: [] };
+      const mockResponse = { tests: [], hasMore: false };
       mockClient.conversationalAi.tests.list.mockResolvedValue(mockResponse);
 
       await listTestsApi(mockClient as unknown as ElevenLabsClient, 50);
@@ -167,6 +168,74 @@ describe("Test API Functions", () => {
       );
 
       expect(result).toEqual([]);
+    });
+
+    it("should paginate through every page until hasMore is false (fixes #75)", async () => {
+      const page1 = {
+        tests: [{ id: "test_1" }, { id: "test_2" }],
+        nextCursor: "cursor_abc",
+        hasMore: true,
+      };
+      const page2 = {
+        tests: [{ id: "test_3" }, { id: "test_4" }],
+        nextCursor: "cursor_def",
+        hasMore: true,
+      };
+      const page3 = {
+        tests: [{ id: "test_5" }],
+        hasMore: false,
+      };
+
+      mockClient.conversationalAi.tests.list
+        .mockResolvedValueOnce(page1)
+        .mockResolvedValueOnce(page2)
+        .mockResolvedValueOnce(page3);
+
+      const result = await listTestsApi(
+        mockClient as unknown as ElevenLabsClient
+      );
+
+      expect(mockClient.conversationalAi.tests.list).toHaveBeenCalledTimes(3);
+      // First call: no cursor
+      expect(mockClient.conversationalAi.tests.list).toHaveBeenNthCalledWith(1, {
+        pageSize: 100,
+      });
+      // Second call: cursor from page1
+      expect(mockClient.conversationalAi.tests.list).toHaveBeenNthCalledWith(2, {
+        pageSize: 100,
+        cursor: "cursor_abc",
+      });
+      // Third call: cursor from page2
+      expect(mockClient.conversationalAi.tests.list).toHaveBeenNthCalledWith(3, {
+        pageSize: 100,
+        cursor: "cursor_def",
+      });
+      // All 5 tests collected across 3 pages
+      expect(result).toEqual([
+        { id: "test_1" },
+        { id: "test_2" },
+        { id: "test_3" },
+        { id: "test_4" },
+        { id: "test_5" },
+      ]);
+    });
+
+    it("should stop pagination when hasMore=true but nextCursor is missing (defensive)", async () => {
+      const page1 = {
+        tests: [{ id: "test_1" }],
+        hasMore: true,
+        // nextCursor intentionally omitted — malformed response, don't loop forever
+      };
+
+      mockClient.conversationalAi.tests.list.mockResolvedValue(page1);
+
+      const result = await listTestsApi(
+        mockClient as unknown as ElevenLabsClient
+      );
+
+      // Should have stopped after first page rather than looping
+      expect(mockClient.conversationalAi.tests.list).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([{ id: "test_1" }]);
     });
   });
 

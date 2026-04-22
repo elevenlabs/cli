@@ -232,9 +232,9 @@ async function pullTestsFromEnvironment(options: { test?: string; outputDir: str
       throw new Error(`Failed to fetch test with ID '${options.test}': ${error}`);
     }
   } else {
-    // Fetch all tests from ElevenLabs
+    // Fetch all tests from ElevenLabs (paginates internally until hasMore is false)
     console.log('Fetching all tests from ElevenLabs...');
-    testsList = await listTestsApi(client, 30);
+    testsList = await listTestsApi(client);
 
     if (testsList.length === 0) {
       console.log('No tests found in your ElevenLabs workspace.');
