@@ -373,7 +373,7 @@ describe("Key casing normalization", () => {
       platformSettings: {
         dataCollection: {
           need_callback: { type: "boolean", description: "Callback" },
-          call_end_reason: { type: "string" },
+          callEndReason: { type: "string" },
         },
       },
       tags: [],
@@ -388,7 +388,9 @@ describe("Key casing normalization", () => {
     expect(response.platform_settings).toHaveProperty("data_collection");
     // User-defined identifiers preserved as-is — no round-trip corruption
     expect(response.platform_settings.data_collection).toHaveProperty("need_callback");
-    expect(response.platform_settings.data_collection).toHaveProperty("call_end_reason");
+    // camelCase child key must also be preserved (not converted to call_end_reason)
+    expect(response.platform_settings.data_collection).toHaveProperty("callEndReason");
+    expect(response.platform_settings.data_collection).not.toHaveProperty("call_end_reason");
     expect(response.platform_settings.data_collection.need_callback).toEqual({
       type: "boolean",
       description: "Callback",
