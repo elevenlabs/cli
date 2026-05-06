@@ -430,7 +430,7 @@ export async function getTestApi(client: ElevenLabsClient, testId: string): Prom
 export async function listTestsApi(client: ElevenLabsClient, pageSize: number = 100): Promise<unknown[]> {
   const allTests: unknown[] = [];
   let cursor: string | undefined;
-  do {
+  while (true) {
     const request: { pageSize: number; cursor?: string } = { pageSize };
     if (cursor) request.cursor = cursor;
     const response = await client.conversationalAi.tests.list(request) as {
@@ -442,7 +442,7 @@ export async function listTestsApi(client: ElevenLabsClient, pageSize: number = 
     if (!response.hasMore) break;
     cursor = response.nextCursor;
     if (!cursor) break;
-  } while (true);
+  }
   return allTests;
 }
 
