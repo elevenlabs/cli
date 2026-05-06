@@ -125,6 +125,7 @@ const PRESERVE_CHILD_KEYS = new Set([
   'dynamic_variables', 'dynamicVariables',
   'language_presets', 'languagePresets',
   'model_usage', 'modelUsage',
+  'data_collection', 'dataCollection',
   'nodes',
   'edges',
 ]);
