@@ -373,7 +373,7 @@ describe("Key casing normalization", () => {
       platformSettings: {
         dataCollection: {
           need_callback: { type: "boolean", description: "Callback" },
-          callEndReason: { type: "string" },
+          call_end_reason: { type: "string" },
         },
       },
       tags: [],
@@ -388,13 +388,36 @@ describe("Key casing normalization", () => {
     expect(response.platform_settings).toHaveProperty("data_collection");
     // User-defined identifiers preserved as-is — no round-trip corruption
     expect(response.platform_settings.data_collection).toHaveProperty("need_callback");
-    // camelCase child key must also be preserved (not converted to call_end_reason)
-    expect(response.platform_settings.data_collection).toHaveProperty("callEndReason");
-    expect(response.platform_settings.data_collection).not.toHaveProperty("call_end_reason");
+    expect(response.platform_settings.data_collection).toHaveProperty("call_end_reason");
     expect(response.platform_settings.data_collection.need_callback).toEqual({
       type: "boolean",
       description: "Callback",
     });
+  });
+
+  it("getAgentApi does not snake_case camelCase data_collection child keys", async () => {
+    const getWithDataCollection = jest.fn().mockResolvedValue({
+      agentId: "agent_123",
+      name: "Test",
+      conversationConfig: {
+        agent: { prompt: { prompt: "hi", temperature: 0 } },
+      },
+      platformSettings: {
+        dataCollection: {
+          callEndReason: { type: "string", description: "Why the call ended" },
+        },
+      },
+      tags: [],
+    });
+    const client = {
+      conversationalAi: { agents: { get: getWithDataCollection } },
+    } as unknown as ElevenLabsClient;
+
+    const response = await getAgentApi(client, "agent_123") as Record<string, any>;
+
+    expect(response.platform_settings).toHaveProperty("data_collection");
+    expect(response.platform_settings.data_collection).toHaveProperty("callEndReason");
+    expect(response.platform_settings.data_collection).not.toHaveProperty("call_end_reason");
   });
 
   it("createAgentApi preserves 'tools' field when 'tool_ids' is not present", async () => {
