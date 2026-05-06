@@ -417,15 +417,33 @@ export async function getTestApi(client: ElevenLabsClient, testId: string): Prom
 }
 
 /**
- * Lists all tests from the ElevenLabs API.
+ * Lists all tests from the ElevenLabs API, paginating through every page.
+ *
+ * The underlying SDK endpoint returns at most `pageSize` entries per call (cap 100).
+ * This helper loops using the response cursor until `hasMore` is false, so callers
+ * always receive the complete set regardless of how many tests exist.
  *
  * @param client - An initialized ElevenLabs client
- * @param pageSize - Maximum number of tests to return per page (default: 30)
- * @returns Promise that resolves to a list of test objects
+ * @param pageSize - Page size for each API call (default: 100, SDK max)
+ * @returns Promise that resolves to every test in the workspace
  */
-export async function listTestsApi(client: ElevenLabsClient, pageSize: number = 30): Promise<unknown[]> {
-  const response = await client.conversationalAi.tests.list({ pageSize });
-  return (response).tests || [];
+export async function listTestsApi(client: ElevenLabsClient, pageSize: number = 100): Promise<unknown[]> {
+  const allTests: unknown[] = [];
+  let cursor: string | undefined;
+  do {
+    const request: { pageSize: number; cursor?: string } = { pageSize };
+    if (cursor) request.cursor = cursor;
+    const response = await client.conversationalAi.tests.list(request) as {
+      tests?: unknown[];
+      nextCursor?: string;
+      hasMore?: boolean;
+    };
+    if (response.tests?.length) allTests.push(...response.tests);
+    if (!response.hasMore) break;
+    cursor = response.nextCursor;
+    if (!cursor) break;
+  } while (true);
+  return allTests;
 }
 
 /**
