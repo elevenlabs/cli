@@ -33,14 +33,7 @@ interface RawAgentApiResponse {
   branchId?: string;
 }
 
-const SDK_SUPPORTED_WORKFLOW_NODE_TYPES = new Set([
-  'end',
-  'override_agent',
-  'phone_number',
-  'standalone_agent',
-  'start',
-  'tool'
-]);
+const SDK_MISSING_WORKFLOW_NODE_TYPES = new Set(['say']);
 
 // Type guard for conversational config
 function isConversationalConfig(config: unknown): config is ConversationalConfig {
@@ -56,7 +49,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function workflowHasSdkUnsupportedNode(workflow: unknown): boolean {
+function workflowHasSdkMissingNode(workflow: unknown): boolean {
   if (!isRecord(workflow) || !isRecord(workflow.nodes)) {
     return false;
   }
@@ -66,7 +59,7 @@ function workflowHasSdkUnsupportedNode(workflow: unknown): boolean {
       return false;
     }
 
-    return !SDK_SUPPORTED_WORKFLOW_NODE_TYPES.has(node.type);
+    return SDK_MISSING_WORKFLOW_NODE_TYPES.has(node.type);
   });
 }
 
@@ -285,7 +278,7 @@ export async function createAgentApi(
   // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
   const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
 
-  if (workflowHasSdkUnsupportedNode(workflowConfig)) {
+  if (workflowHasSdkMissingNode(workflowConfig)) {
     const response = await rawAgentRequest(client, 'POST', 'v1/convai/agents/create', toSnakeCaseKeys({
       name,
       conversationConfig: convConfig,
@@ -343,7 +336,7 @@ export async function updateAgentApi(
   // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
   const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
 
-  if (workflowHasSdkUnsupportedNode(workflowConfig)) {
+  if (workflowHasSdkMissingNode(workflowConfig)) {
     const response = await rawAgentRequest(
       client,
       'PATCH',
