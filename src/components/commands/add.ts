@@ -8,8 +8,8 @@ export function createAddCommand(): Command {
     .argument('[name]', 'Name of the component to add (optional)')
     .action(async (componentName?: string) => {
       try {
-        // Check if npx is available
-        const npxCheck = spawnSync('npx', ['--version'], { encoding: 'utf-8' });
+        // Check if npx is available. shell:true lets Windows resolve npx.cmd/npx.ps1.
+        const npxCheck = spawnSync('npx', ['--version'], { encoding: 'utf-8', shell: true });
         if (npxCheck.error) {
           console.error('Error: npx is not available. Please install Node.js/npm.');
           process.exit(1);
