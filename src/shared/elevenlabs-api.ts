@@ -18,7 +18,7 @@ interface ClientRuntimeOptions {
   headers?: Record<string, HeaderValue>;
   timeoutInSeconds?: number;
   maxRetries?: number;
-  fetch?: typeof fetch;
+  fetch?: typeof globalThis.fetch;
   fetcher?: core.FetchFunction;
   logging?: core.Fetcher.Args['logging'];
 }
@@ -93,7 +93,7 @@ async function getClientRuntimeOptions(client: ElevenLabsClient): Promise<{
   headers: Record<string, string>;
   timeoutInSeconds?: number;
   maxRetries?: number;
-  fetch?: typeof fetch;
+  fetch?: typeof globalThis.fetch;
   fetcher: core.FetchFunction;
   logging?: core.Fetcher.Args['logging'];
 }> {
