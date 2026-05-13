@@ -60,6 +60,36 @@ describe("Workflow support in agents", () => {
     } as unknown as ElevenLabsClient;
   }
 
+  function makeRawWorkflowClient(responseBody: Record<string, unknown> = { agent_id: "agent_say_123" }) {
+    const create = jest.fn().mockRejectedValue(new Error("SDK create should not be called for unsupported workflow nodes"));
+    const update = jest.fn().mockRejectedValue(new Error("SDK update should not be called for unsupported workflow nodes"));
+    const get = jest.fn();
+    const fetcher = jest.fn().mockResolvedValue({
+      ok: true,
+      body: responseBody,
+      rawResponse: {}
+    });
+
+    return {
+      client: {
+        _options: {
+          apiKey: "test-api-key",
+          baseUrl: "https://api.test",
+          headers: {
+            "X-Source": "agents-cli"
+          },
+          fetcher
+        },
+        conversationalAi: {
+          agents: { create, update, get },
+        },
+      } as unknown as ElevenLabsClient,
+      create,
+      update,
+      fetcher
+    };
+  }
+
   describe("createAgentApi", () => {
     it("should send workflow when provided", async () => {
       const client = makeMockClient();
@@ -136,6 +166,69 @@ describe("Workflow support in agents", () => {
         expect.objectContaining({
           name: "Agent without Workflow",
           workflow: undefined,
+        })
+      );
+    });
+
+    it("should bypass SDK workflow validation for Say nodes", async () => {
+      const { client, create, fetcher } = makeRawWorkflowClient();
+      const conversation_config = {
+        conversation: {
+          client_events: ["audio"],
+        },
+        agent: { prompt: { prompt: "hi", temperature: 0 } },
+      } as unknown as Record<string, unknown>;
+
+      const workflow = {
+        nodes: {
+          "start": { type: "start", position: { x: 0, y: 0 } },
+          "say_1": {
+            type: "say",
+            position: { x: 50, y: 50 },
+            config: { text: "Welcome" }
+          },
+          "end": { type: "end", position: { x: 100, y: 100 } }
+        },
+        edges: {
+          "edge_start_to_say": { from: "start", to: "say_1" },
+          "edge_say_to_end": { from: "say_1", to: "end" }
+        }
+      };
+
+      const agentId = await createAgentApi(
+        client,
+        "Agent with Say Workflow",
+        conversation_config,
+        undefined,
+        workflow,
+        ["workflow"]
+      );
+
+      expect(agentId).toBe("agent_say_123");
+      expect(create).not.toHaveBeenCalled();
+      expect(fetcher).toHaveBeenCalledTimes(1);
+      expect(fetcher).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: "https://api.test/v1/convai/agents/create",
+          method: "POST",
+          requestType: "json",
+          body: expect.objectContaining({
+            name: "Agent with Say Workflow",
+            conversation_config: expect.any(Object),
+            workflow: expect.objectContaining({
+              nodes: expect.objectContaining({
+                say_1: expect.objectContaining({
+                  type: "say",
+                  config: { text: "Welcome" }
+                })
+              }),
+              edges: expect.objectContaining({
+                edge_start_to_say: expect.any(Object),
+                edge_say_to_end: expect.any(Object)
+              })
+            }),
+            tags: ["workflow"]
+          })
         })
       );
     });
@@ -217,6 +310,71 @@ describe("Workflow support in agents", () => {
       expect(payload).toEqual(
         expect.objectContaining({
           workflow: undefined,
+        })
+      );
+    });
+
+    it("should bypass SDK workflow validation when updating Say nodes", async () => {
+      const { client, update, fetcher } = makeRawWorkflowClient({
+        agent_id: "agent_workflow_123",
+        version_id: "version_123",
+        branch_id: "branch_123"
+      });
+      const conversation_config = {
+        conversation: {
+          client_events: ["audio"],
+        },
+      } as unknown as Record<string, unknown>;
+
+      const workflow = {
+        nodes: {
+          "say_1": {
+            type: "say",
+            position: { x: 50, y: 50 },
+            config: { text: "Welcome back" }
+          }
+        },
+        edges: {}
+      };
+
+      const result = await updateAgentApi(
+        client,
+        "agent_workflow_123",
+        "Updated Agent with Say",
+        conversation_config,
+        undefined,
+        workflow,
+        ["updated"],
+        "Update Say workflow",
+        "branch_123"
+      );
+
+      expect(result).toEqual({
+        agentId: "agent_workflow_123",
+        versionId: "version_123",
+        branchId: "branch_123"
+      });
+      expect(update).not.toHaveBeenCalled();
+      expect(fetcher).toHaveBeenCalledTimes(1);
+      expect(fetcher).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: "https://api.test/v1/convai/agents/agent_workflow_123",
+          method: "PATCH",
+          queryParameters: { branch_id: "branch_123" },
+          body: expect.objectContaining({
+            name: "Updated Agent with Say",
+            conversation_config: expect.any(Object),
+            workflow: expect.objectContaining({
+              nodes: expect.objectContaining({
+                say_1: expect.objectContaining({
+                  type: "say",
+                  config: { text: "Welcome back" }
+                })
+              })
+            }),
+            tags: ["updated"],
+            version_description: "Update Say workflow"
+          })
         })
       );
     });

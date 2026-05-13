@@ -1,5 +1,6 @@
-import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import { ElevenLabsClient, ElevenLabsError } from '@elevenlabs/elevenlabs-js';
 import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
+import * as core from '@elevenlabs/elevenlabs-js/core';
 import {
   ConversationalConfig,
   AgentPlatformSettingsRequestModel,
@@ -7,6 +8,39 @@ import {
 } from '@elevenlabs/elevenlabs-js/api';
 import { getApiKey, loadConfig, Location } from './config.js';
 import { toCamelCaseKeys, toSnakeCaseKeys } from './utils.js';
+
+type Supplier<T> = T | Promise<T> | (() => T | Promise<T>);
+type HeaderValue = string | Supplier<string | null | undefined> | null | undefined;
+
+interface ClientRuntimeOptions {
+  apiKey?: Supplier<string | undefined>;
+  baseUrl?: Supplier<string>;
+  headers?: Record<string, HeaderValue>;
+  timeoutInSeconds?: number;
+  maxRetries?: number;
+  fetch?: typeof fetch;
+  fetcher?: core.FetchFunction;
+  logging?: core.Fetcher.Args['logging'];
+}
+
+interface ClientWithRuntimeOptions {
+  _options?: ClientRuntimeOptions;
+}
+
+interface RawAgentApiResponse {
+  agentId?: string;
+  versionId?: string;
+  branchId?: string;
+}
+
+const SDK_SUPPORTED_WORKFLOW_NODE_TYPES = new Set([
+  'end',
+  'override_agent',
+  'phone_number',
+  'standalone_agent',
+  'start',
+  'tool'
+]);
 
 // Type guard for conversational config
 function isConversationalConfig(config: unknown): config is ConversationalConfig {
@@ -16,6 +50,137 @@ function isConversationalConfig(config: unknown): config is ConversationalConfig
 // Type guard for platform settings
 function isPlatformSettings(settings: unknown): settings is AgentPlatformSettingsRequestModel {
   return typeof settings === 'object' && settings !== null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function workflowHasSdkUnsupportedNode(workflow: unknown): boolean {
+  if (!isRecord(workflow) || !isRecord(workflow.nodes)) {
+    return false;
+  }
+
+  return Object.values(workflow.nodes).some((node) => {
+    if (!isRecord(node) || typeof node.type !== 'string') {
+      return false;
+    }
+
+    return !SDK_SUPPORTED_WORKFLOW_NODE_TYPES.has(node.type);
+  });
+}
+
+async function resolveSupplier<T>(supplier: Supplier<T> | undefined): Promise<T | undefined> {
+  if (typeof supplier === 'function') {
+    return await (supplier as () => T | Promise<T>)();
+  }
+
+  return await supplier;
+}
+
+async function resolveHeaders(headers: Record<string, HeaderValue> | undefined): Promise<Record<string, string>> {
+  const resolvedHeaders: Record<string, string> = {};
+
+  if (!headers) {
+    return resolvedHeaders;
+  }
+
+  for (const [key, value] of Object.entries(headers)) {
+    const resolvedValue = await resolveSupplier(value);
+    if (resolvedValue != null) {
+      resolvedHeaders[key] = resolvedValue;
+    }
+  }
+
+  return resolvedHeaders;
+}
+
+async function getClientRuntimeOptions(client: ElevenLabsClient): Promise<{
+  baseUrl: string;
+  headers: Record<string, string>;
+  timeoutInSeconds?: number;
+  maxRetries?: number;
+  fetch?: typeof fetch;
+  fetcher: core.FetchFunction;
+  logging?: core.Fetcher.Args['logging'];
+}> {
+  const options = (client as unknown as ClientWithRuntimeOptions)._options;
+  const config = await loadConfig();
+  const baseUrl = await resolveSupplier(options?.baseUrl) ?? getApiBaseUrl(config.residency);
+  const headers = await resolveHeaders(options?.headers);
+  const apiKey = await resolveSupplier(options?.apiKey) ?? await getApiKey();
+
+  if (apiKey) {
+    headers['xi-api-key'] = apiKey;
+  }
+
+  return {
+    baseUrl,
+    headers,
+    timeoutInSeconds: options?.timeoutInSeconds,
+    maxRetries: options?.maxRetries,
+    fetch: options?.fetch,
+    fetcher: options?.fetcher ?? core.fetcher,
+    logging: options?.logging
+  };
+}
+
+function throwRawAgentApiError(
+  response: core.APIResponse<unknown, core.Fetcher.Error>,
+  method: string,
+  path: string
+): never {
+  if (response.ok) {
+    throw new Error('Cannot throw an API error for a successful response');
+  }
+
+  if (response.error.reason === 'status-code') {
+    if (response.error.statusCode === 422) {
+      throw new ElevenLabs.UnprocessableEntityError(response.error.body, response.rawResponse);
+    }
+
+    throw new ElevenLabsError({
+      message: `${method} ${path} failed with status ${response.error.statusCode}`,
+      statusCode: response.error.statusCode,
+      body: response.error.body,
+      rawResponse: response.rawResponse
+    });
+  }
+
+  throw new ElevenLabsError({
+    message: `${method} ${path} failed: ${response.error.reason}`,
+    rawResponse: response.rawResponse
+  });
+}
+
+async function rawAgentRequest(
+  client: ElevenLabsClient,
+  method: 'POST' | 'PATCH',
+  path: string,
+  body: Record<string, unknown>,
+  queryParameters?: Record<string, unknown>
+): Promise<RawAgentApiResponse> {
+  const options = await getClientRuntimeOptions(client);
+  const response = await options.fetcher({
+    url: core.url.join(options.baseUrl, path),
+    method,
+    headers: options.headers,
+    contentType: 'application/json',
+    queryParameters,
+    requestType: 'json',
+    responseType: 'json',
+    body,
+    timeoutMs: (options.timeoutInSeconds ?? 240) * 1000,
+    maxRetries: options.maxRetries,
+    fetchFn: options.fetch,
+    logging: options.logging
+  });
+
+  if (!response.ok) {
+    throwRawAgentApiError(response, method, path);
+  }
+
+  return toCamelCaseKeys(response.body) as RawAgentApiResponse;
 }
 
 /**
@@ -120,6 +285,22 @@ export async function createAgentApi(
   // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
   const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
 
+  if (workflowHasSdkUnsupportedNode(workflowConfig)) {
+    const response = await rawAgentRequest(client, 'POST', 'v1/convai/agents/create', toSnakeCaseKeys({
+      name,
+      conversationConfig: convConfig,
+      platformSettings,
+      workflow: workflowConfig,
+      tags
+    }));
+
+    if (!response.agentId) {
+      throw new Error('Create agent response did not include agentId');
+    }
+
+    return response.agentId;
+  }
+
   const response = await client.conversationalAi.agents.create({
     name,
     conversationConfig: convConfig,
@@ -161,6 +342,29 @@ export async function updateAgentApi(
   const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
   // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
   const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
+
+  if (workflowHasSdkUnsupportedNode(workflowConfig)) {
+    const response = await rawAgentRequest(
+      client,
+      'PATCH',
+      `v1/convai/agents/${core.url.encodePathParam(agentId)}`,
+      toSnakeCaseKeys({
+        name,
+        conversationConfig: convConfig,
+        platformSettings,
+        workflow: workflowConfig,
+        tags,
+        versionDescription
+      }),
+      branchId ? { branch_id: branchId } : undefined
+    );
+
+    return {
+      agentId: response.agentId ?? agentId,
+      versionId: response.versionId,
+      branchId: response.branchId
+    };
+  }
 
   const response = await client.conversationalAi.agents.update(agentId, {
     name,
