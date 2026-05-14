@@ -179,6 +179,19 @@ describe("CLI End-to-End Tests", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toMatch(/\d+\.\d+\.\d+/);
     });
+
+    it.each([
+      ["agents push", ["agents", "push", "--help"]],
+      ["tests push", ["tests", "push", "--help"]],
+      ["tools push", ["tools", "push", "--help"]],
+    ])("should show %s help without running the command", async (_name, args) => {
+      const result = await runCli(args);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Usage:");
+      expect(result.stderr).not.toContain("Error during");
+      expect(result.stderr).not.toContain("not found");
+    });
   });
 
   describe("[local] init command", () => {
@@ -320,9 +333,10 @@ describe("CLI End-to-End Tests", () => {
     it("should show help for push-tools command", async () => {
       const result = await runCli(["tools", "push", "--help", "--no-ui"]);
 
-      // Command should be recognized, even if help doesn't work perfectly
-      // The important thing is it's not "unknown command"
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Usage:");
       expect(result.stderr).not.toContain("unknown command");
+      expect(result.stderr).not.toContain("Error during");
     });
 
     it("should recognize push-tools command with dry-run option", async () => {
@@ -354,6 +368,32 @@ describe("CLI End-to-End Tests", () => {
       // Should succeed (no tools to push is valid)
       expect(result.exitCode).toBe(0);
       expect(result.stderr).not.toContain("unknown option");
+    });
+  });
+
+  describe("[local] tests push command", () => {
+    it("should dry-run discovered test configs without tests.json", async () => {
+      const configPath = path.join(tempDir, "test_configs", "nested", "folder-test.json");
+      await fs.ensureDir(path.dirname(configPath));
+      await fs.writeJson(configPath, {
+        name: "Folder Test",
+        type: "llm",
+        chat_history: [
+          { role: "user", time_in_call_secs: 1, message: "Hello" },
+        ],
+        success_condition: "Agent responds helpfully",
+      });
+      await fs.writeJson(path.join(tempDir, "test_configs", "metadata.json"), {
+        name: "metadata-only",
+      });
+
+      const result = await runCli(["tests", "push", "--dry-run"]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Discovered 1 test config(s)");
+      expect(result.stdout).toContain("[DRY RUN] Would create test: Folder Test");
+      expect(result.stdout).toContain("Skipping non-test JSON file");
+      expect(result.stderr).not.toContain("tests.json not found");
     });
   });
 

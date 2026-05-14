@@ -15,7 +15,7 @@ function printTestsHelp() {
   const commands = [
     { name: 'add <name>', description: 'Add a new test', options: ['--template <template>  Test template type (default: \'basic-llm\')'] },
     { name: 'delete [test_id]', description: 'Delete a test locally and from ElevenLabs', options: ['--all  Delete all tests'] },
-    { name: 'push', description: 'Push tests to ElevenLabs API', options: ['--dry-run  Show what would be done without making changes'] },
+    { name: 'push', description: 'Push tests to ElevenLabs API', options: ['--dry-run  Show what would be done without making changes', '--config-dir <directory>  Scan directory for configs not listed in tests.json'] },
     { name: 'pull', description: 'Pull tests from ElevenLabs', options: ['--test <test_id>  Specific test ID to pull', '--output-dir <directory>  Output directory for configs (default: \'test_configs\')', '--dry-run  Show what would be done without making changes', '--update  Update existing items only, skip new', '--all  Pull all (new + existing)'] },
   ];
   for (const cmd of commands) {
@@ -34,12 +34,9 @@ export function createTestsCommand(): Command {
   const tests = new Command('tests');
   tests.description('Manage ElevenLabs tests');
 
-  // Disable default help
-  tests.helpOption(false);
+  tests.helpOption('-h, --help', 'Display help information');
   tests.addHelpCommand(false);
 
-  // Add custom help option
-  tests.option('-h, --help', 'Display help information');
   tests.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when tests command is run without subcommands

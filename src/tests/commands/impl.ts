@@ -23,6 +23,95 @@ interface TestsConfig {
   tests: TestDefinition[];
 }
 
+interface TestConfigFile {
+  id?: unknown;
+  name?: unknown;
+  type?: unknown;
+  chat_history?: unknown;
+  success_condition?: unknown;
+}
+
+function toConfigPath(filePath: string): string {
+  const relativePath = path.relative(process.cwd(), filePath);
+  if (
+    relativePath &&
+    relativePath !== '..' &&
+    !relativePath.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativePath)
+  ) {
+    return relativePath.split(path.sep).join(path.posix.sep);
+  }
+  return filePath;
+}
+
+function isTestConfigFile(config: TestConfigFile): boolean {
+  return Array.isArray(config.chat_history) || typeof config.success_condition === 'string';
+}
+
+async function discoverJsonFiles(directory: string): Promise<string[]> {
+  const root = path.resolve(directory);
+  if (!(await fs.pathExists(root))) {
+    return [];
+  }
+
+  const discovered: string[] = [];
+
+  async function walk(currentDirectory: string): Promise<void> {
+    const entries = await fs.readdir(currentDirectory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDirectory, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith('.json')) {
+        discovered.push(fullPath);
+      }
+    }
+  }
+
+  await walk(root);
+  return discovered
+    .sort((a, b) => a.localeCompare(b))
+    .map(toConfigPath);
+}
+
+async function registerDiscoveredTestConfigs(testsConfig: TestsConfig, configDir: string): Promise<number> {
+  const existingConfigPaths = new Set(
+    testsConfig.tests.map(test => path.resolve(test.config))
+  );
+
+  let added = 0;
+  const configFiles = await discoverJsonFiles(configDir);
+
+  for (const configPath of configFiles) {
+    if (existingConfigPaths.has(path.resolve(configPath))) {
+      continue;
+    }
+
+    let testConfig: TestConfigFile;
+    try {
+      testConfig = await readConfig<TestConfigFile>(configPath);
+    } catch (error) {
+      console.log(`Warning: Skipping unreadable test config ${configPath}: ${error}`);
+      continue;
+    }
+
+    if (!isTestConfigFile(testConfig)) {
+      console.log(`Warning: Skipping non-test JSON file ${configPath}`);
+      continue;
+    }
+
+    testsConfig.tests.push({
+      config: configPath,
+      id: typeof testConfig.id === 'string' ? testConfig.id : undefined,
+      type: typeof testConfig.type === 'string' ? testConfig.type : undefined
+    });
+    existingConfigPaths.add(path.resolve(configPath));
+    added++;
+  }
+
+  return added;
+}
+
 // Helper function for prompting confirmation
 async function promptForConfirmation(message: string): Promise<boolean> {
   const readline = await import('readline');
@@ -97,14 +186,22 @@ async function addTest(name: string, templateType: string = "basic-llm"): Promis
     process.exit(1);
   }
 }
-async function pushTests(testId?: string, dryRun = false): Promise<void> {
+async function pushTests(testId?: string, dryRun = false, configDir = 'test_configs'): Promise<void> {
   // Load tests configuration
   const testsConfigPath = path.resolve(TESTS_CONFIG_FILE);
-  if (!(await fs.pathExists(testsConfigPath))) {
-    throw new Error('tests.json not found. Run \'elevenlabs add-test\' first.');
+  const testsConfigExists = await fs.pathExists(testsConfigPath);
+  const testsConfig = testsConfigExists
+    ? await readConfig<TestsConfig>(testsConfigPath)
+    : { tests: [] };
+
+  const discoveredCount = await registerDiscoveredTestConfigs(testsConfig, configDir);
+  if (discoveredCount > 0) {
+    console.log(`Discovered ${discoveredCount} test config(s) in ${configDir}`);
   }
 
-  const testsConfig = await readConfig<TestsConfig>(testsConfigPath);
+  if (!testsConfigExists && testsConfig.tests.length === 0) {
+    throw new Error(`tests.json not found and no test configs found in ${configDir}. Run 'elevenlabs tests add' first.`);
+  }
 
   // Filter tests by test ID if specified
   let testsToProcess = testsConfig.tests;
@@ -118,7 +215,7 @@ async function pushTests(testId?: string, dryRun = false): Promise<void> {
 
   console.log(`Pushing ${testsToProcess.length} test(s) to ElevenLabs...`);
 
-  let changesMade = false;
+  let changesMade = discoveredCount > 0 && !dryRun;
 
   for (const testDef of testsToProcess) {
     const configPath = testDef.config;
@@ -147,7 +244,7 @@ async function pushTests(testId?: string, dryRun = false): Promise<void> {
     console.log(`${testDefName}: Will push (force override)`);
 
     if (dryRun) {
-      console.log(`[DRY RUN] Would update test: ${testDefName}`);
+      console.log(`[DRY RUN] Would ${testId ? 'update' : 'create'} test: ${testDefName}`);
       continue;
     }
 

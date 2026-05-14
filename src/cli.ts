@@ -52,22 +52,7 @@ program
   .description('ElevenLabs CLI')
   .version(version)
   .option('--human-friendly', 'Enable interactive terminal UI')
-  .configureHelp({
-    // Override the default help to use our Ink UI
-    formatHelp: () => ''
-  })
-  .helpOption('-h, --help', 'Display help information')
-  .on('option:help', async () => {
-    if (process.argv.includes('--human-friendly')) {
-      const { waitUntilExit } = render(
-        React.createElement(HelpView)
-      );
-      await waitUntilExit();
-    } else {
-      printPlainHelp();
-    }
-    process.exit(0);
-  });
+  .helpOption('-h, --help', 'Display help information');
 
 // Add new command groups
 program.addCommand(createAuthCommand());
