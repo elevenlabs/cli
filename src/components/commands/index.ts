@@ -22,12 +22,9 @@ export function createComponentsCommand(): Command {
   const components = new Command('components');
   components.description('Import components from the ElevenLabs UI registry (https://ui.elevenlabs.io)');
 
-  // Disable default help
-  components.helpOption(false);
+  components.helpOption('-h, --help', 'Display help information');
   components.addHelpCommand(false);
 
-  // Add custom help option
-  components.option('-h, --help', 'Display help information');
   components.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when components command is run without subcommands

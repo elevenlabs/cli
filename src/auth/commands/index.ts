@@ -28,12 +28,9 @@ export function createAuthCommand(): Command {
   const auth = new Command('auth');
   auth.description('Authentication and configuration commands');
 
-  // Disable default help
-  auth.helpOption(false);
+  auth.helpOption('-h, --help', 'Display help information');
   auth.addHelpCommand(false);
 
-  // Add custom help option
-  auth.option('-h, --help', 'Display help information');
   auth.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when auth command is run without subcommands

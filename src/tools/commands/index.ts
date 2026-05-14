@@ -34,12 +34,9 @@ export function createToolsCommand(): Command {
   const tools = new Command('tools');
   tools.description('Manage ElevenLabs tools');
 
-  // Disable default help
-  tools.helpOption(false);
+  tools.helpOption('-h, --help', 'Display help information');
   tools.addHelpCommand(false);
 
-  // Add custom help option
-  tools.option('-h, --help', 'Display help information');
   tools.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when tools command is run without subcommands

@@ -48,12 +48,9 @@ export function createAgentsCommand(): Command {
   const agents = new Command('agents');
   agents.description('Manage ElevenLabs agents');
 
-  // Disable default help
-  agents.helpOption(false);
+  agents.helpOption('-h, --help', 'Display help information');
   agents.addHelpCommand(false);
 
-  // Add custom help option
-  agents.option('-h, --help', 'Display help information');
   agents.option('--human-friendly', 'Enable interactive terminal UI');
 
   // Custom action when agents command is run without subcommands

@@ -174,7 +174,7 @@ elevenlabs agents branches list --agent <agent_id> [--include-archived]
 elevenlabs tools push [--tool "Tool Name"] [--dry-run]
 
 # Sync tests
-elevenlabs tests push [--dry-run]
+elevenlabs tests push [--dry-run] [--config-dir test_configs]
 
 # Check status
 elevenlabs agents status [--agent "Agent Name"]
