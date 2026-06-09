@@ -12,7 +12,7 @@ import {
   removeApiKey as removeStoredApiKey,
   hasApiKey
 } from './auth.js';
-export const LOCATIONS = ["us", "global", "eu-residency", "in-residency"] as const;
+export const LOCATIONS = ["us", "global", "eu-residency", "in-residency", "sg-residency"] as const;
 export type Location = (typeof LOCATIONS)[number];
 
 export interface CliConfig {
