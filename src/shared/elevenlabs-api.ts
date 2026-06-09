@@ -55,6 +55,8 @@ export function getApiBaseUrl(residency?: Location): string {
       return 'https://api.eu.residency.elevenlabs.io';
     case 'in-residency':
       return 'https://api.in.residency.elevenlabs.io';
+    case 'sg-residency':
+      return 'https://api.sg.residency.elevenlabs.io';
     case 'us':
       return 'https://api.us.elevenlabs.io';
     case 'global':
