@@ -23,7 +23,7 @@ function isPlatformSettings(settings: unknown): settings is AgentPlatformSetting
  * Removes the deprecated 'tools' field if 'tool_ids' is present to avoid API conflicts.
  * The API returns both fields, but only accepts one when creating/updating.
  */
-function cleanConversationConfigForApi(config: Record<string, unknown>): Record<string, unknown> {
+export function cleanConversationConfigForApi(config: Record<string, unknown>): Record<string, unknown> {
   const cleaned = { ...config };
 
   // Handle nested agent.prompt structure

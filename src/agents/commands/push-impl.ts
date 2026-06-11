@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig } from '../../shared/utils.js';
 import { getElevenLabsClient, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
+import { verifyAgentPush } from '../../shared/verify.js';
 import { AgentConfig } from '../templates.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
@@ -131,6 +132,12 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
         // Store agent ID in index file
         agentDef.id = newAgentId;
         changesMade = true;
+
+        await verifyAgentPush(client, agentDefName, newAgentId, {
+          conversation_config: conversationConfig as Record<string, unknown>,
+          platform_settings: platformSettings as Record<string, unknown> | undefined,
+          workflow,
+        });
       } else {
         // Update existing agent
         const result = await updateAgentApi(
@@ -149,6 +156,12 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
         // Update version/branch info
         if (result.versionId) agentDef.version_id = result.versionId;
         if (result.branchId) agentDef.branch_id = result.branchId;
+
+        await verifyAgentPush(client, agentDefName, currentAgentId, {
+          conversation_config: conversationConfig as Record<string, unknown>,
+          platform_settings: platformSettings as Record<string, unknown> | undefined,
+          workflow,
+        }, branchId);
       }
 
       changesMade = true;
@@ -183,6 +196,12 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
 
             if (branchResult.versionId) branchDef.version_id = branchResult.versionId;
             console.log(`  ✓ Pushed branch '${branchName}'`);
+
+            await verifyAgentPush(client, `${agentDefName} (branch '${branchName}')`, currentAgentId, {
+              conversation_config: branchConversationConfig as Record<string, unknown>,
+              platform_settings: branchPlatformSettings as Record<string, unknown> | undefined,
+              workflow: branchWorkflow,
+            }, branchDef.branch_id);
           } catch (error) {
             console.log(`  ✗ Error pushing branch '${branchName}': ${error}`);
           }

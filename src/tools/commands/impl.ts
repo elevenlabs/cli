@@ -17,6 +17,7 @@ import {
   ToolDefinition,
   type Tool
 } from '../../shared/tools.js';
+import { verifyToolPush } from '../../shared/verify.js';
 
 const TOOLS_CONFIG_FILE = "tools.json";
 
@@ -213,13 +214,17 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
         const newToolId = (response as { toolId?: string }).toolId || `tool_${Date.now()}`;
         console.log(`Created tool ${toolDefName} (ID: ${newToolId})`);
 
+        verifyToolPush(toolDefName, toolConfig as Record<string, unknown>, response);
+
         // Store tool ID in index file
         toolDef.id = newToolId;
         changesMade = true;
       } else {
         // Update existing tool
-        await updateToolApi(client, toolId, toolConfig);
+        const response = await updateToolApi(client, toolId, toolConfig);
         console.log(`Updated tool ${toolDefName} (ID: ${toolId})`);
+
+        verifyToolPush(toolDefName, toolConfig as Record<string, unknown>, response);
       }
 
       changesMade = true;
