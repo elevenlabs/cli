@@ -210,7 +210,11 @@ async function pushTools(toolId?: string, dryRun = false): Promise<void> {
       if (!toolId) {
         // Create new tool
         const response = await createToolApi(client, toolConfig);
-        const newToolId = (response as { toolId?: string }).toolId || `tool_${Date.now()}`;
+        const newToolId = response.id;
+        if (!newToolId) {
+          console.log(`Error: no tool ID in the API response for ${toolDefName}; not saving to ${TOOLS_CONFIG_FILE}`);
+          continue;
+        }
         console.log(`Created tool ${toolDefName} (ID: ${newToolId})`);
 
         // Store tool ID in index file
@@ -496,12 +500,6 @@ async function deleteTool(toolId: string): Promise<void> {
     console.log('Continuing with local deletion...');
   }
   
-  // Remove from local tools.json
-  toolsConfig.tools.splice(toolIndex, 1);
-  await writeToolsConfig(toolsConfigPath, toolsConfig);
-  console.log(`✓ Removed '${toolName}' from ${TOOLS_CONFIG_FILE}`);
-  
-
   // Remove from local tools.json
   toolsConfig.tools.splice(toolIndex, 1);
   await writeToolsConfig(toolsConfigPath, toolsConfig);

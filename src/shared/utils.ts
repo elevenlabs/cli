@@ -131,6 +131,7 @@ const PRESERVE_CHILD_KEYS = new Set([
   'model_usage', 'modelUsage',
   'data_collection', 'dataCollection',
   'properties',
+  'path_params_schema', 'pathParamsSchema',
   'nodes',
   'edges',
 ]);
