@@ -1,4 +1,11 @@
-import { createAgentApi, updateAgentApi, getAgentApi } from "../shared/elevenlabs-api";
+import {
+  createAgentApi,
+  updateAgentApi,
+  getAgentApi,
+  createToolApi,
+  updateToolApi,
+  getToolApi,
+} from "../shared/elevenlabs-api";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 describe("Key casing normalization", () => {
@@ -447,5 +454,131 @@ describe("Key casing normalization", () => {
     // When tool_ids is not present, tools should be preserved
     expect(payload.conversationConfig.agent.prompt).toHaveProperty("tools");
     expect(payload.conversationConfig.agent.prompt.tools).toHaveLength(1);
+  });
+});
+
+// Regression coverage for elevenlabs/cli#90: webhook tools whose URL templates
+// reference path parameters via {{snake_case}} placeholders. The keys of
+// path_params_schema are user-defined identifiers that must match those
+// placeholders, so they must survive the camelCase transform unchanged.
+describe("Webhook tool path_params_schema key preservation (#90)", () => {
+  function makeMockToolClient() {
+    const create = jest.fn().mockResolvedValue({ toolId: "tool_123" });
+    const update = jest.fn().mockResolvedValue({ toolId: "tool_123" });
+    const get = jest.fn();
+    return {
+      conversationalAi: {
+        tools: { create, update, get },
+      },
+    } as unknown as ElevenLabsClient;
+  }
+
+  it("createToolApi preserves path_params_schema child keys (URL placeholder identifiers)", async () => {
+    const client = makeMockToolClient();
+    const toolConfig = {
+      name: "lookup-transaction",
+      description: "Looks up a transaction",
+      type: "webhook",
+      api_schema: {
+        url: "https://api.example.com/transactions/{{transaction_id}}",
+        method: "GET",
+        path_params_schema: {
+          transaction_id: {
+            type: "string",
+            description: "The transaction identifier",
+          },
+        },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await createToolApi(client, toolConfig);
+
+    expect(client.conversationalAi.tools.create).toHaveBeenCalledTimes(1);
+    const payload = (client.conversationalAi.tools.create as jest.Mock).mock
+      .calls[0][0].toolConfig as Record<string, any>;
+
+    // URL string is always preserved; the placeholder must still resolve
+    expect(payload.apiSchema.url).toBe(
+      "https://api.example.com/transactions/{{transaction_id}}"
+    );
+    // path_params_schema top-level key is camelized to pathParamsSchema (envelope convention)
+    expect(payload.apiSchema).toHaveProperty("pathParamsSchema");
+    // User-defined identifier key must be preserved as-is, NOT camelCased to transactionId
+    expect(payload.apiSchema.pathParamsSchema).toHaveProperty("transaction_id");
+    expect(payload.apiSchema.pathParamsSchema).not.toHaveProperty(
+      "transactionId"
+    );
+    // Nested schema fields stay as-is (no underscores to convert here)
+    expect(payload.apiSchema.pathParamsSchema.transaction_id).toEqual({
+      type: "string",
+      description: "The transaction identifier",
+    });
+  });
+
+  it("updateToolApi preserves path_params_schema child keys (URL placeholder identifiers)", async () => {
+    const client = makeMockToolClient();
+    const toolConfig = {
+      name: "lookup-transaction",
+      description: "Looks up a transaction",
+      type: "webhook",
+      api_schema: {
+        url: "https://api.example.com/transactions/{{transaction_id}}",
+        method: "GET",
+        path_params_schema: {
+          transaction_id: {
+            type: "string",
+            description: "The transaction identifier",
+          },
+        },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await updateToolApi(client, "tool_123", toolConfig);
+
+    expect(client.conversationalAi.tools.update).toHaveBeenCalledTimes(1);
+    const [toolId, body] = (client.conversationalAi.tools.update as jest.Mock)
+      .mock.calls[0];
+    expect(toolId).toBe("tool_123");
+    const payload = body.toolConfig as Record<string, any>;
+
+    expect(payload.apiSchema.pathParamsSchema).toHaveProperty("transaction_id");
+    expect(payload.apiSchema.pathParamsSchema).not.toHaveProperty(
+      "transactionId"
+    );
+  });
+
+  it("getToolApi round-trips path_params_schema child keys without corruption", async () => {
+    const get = jest.fn().mockResolvedValue({
+      toolConfig: {
+        name: "lookup-transaction",
+        type: "webhook",
+        apiSchema: {
+          url: "https://api.example.com/transactions/{{transaction_id}}",
+          method: "GET",
+          pathParamsSchema: {
+            transaction_id: {
+              type: "string",
+              description: "The transaction identifier",
+            },
+          },
+        },
+      },
+    });
+    const client = {
+      conversationalAi: { tools: { get } },
+    } as unknown as ElevenLabsClient;
+
+    const response = (await getToolApi(client, "tool_123")) as Record<
+      string,
+      any
+    >;
+
+    // Inbound snake_case conversion for disk must preserve the identifier key
+    expect(response.tool_config.api_schema.path_params_schema).toHaveProperty(
+      "transaction_id"
+    );
+    expect(response.tool_config.api_schema.url).toBe(
+      "https://api.example.com/transactions/{{transaction_id}}"
+    );
   });
 });
