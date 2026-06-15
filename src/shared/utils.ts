@@ -120,12 +120,17 @@ function toSnakeCaseKey(key: string): string {
 
 // Keys whose children are user-defined identifiers and should not be case-converted.
 // Both snake_case and camelCase variants are listed so the check works in either direction.
+// A preserved-tier key nested directly inside another preserved tier (e.g.
+// dynamic_variable_placeholders under dynamic_variables) is itself converted while its
+// children are preserved; see the 'names-only' handling below.
 const PRESERVE_CHILD_KEYS = new Set([
   'request_headers', 'requestHeaders',
   'dynamic_variables', 'dynamicVariables',
+  'dynamic_variable_placeholders', 'dynamicVariablePlaceholders',
   'language_presets', 'languagePresets',
   'model_usage', 'modelUsage',
   'data_collection', 'dataCollection',
+  'properties',
   'path_params_schema', 'pathParamsSchema',
   'nodes',
   'edges',
@@ -142,8 +147,14 @@ export function toCamelCaseKeys<T = unknown>(value: T, skipHeaderConversion: boo
         // Deep inside request_headers: preserve all keys (for backwards compatibility with arrays)
         result[k] = toCamelCaseKeys(v, true);
       } else if (skipHeaderConversion === 'names-only') {
-        // Inside request_headers object: preserve header names (keys) but convert nested objects
-        result[k] = toCamelCaseKeys(v, false);
+        // Inside a preserved tier: keys are user-defined names and stay as-is, unless the
+        // key is itself a preserved-tier key (a schema field wrapping more user-defined
+        // names, e.g. dynamic_variable_placeholders): convert it and preserve ITS children.
+        if (PRESERVE_CHILD_KEYS.has(k)) {
+          result[toCamelCaseKey(k)] = toCamelCaseKeys(v, 'names-only');
+        } else {
+          result[k] = toCamelCaseKeys(v, false);
+        }
       } else {
         // Normal conversion
         result[toCamelCaseKey(k)] = toCamelCaseKeys(v, PRESERVE_CHILD_KEYS.has(k) ? 'names-only' : false);
@@ -165,8 +176,14 @@ export function toSnakeCaseKeys<T = unknown>(value: T, skipHeaderConversion: boo
         // Deep inside request_headers: preserve all keys (for backwards compatibility with arrays)
         result[k] = toSnakeCaseKeys(v, true);
       } else if (skipHeaderConversion === 'names-only') {
-        // Inside request_headers object: preserve header names (keys) but convert nested objects
-        result[k] = toSnakeCaseKeys(v, false);
+        // Inside a preserved tier: keys are user-defined names and stay as-is, unless the
+        // key is itself a preserved-tier key (a schema field wrapping more user-defined
+        // names, e.g. dynamicVariablePlaceholders): convert it and preserve ITS children.
+        if (PRESERVE_CHILD_KEYS.has(k)) {
+          result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, 'names-only');
+        } else {
+          result[k] = toSnakeCaseKeys(v, false);
+        }
       } else {
         // Normal conversion
         result[toSnakeCaseKey(k)] = toSnakeCaseKeys(v, PRESERVE_CHILD_KEYS.has(k) ? 'names-only' : false);

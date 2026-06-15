@@ -1078,4 +1078,199 @@ describe("Utils", () => {
       expect(result3).toBe(path.join(tempDir, "My-Agent-2.json"));
     });
   });
+
+  describe("nested preserved-tier keys", () => {
+    it("should camelize the dynamic_variable_placeholders wrapper but preserve placeholder names in toCamelCaseKeys", () => {
+      // Agent configs nest user-defined placeholder names one level below
+      // dynamic_variables: dynamic_variables.dynamic_variable_placeholders.<name>
+      const input = {
+        conversation_config: {
+          agent: {
+            dynamic_variables: {
+              dynamic_variable_placeholders: {
+                transaction_id: "txn_default",
+                user_name: "Jan",
+                verified: false,
+              },
+            },
+          },
+        },
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        conversationConfig: {
+          agent: {
+            dynamicVariables: {
+              // wrapper is a schema field: converted so the SDK forwards it
+              dynamicVariablePlaceholders: {
+                transaction_id: "txn_default", // preserved - user-defined placeholder name
+                user_name: "Jan",              // preserved - user-defined placeholder name
+                verified: false,
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it("should snake_case the dynamicVariablePlaceholders wrapper but preserve placeholder names in toSnakeCaseKeys", () => {
+      const input = {
+        conversationConfig: {
+          agent: {
+            dynamicVariables: {
+              dynamicVariablePlaceholders: {
+                transaction_id: "txn_default",
+                customerName: "anon",
+              },
+            },
+          },
+        },
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        conversation_config: {
+          agent: {
+            dynamic_variables: {
+              dynamic_variable_placeholders: {
+                transaction_id: "txn_default", // preserved
+                customerName: "anon",          // preserved - NOT converted to customer_name
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it("should maintain round-trip symmetry for dynamic_variable_placeholders", () => {
+      const original = {
+        conversation_config: {
+          agent: {
+            dynamic_variables: {
+              dynamic_variable_placeholders: {
+                transaction_id: "txn_default",
+                verified: false,
+              },
+            },
+          },
+        },
+      };
+
+      expect(toSnakeCaseKeys(toCamelCaseKeys(original))).toEqual(original);
+    });
+
+    it("should preserve property names under query_params_schema in toCamelCaseKeys", () => {
+      const input = {
+        api_schema: {
+          query_params_schema: {
+            properties: {
+              user_id: { type: "string", dynamic_variable: "user_id" },
+            },
+            required: ["user_id"],
+          },
+        },
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        apiSchema: {
+          queryParamsSchema: {
+            properties: {
+              // property name preserved, schema fields within converted
+              user_id: { type: "string", dynamicVariable: "user_id" },
+            },
+            required: ["user_id"], // string values untouched - still matches the property
+          },
+        },
+      });
+    });
+
+    it("should preserve property names at every nesting depth of request_body_schema in toCamelCaseKeys", () => {
+      const input = {
+        api_schema: {
+          request_body_schema: {
+            type: "object",
+            properties: {
+              caller_id: { type: "string" },
+              nested_obj: {
+                type: "object",
+                properties: {
+                  inner_key: { type: "string" },
+                },
+              },
+            },
+            required: ["caller_id"],
+          },
+        },
+      };
+
+      const result = toCamelCaseKeys(input);
+
+      expect(result).toEqual({
+        apiSchema: {
+          requestBodySchema: {
+            type: "object",
+            properties: {
+              caller_id: { type: "string" }, // preserved
+              nested_obj: {                  // preserved
+                type: "object",
+                properties: {
+                  inner_key: { type: "string" }, // preserved at depth
+                },
+              },
+            },
+            required: ["caller_id"],
+          },
+        },
+      });
+    });
+
+    it("should preserve property names in toSnakeCaseKeys", () => {
+      const input = {
+        apiSchema: {
+          queryParamsSchema: {
+            properties: {
+              user_id: { type: "string" },
+              sessionToken: { type: "string" },
+            },
+            required: ["user_id", "sessionToken"],
+          },
+        },
+      };
+
+      const result = toSnakeCaseKeys(input);
+
+      expect(result).toEqual({
+        api_schema: {
+          query_params_schema: {
+            properties: {
+              user_id: { type: "string" },
+              sessionToken: { type: "string" }, // preserved - NOT converted to session_token
+            },
+            required: ["user_id", "sessionToken"],
+          },
+        },
+      });
+    });
+
+    it("should maintain round-trip symmetry for schema properties", () => {
+      const original = {
+        api_schema: {
+          request_body_schema: {
+            type: "object",
+            properties: {
+              caller_id: { type: "string" },
+            },
+            required: ["caller_id"],
+          },
+        },
+      };
+
+      expect(toSnakeCaseKeys(toCamelCaseKeys(original))).toEqual(original);
+    });
+  });
 });

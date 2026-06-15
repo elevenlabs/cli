@@ -455,6 +455,217 @@ describe("Key casing normalization", () => {
     expect(payload.conversationConfig.agent.prompt).toHaveProperty("tools");
     expect(payload.conversationConfig.agent.prompt.tools).toHaveLength(1);
   });
+
+  function makeToolsMockClient() {
+    const create = jest.fn().mockResolvedValue({ id: "tool_123" });
+    const update = jest.fn().mockResolvedValue({ id: "tool_123" });
+    const get = jest.fn().mockResolvedValue({
+      id: "tool_123",
+      toolConfig: {
+        name: "lookup",
+        type: "webhook",
+        apiSchema: {
+          url: "https://api.example.com/lookup",
+          method: "GET",
+          queryParamsSchema: {
+            properties: {
+              user_id: { type: "string" },
+              sessionToken: { type: "string" },
+            },
+            required: ["user_id", "sessionToken"],
+          },
+        },
+      },
+    });
+
+    return {
+      conversationalAi: {
+        tools: { create, update, get },
+      },
+    } as unknown as ElevenLabsClient;
+  }
+
+  it("createAgentApi camelizes the placeholders wrapper but preserves placeholder names", async () => {
+    const client = makeMockClient();
+    const conversation_config = {
+      agent: {
+        prompt: { prompt: "hi", temperature: 0 },
+        dynamic_variables: {
+          dynamic_variable_placeholders: {
+            transaction_id: "txn_default",
+            verified: false,
+          },
+        },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await createAgentApi(
+      client,
+      "Agent with placeholders",
+      conversation_config,
+      undefined,
+      undefined,
+      []
+    );
+
+    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+    const dynamicVariables = payload.conversationConfig.agent.dynamicVariables;
+
+    // The wrapper is a schema field: it must be camelized or the SDK strips it from the request
+    expect(dynamicVariables).toHaveProperty("dynamicVariablePlaceholders");
+    expect(dynamicVariables).not.toHaveProperty("dynamic_variable_placeholders");
+    // Placeholder names are user-defined identifiers, preserved as-is
+    expect(dynamicVariables.dynamicVariablePlaceholders).toEqual({
+      transaction_id: "txn_default",
+      verified: false,
+    });
+  });
+
+  it("updateAgentApi camelizes the placeholders wrapper but preserves placeholder names", async () => {
+    const client = makeMockClient();
+    const conversation_config = {
+      agent: {
+        prompt: { prompt: "hi", temperature: 0 },
+        dynamic_variables: {
+          dynamic_variable_placeholders: {
+            transaction_id: "txn_default",
+            user_name: "Jan",
+          },
+        },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await updateAgentApi(
+      client,
+      "agent_123",
+      "Updated",
+      conversation_config,
+      undefined,
+      undefined,
+      []
+    );
+
+    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
+    const dynamicVariables = payload.conversationConfig.agent.dynamicVariables;
+
+    expect(dynamicVariables).toHaveProperty("dynamicVariablePlaceholders");
+    expect(dynamicVariables).not.toHaveProperty("dynamic_variable_placeholders");
+    expect(dynamicVariables.dynamicVariablePlaceholders).toEqual({
+      transaction_id: "txn_default",
+      user_name: "Jan",
+    });
+  });
+
+  it("getAgentApi snake_cases the placeholders wrapper and preserves placeholder names", async () => {
+    const getWithPlaceholders = jest.fn().mockResolvedValue({
+      agentId: "agent_123",
+      name: "Test",
+      conversationConfig: {
+        agent: {
+          dynamicVariables: {
+            dynamicVariablePlaceholders: {
+              transaction_id: "txn_default",
+              customerName: "anon",
+            },
+          },
+        },
+      },
+      tags: [],
+    });
+    const client = {
+      conversationalAi: { agents: { get: getWithPlaceholders } },
+    } as unknown as ElevenLabsClient;
+
+    const response = await getAgentApi(client, "agent_123") as Record<string, any>;
+    const dynamicVariables = response.conversation_config.agent.dynamic_variables;
+
+    expect(dynamicVariables).toHaveProperty("dynamic_variable_placeholders");
+    // No round-trip corruption: snake stays snake, camel stays camel
+    expect(dynamicVariables.dynamic_variable_placeholders).toEqual({
+      transaction_id: "txn_default",
+      customerName: "anon",
+    });
+  });
+
+  it("createToolApi preserves query_params_schema property names and required entries", async () => {
+    const client = makeToolsMockClient();
+    const toolConfig = {
+      name: "lookup",
+      type: "webhook",
+      api_schema: {
+        url: "https://api.example.com/lookup",
+        method: "GET",
+        query_params_schema: {
+          properties: {
+            user_id: { type: "string", dynamic_variable: "user_id" },
+          },
+          required: ["user_id"],
+        },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await createToolApi(client, toolConfig);
+
+    const payload = (client.conversationalAi.tools.create as jest.Mock).mock.calls[0][0];
+    const schema = payload.toolConfig.apiSchema.queryParamsSchema;
+
+    // Property names are user-defined, preserved so required[] still matches
+    expect(schema.properties).toHaveProperty("user_id");
+    expect(schema.properties).not.toHaveProperty("userId");
+    // Schema fields within each property definition are still converted
+    expect(schema.properties.user_id).toEqual({ type: "string", dynamicVariable: "user_id" });
+    expect(schema.required).toEqual(["user_id"]);
+  });
+
+  it("updateToolApi preserves request_body_schema property names at all nesting depths", async () => {
+    const client = makeToolsMockClient();
+    const toolConfig = {
+      name: "submit",
+      type: "webhook",
+      api_schema: {
+        url: "https://api.example.com/submit",
+        method: "POST",
+        request_body_schema: {
+          type: "object",
+          properties: {
+            caller_id: { type: "string" },
+            nested_obj: {
+              type: "object",
+              properties: {
+                inner_key: { type: "string" },
+              },
+            },
+          },
+          required: ["caller_id"],
+        },
+      },
+    } as unknown as Record<string, unknown>;
+
+    await updateToolApi(client, "tool_123", toolConfig);
+
+    const [toolId, payload] = (client.conversationalAi.tools.update as jest.Mock).mock.calls[0];
+    expect(toolId).toBe("tool_123");
+    const schema = payload.toolConfig.apiSchema.requestBodySchema;
+
+    expect(schema.properties).toHaveProperty("caller_id");
+    expect(schema.properties).not.toHaveProperty("callerId");
+    expect(schema.properties.nested_obj.properties).toHaveProperty("inner_key");
+    expect(schema.properties.nested_obj.properties).not.toHaveProperty("innerKey");
+    expect(schema.required).toEqual(["caller_id"]);
+  });
+
+  it("getToolApi preserves schema property names on inbound snake_case conversion", async () => {
+    const client = makeToolsMockClient();
+
+    const response = await getToolApi(client, "tool_123") as Record<string, any>;
+    const schema = response.tool_config.api_schema.query_params_schema;
+
+    expect(schema.properties).toHaveProperty("user_id");
+    // camelCase property names must not be snake_cased on pull
+    expect(schema.properties).toHaveProperty("sessionToken");
+    expect(schema.properties).not.toHaveProperty("session_token");
+    expect(schema.required).toEqual(["user_id", "sessionToken"]);
+  });
 });
 
 // Regression coverage for elevenlabs/cli#90: webhook tools whose URL templates
