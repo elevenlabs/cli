@@ -6,6 +6,22 @@ import {
 } from "../shared/elevenlabs-api";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
+const TEST_CTX = { apiKey: "test-key", baseUrl: "https://api.test" };
+
+const realFetch = global.fetch;
+afterEach(() => {
+  global.fetch = realFetch;
+});
+
+function mockFetch(response: Record<string, unknown>): jest.Mock {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => response,
+  });
+  global.fetch = fetchMock as unknown as typeof fetch;
+  return fetchMock;
+}
+
 describe("Agent branch support", () => {
   function makeMockClient(opts: {
     branches?: Array<{
@@ -190,14 +206,14 @@ describe("Agent branch support", () => {
   });
 
   describe("updateAgentApi with branchId", () => {
-    it("should not include branchId in payload when not provided", async () => {
-      const client = makeMockClient();
+    it("should not include branch_id query param when not provided", async () => {
+      const fetchMock = mockFetch({ agent_id: "agent_123" });
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_123",
         "Test Agent",
         conversationConfig,
@@ -207,21 +223,18 @@ describe("Agent branch support", () => {
         "v1.0"
       );
 
-      const [, payload] = (
-        client.conversationalAi.agents.update as jest.Mock
-      ).mock.calls[0];
-
-      expect(payload.branchId).toBeUndefined();
+      const [url] = fetchMock.mock.calls[0];
+      expect(url).toBe("https://api.test/v1/convai/agents/agent_123");
     });
 
-    it("should include branchId in payload when provided", async () => {
-      const client = makeMockClient();
+    it("should include branch_id query param when provided", async () => {
+      const fetchMock = mockFetch({ agent_id: "agent_123" });
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_123",
         "Test Agent",
         conversationConfig,
@@ -232,22 +245,20 @@ describe("Agent branch support", () => {
         "agtbrch_feat456"
       );
 
-      const [agentId, payload] = (
-        client.conversationalAi.agents.update as jest.Mock
-      ).mock.calls[0];
-
-      expect(agentId).toBe("agent_123");
-      expect(payload.branchId).toBe("agtbrch_feat456");
+      const [url] = fetchMock.mock.calls[0];
+      expect(url).toBe(
+        "https://api.test/v1/convai/agents/agent_123?branch_id=agtbrch_feat456"
+      );
     });
 
     it("should return branchId from API response", async () => {
-      const client = makeMockClient();
+      mockFetch({ agent_id: "agent_123", branch_id: "agtbrch_feat" });
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       const result = await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_123",
         "Test Agent",
         conversationConfig,

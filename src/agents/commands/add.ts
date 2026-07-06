@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 import AddAgentView from '../ui/AddAgentView.js';
 import { readConfig, writeConfig, generateUniqueFilename } from '../../shared/utils.js';
 import { getTemplateByName, AgentConfig } from '../templates.js';
-import { getElevenLabsClient, createAgentApi } from '../../shared/elevenlabs-api.js';
+import { getApiContext, createAgentApi } from '../../shared/elevenlabs-api.js';
 
 const AGENTS_CONFIG_FILE = "agents.json";
 
@@ -111,7 +111,7 @@ export function createAddCommand(): Command {
         // Create agent in ElevenLabs first to get ID
         console.log(`Creating agent '${agentName}' in ElevenLabs...`);
 
-        const client = await getElevenLabsClient();
+        const apiCtx = await getApiContext();
 
         // Extract config components
         const conversationConfig = agentConfig.conversation_config || {};
@@ -121,7 +121,7 @@ export function createAddCommand(): Command {
 
         // Create new agent
         const agentId = await createAgentApi(
-          client,
+          apiCtx,
           agentName,
           conversationConfig,
           platformSettings,

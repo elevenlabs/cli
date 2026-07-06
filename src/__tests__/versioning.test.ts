@@ -1,18 +1,32 @@
 import { updateAgentApi, getAgentApi } from "../shared/elevenlabs-api";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
+const TEST_CTX = { apiKey: "test-key", baseUrl: "https://api.test" };
+
+const realFetch = global.fetch;
+afterEach(() => {
+  global.fetch = realFetch;
+});
+
+function mockFetch(response: Record<string, unknown>): jest.Mock {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => response,
+  });
+  global.fetch = fetchMock as unknown as typeof fetch;
+  return fetchMock;
+}
+
+function sentBody(fetchMock: jest.Mock): Record<string, any> {
+  return JSON.parse(fetchMock.mock.calls[0][1].body as string);
+}
+
 describe("Agent versioning and branch support", () => {
   function makeMockClient(opts: {
     versionId?: string;
     branchId?: string;
     mainBranchId?: string;
   } = {}) {
-    const create = jest.fn().mockResolvedValue({ agentId: "agent_ver_123" });
-    const update = jest.fn().mockResolvedValue({
-      agentId: "agent_ver_123",
-      versionId: opts.versionId ?? "ver_abc",
-      branchId: opts.branchId ?? "branch_main",
-    });
     const get = jest.fn().mockResolvedValue({
       agentId: "agent_ver_123",
       name: "Test Agent",
@@ -28,20 +42,20 @@ describe("Agent versioning and branch support", () => {
 
     return {
       conversationalAi: {
-        agents: { create, update, get },
+        agents: { get },
       },
     } as unknown as ElevenLabsClient;
   }
 
   describe("updateAgentApi", () => {
     it("should pass versionDescription to the API", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch({ agent_id: "agent_ver_123" });
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_ver_123",
         "Test Agent",
         conversationConfig,
@@ -51,27 +65,24 @@ describe("Agent versioning and branch support", () => {
         "release v1.0"
       );
 
-      expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
-      const [agentId, payload] = (
-        client.conversationalAi.agents.update as jest.Mock
-      ).mock.calls[0];
-
-      expect(agentId).toBe("agent_ver_123");
-      expect(payload).toEqual(
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url] = fetchMock.mock.calls[0];
+      expect(url).toBe("https://api.test/v1/convai/agents/agent_ver_123");
+      expect(sentBody(fetchMock)).toEqual(
         expect.objectContaining({
-          versionDescription: "release v1.0",
+          version_description: "release v1.0",
         })
       );
     });
 
     it("should not include versionDescription when not provided", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch({ agent_id: "agent_ver_123" });
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_ver_123",
         "Test Agent",
         conversationConfig,
@@ -80,24 +91,21 @@ describe("Agent versioning and branch support", () => {
         []
       );
 
-      const [, payload] = (
-        client.conversationalAi.agents.update as jest.Mock
-      ).mock.calls[0];
-
-      expect(payload.versionDescription).toBeUndefined();
+      expect(sentBody(fetchMock)).not.toHaveProperty("version_description");
     });
 
     it("should return versionId and branchId from API response", async () => {
-      const client = makeMockClient({
-        versionId: "ver_xyz",
-        branchId: "branch_feat",
+      mockFetch({
+        agent_id: "agent_ver_123",
+        version_id: "ver_xyz",
+        branch_id: "branch_feat",
       });
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       const result = await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_ver_123",
         "Test Agent",
         conversationConfig,
@@ -115,18 +123,14 @@ describe("Agent versioning and branch support", () => {
     });
 
     it("should handle missing versionId/branchId in response", async () => {
-      const client = makeMockClient();
-      // Override update to return response without version fields
-      (client.conversationalAi.agents.update as jest.Mock).mockResolvedValue({
-        agentId: "agent_ver_123",
-      });
+      mockFetch({ agent_id: "agent_ver_123" });
 
       const conversationConfig = {
         agent: { prompt: { prompt: "hi", temperature: 0 } },
       } as unknown as Record<string, unknown>;
 
       const result = await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_ver_123",
         "Test Agent",
         conversationConfig

@@ -1,6 +1,26 @@
 import { createAgentApi, updateAgentApi, getAgentApi } from "../shared/elevenlabs-api";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
+const TEST_CTX = { apiKey: "test-key", baseUrl: "https://api.test" };
+
+const realFetch = global.fetch;
+afterEach(() => {
+  global.fetch = realFetch;
+});
+
+function mockFetch(response: Record<string, unknown> = { agent_id: "agent_workflow_123" }): jest.Mock {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => response,
+  });
+  global.fetch = fetchMock as unknown as typeof fetch;
+  return fetchMock;
+}
+
+function sentBody(fetchMock: jest.Mock): Record<string, any> {
+  return JSON.parse(fetchMock.mock.calls[0][1].body as string);
+}
+
 describe("Workflow support in agents", () => {
   function makeMockClient(includeWorkflow: boolean = false) {
     const mockWorkflow = includeWorkflow ? {
@@ -30,8 +50,6 @@ describe("Workflow support in agents", () => {
       }
     } : undefined;
 
-    const create = jest.fn().mockResolvedValue({ agentId: "agent_workflow_123" });
-    const update = jest.fn().mockResolvedValue({ agentId: "agent_workflow_123" });
     const get = jest.fn().mockResolvedValue({
       agentId: "agent_workflow_123",
       name: "Test Agent with Workflow",
@@ -55,14 +73,14 @@ describe("Workflow support in agents", () => {
 
     return {
       conversationalAi: {
-        agents: { create, update, get },
+        agents: { get },
       },
     } as unknown as ElevenLabsClient;
   }
 
   describe("createAgentApi", () => {
     it("should send workflow when provided", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch();
       const conversation_config = {
         conversation: {
           client_events: ["audio"],
@@ -81,7 +99,7 @@ describe("Workflow support in agents", () => {
       };
 
       await createAgentApi(
-        client,
+        TEST_CTX,
         "Agent with Workflow",
         conversation_config,
         undefined,
@@ -89,30 +107,20 @@ describe("Workflow support in agents", () => {
         ["workflow"]
       );
 
-      expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
-      const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = sentBody(fetchMock);
 
-      // Workflow node/edge identifier keys should be preserved (not camel-cased)
-      // Only schema fields within nodes/edges should be converted
-      expect(payload).toEqual(
+      expect(body).toEqual(
         expect.objectContaining({
           name: "Agent with Workflow",
-          workflow: expect.objectContaining({
-            nodes: expect.objectContaining({
-              start: expect.any(Object),   // "start" has no underscore, stays as-is
-              end: expect.any(Object),     // "end" has no underscore, stays as-is
-            }),
-            edges: expect.objectContaining({
-              edge_1: expect.any(Object),  // edge_1 preserved as identifier
-            }),
-          }),
+          workflow,
           tags: ["workflow"],
         })
       );
     });
 
     it("should handle undefined workflow gracefully", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch();
       const conversation_config = {
         conversation: {
           client_events: ["audio"],
@@ -121,7 +129,7 @@ describe("Workflow support in agents", () => {
       } as unknown as Record<string, unknown>;
 
       await createAgentApi(
-        client,
+        TEST_CTX,
         "Agent without Workflow",
         conversation_config,
         undefined,
@@ -129,21 +137,17 @@ describe("Workflow support in agents", () => {
         []
       );
 
-      expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
-      const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = sentBody(fetchMock);
 
-      expect(payload).toEqual(
-        expect.objectContaining({
-          name: "Agent without Workflow",
-          workflow: undefined,
-        })
-      );
+      expect(body.name).toBe("Agent without Workflow");
+      expect(body).not.toHaveProperty("workflow");
     });
   });
 
   describe("updateAgentApi", () => {
     it("should send workflow when updating an agent", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch();
       const conversation_config = {
         conversation: {
           client_events: ["audio"],
@@ -161,7 +165,7 @@ describe("Workflow support in agents", () => {
       };
 
       await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_workflow_123",
         "Updated Agent",
         conversation_config,
@@ -170,29 +174,22 @@ describe("Workflow support in agents", () => {
         ["updated"]
       );
 
-      expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
-      const [agentId, payload] = (
-        client.conversationalAi.agents.update as jest.Mock
-      ).mock.calls[0];
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("https://api.test/v1/convai/agents/agent_workflow_123");
+      expect(init.method).toBe("PATCH");
 
-      expect(agentId).toBe("agent_workflow_123");
-      // Workflow node/edge identifier keys should be preserved (not camel-cased)
-      expect(payload).toEqual(
+      expect(sentBody(fetchMock)).toEqual(
         expect.objectContaining({
           name: "Updated Agent",
-          workflow: expect.objectContaining({
-            nodes: expect.objectContaining({
-              updated_start: expect.any(Object),  // preserved as identifier
-              updated_end: expect.any(Object),    // preserved as identifier
-            }),
-          }),
+          workflow,
           tags: ["updated"],
         })
       );
     });
 
     it("should allow clearing workflow by passing undefined", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch();
       const conversation_config = {
         conversation: {
           client_events: ["audio"],
@@ -200,7 +197,7 @@ describe("Workflow support in agents", () => {
       } as unknown as Record<string, unknown>;
 
       await updateAgentApi(
-        client,
+        TEST_CTX,
         "agent_workflow_123",
         "Agent Workflow Cleared",
         conversation_config,
@@ -209,16 +206,59 @@ describe("Workflow support in agents", () => {
         []
       );
 
-      expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
-      const [, payload] = (
-        client.conversationalAi.agents.update as jest.Mock
-      ).mock.calls[0];
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(sentBody(fetchMock)).not.toHaveProperty("workflow");
+    });
 
-      expect(payload).toEqual(
-        expect.objectContaining({
-          workflow: undefined,
-        })
+    // Regression: workflows with expression-type edge conditions containing `llm`
+    // or `null_literal` AST nodes must round-trip through push unchanged. The
+    // SDK's generated serializers reject these (missing "value" key / unknown
+    // union member), which is why push sends raw JSON.
+    it("round-trips expression conditions with llm and null_literal nodes verbatim", async () => {
+      const fetchMock = mockFetch();
+
+      const workflow = {
+        edges: {
+          edge_01: {
+            source: "node_a",
+            target: "node_b",
+            forward_condition: {
+              type: "expression",
+              expression: {
+                type: "and_operator",
+                children: [
+                  {
+                    type: "neq_operator",
+                    left: { type: "dynamic_variable", name: "system__caller_id" },
+                    right: { type: "null_literal" }
+                  },
+                  {
+                    type: "llm",
+                    value_schema: {
+                      type: "boolean",
+                      description: "customer expressed intention to book an appointment"
+                    },
+                    prompt: "customer expressed intention to book an appointment"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        nodes: {}
+      };
+
+      await updateAgentApi(
+        TEST_CTX,
+        "agent_workflow_123",
+        "Expression Agent",
+        { agent: { prompt: { prompt: "hi" } } } as unknown as Record<string, unknown>,
+        undefined,
+        workflow,
+        []
       );
+
+      expect(sentBody(fetchMock).workflow).toEqual(workflow);
     });
   });
 
@@ -269,7 +309,7 @@ describe("Workflow support in agents", () => {
 
   describe("Workflow persistence in pull/push flow", () => {
     it("should preserve complex workflow structures", async () => {
-      const client = makeMockClient();
+      const fetchMock = mockFetch();
 
       // Complex workflow with multiple node types
       const complexWorkflow = {
@@ -314,7 +354,7 @@ describe("Workflow support in agents", () => {
       };
 
       await createAgentApi(
-        client,
+        TEST_CTX,
         "Complex Workflow Agent",
         { agent: { prompt: { prompt: "test", temperature: 0 } } } as unknown as Record<string, unknown>,
         undefined,
@@ -322,21 +362,11 @@ describe("Workflow support in agents", () => {
         ["complex"]
       );
 
-      const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+      const body = sentBody(fetchMock);
 
-      // Workflow node/edge identifier keys should be preserved (not camel-cased)
-      expect(payload.workflow.nodes).toHaveProperty("start_1");     // preserved as identifier
-      expect(payload.workflow.nodes).toHaveProperty("agent_1");     // preserved as identifier
-      expect(payload.workflow.nodes).toHaveProperty("tool_1");      // preserved as identifier
-      expect(payload.workflow.nodes).toHaveProperty("end_1");       // preserved as identifier
-      expect(payload.workflow.edges).toHaveProperty("edge_start_to_agent");  // preserved as identifier
-      expect(payload.workflow.edges).toHaveProperty("edge_agent_to_tool");   // preserved as identifier
-      expect(payload.workflow.edges).toHaveProperty("edge_tool_to_end");     // preserved as identifier
-
-      // Verify nested schema properties ARE still converted to camelCase
-      expect(payload.workflow.nodes.start_1.config).toHaveProperty("initialMessage"); // initial_message → initialMessage
-      expect(payload.workflow.nodes.agent_1).toHaveProperty("agentId");    // agent_id → agentId
-      expect(payload.workflow.nodes.tool_1).toHaveProperty("toolId");      // tool_id → toolId
+      // The pulled snake_case workflow must reach the wire unchanged: node/edge
+      // identifier keys AND schema fields (agent_id, tool_id, initial_message)
+      expect(body.workflow).toEqual(complexWorkflow);
     });
   });
 });

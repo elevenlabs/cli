@@ -8,7 +8,7 @@ import theme from '../../ui/themes/elevenlabs.js';
 import { getTemplateByName, getTemplateOptions } from '../templates.js';
 import { writeConfig, generateUniqueFilename } from '../../shared/utils.js';
 import { createAgentApi } from '../../shared/elevenlabs-api.js';
-import { getElevenLabsClient } from '../../shared/elevenlabs-api.js';
+import { getApiContext } from '../../shared/elevenlabs-api.js';
 import path from 'path';
 import fs from 'fs-extra';
 
@@ -68,13 +68,13 @@ export const AddAgentView: React.FC<AddAgentViewProps> = ({
       
       // Step 2: Upload to ElevenLabs first to get ID
       setStatusMessage('Creating agent in ElevenLabs...');
-      const client = await getElevenLabsClient();
+      const apiCtx = await getApiContext();
       const conversationConfig = agentConfig.conversation_config || {};
       const platformSettings = agentConfig.platform_settings;
       const workflow = agentConfig.workflow;
       const tags = agentConfig.tags || [];
       const agentId = await createAgentApi(
-        client,
+        apiCtx,
         agentName,
         conversationConfig,
         platformSettings,

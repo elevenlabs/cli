@@ -1,22 +1,7 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
-import {
-  ConversationalConfig,
-  AgentPlatformSettingsRequestModel,
-  AgentWorkflowRequestModel
-} from '@elevenlabs/elevenlabs-js/api';
 import { getApiKey, loadConfig, Location } from './config.js';
 import { toCamelCaseKeys, toSnakeCaseKeys } from './utils.js';
-
-// Type guard for conversational config
-function isConversationalConfig(config: unknown): config is ConversationalConfig {
-  return typeof config === 'object' && config !== null;
-}
-
-// Type guard for platform settings
-function isPlatformSettings(settings: unknown): settings is AgentPlatformSettingsRequestModel {
-  return typeof settings === 'object' && settings !== null;
-}
 
 /**
  * Cleans conversation config before sending to API.
@@ -80,7 +65,7 @@ export async function getElevenLabsClient(): Promise<ElevenLabsClient> {
   const config = await loadConfig();
   const baseURL = getApiBaseUrl(config.residency);
   
-  return new ElevenLabsClient({ 
+  return new ElevenLabsClient({
     apiKey,
     baseUrl: baseURL,
     headers: {
@@ -90,9 +75,70 @@ export async function getElevenLabsClient(): Promise<ElevenLabsClient> {
 }
 
 /**
+ * Connection details for raw Convai API requests.
+ */
+export interface ApiContext {
+  apiKey: string;
+  baseUrl: string;
+}
+
+/**
+ * Resolves the API key and base URL for raw Convai API requests.
+ *
+ * @throws {Error} If no API key is found
+ */
+export async function getApiContext(): Promise<ApiContext> {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error(`No API key found. Use 'elevenlabs auth login' to authenticate or set ELEVENLABS_API_KEY environment variable.`);
+  }
+
+  const config = await loadConfig();
+  return { apiKey, baseUrl: getApiBaseUrl(config.residency) };
+}
+
+/**
+ * Performs a raw JSON request against the Convai API.
+ *
+ * Agent create/update bodies deliberately bypass the SDK's generated
+ * serializers: they mirror the OpenAPI spec imperfectly for recursive union
+ * structures (e.g. workflow expression conditions with `llm` or `null_literal`
+ * nodes) and either reject or silently strip valid configs. Sending the
+ * snake_case config as-is guarantees a pulled config round-trips through push.
+ */
+async function convaiRequest(
+  ctx: ApiContext,
+  method: 'POST' | 'PATCH',
+  path: string,
+  body: Record<string, unknown>,
+  queryParams?: Record<string, string>
+): Promise<Record<string, unknown>> {
+  const query = queryParams && Object.keys(queryParams).length > 0
+    ? `?${new URLSearchParams(queryParams).toString()}`
+    : '';
+
+  const response = await fetch(`${ctx.baseUrl}${path}${query}`, {
+    method,
+    headers: {
+      'xi-api-key': ctx.apiKey,
+      'Content-Type': 'application/json',
+      'X-Source': 'agents-cli'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`${method} ${path} failed (${response.status}): ${errorBody}`);
+  }
+
+  return await response.json() as Record<string, unknown>;
+}
+
+/**
  * Creates a new agent using the ElevenLabs API.
  *
- * @param client - An initialized ElevenLabs client
+ * @param ctx - API connection context from getApiContext()
  * @param name - The name of the agent
  * @param conversationConfigDict - A dictionary for ConversationalConfig
  * @param platformSettingsDict - An optional dictionary for AgentPlatformSettings
@@ -101,42 +147,37 @@ export async function getElevenLabsClient(): Promise<ElevenLabsClient> {
  * @returns Promise that resolves to the agent_id of the newly created agent
  */
 export async function createAgentApi(
-  client: ElevenLabsClient,
+  ctx: ApiContext,
   name: string,
   conversationConfigDict: Record<string, unknown>,
   platformSettingsDict?: Record<string, unknown>,
   workflow?: unknown,
   tags?: string[]
 ): Promise<string> {
-  if (!isConversationalConfig(conversationConfigDict)) {
+  if (typeof conversationConfigDict !== 'object' || conversationConfigDict === null) {
     throw new Error('Invalid conversation config provided');
   }
 
   // Clean config to remove deprecated 'tools' if 'tool_ids' exists
   const cleanedConfig = cleanConversationConfigForApi(conversationConfigDict);
 
-  // Normalize to camelCase for API
-  const convConfig = toCamelCaseKeys(cleanedConfig) as ConversationalConfig;
-  const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
-
-  // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
-  const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
-
-  const response = await client.conversationalAi.agents.create({
+  const body: Record<string, unknown> = {
     name,
-    conversationConfig: convConfig,
-    platformSettings,
-    workflow: workflowConfig,
-    tags
-  });
+    conversation_config: toSnakeCaseKeys(cleanedConfig)
+  };
+  if (platformSettingsDict) body.platform_settings = toSnakeCaseKeys(platformSettingsDict);
+  if (workflow) body.workflow = toSnakeCaseKeys(workflow);
+  if (tags) body.tags = tags;
 
-  return response.agentId;
+  const response = await convaiRequest(ctx, 'POST', '/v1/convai/agents/create', body);
+
+  return response.agent_id as string;
 }
 
 /**
  * Updates an existing agent using the ElevenLabs API.
  *
- * @param client - An initialized ElevenLabs client
+ * @param ctx - API connection context from getApiContext()
  * @param agentId - The ID of the agent to update
  * @param name - Optional new name for the agent
  * @param conversationConfigDict - Optional new dictionary for ConversationalConfig
@@ -146,7 +187,7 @@ export async function createAgentApi(
  * @returns Promise that resolves to the agent_id of the updated agent
  */
 export async function updateAgentApi(
-  client: ElevenLabsClient,
+  ctx: ApiContext,
   agentId: string,
   name?: string,
   conversationConfigDict?: Record<string, unknown>,
@@ -159,25 +200,26 @@ export async function updateAgentApi(
   // Clean config to remove deprecated 'tools' if 'tool_ids' exists
   const cleanedConfig = conversationConfigDict ? cleanConversationConfigForApi(conversationConfigDict) : undefined;
 
-  const convConfig = cleanedConfig && isConversationalConfig(cleanedConfig) ? toCamelCaseKeys(cleanedConfig) as ConversationalConfig : undefined;
-  const platformSettings = platformSettingsDict && isPlatformSettings(platformSettingsDict) ? toCamelCaseKeys(platformSettingsDict) as AgentPlatformSettingsRequestModel : undefined;
-  // Normalize workflow to camelCase for API (same as conversationConfig and platformSettings)
-  const workflowConfig = workflow ? toCamelCaseKeys(workflow) as AgentWorkflowRequestModel : undefined;
+  const body: Record<string, unknown> = {};
+  if (name !== undefined) body.name = name;
+  if (cleanedConfig) body.conversation_config = toSnakeCaseKeys(cleanedConfig);
+  if (platformSettingsDict) body.platform_settings = toSnakeCaseKeys(platformSettingsDict);
+  if (workflow) body.workflow = toSnakeCaseKeys(workflow);
+  if (tags) body.tags = tags;
+  if (versionDescription !== undefined) body.version_description = versionDescription;
 
-  const response = await client.conversationalAi.agents.update(agentId, {
-    name,
-    conversationConfig: convConfig,
-    platformSettings,
-    workflow: workflowConfig,
-    tags,
-    versionDescription,
-    ...(branchId ? { branchId } : {})
-  });
+  const response = await convaiRequest(
+    ctx,
+    'PATCH',
+    `/v1/convai/agents/${agentId}`,
+    body,
+    branchId ? { branch_id: branchId } : undefined
+  );
 
   return {
-    agentId: response.agentId,
-    versionId: response.versionId,
-    branchId: response.branchId
+    agentId: response.agent_id as string,
+    versionId: response.version_id as string | undefined,
+    branchId: response.branch_id as string | undefined
   };
 }
 

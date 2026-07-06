@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useApp } from 'ink';
 import App from '../../ui/App.js';
 import theme from '../../ui/themes/elevenlabs.js';
-import { getElevenLabsClient, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, getApiContext, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 import { readConfig, writeConfig } from '../../shared/utils.js';
 import fs from 'fs-extra';
 import path from 'path';
@@ -99,6 +99,7 @@ export const PushView: React.FC<PushViewProps> = ({
 
           // Get ElevenLabs client
           const client = await getElevenLabsClient();
+          const apiCtx = await getApiContext();
 
           // Resolve branch if needed
           let branchId: string | undefined;
@@ -116,7 +117,7 @@ export const PushView: React.FC<PushViewProps> = ({
           if (!agentId) {
             // Create new agent
             const newAgentId = await createAgentApi(
-              client,
+              apiCtx,
               agentDisplayName,
               conversationConfig,
               platformSettings,
@@ -146,7 +147,7 @@ export const PushView: React.FC<PushViewProps> = ({
           } else {
             // Update existing agent
             const result = await updateAgentApi(
-              client,
+              apiCtx,
               agentId,
               agentDisplayName,
               conversationConfig,
@@ -172,7 +173,7 @@ export const PushView: React.FC<PushViewProps> = ({
                   if (!(await fs.pathExists(branchDef.config))) continue;
                   const branchConfig = await readConfig<any>(branchDef.config);
                   const branchResult = await updateAgentApi(
-                    client,
+                    apiCtx,
                     agentId,
                     branchConfig.name,
                     branchConfig.conversation_config || {},
