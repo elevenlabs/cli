@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { readConfig, writeConfig } from '../../shared/utils.js';
-import { getElevenLabsClient, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
+import { getElevenLabsClient, getApiContext, createAgentApi, updateAgentApi, resolveBranchId } from '../../shared/elevenlabs-api.js';
 import { verifyAgentPush } from '../../shared/verify.js';
 import { AgentConfig } from '../templates.js';
 
@@ -92,8 +92,10 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
 
     // Initialize ElevenLabs client
     let client;
+    let apiCtx;
     try {
       client = await getElevenLabsClient();
+      apiCtx = await getApiContext();
     } catch (error) {
       console.log(`Error: ${error}`);
       console.log(`Skipping agent ${agentDefName} - not configured`);
@@ -120,7 +122,7 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
       if (!currentAgentId) {
         // Create new agent
         const newAgentId = await createAgentApi(
-          client,
+          apiCtx,
           agentDisplayName,
           conversationConfig,
           platformSettings,
@@ -141,7 +143,7 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
       } else {
         // Update existing agent
         const result = await updateAgentApi(
-          client,
+          apiCtx,
           currentAgentId,
           agentDisplayName,
           conversationConfig,
@@ -183,7 +185,7 @@ export async function pushAgents(dryRun: boolean = false, agentId?: string, vers
 
             console.log(`  Pushing branch '${branchName}'...`);
             const branchResult = await updateAgentApi(
-              client,
+              apiCtx,
               currentAgentId,
               branchConfig.name,
               branchConversationConfig,

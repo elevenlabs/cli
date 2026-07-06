@@ -18,6 +18,8 @@ export default [
         setTimeout: 'readonly',
         NodeJS: 'readonly',
         require: 'readonly',
+        fetch: 'readonly',
+        URLSearchParams: 'readonly',
       },
     },
     plugins: {
@@ -50,6 +52,8 @@ export default [
         __dirname: 'readonly',
         clearTimeout: 'readonly',
         setTimeout: 'readonly',
+        global: 'readonly',
+        fetch: 'readonly',
       },
     },
     plugins: {

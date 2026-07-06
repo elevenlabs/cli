@@ -8,10 +8,28 @@ import {
 } from "../shared/elevenlabs-api";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
+const TEST_CTX = { apiKey: "test-key", baseUrl: "https://api.test" };
+
+const realFetch = global.fetch;
+afterEach(() => {
+  global.fetch = realFetch;
+});
+
+function mockFetch(response: Record<string, unknown> = { agent_id: "agent_123" }): jest.Mock {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => response,
+  });
+  global.fetch = fetchMock as unknown as typeof fetch;
+  return fetchMock;
+}
+
+function sentBody(fetchMock: jest.Mock): Record<string, any> {
+  return JSON.parse(fetchMock.mock.calls[0][1].body as string);
+}
+
 describe("Key casing normalization", () => {
   function makeMockClient() {
-    const create = jest.fn().mockResolvedValue({ agentId: "agent_123" });
-    const update = jest.fn().mockResolvedValue({ agentId: "agent_123" });
     const get = jest.fn().mockResolvedValue({
       agentId: "agent_123",
       name: "Test Agent",
@@ -34,13 +52,13 @@ describe("Key casing normalization", () => {
 
     return {
       conversationalAi: {
-        agents: { create, update, get },
+        agents: { get },
       },
     } as unknown as ElevenLabsClient;
   }
 
-  it("createAgentApi camelizes outbound conversation_config and platform_settings", async () => {
-    const client = makeMockClient();
+  it("createAgentApi sends conversation_config and platform_settings as snake_case wire JSON", async () => {
+    const fetchMock = mockFetch();
     const conversation_config = {
       conversation: {
         client_events: ["audio", "interruption"],
@@ -52,7 +70,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await createAgentApi(
-      client,
+      TEST_CTX,
       "Name",
       conversation_config,
       platform_settings,
@@ -60,31 +78,29 @@ describe("Key casing normalization", () => {
       ["prod"]
     );
 
-    expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
-    const [, payload] = [
-      (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0]
-        .name,
-      (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0],
-    ];
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.test/v1/convai/agents/create");
+    expect(init.method).toBe("POST");
 
-    expect(payload).toEqual(
+    expect(sentBody(fetchMock)).toEqual(
       expect.objectContaining({
         name: "Name",
-        conversationConfig: expect.objectContaining({
+        conversation_config: expect.objectContaining({
           conversation: expect.objectContaining({
-            clientEvents: ["audio", "interruption"],
+            client_events: ["audio", "interruption"],
           }),
         }),
-        platformSettings: expect.objectContaining({
-          widget: expect.objectContaining({ textInputEnabled: true }),
+        platform_settings: expect.objectContaining({
+          widget: expect.objectContaining({ text_input_enabled: true }),
         }),
         tags: ["prod"],
       })
     );
   });
 
-  it("updateAgentApi camelizes outbound conversation_config", async () => {
-    const client = makeMockClient();
+  it("updateAgentApi sends conversation_config as snake_case wire JSON", async () => {
+    const fetchMock = mockFetch();
     const conversation_config = {
       conversation: {
         client_events: ["audio", "agent_response"],
@@ -92,7 +108,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await updateAgentApi(
-      client,
+      TEST_CTX,
       "agent_123",
       "Name",
       conversation_config,
@@ -101,22 +117,37 @@ describe("Key casing normalization", () => {
       ["prod"]
     );
 
-    expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
-    const [agentId, payload] = (
-      client.conversationalAi.agents.update as jest.Mock
-    ).mock.calls[0];
-    expect(agentId).toBe("agent_123");
-    expect(payload).toEqual(
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.test/v1/convai/agents/agent_123");
+    expect(init.method).toBe("PATCH");
+    expect(sentBody(fetchMock)).toEqual(
       expect.objectContaining({
         name: "Name",
-        conversationConfig: expect.objectContaining({
+        conversation_config: expect.objectContaining({
           conversation: expect.objectContaining({
-            clientEvents: ["audio", "agent_response"],
+            client_events: ["audio", "agent_response"],
           }),
         }),
         tags: ["prod"],
       })
     );
+  });
+
+  it("createAgentApi normalizes hand-written camelCase keys to snake_case on the wire", async () => {
+    const fetchMock = mockFetch();
+    const conversation_config = {
+      conversation: {
+        clientEvents: ["audio"],
+      },
+      agent: { prompt: { prompt: "hi", temperature: 0 } },
+    } as unknown as Record<string, unknown>;
+
+    await createAgentApi(TEST_CTX, "Name", conversation_config, undefined, undefined, []);
+
+    const body = sentBody(fetchMock);
+    expect(body.conversation_config.conversation).toHaveProperty("client_events");
+    expect(body.conversation_config.conversation).not.toHaveProperty("clientEvents");
   });
 
   it("getAgentApi snake_cases inbound response for writing to disk", async () => {
@@ -143,7 +174,7 @@ describe("Key casing normalization", () => {
   });
 
   it("createAgentApi removes deprecated 'tools' field when 'tool_ids' is present", async () => {
-    const client = makeMockClient();
+    const fetchMock = mockFetch();
     const conversation_config = {
       conversation: {
         client_events: ["audio"],
@@ -161,7 +192,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await createAgentApi(
-      client,
+      TEST_CTX,
       "Agent with Tools",
       conversation_config,
       undefined,
@@ -169,17 +200,16 @@ describe("Key casing normalization", () => {
       []
     );
 
-    expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
-    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+    const body = sentBody(fetchMock);
 
-    // Verify that 'tools' field is removed but 'toolIds' is present
-    expect(payload.conversationConfig.agent.prompt).not.toHaveProperty("tools");
-    expect(payload.conversationConfig.agent.prompt).toHaveProperty("toolIds");
-    expect(payload.conversationConfig.agent.prompt.toolIds).toEqual(["tool_123", "tool_456"]);
+    // Verify that 'tools' field is removed but 'tool_ids' is present
+    expect(body.conversation_config.agent.prompt).not.toHaveProperty("tools");
+    expect(body.conversation_config.agent.prompt).toHaveProperty("tool_ids");
+    expect(body.conversation_config.agent.prompt.tool_ids).toEqual(["tool_123", "tool_456"]);
   });
 
   it("updateAgentApi removes deprecated 'tools' field when 'tool_ids' is present", async () => {
-    const client = makeMockClient();
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: {
         prompt: {
@@ -193,7 +223,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await updateAgentApi(
-      client,
+      TEST_CTX,
       "agent_123",
       "Updated Agent",
       conversation_config,
@@ -202,17 +232,16 @@ describe("Key casing normalization", () => {
       []
     );
 
-    expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
-    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
+    const body = sentBody(fetchMock);
 
-    // Verify that 'tools' field is removed but 'toolIds' is present
-    expect(payload.conversationConfig.agent.prompt).not.toHaveProperty("tools");
-    expect(payload.conversationConfig.agent.prompt).toHaveProperty("toolIds");
-    expect(payload.conversationConfig.agent.prompt.toolIds).toEqual(["tool_789"]);
+    // Verify that 'tools' field is removed but 'tool_ids' is present
+    expect(body.conversation_config.agent.prompt).not.toHaveProperty("tools");
+    expect(body.conversation_config.agent.prompt).toHaveProperty("tool_ids");
+    expect(body.conversation_config.agent.prompt.tool_ids).toEqual(["tool_789"]);
   });
 
-  it("createAgentApi camelizes workflow edge conditions (forward_condition, backward_condition)", async () => {
-    const client = makeMockClient();
+  it("createAgentApi sends workflow edge conditions unchanged on the wire", async () => {
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: { prompt: { prompt: "hi", temperature: 0 } },
     } as unknown as Record<string, unknown>;
@@ -238,7 +267,7 @@ describe("Key casing normalization", () => {
     };
 
     await createAgentApi(
-      client,
+      TEST_CTX,
       "Workflow Agent",
       conversation_config,
       undefined,
@@ -246,25 +275,14 @@ describe("Key casing normalization", () => {
       []
     );
 
-    expect(client.conversationalAi.agents.create).toHaveBeenCalledTimes(1);
-    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+    const body = sentBody(fetchMock);
 
-    // Verify workflow edge identifier keys are preserved, but schema fields within are camel-cased
-    expect(payload.workflow).toBeDefined();
-    expect(payload.workflow.edges.edge_start_to_agent).toEqual({
-      source: "start_node",
-      target: "agent_node",
-      forwardCondition: { type: "unconditional" }
-    });
-    expect(payload.workflow.edges.edge_agent_to_end).toEqual({
-      source: "agent_node",
-      target: "end_node",
-      backwardCondition: { type: "result", resultKey: "success" }
-    });
+    // A pulled workflow must round-trip through push byte-for-byte
+    expect(body.workflow).toEqual(workflow);
   });
 
-  it("updateAgentApi camelizes workflow edge conditions (forward_condition, backward_condition)", async () => {
-    const client = makeMockClient();
+  it("updateAgentApi sends workflow edge conditions unchanged on the wire", async () => {
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: { prompt: { prompt: "hi", temperature: 0 } },
     } as unknown as Record<string, unknown>;
@@ -285,7 +303,7 @@ describe("Key casing normalization", () => {
     };
 
     await updateAgentApi(
-      client,
+      TEST_CTX,
       "agent_123",
       "Workflow Agent",
       conversation_config,
@@ -294,20 +312,12 @@ describe("Key casing normalization", () => {
       []
     );
 
-    expect(client.conversationalAi.agents.update).toHaveBeenCalledTimes(1);
-    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
-
-    // Verify workflow edge identifier keys are preserved, but schema fields within are camel-cased
-    expect(payload.workflow).toBeDefined();
-    expect(payload.workflow.edges.edge_start_to_agent).toEqual({
-      source: "start_node",
-      target: "agent_node",
-      forwardCondition: { type: "llm", description: "When user asks for help" }
-    });
+    const body = sentBody(fetchMock);
+    expect(body.workflow).toEqual(workflow);
   });
 
   it("createAgentApi preserves data_collection child keys (user-defined identifiers)", async () => {
-    const client = makeMockClient();
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: { prompt: { prompt: "hi", temperature: 0 } },
     } as unknown as Record<string, unknown>;
@@ -320,7 +330,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await createAgentApi(
-      client,
+      TEST_CTX,
       "Agent with data_collection",
       conversation_config,
       platform_settings,
@@ -328,23 +338,21 @@ describe("Key casing normalization", () => {
       []
     );
 
-    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+    const body = sentBody(fetchMock);
 
-    // data_collection top-level key is camelized to dataCollection (envelope convention)
-    expect(payload.platformSettings).toHaveProperty("dataCollection");
-    // Children are user-defined identifiers — must be preserved as-is (snake_case stays snake_case)
-    expect(payload.platformSettings.dataCollection).toHaveProperty("need_callback");
-    expect(payload.platformSettings.dataCollection).toHaveProperty("call_end_reason");
-    expect(payload.platformSettings.dataCollection).toHaveProperty("human_reached");
-    // Leaf values under each identifier — nested schema fields like 'type'/'description' stay as-is (no underscores to convert)
-    expect(payload.platformSettings.dataCollection.need_callback).toEqual({
+    expect(body.platform_settings).toHaveProperty("data_collection");
+    // Children are user-defined identifiers — must be preserved as-is
+    expect(body.platform_settings.data_collection).toHaveProperty("need_callback");
+    expect(body.platform_settings.data_collection).toHaveProperty("call_end_reason");
+    expect(body.platform_settings.data_collection).toHaveProperty("human_reached");
+    expect(body.platform_settings.data_collection.need_callback).toEqual({
       type: "boolean",
       description: "Whether to call back",
     });
   });
 
   it("updateAgentApi preserves data_collection child keys (user-defined identifiers)", async () => {
-    const client = makeMockClient();
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: { prompt: { prompt: "updated", temperature: 0 } },
     } as unknown as Record<string, unknown>;
@@ -355,7 +363,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await updateAgentApi(
-      client,
+      TEST_CTX,
       "agent_123",
       "Updated",
       conversation_config,
@@ -364,10 +372,10 @@ describe("Key casing normalization", () => {
       []
     );
 
-    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
+    const body = sentBody(fetchMock);
 
-    expect(payload.platformSettings).toHaveProperty("dataCollection");
-    expect(payload.platformSettings.dataCollection).toHaveProperty("need_callback");
+    expect(body.platform_settings).toHaveProperty("data_collection");
+    expect(body.platform_settings.data_collection).toHaveProperty("need_callback");
   });
 
   it("getAgentApi preserves data_collection child keys on inbound snake_case conversion", async () => {
@@ -428,7 +436,7 @@ describe("Key casing normalization", () => {
   });
 
   it("createAgentApi preserves 'tools' field when 'tool_ids' is not present", async () => {
-    const client = makeMockClient();
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: {
         prompt: {
@@ -441,7 +449,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await createAgentApi(
-      client,
+      TEST_CTX,
       "Agent with Legacy Tools",
       conversation_config,
       undefined,
@@ -449,11 +457,11 @@ describe("Key casing normalization", () => {
       []
     );
 
-    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
+    const body = sentBody(fetchMock);
 
     // When tool_ids is not present, tools should be preserved
-    expect(payload.conversationConfig.agent.prompt).toHaveProperty("tools");
-    expect(payload.conversationConfig.agent.prompt.tools).toHaveLength(1);
+    expect(body.conversation_config.agent.prompt).toHaveProperty("tools");
+    expect(body.conversation_config.agent.prompt.tools).toHaveLength(1);
   });
 
   function makeToolsMockClient() {
@@ -485,8 +493,8 @@ describe("Key casing normalization", () => {
     } as unknown as ElevenLabsClient;
   }
 
-  it("createAgentApi camelizes the placeholders wrapper but preserves placeholder names", async () => {
-    const client = makeMockClient();
+  it("createAgentApi keeps the placeholders wrapper snake_case and preserves placeholder names", async () => {
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: {
         prompt: { prompt: "hi", temperature: 0 },
@@ -500,7 +508,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await createAgentApi(
-      client,
+      TEST_CTX,
       "Agent with placeholders",
       conversation_config,
       undefined,
@@ -508,21 +516,19 @@ describe("Key casing normalization", () => {
       []
     );
 
-    const payload = (client.conversationalAi.agents.create as jest.Mock).mock.calls[0][0];
-    const dynamicVariables = payload.conversationConfig.agent.dynamicVariables;
+    const body = sentBody(fetchMock);
+    const dynamicVariables = body.conversation_config.agent.dynamic_variables;
 
-    // The wrapper is a schema field: it must be camelized or the SDK strips it from the request
-    expect(dynamicVariables).toHaveProperty("dynamicVariablePlaceholders");
-    expect(dynamicVariables).not.toHaveProperty("dynamic_variable_placeholders");
+    expect(dynamicVariables).toHaveProperty("dynamic_variable_placeholders");
     // Placeholder names are user-defined identifiers, preserved as-is
-    expect(dynamicVariables.dynamicVariablePlaceholders).toEqual({
+    expect(dynamicVariables.dynamic_variable_placeholders).toEqual({
       transaction_id: "txn_default",
       verified: false,
     });
   });
 
-  it("updateAgentApi camelizes the placeholders wrapper but preserves placeholder names", async () => {
-    const client = makeMockClient();
+  it("updateAgentApi keeps the placeholders wrapper snake_case and preserves placeholder names", async () => {
+    const fetchMock = mockFetch();
     const conversation_config = {
       agent: {
         prompt: { prompt: "hi", temperature: 0 },
@@ -536,7 +542,7 @@ describe("Key casing normalization", () => {
     } as unknown as Record<string, unknown>;
 
     await updateAgentApi(
-      client,
+      TEST_CTX,
       "agent_123",
       "Updated",
       conversation_config,
@@ -545,12 +551,11 @@ describe("Key casing normalization", () => {
       []
     );
 
-    const [, payload] = (client.conversationalAi.agents.update as jest.Mock).mock.calls[0];
-    const dynamicVariables = payload.conversationConfig.agent.dynamicVariables;
+    const body = sentBody(fetchMock);
+    const dynamicVariables = body.conversation_config.agent.dynamic_variables;
 
-    expect(dynamicVariables).toHaveProperty("dynamicVariablePlaceholders");
-    expect(dynamicVariables).not.toHaveProperty("dynamic_variable_placeholders");
-    expect(dynamicVariables.dynamicVariablePlaceholders).toEqual({
+    expect(dynamicVariables).toHaveProperty("dynamic_variable_placeholders");
+    expect(dynamicVariables.dynamic_variable_placeholders).toEqual({
       transaction_id: "txn_default",
       user_name: "Jan",
     });
