@@ -70,7 +70,7 @@ export function getDefaultAgentTemplate(name: string): AgentConfig {
     conversation_config: {
       asr: {
         quality: "high",
-        provider: "elevenlabs",
+        provider: "scribe_realtime",
         user_input_audio_format: "pcm_16000",
         keywords: []
       },
@@ -407,4 +407,4 @@ export function getTemplateByName(name: string, templateType: string = "default"
   }
   
   return templateFunctions[templateType](name);
-} 
+}
