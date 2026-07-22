@@ -1,0 +1,2 @@
+pub mod conversational_ai_agents_knowledge_base;
+pub use conversational_ai_agents_knowledge_base::KnowledgeBaseClient2;
