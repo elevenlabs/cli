@@ -1,0 +1,99 @@
+pub use crate::prelude::*;
+#[allow(unused_imports)]
+use super::*;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ProcedureAtVersionInput {
+    /// Procedure ID
+    #[serde(default)]
+    pub procedure_id: String,
+    /// Procedure name
+    #[serde(default)]
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<ProcedureType>,
+    /// Procedure content
+    #[serde(default)]
+    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guardrails: Option<Vec<CustomGuardrailConfig>>,
+    /// Agent ID of the procedure
+    #[serde(default)]
+    pub agent_id: String,
+    /// Version ID of a version of the procedure. None for a procedure never versioned.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
+}
+
+impl ProcedureAtVersionInput {
+    pub fn builder() -> ProcedureAtVersionInputBuilder {
+        <ProcedureAtVersionInputBuilder as Default>::default()
+    }
+}
+
+#[derive(Clone, PartialEq, Default, Debug)]
+#[non_exhaustive]
+pub struct ProcedureAtVersionInputBuilder {
+    procedure_id: Option<String>,
+    name: Option<String>,
+    r#type: Option<ProcedureType>,
+    content: Option<String>,
+    guardrails: Option<Vec<CustomGuardrailConfig>>,
+    agent_id: Option<String>,
+    version_id: Option<String>,
+}
+
+impl ProcedureAtVersionInputBuilder {
+    pub fn procedure_id(mut self, value: impl Into<String>) -> Self {
+        self.procedure_id = Some(value.into());
+        self
+    }
+
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
+        self
+    }
+
+    pub fn r#type(mut self, value: ProcedureType) -> Self {
+        self.r#type = Some(value);
+        self
+    }
+
+    pub fn content(mut self, value: impl Into<String>) -> Self {
+        self.content = Some(value.into());
+        self
+    }
+
+    pub fn guardrails(mut self, value: Vec<CustomGuardrailConfig>) -> Self {
+        self.guardrails = Some(value);
+        self
+    }
+
+    pub fn agent_id(mut self, value: impl Into<String>) -> Self {
+        self.agent_id = Some(value.into());
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
+    /// Consumes the builder and constructs a [`ProcedureAtVersionInput`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`procedure_id`](ProcedureAtVersionInputBuilder::procedure_id)
+    /// - [`name`](ProcedureAtVersionInputBuilder::name)
+    /// - [`content`](ProcedureAtVersionInputBuilder::content)
+    /// - [`agent_id`](ProcedureAtVersionInputBuilder::agent_id)
+    pub fn build(self) -> Result<ProcedureAtVersionInput, BuildError> {
+        Ok(ProcedureAtVersionInput {
+            procedure_id: self.procedure_id.ok_or_else(|| BuildError::missing_field("procedure_id"))?,
+            name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
+            r#type: self.r#type,
+            content: self.content.ok_or_else(|| BuildError::missing_field("content"))?,
+            guardrails: self.guardrails,
+            agent_id: self.agent_id.ok_or_else(|| BuildError::missing_field("agent_id"))?,
+            version_id: self.version_id,
+        })
+    }
+}

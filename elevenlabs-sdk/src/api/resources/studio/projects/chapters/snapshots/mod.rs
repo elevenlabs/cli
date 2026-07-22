@@ -1,0 +1,2 @@
+pub mod studio_projects_chapters_snapshots;
+pub use studio_projects_chapters_snapshots::SnapshotsClient2;
