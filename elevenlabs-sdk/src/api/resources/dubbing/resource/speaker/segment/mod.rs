@@ -1,0 +1,2 @@
+pub mod dubbing_resource_speaker_segment;
+pub use dubbing_resource_speaker_segment::SegmentClient2;

@@ -1,0 +1,2 @@
+pub mod conversational_ai_knowledge_base_documents_chunk;
+pub use conversational_ai_knowledge_base_documents_chunk::ChunkClient;
