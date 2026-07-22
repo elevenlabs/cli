@@ -23,6 +23,36 @@ impl MediaClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .media
+    ///         .register(
+    ///             &OrderID("order_id".to_string()),
+    ///             &RegisterRequest {
+    ///                 media: b"test file content".to_vec(),
+    ///                 declared_language: "declared_language".to_string(),
+    ///                 media_url: None,
+    ///                 media_url_filename: None,
+    ///                 media_url_content_type: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn register(
         &self,
         order_id: &OrderId,
@@ -51,6 +81,30 @@ impl MediaClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .media
+    ///         .get(
+    ///             &OrderID("order_id".to_string()),
+    ///             &MediaID("media_id".to_string()),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         order_id: &OrderId,

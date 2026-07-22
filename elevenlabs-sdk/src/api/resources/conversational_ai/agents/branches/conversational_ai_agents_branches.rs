@@ -25,6 +25,34 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .list(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &ConversationalAiAgentsBranchesListQueryRequest {
+    ///                 include_archived: Some(true),
+    ///                 limit: Some(1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         agent_id: &str,
@@ -55,6 +83,37 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .create(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &BodyCreateANewBranchV1ConvaiAgentsAgentIDBranchesPost {
+    ///                 parent_version_id: "parent_version_id".to_string(),
+    ///                 name: "name".to_string(),
+    ///                 description: "description".to_string(),
+    ///                 conversation_config: None,
+    ///                 platform_settings: None,
+    ///                 workflow: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         agent_id: &str,
@@ -83,6 +142,30 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .get(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &"agtbranch_0901k4aafjxxfxt93gd841r7tv5t".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         agent_id: &str,
@@ -111,6 +194,33 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .update(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &"agtbranch_0901k4aafjxxfxt93gd841r7tv5t".to_string(),
+    ///             &BodyUpdateAgentBranchV1ConvaiAgentsAgentIDBranchesBranchIDPatch {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         agent_id: &str,
@@ -142,6 +252,34 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .preview_merge(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///             &PreviewMergeQueryRequest {
+    ///                 target_branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///                 force: Some(true),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn preview_merge(
         &self,
         agent_id: &str,
@@ -178,6 +316,25 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.conversational_ai.agents.branches.merge(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyMergeABranchIntoATargetBranchV1ConvaiAgentsAgentIDBranchesSourceBranchIDMergePost {
+    ///         target_branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///         archive_source_branch: None,
+    ///         force: None
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn merge(
         &self,
         agent_id: &str,
@@ -212,6 +369,30 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .preview_rebase(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn preview_rebase(
         &self,
         agent_id: &str,
@@ -243,6 +424,30 @@ impl BranchesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .branches
+    ///         .rebase(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn rebase(
         &self,
         agent_id: &str,

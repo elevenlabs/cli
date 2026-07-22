@@ -23,6 +23,26 @@ impl LanguagesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .languages
+    ///         .list(&OrderItemKind::Dub, None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         order_item_kind: &OrderItemKind,

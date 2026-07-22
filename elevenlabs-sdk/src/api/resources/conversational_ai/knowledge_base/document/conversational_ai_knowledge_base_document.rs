@@ -23,6 +23,32 @@ impl DocumentClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .document
+    ///         .update_file(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &UpdateFileRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update_file(
         &self,
         documentation_id: &str,
@@ -50,6 +76,26 @@ impl DocumentClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .document
+    ///         .refresh(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn refresh(
         &self,
         documentation_id: &str,
@@ -76,6 +122,32 @@ impl DocumentClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .document
+    ///         .compute_rag_index(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &RagIndexRequestModel {
+    ///                 model: EmbeddingModelEnum::E5Mistral7BInstruct,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn compute_rag_index(
         &self,
         documentation_id: &str,

@@ -24,6 +24,44 @@ impl ToolConfigsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tool_configs
+    ///         .create(
+    ///             &"mcp_server_id".to_string(),
+    ///             &McpToolConfigOverrideCreateRequestModel {
+    ///                 environment: Some("environment".to_string()),
+    ///                 tool_name: "tool_name".to_string(),
+    ///                 force_pre_tool_speech: None,
+    ///                 pre_tool_speech: None,
+    ///                 disable_interruptions: None,
+    ///                 interruption_mode: None,
+    ///                 tool_call_sound: None,
+    ///                 tool_call_sound_behavior: None,
+    ///                 execution_mode: None,
+    ///                 response_timeout_secs: None,
+    ///                 assignments: None,
+    ///                 input_overrides: None,
+    ///                 response_mocks: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         mcp_server_id: &str,
@@ -54,6 +92,26 @@ impl ToolConfigsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tool_configs
+    ///         .get(&"mcp_server_id".to_string(), &"tool_name".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         mcp_server_id: &str,
@@ -85,6 +143,26 @@ impl ToolConfigsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tool_configs
+    ///         .delete(&"mcp_server_id".to_string(), &"tool_name".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         mcp_server_id: &str,
@@ -117,6 +195,34 @@ impl ToolConfigsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tool_configs
+    ///         .update(
+    ///             &"mcp_server_id".to_string(),
+    ///             &"tool_name".to_string(),
+    ///             &McpToolConfigOverrideUpdateRequestModel {
+    ///                 environment: Some("environment".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         mcp_server_id: &str,

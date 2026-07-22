@@ -24,6 +24,286 @@ impl DraftsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .drafts
+    ///         .create(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &BodyCreateAgentDraftV1ConvaiAgentsAgentIDDraftsPost {
+    ///                 branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///                 conversation_config: HashMap::from([(
+    ///                     "key".to_string(),
+    ///                     serde_json::json!("value"),
+    ///                 )]),
+    ///                 platform_settings: HashMap::from([("key".to_string(), serde_json::json!("value"))]),
+    ///                 workflow: AgentWorkflowRequestModel {
+    ///                     edges: Some(HashMap::from([
+    ///                         (
+    ///                             "entry_to_tool_a".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "entry_node".to_string(),
+    ///                                 target: "tool_node_a".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "start_to_entry".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "start_node".to_string(),
+    ///                                 target: "entry_node".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_a_to_failure".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "tool_node_a".to_string(),
+    ///                                 target: "failure_node".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_a_to_tool_b".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "tool_node_a".to_string(),
+    ///                                 target: "tool_node_b".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_b_to_agent_transfer".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "tool_node_b".to_string(),
+    ///                                 target: "success_transfer".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_b_to_conversation".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "tool_node_b".to_string(),
+    ///                                 target: "success_conversation".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_b_to_end".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "tool_node_b".to_string(),
+    ///                                 target: "success_end".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_b_to_phone".to_string(),
+    ///                             WorkflowEdgeModelInput {
+    ///                                 source: "tool_node_b".to_string(),
+    ///                                 target: "success_phone".to_string(),
+    ///                                 forward_condition: Some(
+    ///                                     WorkflowEdgeModelInputForwardCondition::Expression {
+    ///                                         data: WorkflowExpressionConditionModelInput {
+    ///                                             label: None,
+    ///                                             expression: AstNodeInput::AndOperator {
+    ///                                                 data: AstAndOperatorNodeInput {
+    ///                                                     children: vec![],
+    ///                                                     ..Default::default()
+    ///                                                 },
+    ///                                             },
+    ///                                         },
+    ///                                     },
+    ///                                 ),
+    ///                                 ..Default::default()
+    ///                             },
+    ///                         ),
+    ///                     ])),
+    ///                     nodes: Some(HashMap::from([
+    ///                         (
+    ///                             "entry_node".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "failure_node".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "start_node".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "success_conversation".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "success_end".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "success_phone".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "success_transfer".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_node_a".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                         (
+    ///                             "tool_node_b".to_string(),
+    ///                             AgentWorkflowRequestModelNodesValue::End {
+    ///                                 data: WorkflowEndNodeModelInput {
+    ///                                     ..Default::default()
+    ///                                 },
+    ///                             },
+    ///                         ),
+    ///                     ])),
+    ///                     ..Default::default()
+    ///                 },
+    ///                 name: "name".to_string(),
+    ///                 tags: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         agent_id: &str,
@@ -54,6 +334,32 @@ impl DraftsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .drafts
+    ///         .delete(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &ConversationalAiAgentsDraftsDeleteQueryRequest {
+    ///                 branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         agent_id: &str,

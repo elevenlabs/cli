@@ -33,6 +33,45 @@ impl TextToSpeechClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_speech
+    ///         .convert(
+    ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///             &BodyTextToSpeechFull {
+    ///                 output_format: Some(TextToSpeechConvertRequestOutputFormat::Mp344100128),
+    ///                 text: "The first move is what sets everything in motion.".to_string(),
+    ///                 model_id: Some("eleven_multilingual_v2".to_string()),
+    ///                 enable_logging: None,
+    ///                 optimize_streaming_latency: None,
+    ///                 language_code: None,
+    ///                 voice_settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 previous_text: None,
+    ///                 next_text: None,
+    ///                 previous_request_ids: None,
+    ///                 next_request_ids: None,
+    ///                 use_pvc_as_ivc: None,
+    ///                 apply_text_normalization: None,
+    ///                 apply_language_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         voice_id: &str,
@@ -77,6 +116,45 @@ impl TextToSpeechClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_speech
+    ///         .convert_with_timestamps(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyTextToSpeechFullWithTimestamps {
+    ///                 enable_logging: Some(true),
+    ///                 optimize_streaming_latency: Some(1),
+    ///                 output_format: Some(TextToSpeechConvertWithTimestampsRequestOutputFormat::Alaw8000),
+    ///                 text: "This is a test for the API of ElevenLabs.".to_string(),
+    ///                 model_id: None,
+    ///                 language_code: None,
+    ///                 voice_settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 previous_text: None,
+    ///                 next_text: None,
+    ///                 previous_request_ids: None,
+    ///                 next_request_ids: None,
+    ///                 use_pvc_as_ivc: None,
+    ///                 apply_text_normalization: None,
+    ///                 apply_language_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert_with_timestamps(
         &self,
         voice_id: &str,
@@ -121,6 +199,45 @@ impl TextToSpeechClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_speech
+    ///         .stream(
+    ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///             &StreamTextToSpeechRequest {
+    ///                 output_format: Some(TextToSpeechStreamRequestOutputFormat::Mp344100128),
+    ///                 text: "The first move is what sets everything in motion.".to_string(),
+    ///                 model_id: Some("eleven_multilingual_v2".to_string()),
+    ///                 enable_logging: None,
+    ///                 optimize_streaming_latency: None,
+    ///                 language_code: None,
+    ///                 voice_settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 previous_text: None,
+    ///                 next_text: None,
+    ///                 previous_request_ids: None,
+    ///                 next_request_ids: None,
+    ///                 use_pvc_as_ivc: None,
+    ///                 apply_text_normalization: None,
+    ///                 apply_language_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn stream(
         &self,
         voice_id: &str,
@@ -165,6 +282,47 @@ impl TextToSpeechClient {
     /// # Returns
     ///
     /// Complete JSON response (fetched at once, not streaming)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_speech
+    ///         .stream_with_timestamps(
+    ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///             &StreamTextToSpeechWithTimestampsRequest {
+    ///                 output_format: Some(
+    ///                     TextToSpeechStreamWithTimestampsRequestOutputFormat::Mp344100128,
+    ///                 ),
+    ///                 text: "The first move is what sets everything in motion.".to_string(),
+    ///                 model_id: Some("eleven_multilingual_v2".to_string()),
+    ///                 enable_logging: None,
+    ///                 optimize_streaming_latency: None,
+    ///                 language_code: None,
+    ///                 voice_settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 previous_text: None,
+    ///                 next_text: None,
+    ///                 previous_request_ids: None,
+    ///                 next_request_ids: None,
+    ///                 use_pvc_as_ivc: None,
+    ///                 apply_text_normalization: None,
+    ///                 apply_language_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn stream_with_timestamps(
         &self,
         voice_id: &str,

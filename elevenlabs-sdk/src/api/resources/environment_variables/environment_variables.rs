@@ -27,6 +27,34 @@ impl EnvironmentVariablesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .environment_variables
+    ///         .list(
+    ///             &EnvironmentVariablesListQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 label: Some("label".to_string()),
+    ///                 environment: Some("environment".to_string()),
+    ///                 r#type: Some(EnvironmentVariablesListRequestType::String),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &EnvironmentVariablesListQueryRequest,
@@ -58,6 +86,33 @@ impl EnvironmentVariablesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .environment_variables
+    ///         .create(
+    ///             &EnvironmentVariablesCreateRequestBody::r#String {
+    ///                 data: CreateStringEnvironmentVariableRequest {
+    ///                     label: "label".to_string(),
+    ///                     values: HashMap::from([("key".to_string(), "value".to_string())]),
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &EnvironmentVariablesCreateRequestBody,
@@ -83,6 +138,24 @@ impl EnvironmentVariablesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .environment_variables
+    ///         .get(&"env_var_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         env_var_id: &str,
@@ -108,6 +181,30 @@ impl EnvironmentVariablesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .environment_variables
+    ///         .update(
+    ///             &"env_var_id".to_string(),
+    ///             &UpdateEnvironmentVariableRequest {
+    ///                 values: HashMap::from([]),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         env_var_id: &str,

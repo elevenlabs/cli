@@ -22,6 +22,35 @@ impl TwilioClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .twilio
+    ///         .outbound_call(
+    ///             &BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPost {
+    ///                 agent_id: "agent_id".to_string(),
+    ///                 agent_phone_number_id: "agent_phone_number_id".to_string(),
+    ///                 to_number: "to_number".to_string(),
+    ///                 conversation_initiation_client_data: None,
+    ///                 call_recording_enabled: None,
+    ///                 telephony_call_config: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn outbound_call(
         &self,
         request: &BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPost,
@@ -47,6 +76,34 @@ impl TwilioClient {
     /// # Returns
     ///
     /// Text response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .twilio
+    ///         .register_call(
+    ///             &BodyRegisterATwilioCallAndReturnTwiMlV1ConvaiTwilioRegisterCallPost {
+    ///                 agent_id: "agent_id".to_string(),
+    ///                 from_number: "from_number".to_string(),
+    ///                 to_number: "to_number".to_string(),
+    ///                 direction: None,
+    ///                 conversation_initiation_client_data: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn register_call(
         &self,
         request: &BodyRegisterATwilioCallAndReturnTwiMlV1ConvaiTwilioRegisterCallPost,

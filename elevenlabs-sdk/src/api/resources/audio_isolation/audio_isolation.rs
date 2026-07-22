@@ -50,6 +50,32 @@ impl AudioIsolationClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .audio_isolation
+    ///         .list(
+    ///             &AudioIsolationListQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 page: Some(1),
+    ///                 search: Some("search".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &AudioIsolationListQueryRequest,
@@ -80,6 +106,24 @@ impl AudioIsolationClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .audio_isolation
+    ///         .delete(&"history_item_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         history_item_id: &str,

@@ -31,6 +31,38 @@ impl HistoryClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .history
+    ///         .list(
+    ///             &HistoryListQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 start_after_history_item_id: Some("start_after_history_item_id".to_string()),
+    ///                 voice_id: Some("voice_id".to_string()),
+    ///                 model_id: Some("model_id".to_string()),
+    ///                 date_before_unix: Some(1),
+    ///                 date_after_unix: Some(1),
+    ///                 sort_direction: Some(HistoryListRequestSortDirection::Asc),
+    ///                 search: Some("search".to_string()),
+    ///                 source: Some(HistoryListRequestSource::Tts),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &HistoryListQueryRequest,
@@ -70,6 +102,24 @@ impl HistoryClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .history
+    ///         .get(&"VW7YKqPnjY4h39yTbx2L".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         history_item_id: &str,
@@ -96,6 +146,24 @@ impl HistoryClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .history
+    ///         .delete(&"VW7YKqPnjY4h39yTbx2L".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         history_item_id: &str,
@@ -122,6 +190,24 @@ impl HistoryClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .history
+    ///         .get_audio(&"history_item_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_audio(
         &self,
         history_item_id: &str,
@@ -147,6 +233,33 @@ impl HistoryClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .history
+    ///         .download(
+    ///             &DownloadHistoryRequest {
+    ///                 history_item_ids: vec![
+    ///                     "history_item_ids".to_string(),
+    ///                     "history_item_ids".to_string(),
+    ///                 ],
+    ///                 output_format: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn download(
         &self,
         request: &DownloadHistoryRequest,

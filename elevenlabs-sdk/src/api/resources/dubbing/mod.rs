@@ -52,6 +52,38 @@ impl DubbingClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .list(
+    ///             &DubbingListQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 dubbing_status: Some(DubbingListRequestDubbingStatus::Dubbing),
+    ///                 dubbing_statuses: vec![Some(DubbingListRequestDubbingStatusesItem::Queued)],
+    ///                 dubbing_models: vec![Some(DubbingListRequestDubbingModelsItem::DubbingV1)],
+    ///                 target_language_codes: vec![Some("target_language_codes".to_string())],
+    ///                 creation_sources: vec![Some(DubbingListRequestCreationSourcesItem::FlowNode)],
+    ///                 filter_by_creator: Some(DubbingListRequestFilterByCreator::Personal),
+    ///                 order_by: Some(DubbingListRequestOrderBy::CreatedAt),
+    ///                 order_direction: Some(DubbingListRequestOrderDirection::Descending),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &DubbingListQueryRequest,
@@ -91,6 +123,48 @@ impl DubbingClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .create(
+    ///             &CreateRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///                 csv_file: b"test file content".to_vec(),
+    ///                 foreground_audio_file: b"test file content".to_vec(),
+    ///                 background_audio_file: b"test file content".to_vec(),
+    ///                 name: None,
+    ///                 source_url: None,
+    ///                 source_lang: None,
+    ///                 target_lang: None,
+    ///                 target_accent: None,
+    ///                 num_speakers: None,
+    ///                 watermark: None,
+    ///                 start_time: None,
+    ///                 end_time: None,
+    ///                 highest_resolution: None,
+    ///                 drop_background_audio: None,
+    ///                 use_profanity_filter: None,
+    ///                 dubbing_studio: None,
+    ///                 disable_voice_cloning: None,
+    ///                 mode: None,
+    ///                 csv_fps: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreateRequest,
@@ -117,6 +191,21 @@ impl DubbingClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.dubbing.get(&"dubbing_id".to_string(), None).await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         dubbing_id: &str,
@@ -143,6 +232,21 @@ impl DubbingClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.dubbing.delete(&"dubbing_id".to_string(), None).await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         dubbing_id: &str,

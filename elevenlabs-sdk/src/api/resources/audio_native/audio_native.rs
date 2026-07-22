@@ -22,6 +22,42 @@ impl AudioNativeClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .audio_native
+    ///         .create(
+    ///             &CreateRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///                 name: "name".to_string(),
+    ///                 image: None,
+    ///                 author: None,
+    ///                 title: None,
+    ///                 small: None,
+    ///                 text_color: None,
+    ///                 background_color: None,
+    ///                 sessionization: None,
+    ///                 voice_id: None,
+    ///                 model_id: None,
+    ///                 auto_convert: None,
+    ///                 apply_text_normalization: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreateRequest,
@@ -48,6 +84,24 @@ impl AudioNativeClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .audio_native
+    ///         .get_settings(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_settings(
         &self,
         project_id: &str,
@@ -74,6 +128,32 @@ impl AudioNativeClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .audio_native
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &UpdateRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///                 auto_convert: None,
+    ///                 auto_publish: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         project_id: &str,
@@ -100,6 +180,31 @@ impl AudioNativeClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .audio_native
+    ///         .update_content_from_url(
+    ///             &BodyUpdateAudioNativeContentFromURLV1AudioNativeContentPost {
+    ///                 url: "https://elevenlabs.io/blog/the_first_ai_that_can_laugh/".to_string(),
+    ///                 author: None,
+    ///                 title: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update_content_from_url(
         &self,
         request: &BodyUpdateAudioNativeContentFromUrlV1AudioNativeContentPost,

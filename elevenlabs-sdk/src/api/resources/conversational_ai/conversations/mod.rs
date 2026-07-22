@@ -54,6 +54,33 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .get_signed_url(
+    ///             &GetSignedURLQueryRequest {
+    ///                 agent_id: "agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///                 include_conversation_id: Some(true),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 environment: Some("environment".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_signed_url(
         &self,
         request: &GetSignedUrlQueryRequest,
@@ -91,6 +118,33 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .get_webrtc_token(
+    ///             &GetWebrtcTokenQueryRequest {
+    ///                 agent_id: "agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///                 participant_name: Some("participant_name".to_string()),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 environment: Some("environment".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_webrtc_token(
         &self,
         request: &GetWebrtcTokenQueryRequest,
@@ -148,6 +202,60 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .list(
+    ///             &ConversationalAiConversationsListQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 call_successful: Some(EvaluationSuccessResult::Success),
+    ///                 call_start_before_unix: Some(1),
+    ///                 call_start_after_unix: Some(1),
+    ///                 call_duration_min_secs: Some(1),
+    ///                 call_duration_max_secs: Some(1),
+    ///                 rating_max: Some(1),
+    ///                 rating_min: Some(1),
+    ///                 has_feedback_comment: Some(true),
+    ///                 user_id: Some("user_id".to_string()),
+    ///                 evaluation_params: vec![Some("evaluation_params".to_string())],
+    ///                 data_collection_params: vec![Some("data_collection_params".to_string())],
+    ///                 tool_names: vec![Some("tool_names".to_string())],
+    ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
+    ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
+    ///                 main_languages: vec![Some("main_languages".to_string())],
+    ///                 page_size: Some(1),
+    ///                 summary_mode: Some(ConversationsListRequestSummaryMode::Exclude),
+    ///                 search: Some("search".to_string()),
+    ///                 conversation_initiation_source: Some(ConversationInitiationSource::Unknown),
+    ///                 text_only: Some(true),
+    ///                 conversation_product_type: Some(ConversationProduct::Agents),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 topic_ids: vec![Some("topic_ids".to_string())],
+    ///                 exclude_statuses: vec![Some(
+    ///                     ConversationsListRequestExcludeStatusesItem::Initiated,
+    ///                 )],
+    ///                 tag_ids: vec![Some("tag_ids".to_string())],
+    ///                 workflow_node_entered_id: Some("workflow_node_entered_id".to_string()),
+    ///                 termination_reasons: vec![Some("termination_reasons".to_string())],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiConversationsListQueryRequest,
@@ -232,6 +340,31 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .resolve(
+    ///             &ResolveQueryRequest {
+    ///                 agent_id: "agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///                 reference: "https://your-domain.zendesk.com/agent/tickets/12345".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn resolve(
         &self,
         request: &ResolveQueryRequest,
@@ -262,6 +395,32 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .get(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &ConversationalAiConversationsGetQueryRequest {
+    ///                 format: Some(ConversationsGetRequestFormat::JSON),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         conversation_id: &str,
@@ -291,6 +450,25 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .delete(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         conversation_id: &str,
@@ -318,6 +496,33 @@ impl ConversationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .get_sip_messages(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &ConversationalAiConversationsGetSipMessagesQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_sip_messages(
         &self,
         conversation_id: &str,

@@ -29,6 +29,37 @@ impl AuditLogsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .audit_logs
+    ///         .list(
+    ///             &WorkspaceAuditLogsListQueryRequest {
+    ///                 limit: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 time_from_unix_ms: Some(1),
+    ///                 time_to_unix_ms: Some(1),
+    ///                 actor_uid: Some("actor_uid".to_string()),
+    ///                 class_name: Some("class_name".to_string()),
+    ///                 activity_name: Some("activity_name".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &WorkspaceAuditLogsListQueryRequest,

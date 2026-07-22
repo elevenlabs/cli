@@ -22,6 +22,32 @@ impl TagsClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .assign(
+    ///             &"conversation_id".to_string(),
+    ///             &AssignConversationTagsRequestModel {
+    ///                 tag_ids: vec!["tag_ids".to_string()],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn assign(
         &self,
         conversation_id: &str,
@@ -48,6 +74,26 @@ impl TagsClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .unassign(&"conversation_id".to_string(), &"tag_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn unassign(
         &self,
         conversation_id: &str,
@@ -79,6 +125,33 @@ impl TagsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .list(
+    ///             &ConversationalAiConversationsTagsListQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiConversationsTagsListQueryRequest,
@@ -107,6 +180,32 @@ impl TagsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .create(
+    ///             &CreateConversationTagRequestModel {
+    ///                 title: "title".to_string(),
+    ///                 description: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreateConversationTagRequestModel,
@@ -132,6 +231,26 @@ impl TagsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .get(&"tag_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         tag_id: &str,
@@ -157,6 +276,26 @@ impl TagsClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .delete(&"tag_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         tag_id: &str,
@@ -182,6 +321,32 @@ impl TagsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .tags
+    ///         .update(
+    ///             &"tag_id".to_string(),
+    ///             &PatchConversationTagRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         tag_id: &str,

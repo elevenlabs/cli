@@ -22,6 +22,25 @@ impl SingleUseClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .tokens
+    ///         .single_use
+    ///         .create(&SingleUseTokenType::RealtimeScribe, None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         token_type: &SingleUseTokenType,

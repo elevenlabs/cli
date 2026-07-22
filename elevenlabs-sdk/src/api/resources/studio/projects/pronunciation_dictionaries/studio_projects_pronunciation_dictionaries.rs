@@ -23,6 +23,27 @@ impl PronunciationDictionariesClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.studio.projects.pronunciation_dictionaries.create(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyCreatePronunciationDictionariesV1StudioProjectsProjectIDPronunciationDictionariesPost {
+    ///         pronunciation_dictionary_locators: vec![PronunciationDictionaryVersionLocator {
+    ///             pronunciation_dictionary_id: "pronunciation_dictionary_id".to_string(),
+    ///             ..Default::default()
+    ///         }],
+    ///         invalidate_affected_text: None
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         project_id: &str,

@@ -59,6 +59,29 @@ impl MusicClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .compose(
+    ///             &BodyComposeMusicV1MusicPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn compose(
         &self,
         request: &BodyComposeMusicV1MusicPost,
@@ -87,6 +110,29 @@ impl MusicClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .compose_detailed(
+    ///             &BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn compose_detailed(
         &self,
         request: &BodyComposeMusicWithADetailedResponseV1MusicDetailedPost,
@@ -115,6 +161,30 @@ impl MusicClient {
     /// # Returns
     ///
     /// Complete JSON response (fetched at once, not streaming)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .compose_detailed_stream(
+    ///             &BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost {
+    ///                 output_format: Some(MusicComposeDetailedStreamRequestOutputFormat::Auto),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn compose_detailed_stream(
         &self,
         request: &BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost,
@@ -143,6 +213,29 @@ impl MusicClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .stream(
+    ///             &BodyStreamComposedMusicV1MusicStreamPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn stream(
         &self,
         request: &BodyStreamComposedMusicV1MusicStreamPost,
@@ -170,6 +263,31 @@ impl MusicClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .upload(
+    ///             &UploadRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///                 extract_composition_plan: None,
+    ///                 with_timestamps: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn upload(
         &self,
         request: &UploadRequest,

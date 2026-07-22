@@ -23,6 +23,32 @@ impl ApprovalPolicyClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .approval_policy
+    ///         .update(
+    ///             &"mcp_server_id".to_string(),
+    ///             &McpApprovalPolicyUpdateRequestModel {
+    ///                 approval_policy: McpApprovalPolicy::AutoApproveAll,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         mcp_server_id: &str,

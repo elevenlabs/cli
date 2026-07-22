@@ -38,6 +38,21 @@ impl McpServersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.conversational_ai.mcp_servers.list(None).await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         options: Option<RequestOptions>,
@@ -56,6 +71,50 @@ impl McpServersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .create(
+    ///             &McpServerRequestModel {
+    ///                 config: McpServerConfigInput {
+    ///                     approval_policy: None,
+    ///                     tool_approval_hashes: None,
+    ///                     transport: None,
+    ///                     url: McpServerConfigInputURL::String("url".to_string()),
+    ///                     secret_token: None,
+    ///                     request_headers: None,
+    ///                     auth_connection: None,
+    ///                     name: "name".to_string(),
+    ///                     description: None,
+    ///                     force_pre_tool_speech: None,
+    ///                     pre_tool_speech: None,
+    ///                     disable_interruptions: None,
+    ///                     interruption_mode: None,
+    ///                     tool_call_sound: None,
+    ///                     tool_call_sound_behavior: None,
+    ///                     execution_mode: None,
+    ///                     response_timeout_secs: None,
+    ///                     tool_config_overrides: None,
+    ///                     disable_compression: None,
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &McpServerRequestModel,
@@ -82,6 +141,25 @@ impl McpServersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .get(&"mcp_server_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         mcp_server_id: &str,
@@ -108,6 +186,25 @@ impl McpServersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .delete(&"mcp_server_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         mcp_server_id: &str,
@@ -134,6 +231,31 @@ impl McpServersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .update(
+    ///             &"mcp_server_id".to_string(),
+    ///             &McpServerConfigUpdateRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         mcp_server_id: &str,

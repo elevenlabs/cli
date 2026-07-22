@@ -23,6 +23,32 @@ impl LiveCountClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .analytics
+    ///         .live_count
+    ///         .get(
+    ///             &ConversationalAiAnalyticsLiveCountGetQueryRequest {
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         request: &ConversationalAiAnalyticsLiveCountGetQueryRequest,

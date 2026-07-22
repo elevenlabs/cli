@@ -22,6 +22,34 @@ impl InvitesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .invites
+    ///         .create(
+    ///             &InviteUserRequest {
+    ///                 email: "john.doe@testmail.com".to_string(),
+    ///                 workspace_permission: None,
+    ///                 seat_type: None,
+    ///                 group_ids: None,
+    ///                 usage_limit: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &InviteUserRequest,
@@ -47,6 +75,33 @@ impl InvitesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .invites
+    ///         .create_batch(
+    ///             &BodyInviteMultipleUsersV1WorkspaceInvitesAddBulkPost {
+    ///                 emails: vec!["emails".to_string()],
+    ///                 seat_type: None,
+    ///                 group_ids: None,
+    ///                 usage_limit: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_batch(
         &self,
         request: &BodyInviteMultipleUsersV1WorkspaceInvitesAddBulkPost,
@@ -72,6 +127,30 @@ impl InvitesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .invites
+    ///         .delete(
+    ///             &BodyDeleteExistingInvitationV1WorkspaceInvitesDelete {
+    ///                 email: "john.doe@testmail.com".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         request: &BodyDeleteExistingInvitationV1WorkspaceInvitesDelete,

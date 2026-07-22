@@ -23,6 +23,33 @@ impl AvatarClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .widget
+    ///         .avatar
+    ///         .create(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &CreateRequest {
+    ///                 avatar_file: b"test file content".to_vec(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         agent_id: &str,

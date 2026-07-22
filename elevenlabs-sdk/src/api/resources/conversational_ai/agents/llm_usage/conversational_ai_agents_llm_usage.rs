@@ -22,6 +22,32 @@ impl LlmUsageClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .llm_usage
+    ///         .calculate(
+    ///             &"agent_id".to_string(),
+    ///             &LlmUsageCalculatorRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn calculate(
         &self,
         agent_id: &str,

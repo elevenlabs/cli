@@ -23,6 +23,32 @@ impl LanguageClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .language
+    ///         .add(
+    ///             &"dubbing_id".to_string(),
+    ///             &BodyAddALanguageToTheResourceV1DubbingResourceDubbingIDLanguagePost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn add(
         &self,
         dubbing_id: &str,

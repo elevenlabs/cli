@@ -28,6 +28,56 @@ impl SpeechToTextClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_to_text
+    ///         .convert(
+    ///             &ConvertRequest {
+    ///                 token: Some("token".to_string()),
+    ///                 enable_logging: Some(true),
+    ///                 file: b"test file content".to_vec(),
+    ///                 model_id: SpeechToTextConvertRequestModelID::ScribeV2,
+    ///                 language_code: None,
+    ///                 tag_audio_events: None,
+    ///                 num_speakers: None,
+    ///                 timestamps_granularity: None,
+    ///                 diarize: None,
+    ///                 diarization_threshold: None,
+    ///                 additional_formats: None,
+    ///                 file_format: None,
+    ///                 cloud_storage_url: None,
+    ///                 source_url: None,
+    ///                 webhook: None,
+    ///                 webhook_id: None,
+    ///                 temperature: None,
+    ///                 seed: None,
+    ///                 use_multi_channel: None,
+    ///                 multichannel_output_style: None,
+    ///                 webhook_metadata: None,
+    ///                 entity_detection: None,
+    ///                 no_verbatim: None,
+    ///                 use_speaker_library: None,
+    ///                 detect_speaker_roles: None,
+    ///                 entity_redaction: None,
+    ///                 entity_redaction_mode: None,
+    ///                 keyterms: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         request: &ConvertRequest3,

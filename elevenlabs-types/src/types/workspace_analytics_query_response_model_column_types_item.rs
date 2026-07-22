@@ -5,7 +5,7 @@ use super::*;
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum WorkspaceAnalyticsQueryResponseModelColumnTypesItem {
-    String,
+    String_,
     Float,
     DateTime,
     Int,
@@ -21,7 +21,7 @@ pub enum WorkspaceAnalyticsQueryResponseModelColumnTypesItem {
 impl Serialize for WorkspaceAnalyticsQueryResponseModelColumnTypesItem {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::String => serializer.serialize_str("String"),
+            Self::String_ => serializer.serialize_str("String"),
             Self::Float => serializer.serialize_str("Float"),
             Self::DateTime => serializer.serialize_str("DateTime"),
             Self::Int => serializer.serialize_str("Int"),
@@ -38,7 +38,7 @@ impl<'de> Deserialize<'de> for WorkspaceAnalyticsQueryResponseModelColumnTypesIt
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
-            "String" => Ok(Self::String),
+            "String" => Ok(Self::String_),
             "Float" => Ok(Self::Float),
             "DateTime" => Ok(Self::DateTime),
             "Int" => Ok(Self::Int),
@@ -54,7 +54,7 @@ impl<'de> Deserialize<'de> for WorkspaceAnalyticsQueryResponseModelColumnTypesIt
 impl fmt::Display for WorkspaceAnalyticsQueryResponseModelColumnTypesItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::String => write!(f, "String"),
+            Self::String_ => write!(f, "String"),
             Self::Float => write!(f, "Float"),
             Self::DateTime => write!(f, "DateTime"),
             Self::Int => write!(f, "Int"),

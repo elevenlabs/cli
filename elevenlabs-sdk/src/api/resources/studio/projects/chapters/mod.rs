@@ -27,6 +27,26 @@ impl ChaptersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .list(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         project_id: &str,
@@ -53,6 +73,33 @@ impl ChaptersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .create(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyCreateChapterV1StudioProjectsProjectIDChaptersPost {
+    ///                 name: "Chapter 1".to_string(),
+    ///                 from_url: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         project_id: &str,
@@ -81,6 +128,30 @@ impl ChaptersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .get(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         project_id: &str,
@@ -109,6 +180,33 @@ impl ChaptersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyUpdateChapterV1StudioProjectsProjectIDChaptersChapterIDPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         project_id: &str,
@@ -138,6 +236,30 @@ impl ChaptersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .delete(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         project_id: &str,
@@ -166,6 +288,30 @@ impl ChaptersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .convert(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         project_id: &str,

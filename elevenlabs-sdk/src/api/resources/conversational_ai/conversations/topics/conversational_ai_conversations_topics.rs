@@ -25,6 +25,34 @@ impl TopicsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .topics
+    ///         .get(
+    ///             &"agent_id".to_string(),
+    ///             &ConversationalAiConversationsTopicsGetQueryRequest {
+    ///                 from_unix_secs: Some(1),
+    ///                 to_unix_secs: Some(1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         agent_id: &str,

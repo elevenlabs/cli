@@ -6,7 +6,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AnalysisPropertyType {
     Boolean,
-    String,
+    String_,
     Integer,
     Number,
     /// This variant is used for forward compatibility.
@@ -18,7 +18,7 @@ impl Serialize for AnalysisPropertyType {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
             Self::Boolean => serializer.serialize_str("boolean"),
-            Self::String => serializer.serialize_str("string"),
+            Self::String_ => serializer.serialize_str("string"),
             Self::Integer => serializer.serialize_str("integer"),
             Self::Number => serializer.serialize_str("number"),
             Self::__Unknown(val) => serializer.serialize_str(val),
@@ -31,7 +31,7 @@ impl<'de> Deserialize<'de> for AnalysisPropertyType {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
             "boolean" => Ok(Self::Boolean),
-            "string" => Ok(Self::String),
+            "string" => Ok(Self::String_),
             "integer" => Ok(Self::Integer),
             "number" => Ok(Self::Number),
             _ => Ok(Self::__Unknown(value)),
@@ -43,7 +43,7 @@ impl fmt::Display for AnalysisPropertyType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Boolean => write!(f, "boolean"),
-            Self::String => write!(f, "string"),
+            Self::String_ => write!(f, "string"),
             Self::Integer => write!(f, "integer"),
             Self::Number => write!(f, "number"),
             Self::__Unknown(val) => write!(f, "{}", val),

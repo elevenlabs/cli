@@ -5,7 +5,7 @@ use super::*;
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FinetuneCreatedBy {
-    Self,
+    Self_,
     Workspace,
     Elevenlabs,
     /// This variant is used for forward compatibility.
@@ -16,7 +16,7 @@ pub enum FinetuneCreatedBy {
 impl Serialize for FinetuneCreatedBy {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::Self => serializer.serialize_str("self"),
+            Self::Self_ => serializer.serialize_str("self"),
             Self::Workspace => serializer.serialize_str("workspace"),
             Self::Elevenlabs => serializer.serialize_str("elevenlabs"),
             Self::__Unknown(val) => serializer.serialize_str(val),
@@ -28,7 +28,7 @@ impl<'de> Deserialize<'de> for FinetuneCreatedBy {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
-            "self" => Ok(Self::Self),
+            "self" => Ok(Self::Self_),
             "workspace" => Ok(Self::Workspace),
             "elevenlabs" => Ok(Self::Elevenlabs),
             _ => Ok(Self::__Unknown(value)),
@@ -39,7 +39,7 @@ impl<'de> Deserialize<'de> for FinetuneCreatedBy {
 impl fmt::Display for FinetuneCreatedBy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Self => write!(f, "self"),
+            Self::Self_ => write!(f, "self"),
             Self::Workspace => write!(f, "workspace"),
             Self::Elevenlabs => write!(f, "elevenlabs"),
             Self::__Unknown(val) => write!(f, "{}", val),

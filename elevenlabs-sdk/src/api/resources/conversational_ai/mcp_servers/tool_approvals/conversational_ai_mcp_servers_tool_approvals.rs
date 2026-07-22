@@ -23,6 +23,35 @@ impl ToolApprovalsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tool_approvals
+    ///         .create(
+    ///             &"mcp_server_id".to_string(),
+    ///             &McpToolAddApprovalRequestModel {
+    ///                 tool_name: "tool_name".to_string(),
+    ///                 tool_description: "tool_description".to_string(),
+    ///                 input_schema: None,
+    ///                 approval_policy: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         mcp_server_id: &str,
@@ -51,6 +80,26 @@ impl ToolApprovalsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tool_approvals
+    ///         .delete(&"mcp_server_id".to_string(), &"tool_name".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         mcp_server_id: &str,

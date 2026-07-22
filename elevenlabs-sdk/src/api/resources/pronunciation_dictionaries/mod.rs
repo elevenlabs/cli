@@ -26,6 +26,32 @@ impl PronunciationDictionariesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .pronunciation_dictionaries
+    ///         .create_from_file(
+    ///             &CreateFromFileRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///                 name: "name".to_string(),
+    ///                 description: None,
+    ///                 workspace_access: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_from_file(
         &self,
         request: &CreateFromFileRequest,
@@ -51,6 +77,34 @@ impl PronunciationDictionariesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.pronunciation_dictionaries.create_from_rules(&BodyAddAPronunciationDictionaryV1PronunciationDictionariesAddFromRulesPost {
+    ///         rules: vec![BodyAddAPronunciationDictionaryV1PronunciationDictionariesAddFromRulesPostRulesItem::Alias {
+    ///             data: PronunciationDictionaryAliasRuleRequestModel {
+    ///                 string_to_replace: "Thailand".to_string(),
+    ///                 case_sensitive: Some(true),
+    ///                 word_boundaries: Some(true),
+    ///                 alias: "tie-land".to_string(),
+    ///                 ..Default::default()
+    ///             }
+    ///         }],
+    ///         name: "My Dictionary".to_string(),
+    ///         description: None,
+    ///         workspace_access: None
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn create_from_rules(
         &self,
         request: &BodyAddAPronunciationDictionaryV1PronunciationDictionariesAddFromRulesPost,
@@ -77,6 +131,24 @@ impl PronunciationDictionariesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .pronunciation_dictionaries
+    ///         .get(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         pronunciation_dictionary_id: &str,
@@ -106,6 +178,23 @@ impl PronunciationDictionariesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.pronunciation_dictionaries.update(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyUpdatePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIDPatch {
+    ///         ..Default::default()
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         pronunciation_dictionary_id: &str,
@@ -137,6 +226,28 @@ impl PronunciationDictionariesClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .pronunciation_dictionaries
+    ///         .download(
+    ///             &"dictionary_id".to_string(),
+    ///             &"version_id".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn download(
         &self,
         dictionary_id: &str,
@@ -171,6 +282,34 @@ impl PronunciationDictionariesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .pronunciation_dictionaries
+    ///         .list(
+    ///             &PronunciationDictionariesListQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 sort: Some(PronunciationDictionariesListRequestSort::CreationTimeUnix),
+    ///                 sort_direction: Some("sort_direction".to_string()),
+    ///                 include_archived: Some(false),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &PronunciationDictionariesListQueryRequest,

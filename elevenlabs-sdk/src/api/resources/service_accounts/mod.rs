@@ -26,6 +26,21 @@ impl ServiceAccountsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.service_accounts.list(None).await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         options: Option<RequestOptions>,
@@ -44,6 +59,30 @@ impl ServiceAccountsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .service_accounts
+    ///         .create(
+    ///             &BodyCreateServiceAccountV1ServiceAccountsPost {
+    ///                 name: "name".to_string(),
+    ///                 default_sharing_groups: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &BodyCreateServiceAccountV1ServiceAccountsPost,

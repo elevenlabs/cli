@@ -23,6 +23,43 @@ impl DeploymentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .deployments
+    ///         .create(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &BodyCreateOrUpdateDeploymentsV1ConvaiAgentsAgentIDDeploymentsPost {
+    ///                 deployment_request: AgentDeploymentRequest {
+    ///                     requests: vec![AgentDeploymentRequestItem {
+    ///                         branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///                         deployment_strategy: AgentDeploymentPercentageStrategy {
+    ///                             r#type: Some("percentage".to_string()),
+    ///                             traffic_percentage: 0.5,
+    ///                             ..Default::default()
+    ///                         },
+    ///                         ..Default::default()
+    ///                     }],
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         agent_id: &str,

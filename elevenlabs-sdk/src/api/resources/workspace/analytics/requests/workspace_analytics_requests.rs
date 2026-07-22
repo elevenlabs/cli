@@ -22,6 +22,31 @@ impl RequestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .analytics
+    ///         .requests
+    ///         .get(
+    ///             &BodyListAPIRequestsV1WorkspaceAnalyticsRequestsPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         request: &BodyListApiRequestsV1WorkspaceAnalyticsRequestsPost,

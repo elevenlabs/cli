@@ -46,6 +46,56 @@ impl MessagesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .messages
+    ///         .text_search(
+    ///             &TextSearchQueryRequest {
+    ///                 text_query: "refund policy".to_string(),
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 call_successful: Some(EvaluationSuccessResult::Success),
+    ///                 call_start_before_unix: Some(1),
+    ///                 call_start_after_unix: Some(1),
+    ///                 call_duration_min_secs: Some(1),
+    ///                 call_duration_max_secs: Some(1),
+    ///                 rating_max: Some(1),
+    ///                 rating_min: Some(1),
+    ///                 has_feedback_comment: Some(true),
+    ///                 user_id: Some("user_id".to_string()),
+    ///                 evaluation_params: vec![Some("evaluation_params".to_string())],
+    ///                 data_collection_params: vec![Some("data_collection_params".to_string())],
+    ///                 tool_names: vec![Some("tool_names".to_string())],
+    ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
+    ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
+    ///                 main_languages: vec![Some("main_languages".to_string())],
+    ///                 page_size: Some(1),
+    ///                 summary_mode: Some(MessagesTextSearchRequestSummaryMode::Exclude),
+    ///                 conversation_initiation_source: Some(ConversationInitiationSource::Unknown),
+    ///                 text_only: Some(true),
+    ///                 conversation_product_type: Some(ConversationProduct::Agents),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 topic_ids: vec![Some("topic_ids".to_string())],
+    ///                 sort_by: Some(MessageSearchSortBy::SearchScore),
+    ///                 cursor: Some("cursor".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn text_search(
         &self,
         request: &TextSearchQueryRequest,
@@ -126,6 +176,34 @@ impl MessagesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .messages
+    ///         .search(
+    ///             &ConversationalAiConversationsMessagesSearchQueryRequest {
+    ///                 text_query: "Customer asking to cancel and get money back".to_string(),
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn search(
         &self,
         request: &ConversationalAiConversationsMessagesSearchQueryRequest,

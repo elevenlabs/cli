@@ -35,6 +35,25 @@ impl ResourceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .get(&"dubbing_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         dubbing_id: &str,
@@ -61,6 +80,32 @@ impl ResourceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .migrate_segments(
+    ///             &"dubbing_id".to_string(),
+    ///             &BodyMoveSegmentsBetweenSpeakersV1DubbingResourceDubbingIDMigrateSegmentsPost {
+    ///                 segment_ids: vec!["segment_ids".to_string()],
+    ///                 speaker_id: "speaker_id".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn migrate_segments(
         &self,
         dubbing_id: &str,
@@ -88,6 +133,31 @@ impl ResourceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .transcribe(
+    ///             &"dubbing_id".to_string(),
+    ///             &BodyTranscribesSegmentsV1DubbingResourceDubbingIDTranscribePost {
+    ///                 segments: vec!["segments".to_string()],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn transcribe(
         &self,
         dubbing_id: &str,
@@ -115,6 +185,32 @@ impl ResourceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .translate(
+    ///             &"dubbing_id".to_string(),
+    ///             &BodyTranslatesAllOrSomeSegmentsAndLanguagesV1DubbingResourceDubbingIDTranslatePost {
+    ///                 segments: vec!["segments".to_string()],
+    ///                 languages: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn translate(
         &self,
         dubbing_id: &str,
@@ -142,6 +238,32 @@ impl ResourceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .dub(
+    ///             &"dubbing_id".to_string(),
+    ///             &BodyDubsAllOrSomeSegmentsAndLanguagesV1DubbingResourceDubbingIDDubPost {
+    ///                 segments: vec!["segments".to_string()],
+    ///                 languages: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn dub(
         &self,
         dubbing_id: &str,
@@ -170,6 +292,24 @@ impl ResourceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.dubbing.resource.render(&"dubbing_id".to_string(), &"language".to_string(), &BodyRenderAudioOrVideoForTheGivenLanguageV1DubbingResourceDubbingIDRenderLanguagePost {
+    ///         render_type: RenderType::Mp4,
+    ///         normalize_volume: None
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn render(
         &self,
         dubbing_id: &str,

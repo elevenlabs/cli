@@ -24,6 +24,37 @@ impl SegmentClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .speaker
+    ///         .segment
+    ///         .create(
+    ///             &"dubbing_id".to_string(),
+    ///             &"speaker_id".to_string(),
+    ///             &SegmentCreatePayload {
+    ///                 start_time: 1.1,
+    ///                 end_time: 1.1,
+    ///                 text: None,
+    ///                 translations: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         dubbing_id: &str,

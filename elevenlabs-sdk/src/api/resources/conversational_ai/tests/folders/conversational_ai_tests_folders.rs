@@ -22,6 +22,32 @@ impl FoldersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .folders
+    ///         .create(
+    ///             &BodyCreateAgentTestFolderV1ConvaiAgentTestingFoldersPost {
+    ///                 name: "name".to_string(),
+    ///                 parent_folder_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &BodyCreateAgentTestFolderV1ConvaiAgentTestingFoldersPost,
@@ -48,6 +74,26 @@ impl FoldersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .folders
+    ///         .get(&"tfld_7301khxdkycse5f88fzjdtrterzm".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         folder_id: &str,
@@ -75,6 +121,33 @@ impl FoldersClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .folders
+    ///         .delete(
+    ///             &"tfld_7301khxdkycse5f88fzjdtrterzm".to_string(),
+    ///             &ConversationalAiTestsFoldersDeleteQueryRequest {
+    ///                 force: Some(true),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         folder_id: &str,
@@ -104,6 +177,32 @@ impl FoldersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .folders
+    ///         .update(
+    ///             &"tfld_7301khxdkycse5f88fzjdtrterzm".to_string(),
+    ///             &BodyUpdateAgentTestFolderV1ConvaiAgentTestingFoldersFolderIDPatch {
+    ///                 name: "name".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         folder_id: &str,

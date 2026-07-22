@@ -29,6 +29,35 @@ impl UsageClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .usage
+    ///         .get(
+    ///             &UsageGetQueryRequest {
+    ///                 start_unix: 1,
+    ///                 end_unix: 1,
+    ///                 include_workspace_metrics: Some(true),
+    ///                 breakdown_type: Some(BreakdownTypes::None),
+    ///                 aggregation_interval: Some(UsageAggregationInterval::Hour),
+    ///                 aggregation_bucket_size: Some(1),
+    ///                 metric: Some(MetricType::Credits),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         request: &UsageGetQueryRequest,

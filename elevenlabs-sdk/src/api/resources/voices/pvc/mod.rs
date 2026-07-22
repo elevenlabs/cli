@@ -30,6 +30,33 @@ impl PvcClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .create(
+    ///             &CreatePvcVoiceRequest {
+    ///                 name: "John Smith".to_string(),
+    ///                 language: "en".to_string(),
+    ///                 description: None,
+    ///                 labels: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreatePvcVoiceRequest,
@@ -56,6 +83,31 @@ impl PvcClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyEditPvcVoiceV1VoicesPvcVoiceIDPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         voice_id: &str,
@@ -83,6 +135,31 @@ impl PvcClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .train(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyRunPvcTrainingV1VoicesPvcVoiceIDTrainPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn train(
         &self,
         voice_id: &str,

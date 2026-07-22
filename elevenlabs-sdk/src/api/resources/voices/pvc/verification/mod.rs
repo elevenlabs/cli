@@ -27,6 +27,33 @@ impl VerificationClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .verification
+    ///         .request(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &RequestRequest {
+    ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
+    ///                 extra_text: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn request(
         &self,
         voice_id: &str,

@@ -26,6 +26,54 @@ impl StudioClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .create_podcast(
+    ///             &BodyCreatePodcastV1StudioPodcastsPost {
+    ///                 model_id: "eleven_multilingual_v2".to_string(),
+    ///                 mode: BodyCreatePodcastV1StudioPodcastsPostMode::Conversation {
+    ///                     data: PodcastConversationMode {
+    ///                         conversation: PodcastConversationModeData {
+    ///                             host_voice_id: "aw1NgEzBg83R7vgmiJt6".to_string(),
+    ///                             guest_voice_id: "aw1NgEzBg83R7vgmiJt7".to_string(),
+    ///                             ..Default::default()
+    ///                         },
+    ///                         ..Default::default()
+    ///                     },
+    ///                 },
+    ///                 source: BodyCreatePodcastV1StudioPodcastsPostSource::PodcastTextSource(
+    ///                     PodcastTextSource {
+    ///                         r#type: "text".to_string(),
+    ///                         text: "This is a test podcast.".to_string(),
+    ///                     },
+    ///                 ),
+    ///                 quality_preset: None,
+    ///                 duration_scale: None,
+    ///                 language: None,
+    ///                 intro: None,
+    ///                 outro: None,
+    ///                 instructions_prompt: None,
+    ///                 highlights: None,
+    ///                 callback_url: None,
+    ///                 apply_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_podcast(
         &self,
         request: &BodyCreatePodcastV1StudioPodcastsPost,

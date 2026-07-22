@@ -5,7 +5,7 @@ use super::*;
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EnvironmentVariableResponseType {
-    String,
+    String_,
     Secret,
     AuthConnection,
     /// This variant is used for forward compatibility.
@@ -16,7 +16,7 @@ pub enum EnvironmentVariableResponseType {
 impl Serialize for EnvironmentVariableResponseType {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::String => serializer.serialize_str("string"),
+            Self::String_ => serializer.serialize_str("string"),
             Self::Secret => serializer.serialize_str("secret"),
             Self::AuthConnection => serializer.serialize_str("auth_connection"),
             Self::__Unknown(val) => serializer.serialize_str(val),
@@ -28,7 +28,7 @@ impl<'de> Deserialize<'de> for EnvironmentVariableResponseType {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
-            "string" => Ok(Self::String),
+            "string" => Ok(Self::String_),
             "secret" => Ok(Self::Secret),
             "auth_connection" => Ok(Self::AuthConnection),
             _ => Ok(Self::__Unknown(value)),
@@ -39,7 +39,7 @@ impl<'de> Deserialize<'de> for EnvironmentVariableResponseType {
 impl fmt::Display for EnvironmentVariableResponseType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::String => write!(f, "string"),
+            Self::String_ => write!(f, "string"),
             Self::Secret => write!(f, "secret"),
             Self::AuthConnection => write!(f, "auth_connection"),
             Self::__Unknown(val) => write!(f, "{}", val),

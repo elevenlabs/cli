@@ -35,6 +35,33 @@ impl SamplesClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .samples
+    ///         .create(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &CreateRequest {
+    ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
+    ///                 remove_background_noise: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         voice_id: &str,
@@ -63,6 +90,33 @@ impl SamplesClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .samples
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"VW7YKqPnjY4h39yTbx2L".to_string(),
+    ///             &BodyUpdatePvcVoiceSampleV1VoicesPvcVoiceIDSamplesSampleIDPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         voice_id: &str,
@@ -92,6 +146,30 @@ impl SamplesClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .samples
+    ///         .delete(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"VW7YKqPnjY4h39yTbx2L".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         voice_id: &str,

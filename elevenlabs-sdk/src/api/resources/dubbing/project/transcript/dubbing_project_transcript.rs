@@ -23,6 +23,26 @@ impl TranscriptClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .transcript
+    ///         .get(&"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         project_id: &str,
@@ -50,6 +70,30 @@ impl TranscriptClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .transcript
+    ///         .delete_segment(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &"0199a3f0-1c2d-7abc-8def-0123456789ab".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete_segment(
         &self,
         project_id: &str,
@@ -81,6 +125,34 @@ impl TranscriptClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .transcript
+    ///         .update_segment(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &"0199a3f0-1c2d-7abc-8def-0123456789ab".to_string(),
+    ///             &DubbingSegmentUpdateRequest {
+    ///                 text: Some("Welcome to our latest product demo.".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update_segment(
         &self,
         project_id: &str,
@@ -112,6 +184,35 @@ impl TranscriptClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .transcript
+    ///         .create_segment(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &DubbingSegmentCreateRequest {
+    ///                 text: "Thanks for watching.".to_string(),
+    ///                 speaker_id: "default_speaker".to_string(),
+    ///                 start_s: 42.0,
+    ///                 end_s: 44.0,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_segment(
         &self,
         project_id: &str,

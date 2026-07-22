@@ -23,6 +23,34 @@ impl TextToSoundEffectsClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_sound_effects
+    ///         .convert(
+    ///             &CreateSoundEffectRequest {
+    ///                 text: "Spacious braam suitable for high-impact movie trailer moments".to_string(),
+    ///                 output_format: None,
+    ///                 r#loop: None,
+    ///                 duration_seconds: None,
+    ///                 prompt_influence: None,
+    ///                 model_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         request: &CreateSoundEffectRequest,

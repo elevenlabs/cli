@@ -31,6 +31,39 @@ impl UsersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .users
+    ///         .list(
+    ///             &ConversationalAiUsersListQueryRequest {
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 call_start_before_unix: Some(1),
+    ///                 call_start_after_unix: Some(1),
+    ///                 search: Some("search".to_string()),
+    ///                 page_size: Some(1),
+    ///                 sort_by: Some(UsersSortBy::LastContactUnixSecs),
+    ///                 sort_direction: Some(SortDirection::Asc),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiUsersListQueryRequest,

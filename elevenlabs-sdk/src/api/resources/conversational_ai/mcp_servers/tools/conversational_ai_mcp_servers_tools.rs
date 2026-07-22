@@ -24,6 +24,33 @@ impl ToolsClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .mcp_servers
+    ///         .tools
+    ///         .list(
+    ///             &"mcp_server_id".to_string(),
+    ///             &ConversationalAiMcpServersToolsListQueryRequest {
+    ///                 environment: Some("environment".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         mcp_server_id: &str,

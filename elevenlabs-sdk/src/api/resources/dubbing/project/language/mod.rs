@@ -30,6 +30,33 @@ impl LanguageClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .language
+    ///         .list(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &DubbingProjectLanguageListQueryRequest {
+    ///                 page_size: Some(20),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         project_id: &str,
@@ -61,6 +88,34 @@ impl LanguageClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .language
+    ///         .create(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &BodyCreateDubbingLanguageTargetV1DubbingProjectProjectIDLanguagePost {
+    ///                 target_language: "es".to_string(),
+    ///                 model_id: Some("dubbing_v2".to_string()),
+    ///                 voice_settings: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         project_id: &str,
@@ -89,6 +144,30 @@ impl LanguageClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .language
+    ///         .get(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &"lang_1001kwkyxp0je6ktn4knsfrasx5s".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         project_id: &str,
@@ -117,6 +196,30 @@ impl LanguageClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .project
+    ///         .language
+    ///         .delete(
+    ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
+    ///             &"lang_1001kwkyxp0je6ktn4knsfrasx5s".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         project_id: &str,

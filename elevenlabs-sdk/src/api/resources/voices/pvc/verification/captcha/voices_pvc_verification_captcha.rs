@@ -23,6 +23,27 @@ impl CaptchaClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .verification
+    ///         .captcha
+    ///         .get(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         voice_id: &str,
@@ -49,6 +70,33 @@ impl CaptchaClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .pvc
+    ///         .verification
+    ///         .captcha
+    ///         .verify(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &VerifyRequest {
+    ///                 recording: b"test file content".to_vec(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn verify(
         &self,
         voice_id: &str,

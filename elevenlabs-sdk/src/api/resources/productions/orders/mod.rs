@@ -43,6 +43,34 @@ impl OrdersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .list(
+    ///             &ProductionsOrdersListQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 offset: Some(1),
+    ///                 status: vec![Some(OrderRequestState::Open)],
+    ///                 start_date: Some(DateTime::parse_from_rfc3339("2024-01-15T09:30:00Z").unwrap()),
+    ///                 end_date: Some(DateTime::parse_from_rfc3339("2024-01-15T09:30:00Z").unwrap()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ProductionsOrdersListQueryRequest,
@@ -74,6 +102,31 @@ impl OrdersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .create(
+    ///             &Some(CreateOrderRequest {
+    ///                 sandbox: Some(false),
+    ///                 ..Default::default()
+    ///             }),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &Option<CreateOrderRequest>,
@@ -102,6 +155,25 @@ impl OrdersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .get(&OrderID("order_id".to_string()), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         order_id: &OrderId,
@@ -128,6 +200,34 @@ impl OrdersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .update(
+    ///             &OrderID("order_id".to_string()),
+    ///             &BodyUpdateOrderV1ProductionsOrdersOrderIDPatch {
+    ///                 request: UpdateOrderRequest {
+    ///                     name: "Spanish Dubs".to_string(),
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         order_id: &OrderId,
@@ -157,6 +257,25 @@ impl OrdersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .productions
+    ///         .orders
+    ///         .submit(&OrderID("order_id".to_string()), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn submit(
         &self,
         order_id: &OrderId,

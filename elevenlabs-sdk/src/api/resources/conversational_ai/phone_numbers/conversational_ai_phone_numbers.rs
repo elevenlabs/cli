@@ -25,6 +25,33 @@ impl PhoneNumbersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .phone_numbers
+    ///         .list(
+    ///             &ConversationalAiPhoneNumbersListQueryRequest {
+    ///                 provider: Some(TelephonyProvider::Twilio),
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiPhoneNumbersListQueryRequest,
@@ -55,6 +82,36 @@ impl PhoneNumbersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .phone_numbers
+    ///         .create(
+    ///             &PhoneNumbersCreateRequestBody::Twilio {
+    ///                 data: CreateTwilioPhoneNumberRequest {
+    ///                     phone_number: "phone_number".to_string(),
+    ///                     label: "label".to_string(),
+    ///                     sid: "sid".to_string(),
+    ///                     token: "token".to_string(),
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &PhoneNumbersCreateRequestBody,
@@ -81,6 +138,25 @@ impl PhoneNumbersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .phone_numbers
+    ///         .get(&"TeaqRRdTcIfIu2i7BYfT".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         phone_number_id: &str,
@@ -107,6 +183,25 @@ impl PhoneNumbersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .phone_numbers
+    ///         .delete(&"TeaqRRdTcIfIu2i7BYfT".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         phone_number_id: &str,
@@ -133,6 +228,31 @@ impl PhoneNumbersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .phone_numbers
+    ///         .update(
+    ///             &"TeaqRRdTcIfIu2i7BYfT".to_string(),
+    ///             &UpdatePhoneNumberRequest {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         phone_number_id: &str,
@@ -161,6 +281,33 @@ impl PhoneNumbersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .phone_numbers
+    ///         .get_sip_messages(
+    ///             &"TeaqRRdTcIfIu2i7BYfT".to_string(),
+    ///             &ConversationalAiPhoneNumbersGetSipMessagesQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_sip_messages(
         &self,
         phone_number_id: &str,

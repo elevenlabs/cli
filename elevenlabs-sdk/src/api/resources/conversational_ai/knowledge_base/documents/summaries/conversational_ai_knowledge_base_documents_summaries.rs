@@ -24,6 +24,35 @@ impl SummariesClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .summaries
+    ///         .get(
+    ///             &ConversationalAiKnowledgeBaseDocumentsSummariesGetQueryRequest {
+    ///                 document_ids: vec![
+    ///                     Some("21m00Tcm4TlvDq8ikWAM".to_string()),
+    ///                     Some("31n11Udm5UmwEr9jkXBN".to_string()),
+    ///                 ],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         request: &ConversationalAiKnowledgeBaseDocumentsSummariesGetQueryRequest,

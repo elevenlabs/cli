@@ -27,6 +27,34 @@ impl SpeechEngineClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_engine
+    ///         .list(
+    ///             &SpeechEngineListQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 search: Some("search".to_string()),
+    ///                 sort_direction: Some(SortDirection::Asc),
+    ///                 sort_by: Some(AgentSortBy::Name),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &SpeechEngineListQueryRequest,
@@ -58,6 +86,42 @@ impl SpeechEngineClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_engine
+    ///         .create(
+    ///             &CreateSpeechEngineRequest {
+    ///                 speech_engine: SpeechEngineConfig {
+    ///                     ws_url: "ws_url".to_string(),
+    ///                     ..Default::default()
+    ///                 },
+    ///                 name: None,
+    ///                 asr: None,
+    ///                 tts: None,
+    ///                 turn: None,
+    ///                 conversation: None,
+    ///                 privacy: None,
+    ///                 call_limits: None,
+    ///                 language: None,
+    ///                 tags: None,
+    ///                 overrides: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreateSpeechEngineRequest,
@@ -84,6 +148,24 @@ impl SpeechEngineClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_engine
+    ///         .get(&"seng_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         speech_engine_id: &str,
@@ -110,6 +192,24 @@ impl SpeechEngineClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_engine
+    ///         .delete(&"seng_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         speech_engine_id: &str,
@@ -136,6 +236,30 @@ impl SpeechEngineClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_engine
+    ///         .update(
+    ///             &"seng_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &UpdateSpeechEngineRequest {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         speech_engine_id: &str,

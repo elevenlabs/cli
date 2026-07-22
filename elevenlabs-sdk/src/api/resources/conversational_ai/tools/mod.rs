@@ -34,6 +34,37 @@ impl ToolsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .list(
+    ///             &ConversationalAiToolsListQueryRequest {
+    ///                 search: Some("search".to_string()),
+    ///                 page_size: Some(1),
+    ///                 show_only_owned_documents: Some(true),
+    ///                 created_by_user_id: Some("created_by_user_id".to_string()),
+    ///                 types: vec![Some(ToolTypeFilter::Webhook)],
+    ///                 sort_direction: Some(SortDirection::Asc),
+    ///                 sort_by: Some(ToolSortBy::Name),
+    ///                 cursor: Some("cursor".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiToolsListQueryRequest,
@@ -72,6 +103,38 @@ impl ToolsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .create(
+    ///             &ToolRequestModel {
+    ///                 tool_config: ToolRequestModelToolConfig::Client {
+    ///                     data: ClientToolConfigInput {
+    ///                         name: "name".to_string(),
+    ///                         description: "description".to_string(),
+    ///                         expects_response: Some(false),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 },
+    ///                 response_mocks: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &ToolRequestModel,
@@ -99,6 +162,32 @@ impl ToolsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .get(
+    ///             &"tool_id".to_string(),
+    ///             &ConversationalAiToolsGetQueryRequest {
+    ///                 environment: Some("environment".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         tool_id: &str,
@@ -129,6 +218,32 @@ impl ToolsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .delete(
+    ///             &"tool_id".to_string(),
+    ///             &ConversationalAiToolsDeleteQueryRequest {
+    ///                 force: Some(true),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         tool_id: &str,
@@ -159,6 +274,39 @@ impl ToolsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .update(
+    ///             &"tool_id".to_string(),
+    ///             &ToolRequestModel {
+    ///                 tool_config: ToolRequestModelToolConfig::Client {
+    ///                     data: ClientToolConfigInput {
+    ///                         name: "name".to_string(),
+    ///                         description: "description".to_string(),
+    ///                         expects_response: Some(false),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 },
+    ///                 response_mocks: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         tool_id: &str,
@@ -188,6 +336,33 @@ impl ToolsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .get_dependent_agents(
+    ///             &"tool_id".to_string(),
+    ///             &GetDependentAgentsQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_dependent_agents(
         &self,
         tool_id: &str,

@@ -102,6 +102,32 @@ impl ConversationalAiClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .add_to_knowledge_base(
+    ///             &AddToKnowledgeBaseRequest {
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 file: b"test file content".to_vec(),
+    ///                 name: None,
+    ///                 url: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn add_to_knowledge_base(
         &self,
         request: &AddToKnowledgeBaseRequest,
@@ -129,6 +155,21 @@ impl ConversationalAiClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.conversational_ai.rag_index_overview(None).await;
+    /// }
+    /// ```
     pub async fn rag_index_overview(
         &self,
         options: Option<RequestOptions>,
@@ -154,6 +195,24 @@ impl ConversationalAiClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .get_document_rag_indexes(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_document_rag_indexes(
         &self,
         documentation_id: &str,
@@ -181,6 +240,28 @@ impl ConversationalAiClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .delete_document_rag_index(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete_document_rag_index(
         &self,
         documentation_id: &str,

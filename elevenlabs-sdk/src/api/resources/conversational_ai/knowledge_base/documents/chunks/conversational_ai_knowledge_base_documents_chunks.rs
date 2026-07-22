@@ -26,6 +26,35 @@ impl ChunksClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .chunks
+    ///         .list(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &ConversationalAiKnowledgeBaseDocumentsChunksListQueryRequest {
+    ///                 embedding_model: EmbeddingModelEnum::E5Mistral7BInstruct,
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         documentation_id: &str,

@@ -24,6 +24,31 @@ impl ResourcesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .resources
+    ///         .get(
+    ///             &"resource_id".to_string(),
+    ///             &WorkspaceResourcesGetQueryRequest {
+    ///                 resource_type: WorkspaceResourceType::Voice,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         resource_id: &str,
@@ -53,6 +78,35 @@ impl ResourcesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .resources
+    ///         .share(
+    ///             &"resource_id".to_string(),
+    ///             &BodyShareWorkspaceResourceV1WorkspaceResourcesResourceIDSharePost {
+    ///                 role: BodyShareWorkspaceResourceV1WorkspaceResourcesResourceIDSharePostRole::Admin,
+    ///                 resource_type: WorkspaceResourceType::Voice,
+    ///                 user_email: None,
+    ///                 group_id: None,
+    ///                 workspace_api_key_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn share(
         &self,
         resource_id: &str,
@@ -80,6 +134,34 @@ impl ResourcesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .resources
+    ///         .unshare(
+    ///             &"resource_id".to_string(),
+    ///             &BodyUnshareWorkspaceResourceV1WorkspaceResourcesResourceIDUnsharePost {
+    ///                 resource_type: WorkspaceResourceType::Voice,
+    ///                 user_email: None,
+    ///                 group_id: None,
+    ///                 workspace_api_key_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn unshare(
         &self,
         resource_id: &str,

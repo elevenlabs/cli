@@ -30,6 +30,39 @@ impl ExecutionsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tools
+    ///         .executions
+    ///         .get(
+    ///             &"tool_id".to_string(),
+    ///             &ConversationalAiToolsExecutionsGetQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 is_error: Some(true),
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 branch_id: Some("branch_id".to_string()),
+    ///                 start_time: Some(1.1),
+    ///                 end_time: Some(1.1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         tool_id: &str,

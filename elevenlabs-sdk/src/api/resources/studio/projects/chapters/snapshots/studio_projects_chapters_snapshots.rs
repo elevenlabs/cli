@@ -24,6 +24,31 @@ impl SnapshotsClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .snapshots
+    ///         .list(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         project_id: &str,
@@ -56,6 +81,32 @@ impl SnapshotsClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .chapters
+    ///         .snapshots
+    ///         .get(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         project_id: &str,
@@ -89,6 +140,23 @@ impl SnapshotsClient2 {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.studio.projects.chapters.snapshots.stream(&"project_id".to_string(), &"chapter_id".to_string(), &"chapter_snapshot_id".to_string(), &BodyStreamChapterAudioV1StudioProjectsProjectIDChaptersChapterIDSnapshotsChapterSnapshotIDStreamPost {
+    ///         ..Default::default()
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn stream(
         &self,
         project_id: &str,

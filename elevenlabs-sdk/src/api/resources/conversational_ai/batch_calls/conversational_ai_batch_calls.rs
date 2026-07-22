@@ -22,6 +22,42 @@ impl BatchCallsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .batch_calls
+    ///         .create(
+    ///             &BodySubmitABatchCallRequestV1ConvaiBatchCallingSubmitPost {
+    ///                 call_name: "call_name".to_string(),
+    ///                 agent_id: "agent_id".to_string(),
+    ///                 recipients: vec![OutboundCallRecipient {
+    ///                     ..Default::default()
+    ///                 }],
+    ///                 scheduled_time_unix: None,
+    ///                 agent_phone_number_id: None,
+    ///                 whatsapp_params: None,
+    ///                 timezone: None,
+    ///                 branch_id: None,
+    ///                 environment: None,
+    ///                 telephony_call_config: None,
+    ///                 target_concurrency_limit: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &BodySubmitABatchCallRequestV1ConvaiBatchCallingSubmitPost,
@@ -48,6 +84,33 @@ impl BatchCallsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .batch_calls
+    ///         .list(
+    ///             &ConversationalAiBatchCallsListQueryRequest {
+    ///                 limit: Some(1),
+    ///                 last_doc: Some("last_doc".to_string()),
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiBatchCallsListQueryRequest,
@@ -77,6 +140,25 @@ impl BatchCallsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .batch_calls
+    ///         .get(&"batch_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         batch_id: &str,
@@ -102,6 +184,25 @@ impl BatchCallsClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .batch_calls
+    ///         .delete(&"batch_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         batch_id: &str,
@@ -127,6 +228,25 @@ impl BatchCallsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .batch_calls
+    ///         .cancel(&"batch_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn cancel(
         &self,
         batch_id: &str,
@@ -152,6 +272,25 @@ impl BatchCallsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .batch_calls
+    ///         .retry(&"batch_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn retry(
         &self,
         batch_id: &str,

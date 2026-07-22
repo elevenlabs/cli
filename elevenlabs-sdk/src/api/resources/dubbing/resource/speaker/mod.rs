@@ -28,6 +28,33 @@ impl SpeakerClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .speaker
+    ///         .update(
+    ///             &"dubbing_id".to_string(),
+    ///             &"speaker_id".to_string(),
+    ///             &BodyUpdateMetadataForASpeakerV1DubbingResourceDubbingIDSpeakerSpeakerIDPatch {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         dubbing_id: &str,
@@ -56,6 +83,32 @@ impl SpeakerClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .speaker
+    ///         .create(
+    ///             &"dubbing_id".to_string(),
+    ///             &BodyCreateANewSpeakerV1DubbingResourceDubbingIDSpeakerPost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         dubbing_id: &str,
@@ -84,6 +137,26 @@ impl SpeakerClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .resource
+    ///         .speaker
+    ///         .find_similar_voices(&"dubbing_id".to_string(), &"speaker_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn find_similar_voices(
         &self,
         dubbing_id: &str,

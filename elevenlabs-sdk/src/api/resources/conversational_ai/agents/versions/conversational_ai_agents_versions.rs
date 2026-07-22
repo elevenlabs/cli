@@ -24,6 +24,30 @@ impl VersionsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .agents
+    ///         .versions
+    ///         .get(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &"agtvrsn_0901k4aafjxxfxt93gd841r7tv5t".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         agent_id: &str,

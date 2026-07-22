@@ -23,6 +23,31 @@ impl RulesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.pronunciation_dictionaries.rules.set(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodySetRulesOnThePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIDSetRulesPost {
+    ///         rules: vec![BodySetRulesOnThePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIDSetRulesPostRulesItem::Alias {
+    ///             data: PronunciationDictionaryAliasRuleRequestModel {
+    ///                 string_to_replace: "Thailand".to_string(),
+    ///                 case_sensitive: Some(true),
+    ///                 word_boundaries: Some(true),
+    ///                 alias: "tie-land".to_string(),
+    ///                 ..Default::default()
+    ///             }
+    ///         }]
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn set(
         &self,
         pronunciation_dictionary_id: &str,
@@ -53,6 +78,39 @@ impl RulesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .pronunciation_dictionaries
+    ///         .rules
+    ///         .add(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &PronunciationDictionary {
+    ///                 rules: vec![PronunciationDictionaryRule::Alias {
+    ///                     data: PronunciationDictionaryAliasRuleRequestModel {
+    ///                         string_to_replace: "Thailand".to_string(),
+    ///                         case_sensitive: Some(true),
+    ///                         word_boundaries: Some(true),
+    ///                         alias: "tie-land".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 }],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn add(
         &self,
         pronunciation_dictionary_id: &str,
@@ -83,6 +141,31 @@ impl RulesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .pronunciation_dictionaries
+    ///         .rules
+    ///         .remove(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &RemovePronunciationDictionaryRulesRequest {
+    ///                 rule_strings: vec!["rule_strings".to_string()],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn remove(
         &self,
         pronunciation_dictionary_id: &str,

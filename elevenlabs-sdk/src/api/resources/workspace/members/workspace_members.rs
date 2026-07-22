@@ -22,6 +22,21 @@ impl MembersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.workspace.members.list(None).await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         options: Option<RequestOptions>,
@@ -40,6 +55,33 @@ impl MembersClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .members
+    ///         .update(
+    ///             &UpdateMemberRequest {
+    ///                 email: "email".to_string(),
+    ///                 is_locked: None,
+    ///                 workspace_role: None,
+    ///                 workspace_seat_type: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         request: &UpdateMemberRequest,

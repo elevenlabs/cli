@@ -22,6 +22,21 @@ impl AuthConnectionsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.workspace.auth_connections.list(None).await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         options: Option<RequestOptions>,
@@ -47,6 +62,37 @@ impl AuthConnectionsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .auth_connections
+    ///         .create(
+    ///             &AuthConnectionsCreateRequestBody::Oauth2ClientCredentials {
+    ///                 data: CreateOAuth2ClientCredsRequest {
+    ///                     name: "name".to_string(),
+    ///                     provider: "provider".to_string(),
+    ///                     client_id: "client_id".to_string(),
+    ///                     token_url: "token_url".to_string(),
+    ///                     client_secret: "client_secret".to_string(),
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &AuthConnectionsCreateRequestBody,
@@ -72,6 +118,25 @@ impl AuthConnectionsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .auth_connections
+    ///         .delete(&"auth_connection_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         auth_connection_id: &str,
@@ -98,6 +163,33 @@ impl AuthConnectionsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .auth_connections
+    ///         .update(
+    ///             &"auth_connection_id".to_string(),
+    ///             &AuthConnectionsUpdateRequestBody::Oauth2ClientCredentials {
+    ///                 data: UpdateOAuth2ClientCredsRequest {
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         auth_connection_id: &str,

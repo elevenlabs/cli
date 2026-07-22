@@ -38,6 +38,21 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.studio.projects.list(None).await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         options: Option<RequestOptions>,
@@ -56,6 +71,58 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .create(
+    ///             &CreateRequest {
+    ///                 from_document: b"test file content".to_vec(),
+    ///                 name: "name".to_string(),
+    ///                 default_title_voice_id: None,
+    ///                 default_paragraph_voice_id: None,
+    ///                 default_model_id: None,
+    ///                 from_url: None,
+    ///                 from_content_json: None,
+    ///                 quality_preset: None,
+    ///                 title: None,
+    ///                 author: None,
+    ///                 description: None,
+    ///                 genres: None,
+    ///                 target_audience: None,
+    ///                 language: None,
+    ///                 content_type: None,
+    ///                 original_publication_date: None,
+    ///                 mature_content: None,
+    ///                 isbn_number: None,
+    ///                 acx_volume_normalization: None,
+    ///                 volume_normalization: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 callback_url: None,
+    ///                 fiction: None,
+    ///                 apply_text_normalization: None,
+    ///                 auto_convert: None,
+    ///                 auto_assign_voices: None,
+    ///                 source_type: None,
+    ///                 voice_settings: None,
+    ///                 create_publishing_read: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreateRequest,
@@ -83,6 +150,32 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .get(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &StudioProjectsGetQueryRequest {
+    ///                 share_id: Some("share_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         project_id: &str,
@@ -112,6 +205,37 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyUpdateStudioProjectV1StudioProjectsProjectIDPost {
+    ///                 name: "Project 1".to_string(),
+    ///                 default_title_voice_id: "21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///                 default_paragraph_voice_id: "21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///                 title: None,
+    ///                 author: None,
+    ///                 isbn_number: None,
+    ///                 volume_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         project_id: &str,
@@ -139,6 +263,25 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .delete(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         project_id: &str,
@@ -165,6 +308,25 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .convert(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         project_id: &str,
@@ -191,6 +353,25 @@ impl ProjectsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .studio
+    ///         .projects
+    ///         .get_muted_tracks(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_muted_tracks(
         &self,
         project_id: &str,

@@ -23,6 +23,26 @@ impl AnalysisClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .analysis
+    ///         .run(&"conversation_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn run(
         &self,
         conversation_id: &str,
@@ -49,6 +69,33 @@ impl AnalysisClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .conversations
+    ///         .analysis
+    ///         .run_evaluation(
+    ///             &"conversation_id".to_string(),
+    ///             &RunConversationEvaluationsRequest {
+    ///                 evaluation_id: "evaluation_id".to_string(),
+    ///                 scope: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn run_evaluation(
         &self,
         conversation_id: &str,

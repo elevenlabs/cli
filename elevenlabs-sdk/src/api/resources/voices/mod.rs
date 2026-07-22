@@ -39,6 +39,30 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .get_all(
+    ///             &GetAllQueryRequest {
+    ///                 show_legacy: Some(true),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_all(
         &self,
         request: &GetAllQueryRequest,
@@ -68,6 +92,31 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .get(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &VoicesGetQueryRequest {
+    ///                 with_settings: Some(true),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         voice_id: &str,
@@ -97,6 +146,24 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .delete(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         voice_id: &str,
@@ -123,6 +190,35 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &UpdateRequest {
+    ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
+    ///                 name: "name".to_string(),
+    ///                 remove_background_noise: None,
+    ///                 description: None,
+    ///                 labels: None,
+    ///                 moderate_metadata: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         voice_id: &str,
@@ -160,6 +256,39 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .search(
+    ///             &VoicesSearchQueryRequest {
+    ///                 next_page_token: Some("next_page_token".to_string()),
+    ///                 page_size: Some(1),
+    ///                 search: Some("search".to_string()),
+    ///                 sort: Some("sort".to_string()),
+    ///                 sort_direction: Some("sort_direction".to_string()),
+    ///                 voice_type: Some("voice_type".to_string()),
+    ///                 category: Some("category".to_string()),
+    ///                 fine_tuning_state: Some("fine_tuning_state".to_string()),
+    ///                 collection_id: Some("collection_id".to_string()),
+    ///                 include_total_count: Some(true),
+    ///                 voice_ids: vec![Some("voice_ids".to_string())],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn search(
         &self,
         request: &VoicesSearchQueryRequest,
@@ -199,6 +328,32 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .share(
+    ///             &"63e06b7e7cafdc46be4d2e0b3f045940231ae058d508589653d74d1265a574ca".to_string(),
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyAddSharedVoiceV1VoicesAddPublicUserIDVoiceIDPost {
+    ///                 new_name: "John Smith".to_string(),
+    ///                 bookmarked: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn share(
         &self,
         public_user_id: &str,
@@ -243,6 +398,46 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .get_shared(
+    ///             &GetSharedQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 category: Some(VoicesGetSharedRequestCategory::Professional),
+    ///                 gender: Some("gender".to_string()),
+    ///                 age: Some("age".to_string()),
+    ///                 accent: Some("accent".to_string()),
+    ///                 language: Some("language".to_string()),
+    ///                 locale: Some("locale".to_string()),
+    ///                 search: Some("search".to_string()),
+    ///                 use_cases: vec![Some("use_cases".to_string())],
+    ///                 descriptives: vec![Some("descriptives".to_string())],
+    ///                 featured: Some(true),
+    ///                 min_notice_period_days: Some(1),
+    ///                 include_custom_rates: Some(true),
+    ///                 include_live_moderated: Some(true),
+    ///                 reader_app_enabled: Some(true),
+    ///                 owner_id: Some("owner_id".to_string()),
+    ///                 sort: Some(VoicesGetSharedRequestSort::CreatedDate),
+    ///                 page: Some(1),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_shared(
         &self,
         request: &GetSharedQueryRequest,
@@ -293,6 +488,31 @@ impl VoicesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .find_similar_voices(
+    ///             &FindSimilarVoicesRequest {
+    ///                 audio_file: b"test file content".to_vec(),
+    ///                 similarity_threshold: None,
+    ///                 top_k: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn find_similar_voices(
         &self,
         request: &FindSimilarVoicesRequest,

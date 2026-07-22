@@ -27,6 +27,37 @@ impl TextToVoiceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_voice
+    ///         .create_previews(
+    ///             &VoiceDesignRequest {
+    ///                 output_format: Some(AllowedOutputFormats::Mp32205032),
+    ///                 voice_description: "A sassy squeaky mouse".to_string(),
+    ///                 text: None,
+    ///                 auto_generate_text: None,
+    ///                 loudness: None,
+    ///                 quality: None,
+    ///                 seed: None,
+    ///                 guidance_scale: None,
+    ///                 should_enhance: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_previews(
         &self,
         request: &VoiceDesignRequest,
@@ -54,6 +85,33 @@ impl TextToVoiceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_voice
+    ///         .create(
+    ///             &BodyCreateANewVoiceFromVoicePreviewV1TextToVoicePost {
+    ///                 voice_name: "Sassy squeaky mouse".to_string(),
+    ///                 voice_description: "A sassy squeaky mouse".to_string(),
+    ///                 generated_voice_id: "37HceQefKmEi3bGovXjL".to_string(),
+    ///                 labels: None,
+    ///                 played_not_selected_voice_ids: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &BodyCreateANewVoiceFromVoicePreviewV1TextToVoicePost,
@@ -80,6 +138,43 @@ impl TextToVoiceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_voice
+    ///         .design(
+    ///             &VoiceDesignRequestModel {
+    ///                 output_format: Some(AllowedOutputFormats::Mp32205032),
+    ///                 voice_description: "A sassy squeaky mouse".to_string(),
+    ///                 model_id: None,
+    ///                 text: None,
+    ///                 auto_generate_text: None,
+    ///                 loudness: None,
+    ///                 seed: None,
+    ///                 guidance_scale: None,
+    ///                 stream_previews: None,
+    ///                 should_enhance: None,
+    ///                 remixing_session_id: None,
+    ///                 remixing_session_iteration_id: None,
+    ///                 quality: None,
+    ///                 reference_audio_base64: None,
+    ///                 prompt_strength: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn design(
         &self,
         request: &VoiceDesignRequestModel,
@@ -109,6 +204,40 @@ impl TextToVoiceClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_voice
+    ///         .remix(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &VoiceRemixRequestModel {
+    ///                 output_format: Some(AllowedOutputFormats::Mp32205032),
+    ///                 voice_description: "Make the voice have a higher pitch.".to_string(),
+    ///                 text: None,
+    ///                 auto_generate_text: None,
+    ///                 loudness: None,
+    ///                 seed: None,
+    ///                 guidance_scale: None,
+    ///                 stream_previews: None,
+    ///                 remixing_session_id: None,
+    ///                 remixing_session_iteration_id: None,
+    ///                 prompt_strength: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn remix(
         &self,
         voice_id: &str,

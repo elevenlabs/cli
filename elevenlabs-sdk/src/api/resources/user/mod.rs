@@ -26,6 +26,21 @@ impl UserClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.user.get(None).await;
+    /// }
+    /// ```
     pub async fn get(&self, options: Option<RequestOptions>) -> Result<User, ApiError> {
         self.http_client
             .execute_request(Method::GET, "v1/user", None, None, options)

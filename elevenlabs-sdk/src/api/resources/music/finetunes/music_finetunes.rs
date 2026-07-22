@@ -28,6 +28,36 @@ impl FinetunesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .finetunes
+    ///         .list(
+    ///             &MusicFinetunesListQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 visibility: Some(FinetuneVisibility::Private),
+    ///                 created_by: Some(FinetuneCreatedBy::Self),
+    ///                 sort: Some(FinetunesListRequestSort::CreatedAt),
+    ///                 sort_direction: Some(FinetunesListRequestSortDirection::Asc),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &MusicFinetunesListQueryRequest,
@@ -60,6 +90,35 @@ impl FinetunesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .finetunes
+    ///         .create(
+    ///             &CreateRequest {
+    ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
+    ///                 name: "name".to_string(),
+    ///                 primary_genre: "primary_genre".to_string(),
+    ///                 tags: None,
+    ///                 visibility: None,
+    ///                 model_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &CreateRequest,
@@ -85,6 +144,25 @@ impl FinetunesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .finetunes
+    ///         .get(&"finetune_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         finetune_id: &str,
@@ -110,6 +188,25 @@ impl FinetunesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .finetunes
+    ///         .delete(&"finetune_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         finetune_id: &str,
@@ -135,6 +232,31 @@ impl FinetunesClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .finetunes
+    ///         .update(
+    ///             &"finetune_id".to_string(),
+    ///             &UpdateMusicFinetuneRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         finetune_id: &str,

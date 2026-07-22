@@ -23,6 +23,32 @@ impl MembersClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .groups
+    ///         .members
+    ///         .remove(
+    ///             &"group_id".to_string(),
+    ///             &BodyDeleteMemberFromUserGroupV1WorkspaceGroupsGroupIDMembersRemovePost {
+    ///                 email: "email".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn remove(
         &self,
         group_id: &str,
@@ -50,6 +76,32 @@ impl MembersClient2 {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .groups
+    ///         .members
+    ///         .add(
+    ///             &"group_id".to_string(),
+    ///             &AddMemberToGroupRequest {
+    ///                 email: "email".to_string(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn add(
         &self,
         group_id: &str,

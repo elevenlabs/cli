@@ -34,6 +34,35 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .create_from_url(
+    ///             &BodyCreateURLDocumentV1ConvaiKnowledgeBaseURLPost {
+    ///                 url: "url".to_string(),
+    ///                 name: None,
+    ///                 parent_folder_id: None,
+    ///                 enable_auto_sync: None,
+    ///                 auto_remove: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_from_url(
         &self,
         request: &BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPost,
@@ -59,6 +88,33 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .create_from_file(
+    ///             &CreateFromFileRequest {
+    ///                 file: b"test file content".to_vec(),
+    ///                 name: None,
+    ///                 parent_folder_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_from_file(
         &self,
         request: &CreateFromFileRequest,
@@ -84,6 +140,33 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .create_from_text(
+    ///             &BodyCreateTextDocumentV1ConvaiKnowledgeBaseTextPost {
+    ///                 text: "text".to_string(),
+    ///                 name: None,
+    ///                 parent_folder_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_from_text(
         &self,
         request: &BodyCreateTextDocumentV1ConvaiKnowledgeBaseTextPost,
@@ -109,6 +192,34 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .create_folder(
+    ///             &BodyCreateFolderV1ConvaiKnowledgeBaseFolderPost {
+    ///                 name: "name".to_string(),
+    ///                 parent_folder_id: None,
+    ///                 enable_auto_sync: None,
+    ///                 auto_remove: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create_folder(
         &self,
         request: &BodyCreateFolderV1ConvaiKnowledgeBaseFolderPost,
@@ -135,6 +246,33 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .get(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &ConversationalAiKnowledgeBaseDocumentsGetQueryRequest {
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         documentation_id: &str,
@@ -165,6 +303,33 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .delete(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &ConversationalAiKnowledgeBaseDocumentsDeleteQueryRequest {
+    ///                 force: Some(true),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         documentation_id: &str,
@@ -194,6 +359,32 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .update(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyUpdateDocumentV1ConvaiKnowledgeBaseDocumentationIDPatch {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         documentation_id: &str,
@@ -224,6 +415,35 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .get_agents(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &GetAgentsQueryRequest {
+    ///                 dependent_type: Some(KnowledgeBaseDependentType::Direct),
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_agents(
         &self,
         documentation_id: &str,
@@ -258,6 +478,26 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// Text response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .get_content(&"documentation_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_content(
         &self,
         documentation_id: &str,
@@ -284,6 +524,26 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .get_source_file_url(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_source_file_url(
         &self,
         documentation_id: &str,
@@ -313,6 +573,32 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .move_(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &BodyMoveEntityToFolderV1ConvaiKnowledgeBaseDocumentIDMovePost {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn move_(
         &self,
         document_id: &str,
@@ -339,6 +625,35 @@ impl DocumentsClient {
     /// # Returns
     ///
     /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .documents
+    ///         .bulk_move(
+    ///             &BodyBulkMoveEntitiesToFolderV1ConvaiKnowledgeBaseBulkMovePost {
+    ///                 document_ids: vec![
+    ///                     "21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///                     "31m00Tcm4TlvDq8ikWBM".to_string(),
+    ///                 ],
+    ///                 move_to: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn bulk_move(
         &self,
         request: &BodyBulkMoveEntitiesToFolderV1ConvaiKnowledgeBaseBulkMovePost,

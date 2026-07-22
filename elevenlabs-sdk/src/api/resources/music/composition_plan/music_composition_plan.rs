@@ -22,6 +22,33 @@ impl CompositionPlanClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .music
+    ///         .composition_plan
+    ///         .create(
+    ///             &BodyGenerateCompositionPlanV1MusicPlanPost {
+    ///                 prompt: "prompt".to_string(),
+    ///                 music_length_ms: None,
+    ///                 source_composition_plan: None,
+    ///                 model_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &BodyGenerateCompositionPlanV1MusicPlanPost,

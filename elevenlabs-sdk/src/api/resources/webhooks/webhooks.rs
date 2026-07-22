@@ -23,6 +23,30 @@ impl WebhooksClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .webhooks
+    ///         .list(
+    ///             &WebhooksListQueryRequest {
+    ///                 include_usages: Some(false),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &WebhooksListQueryRequest,
@@ -50,6 +74,34 @@ impl WebhooksClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .webhooks
+    ///         .create(
+    ///             &BodyCreateWorkspaceWebhookV1WorkspaceWebhooksPost {
+    ///                 settings: WebhookHmacSettings {
+    ///                     auth_type: "hmac".to_string(),
+    ///                     name: "name".to_string(),
+    ///                     webhook_url: "webhook_url".to_string(),
+    ///                     request_headers: None,
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &BodyCreateWorkspaceWebhookV1WorkspaceWebhooksPost,
@@ -76,6 +128,24 @@ impl WebhooksClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .webhooks
+    ///         .delete(&"G007vmtq9uWYl7SUW9zGS8GZZa1K".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         webhook_id: &str,
@@ -102,6 +172,34 @@ impl WebhooksClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .webhooks
+    ///         .update(
+    ///             &"G007vmtq9uWYl7SUW9zGS8GZZa1K".to_string(),
+    ///             &BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIDPatch {
+    ///                 is_disabled: true,
+    ///                 name: "My Callback Webhook".to_string(),
+    ///                 retry_enabled: None,
+    ///                 request_headers: None,
+    ///                 events: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         webhook_id: &str,

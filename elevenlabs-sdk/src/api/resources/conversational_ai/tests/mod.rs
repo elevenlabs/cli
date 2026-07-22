@@ -31,6 +31,33 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .create(
+    ///             &TestsCreateRequestBody::Llm {
+    ///                 data: CreateResponseUnitTestRequest {
+    ///                     name: "name".to_string(),
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         request: &TestsCreateRequestBody,
@@ -56,6 +83,31 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .move_(
+    ///             &BodyBulkMoveTestsToFolderV1ConvaiAgentTestingBulkMovePost {
+    ///                 entity_ids: vec!["entity_ids".to_string()],
+    ///                 move_to: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn move_(
         &self,
         request: &BodyBulkMoveTestsToFolderV1ConvaiAgentTestingBulkMovePost,
@@ -82,6 +134,25 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .get(&"TeaqRRdTcIfIu2i7BYfT".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         test_id: &str,
@@ -109,6 +180,34 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .update(
+    ///             &"TeaqRRdTcIfIu2i7BYfT".to_string(),
+    ///             &TestsUpdateRequestBody::Llm {
+    ///                 data: UpdateResponseUnitTestRequest {
+    ///                     name: "name".to_string(),
+    ///                     ..Default::default()
+    ///                 },
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         test_id: &str,
@@ -136,6 +235,25 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .delete(&"TeaqRRdTcIfIu2i7BYfT".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         test_id: &str,
@@ -161,6 +279,30 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .summaries(
+    ///             &ListTestsByIDsRequestModel {
+    ///                 test_ids: vec!["test_id_1".to_string(), "test_id_2".to_string()],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn summaries(
         &self,
         request: &ListTestsByIdsRequestModel,
@@ -194,6 +336,37 @@ impl TestsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .list(
+    ///             &ConversationalAiTestsListQueryRequest {
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 page_size: Some(1),
+    ///                 search: Some("search".to_string()),
+    ///                 parent_folder_id: Some("parent_folder_id".to_string()),
+    ///                 types: vec![Some(TestType::Llm)],
+    ///                 include_folders: Some(true),
+    ///                 sort_mode: Some(TestsListRequestSortMode::Default),
+    ///                 sharing_mode: Some(TestSharingMode::All),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiTestsListQueryRequest,

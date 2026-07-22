@@ -22,6 +22,25 @@ impl ApiKeysClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .service_accounts
+    ///         .api_keys
+    ///         .list(&"service_account_user_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         service_account_user_id: &str,
@@ -47,6 +66,27 @@ impl ApiKeysClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.service_accounts.api_keys.create(&"service_account_user_id".to_string(), &BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPost {
+    ///         name: "name".to_string(),
+    ///         permissions: BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPostPermissions::PermissionTypeList(vec![]),
+    ///         character_limit: None,
+    ///         allowed_ips: None,
+    ///         third_party_disable_allowed: None
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn create(
         &self,
         service_account_user_id: &str,
@@ -73,6 +113,29 @@ impl ApiKeysClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .service_accounts
+    ///         .api_keys
+    ///         .delete(
+    ///             &"service_account_user_id".to_string(),
+    ///             &"api_key_id".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn delete(
         &self,
         service_account_user_id: &str,
@@ -102,6 +165,23 @@ impl ApiKeysClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client.service_accounts.api_keys.update(&"service_account_user_id".to_string(), &"api_key_id".to_string(), &BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch {
+    ///         ..Default::default()
+    ///     }, None).await;
+    /// }
+    /// ```
     pub async fn update(
         &self,
         service_account_user_id: &str,

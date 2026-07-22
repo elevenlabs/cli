@@ -25,6 +25,33 @@ impl TranscriptClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .dubbing
+    ///         .transcript
+    ///         .get_transcript_for_dub(
+    ///             &"dubbing_id".to_string(),
+    ///             &"source".to_string(),
+    ///             &GetTranscriptForDubQueryRequest {
+    ///                 format_type: Some(TranscriptGetTranscriptForDubRequestFormatType::Srt),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_transcript_for_dub(
         &self,
         dubbing_id: &str,

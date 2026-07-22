@@ -24,6 +24,48 @@ impl TextToDialogueClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_dialogue
+    ///         .convert(
+    ///             &BodyTextToDialogueMultiVoiceV1TextToDialoguePost {
+    ///                 inputs: vec![
+    ///                     DialogueInput {
+    ///                         text: "[giggling] Knock knock".to_string(),
+    ///                         voice_id: "JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                     DialogueInput {
+    ///                         text: "[curious] Who is there?".to_string(),
+    ///                         voice_id: "Aw4FAjKCGjjNkVhN1Xmq".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 ],
+    ///                 output_format: None,
+    ///                 enable_logging: None,
+    ///                 model_id: None,
+    ///                 language_code: None,
+    ///                 settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 apply_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         request: &BodyTextToDialogueMultiVoiceV1TextToDialoguePost,
@@ -54,6 +96,48 @@ impl TextToDialogueClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_dialogue
+    ///         .stream(
+    ///             &BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPost {
+    ///                 inputs: vec![
+    ///                     DialogueInput {
+    ///                         text: "[giggling] Knock knock".to_string(),
+    ///                         voice_id: "JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                     DialogueInput {
+    ///                         text: "[curious] Who is there?".to_string(),
+    ///                         voice_id: "Aw4FAjKCGjjNkVhN1Xmq".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 ],
+    ///                 output_format: None,
+    ///                 enable_logging: None,
+    ///                 model_id: None,
+    ///                 language_code: None,
+    ///                 settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 apply_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn stream(
         &self,
         request: &BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPost,
@@ -84,6 +168,48 @@ impl TextToDialogueClient {
     /// # Returns
     ///
     /// Complete JSON response (fetched at once, not streaming)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_dialogue
+    ///         .stream_with_timestamps(
+    ///             &BodyTextToDialogueStreamWithTimestamps {
+    ///                 output_format: Some(AllowedOutputFormats::Mp32205032),
+    ///                 enable_logging: Some(true),
+    ///                 inputs: vec![
+    ///                     DialogueInput {
+    ///                         text: "Hello, how are you?".to_string(),
+    ///                         voice_id: "bYTqZQo3Jz7LQtmGTgwi".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                     DialogueInput {
+    ///                         text: "I'm doing well, thank you!".to_string(),
+    ///                         voice_id: "6lCwbsX1yVjD49QmpkTR".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 ],
+    ///                 model_id: None,
+    ///                 language_code: None,
+    ///                 settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 apply_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn stream_with_timestamps(
         &self,
         request: &BodyTextToDialogueStreamWithTimestamps,
@@ -114,6 +240,50 @@ impl TextToDialogueClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .text_to_dialogue
+    ///         .convert_with_timestamps(
+    ///             &BodyTextToDialogueFullWithTimestamps {
+    ///                 output_format: Some(
+    ///                     TextToDialogueConvertWithTimestampsRequestOutputFormat::Alaw8000,
+    ///                 ),
+    ///                 enable_logging: Some(true),
+    ///                 inputs: vec![
+    ///                     DialogueInput {
+    ///                         text: "Hello, how are you?".to_string(),
+    ///                         voice_id: "bYTqZQo3Jz7LQtmGTgwi".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                     DialogueInput {
+    ///                         text: "I'm doing well, thank you!".to_string(),
+    ///                         voice_id: "6lCwbsX1yVjD49QmpkTR".to_string(),
+    ///                         ..Default::default()
+    ///                     },
+    ///                 ],
+    ///                 model_id: None,
+    ///                 language_code: None,
+    ///                 settings: None,
+    ///                 pronunciation_dictionary_locators: None,
+    ///                 seed: None,
+    ///                 apply_text_normalization: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert_with_timestamps(
         &self,
         request: &BodyTextToDialogueFullWithTimestamps,

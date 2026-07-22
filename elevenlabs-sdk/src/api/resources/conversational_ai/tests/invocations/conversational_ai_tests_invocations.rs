@@ -25,6 +25,34 @@ impl InvocationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .invocations
+    ///         .list(
+    ///             &ConversationalAiTestsInvocationsListQueryRequest {
+    ///                 agent_id: Some("agent_id".to_string()),
+    ///                 page_size: Some(1),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiTestsInvocationsListQueryRequest,
@@ -55,6 +83,26 @@ impl InvocationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .invocations
+    ///         .get(&"test_invocation_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get(
         &self,
         test_invocation_id: &str,
@@ -81,6 +129,35 @@ impl InvocationsClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .tests
+    ///         .invocations
+    ///         .resubmit(
+    ///             &"test_invocation_id".to_string(),
+    ///             &ResubmitTestsRequestModel {
+    ///                 test_run_ids: vec!["test_run_ids".to_string()],
+    ///                 agent_id: "agent_id".to_string(),
+    ///                 agent_config_override: None,
+    ///                 branch_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn resubmit(
         &self,
         test_invocation_id: &str,

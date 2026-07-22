@@ -33,6 +33,38 @@ impl SpeechToSpeechClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_to_speech
+    ///         .convert(
+    ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///             &ConvertRequest {
+    ///                 output_format: Some(SpeechToSpeechConvertRequestOutputFormat::Mp344100128),
+    ///                 audio: b"test file content".to_vec(),
+    ///                 model_id: Some("eleven_multilingual_sts_v2".to_string()),
+    ///                 voice_settings: None,
+    ///                 seed: None,
+    ///                 remove_background_noise: None,
+    ///                 file_format: None,
+    ///                 enable_logging: None,
+    ///                 optimize_streaming_latency: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn convert(
         &self,
         voice_id: &str,
@@ -77,6 +109,38 @@ impl SpeechToSpeechClient {
     /// # Returns
     ///
     /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_to_speech
+    ///         .stream(
+    ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
+    ///             &StreamRequest {
+    ///                 output_format: Some(SpeechToSpeechStreamRequestOutputFormat::Mp344100128),
+    ///                 audio: b"test file content".to_vec(),
+    ///                 model_id: Some("eleven_multilingual_sts_v2".to_string()),
+    ///                 voice_settings: None,
+    ///                 seed: None,
+    ///                 remove_background_noise: None,
+    ///                 file_format: None,
+    ///                 enable_logging: None,
+    ///                 optimize_streaming_latency: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn stream(
         &self,
         voice_id: &str,

@@ -42,6 +42,40 @@ impl KnowledgeBaseClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .list(
+    ///             &ConversationalAiKnowledgeBaseListQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 search: Some("search".to_string()),
+    ///                 show_only_owned_documents: Some(true),
+    ///                 created_by_user_id: Some("created_by_user_id".to_string()),
+    ///                 types: vec![Some(KnowledgeBaseDocumentType::File)],
+    ///                 parent_folder_id: Some("parent_folder_id".to_string()),
+    ///                 ancestor_folder_id: Some("ancestor_folder_id".to_string()),
+    ///                 folders_first: Some(true),
+    ///                 sort_direction: Some(SortDirection::Asc),
+    ///                 sort_by: Some(KnowledgeBaseSortBy::Name),
+    ///                 cursor: Some("cursor".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn list(
         &self,
         request: &ConversationalAiKnowledgeBaseListQueryRequest,
@@ -82,6 +116,34 @@ impl KnowledgeBaseClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .get_or_create_rag_indexes(
+    ///             &BodyComputeRagIndexesInBatchV1ConvaiKnowledgeBaseRagIndexPost {
+    ///                 items: vec![GetOrCreateRagIndexRequestModel {
+    ///                     document_id: "document_id".to_string(),
+    ///                     create_if_missing: true,
+    ///                     model: EmbeddingModelEnum::E5Mistral7BInstruct,
+    ///                 }],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn get_or_create_rag_indexes(
         &self,
         request: &BodyComputeRagIndexesInBatchV1ConvaiKnowledgeBaseRagIndexPost,
@@ -111,6 +173,33 @@ impl KnowledgeBaseClient {
     /// # Returns
     ///
     /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .conversational_ai
+    ///         .knowledge_base
+    ///         .search(
+    ///             &ConversationalAiKnowledgeBaseSearchQueryRequest {
+    ///                 query: "query".to_string(),
+    ///                 page_size: Some(1),
+    ///                 types: vec![Some(KnowledgeBaseDocumentType::File)],
+    ///                 cursor: Some("cursor".to_string()),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
     pub async fn search(
         &self,
         request: &ConversationalAiKnowledgeBaseSearchQueryRequest,
