@@ -1,41 +1,26 @@
-//! Custom command handlers.
+//! Custom command handlers for the ElevenLabs "agents-as-code" workflow.
 //!
-//! This file is yours to edit — add it to `.fernignore` so
-//! `fern generate` will never overwrite your changes.
+//! This file and the `workflow/` module tree are hand-written and are
+//! protected from regeneration by `.fernignore`
+//! (`cli/elevenlabs/custom.rs` and `cli/elevenlabs/workflow/`). The
+//! generated `main.rs` calls `custom::register(app)` at startup, composing
+//! these commands into the CLI at compile time.
 //!
-//! The generated `main.rs` calls `custom::register(app)` at
-//! startup, composing your commands into the CLI at compile time.
-//!
-//! Each handler receives an `AppContext`. Use `super::sdk::client(ctx)`
-//! to get a fully-wired SDK client that inherits the CLI's auth,
-//! retries, TLS, and global headers. Use `super::sdk::block_on(future)`
-//! to run async SDK calls from synchronous handler context.
-//! Types are available via `elevenlabs_sdk::api::*`.
+//! Handlers get a fully-wired SDK client via `super::sdk::client(ctx)`
+//! (inherits auth, retries, TLS, base URL, and global headers) and run
+//! async SDK calls with `super::sdk::block_on(future)`. Types come from
+//! `elevenlabs_sdk::api::*`.
 
 use fern_cli_sdk::app::CliApp;
 
-/// Register custom commands on the CLI app builder.
-///
-/// Called from `main.rs` during startup. Uncomment the example
-/// below and adapt it to your API to get started.
+// The workflow module tree lives at `cli/elevenlabs/workflow/`. Because
+// this file is `custom.rs` (not `mod.rs`), point `mod` at the directory
+// explicitly so the tree sits alongside the generated files rather than
+// under a `custom/` subdirectory.
+#[path = "workflow/mod.rs"]
+mod workflow;
+
+/// Register all custom commands on the CLI app builder.
 pub fn register(app: CliApp) -> CliApp {
-    // Example: typed SDK client usage with the co-generated SDK.
-    //
-    // use elevenlabs_sdk::api::*;
-    //
-    // let app = app.command(
-    //     clap::Command::new("get-plant")
-    //         .about("Fetch a plant by its ID")
-    //         .arg(clap::Arg::new("plant-id").required(true)),
-    //     |matches, ctx| {
-    //         let plant_id = matches.get_one::<String>("plant-id").unwrap();
-    //         let client = super::sdk::client(ctx);
-    //         let plant = super::sdk::block_on(
-    //             client.plants.get_plant(plant_id, None),
-    //         )?;
-    //         println!("{}", serde_json::to_string_pretty(&plant).unwrap());
-    //         Ok(())
-    //     },
-    // );
-    app
+    workflow::register(app)
 }
