@@ -1,12 +1,20 @@
-# ElevenLabs API Documentation CLI
+# ElevenLabs CLI — Agents as Code
 
-Command-line interface for the ElevenLabs API Documentation API.
+![hero](./assets/Cover.png)
+
+Command-line interface for the [ElevenLabs platform](https://elevenlabs.io/docs/agents-platform/overview).
+
+The CLI does two things:
+
+- **Full API access** — every ElevenLabs API endpoint is available as a subcommand (`elevenlabs <resource> <method>`).
+- **Agents as Code** — manage Conversational AI agents from local configuration files, with templates, branches, and push/pull sync.
 
 ## Table of contents
 
 - [Installation](#installation)
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
+- [Agents as Code](#agents-as-code)
 - [Usage](#usage)
 - [Documentation](#documentation)
 - [Advanced](#advanced)
@@ -57,6 +65,61 @@ elevenlabs <resource> <method>
 ```
 
 Run `elevenlabs <resource> --help` to see available methods for a resource.
+
+## Agents as Code
+
+Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live as JSON on disk and sync to ElevenLabs. Pulled configs are stored as raw wire JSON and pushed back verbatim, so they round-trip losslessly.
+
+### Project structure
+
+```
+your_project/
+├── agents.json         # Agent registry: ids + branch mappings → config paths
+├── tools.json          # Tool registry
+├── tests.json          # Test registry
+├── agent_configs/      # Agent configuration files
+├── tool_configs/       # Tool configuration files
+└── test_configs/       # Test configuration files
+```
+
+### Commands
+
+```bash
+# Scaffold a new project (pass a path, or --override to reset an existing one)
+elevenlabs agents init [path] [--override]
+
+# Inspect locally-configured agents
+elevenlabs agents list
+elevenlabs agents status
+
+# List available agent templates
+elevenlabs agents templates list
+
+# Print an embeddable HTML widget snippet for an agent
+elevenlabs agents widget <agent_id>
+
+# List an agent's branches (e.g. staging vs production)
+elevenlabs agents branches list --agent <agent_id> [--include-archived]
+
+# Delete an agent locally and in ElevenLabs
+elevenlabs agents delete <agent_id>
+elevenlabs agents delete --all
+```
+
+> Additional agents-as-code commands (`add`, `push`, `pull`, `test`) and the `tools` / `tests` command groups are being ported from v0 and will land in follow-up changes.
+
+### Templates
+
+Pre-built starting configurations, listed by `elevenlabs agents templates list`:
+
+| Template | Description |
+|----------|-------------|
+| `default` | Complete configuration with all available fields and sensible defaults |
+| `minimal` | Minimal configuration with only essential fields |
+| `voice-only` | Optimized for voice-only conversations |
+| `text-only` | Optimized for text-only conversations |
+| `customer-service` | Pre-configured for customer service scenarios |
+| `assistant` | General purpose AI assistant configuration |
 
 ## Usage
 
