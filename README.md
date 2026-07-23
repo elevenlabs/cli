@@ -118,7 +118,24 @@ elevenlabs agents delete <agent_id>
 elevenlabs agents delete --all
 ```
 
-> The `tools` / `tests` command groups, `residency`, and `components add` are being ported from v0 and will land in follow-up changes.
+> The `tests` command group, `residency`, and `components add` are being ported from v0 and will land in follow-up changes.
+
+### Tools
+
+Manage the webhook and client tools your agents reference. Tools are tracked in `tools.json` with configs under `tool_configs/`.
+
+```bash
+# Create a webhook or client tool, upload it, and register it in tools.json
+elevenlabs tools add <name> [--type webhook|client] [--config-path <path>]
+
+# Sync tool configs with ElevenLabs
+elevenlabs tools push [--tool <tool_id>] [--dry-run]
+elevenlabs tools pull [--tool <tool_id>] [--output-dir tool_configs] [--update] [--all] [--dry-run]
+
+# Delete a tool locally and in ElevenLabs
+elevenlabs tools delete <tool_id>
+elevenlabs tools delete --all
+```
 
 ### Templates
 

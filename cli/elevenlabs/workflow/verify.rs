@@ -104,6 +104,21 @@ pub fn verify_agent_push(
     report_missing_fields(label, &missing, "elevenlabs agents pull");
 }
 
+/// Verify a pushed tool config against the config the API echoed back in
+/// the create/update response (`tool_config`). No extra API call needed.
+/// Ports v0's `verifyToolPush`.
+pub fn verify_tool_push(label: &str, pushed_config: &Value, response: &Value) {
+    match response.get("tool_config") {
+        Some(live_config) => {
+            let missing = find_missing_paths(pushed_config, live_config, "");
+            report_missing_fields(label, &missing, "elevenlabs tools pull");
+        }
+        None => println!(
+            "  ⚠ {label}: could not verify the pushed config (no tool_config in the API response)"
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
