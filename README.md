@@ -88,12 +88,17 @@ your_project/
 # Scaffold a new project (pass a path, or --override to reset an existing one)
 elevenlabs agents init [path] [--override]
 
+# Create an agent from a template (or an existing file), upload it, and register it
+elevenlabs agents add <name> [--template <template>] [--output-path <path>]
+elevenlabs agents add [name] --from-file <path>
+
 # Inspect locally-configured agents
 elevenlabs agents list
 elevenlabs agents status
 
-# List available agent templates
+# List available agent templates, or print one's full configuration
 elevenlabs agents templates list
+elevenlabs agents templates show <template>
 
 # Print an embeddable HTML widget snippet for an agent
 elevenlabs agents widget <agent_id>
@@ -106,11 +111,11 @@ elevenlabs agents delete <agent_id>
 elevenlabs agents delete --all
 ```
 
-> Additional agents-as-code commands (`add`, `push`, `pull`, `test`) and the `tools` / `tests` command groups are being ported from v0 and will land in follow-up changes.
+> Additional agents-as-code commands (`push`, `pull`, `test`) and the `tools` / `tests` command groups are being ported from v0 and will land in follow-up changes.
 
 ### Templates
 
-Pre-built starting configurations, listed by `elevenlabs agents templates list`:
+Pre-built starting configurations for `agents add`, listed by `elevenlabs agents templates list` (inspect one with `agents templates show <template>`):
 
 | Template | Description |
 |----------|-------------|
