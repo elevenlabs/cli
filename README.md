@@ -96,6 +96,10 @@ elevenlabs agents add [name] --from-file <path>
 elevenlabs agents list
 elevenlabs agents status
 
+# Sync configs with ElevenLabs (push force-overrides main + registered branches)
+elevenlabs agents push [--agent <agent_id>] [--branch <name|id>] [--version-description <text>] [--dry-run]
+elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--dry-run]
+
 # List available agent templates, or print one's full configuration
 elevenlabs agents templates list
 elevenlabs agents templates show <template>
@@ -111,7 +115,7 @@ elevenlabs agents delete <agent_id>
 elevenlabs agents delete --all
 ```
 
-> Additional agents-as-code commands (`push`, `pull`, `test`) and the `tools` / `tests` command groups are being ported from v0 and will land in follow-up changes.
+> The `agents test` command and the `tools` / `tests` command groups are being ported from v0 and will land in follow-up changes.
 
 ### Templates
 
