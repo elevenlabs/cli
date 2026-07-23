@@ -10,9 +10,9 @@ use std::path::{Path, PathBuf};
 use fern_cli_sdk::app::CliApp;
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
-use serde_json::Value;
+use serde_json::{json, Value};
 
-use super::{api, project, settings};
+use super::{api, project, settings, templates};
 
 /// Register the `agents` command group.
 pub fn register(app: CliApp) -> CliApp {
@@ -20,6 +20,12 @@ pub fn register(app: CliApp) -> CliApp {
         &["agents"],
         clap::Command::new("init").about("Initialize a new agent management project"),
         handle_init,
+    )
+    .command_under_typed_with(
+        &["agents"],
+        clap::Command::new("add")
+            .about("Add a new agent: create config, upload to ElevenLabs, and save its ID"),
+        handle_add,
     )
     .command_under_typed_with(
         &["agents"],
@@ -188,6 +194,104 @@ fn io_err(action: &str, path: &Path) -> impl FnOnce(std::io::Error) -> CliError 
     let action = action.to_string();
     let path = path.display().to_string();
     move |e| CliError::Other(anyhow::anyhow!("Could not {action} {path}: {e}"))
+}
+
+// ── add ─────────────────────────────────────────────────────────────
+
+#[derive(clap::Args)]
+struct AddArgs {
+    /// Name of the agent to create.
+    name: Option<String>,
+    /// Custom output path for the config file.
+    #[arg(long = "output-path")]
+    output_path: Option<String>,
+    /// Template to use (default, minimal, voice-only, text-only,
+    /// customer-service, assistant).
+    #[arg(long)]
+    template: Option<String>,
+    /// Create the agent from an existing config file.
+    #[arg(long = "from-file")]
+    from_file: Option<String>,
+}
+
+fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
+    if args.from_file.is_some() && args.template.is_some() {
+        return Err(CliError::Validation(
+            "Cannot use both --from-file and --template options together".to_string(),
+        ));
+    }
+    if args.name.is_none() && args.from_file.is_none() {
+        return Err(CliError::Validation(
+            "Agent name is required in non-interactive mode".to_string(),
+        ));
+    }
+
+    let mut registry = require_agents()?;
+
+    // Build the agent config (from a file, or from a template).
+    let (agent_config, agent_name): (Value, String) = if let Some(from_file) = &args.from_file {
+        println!("Loading agent config from '{from_file}'...");
+        let mut cfg = project::read_value(Path::new(from_file)).map_err(|e| {
+            CliError::Validation(format!("Error reading config file '{from_file}': {e}"))
+        })?;
+        let name = args
+            .name
+            .clone()
+            .or_else(|| cfg.get("name").and_then(Value::as_str).map(String::from))
+            .ok_or_else(|| {
+                CliError::Validation(
+                    "Config file has no 'name' and no name was provided".to_string(),
+                )
+            })?;
+        // An explicitly-provided name overrides the file's name.
+        if args.name.is_some() {
+            cfg["name"] = json!(name);
+        }
+        println!("Loaded config for agent: {name}");
+        (cfg, name)
+    } else {
+        let name = args.name.clone().ok_or_else(|| {
+            CliError::Validation("Agent name is required when using templates".to_string())
+        })?;
+        let template_type = args.template.clone().unwrap_or_else(|| "default".to_string());
+        let cfg = templates::template_by_name(&name, &template_type)?;
+        (cfg, name)
+    };
+
+    // Create in ElevenLabs first to obtain an ID.
+    println!("Creating agent '{agent_name}' in ElevenLabs...");
+    let agent_id = api::create_agent(ctx, &agent_config)?;
+    println!("Created agent in ElevenLabs with ID: {agent_id}");
+
+    // Resolve the on-disk config path (custom or generated from the name).
+    let config_path = match &args.output_path {
+        Some(path) => path.clone(),
+        None => project::generate_unique_filename(project::AGENT_CONFIGS_DIR, &agent_name, ".json")
+            .display()
+            .to_string(),
+    };
+    project::write_json(Path::new(&config_path), &agent_config)?;
+    match &args.from_file {
+        Some(from_file) => println!("Created config file: {config_path} (from: {from_file})"),
+        None => println!(
+            "Created config file: {config_path} (template: {})",
+            args.template.as_deref().unwrap_or("default")
+        ),
+    }
+
+    registry.agents.push(project::AgentDefinition {
+        config: config_path.clone(),
+        id: Some(agent_id),
+        branch_id: None,
+        version_id: None,
+        branches: None,
+    });
+    project::save_agents(&registry)?;
+    println!("Added agent '{agent_name}' to agents.json");
+    println!(
+        "Edit {config_path} to customize your agent, then run 'elevenlabs agents push' to update"
+    );
+    Ok(())
 }
 
 // ── list ────────────────────────────────────────────────────────────
