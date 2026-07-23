@@ -107,6 +107,9 @@ elevenlabs agents templates show <template>
 # Print an embeddable HTML widget snippet for an agent
 elevenlabs agents widget <agent_id>
 
+# Run the tests attached to an agent (polls to completion; exits non-zero on failure)
+elevenlabs agents test <agent_id>
+
 # List an agent's branches (e.g. staging vs production)
 elevenlabs agents branches list --agent <agent_id> [--include-archived]
 
@@ -115,7 +118,7 @@ elevenlabs agents delete <agent_id>
 elevenlabs agents delete --all
 ```
 
-> The `agents test` command and the `tools` / `tests` command groups are being ported from v0 and will land in follow-up changes.
+> The `tools` / `tests` command groups, `residency`, and `components add` are being ported from v0 and will land in follow-up changes.
 
 ### Templates
 

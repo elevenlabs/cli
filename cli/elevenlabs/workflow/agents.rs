@@ -6,6 +6,7 @@
 //! The `agents templates` subgroup is registered from [`super::templates`].
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use fern_cli_sdk::app::CliApp;
 use fern_cli_sdk::error::CliError;
@@ -58,6 +59,11 @@ pub fn register(app: CliApp) -> CliApp {
         &["agents"],
         clap::Command::new("widget").about("Print an embeddable HTML widget snippet for an agent"),
         handle_widget,
+    )
+    .command_under_typed_with(
+        &["agents"],
+        clap::Command::new("test").about("Run the tests attached to an agent"),
+        handle_test,
     )
     .command_under_typed_with(
         &["agents", "branches"],
@@ -512,6 +518,131 @@ fn handle_widget(args: WidgetArgs, _ctx: &AppContext) -> Result<(), CliError> {
     println!("{}", "=".repeat(60));
     println!("Agent ID: {}", args.agent_id);
     Ok(())
+}
+
+// ── test ────────────────────────────────────────────────────────────
+
+#[derive(clap::Args)]
+struct TestArgs {
+    /// The agent ID whose attached tests to run.
+    agent: String,
+}
+
+fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let config = require_agents()?;
+    let agent = config
+        .agents
+        .iter()
+        .find(|a| a.id.as_deref() == Some(args.agent.as_str()))
+        .ok_or_else(|| {
+            CliError::Validation(format!(
+                "Agent with ID '{}' not found in configuration",
+                args.agent
+            ))
+        })?;
+
+    let config_path = Path::new(&agent.config);
+    if !config_path.exists() {
+        let name = agent_display_name(&agent.config);
+        return Err(CliError::Validation(format!(
+            "Config file not found for agent '{name}': {}",
+            agent.config
+        )));
+    }
+    let agent_config = project::read_value(config_path)?;
+    let agent_name = agent_config
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or("Unnamed Agent")
+        .to_string();
+
+    let test_ids: Vec<String> = agent_config
+        .get("platform_settings")
+        .and_then(|p| p.get("testing"))
+        .and_then(|t| t.get("attached_tests"))
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|t| t.get("test_id").and_then(Value::as_str).map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if test_ids.is_empty() {
+        return Err(CliError::Validation(format!(
+            "No tests attached to agent '{agent_name}'. Add tests to the agent's testing configuration."
+        )));
+    }
+
+    println!("Running {} test(s) for agent '{agent_name}'...", test_ids.len());
+    println!();
+
+    let invocation = api::run_tests_on_agent(ctx, &args.agent, &test_ids, None)?;
+    let invocation_id = invocation
+        .get("id")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            CliError::Other(anyhow::anyhow!(
+                "Test invocation response did not contain an id: {invocation}"
+            ))
+        })?
+        .to_string();
+    println!("Test invocation started (ID: {invocation_id})");
+    println!("Waiting for tests to complete...");
+    println!();
+
+    // Poll every 5s, up to 5 minutes (60 attempts).
+    const MAX_ATTEMPTS: u32 = 60;
+    for _ in 0..MAX_ATTEMPTS {
+        std::thread::sleep(Duration::from_secs(5));
+        let status = api::get_test_invocation(ctx, &invocation_id)?;
+        let test_runs = status
+            .get("test_runs")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let all_complete = !test_runs.is_empty()
+            && test_runs.iter().all(|run| {
+                matches!(
+                    run.get("status").and_then(Value::as_str),
+                    Some("passed") | Some("failed")
+                )
+            });
+        if !all_complete {
+            continue;
+        }
+
+        println!("Test Results:");
+        println!("{}", "=".repeat(50));
+        let (mut passed, mut failed) = (0u32, 0u32);
+        for run in &test_runs {
+            let status = run.get("status").and_then(Value::as_str).unwrap_or("");
+            let mark = if status == "passed" { "✓" } else { "✗" };
+            let name = run
+                .get("test_name")
+                .and_then(Value::as_str)
+                .or_else(|| run.get("test_id").and_then(Value::as_str))
+                .unwrap_or("Unknown");
+            println!("{mark} {name}: {status}");
+            if status == "passed" {
+                passed += 1;
+            } else {
+                failed += 1;
+            }
+        }
+        println!("{}", "=".repeat(50));
+        println!(
+            "Total: {} | Passed: {passed} | Failed: {failed}",
+            test_runs.len()
+        );
+        if failed > 0 {
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
+
+    eprintln!("Tests did not complete within the timeout period.");
+    std::process::exit(1);
 }
 
 // ── branches list ───────────────────────────────────────────────────
