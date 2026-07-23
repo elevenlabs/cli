@@ -12,7 +12,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::{api, project, settings, templates};
+use super::{api, project, settings, templates, verify};
 
 /// Register the `agents` command group.
 pub fn register(app: CliApp) -> CliApp {
@@ -36,6 +36,18 @@ pub fn register(app: CliApp) -> CliApp {
         &["agents"],
         clap::Command::new("status").about("Show the status of configured agents"),
         handle_status,
+    )
+    // push/pull use the non-typed API so they can read the framework's
+    // global `--dry-run` flag (which would collide with a typed field).
+    .command_under(
+        &["agents"],
+        push_command(),
+        Box::new(|matches, ctx| handle_push(matches, downcast_ctx(ctx)?)),
+    )
+    .command_under(
+        &["agents"],
+        pull_command(),
+        Box::new(|matches, ctx| handle_pull(matches, downcast_ctx(ctx)?)),
     )
     .command_under_typed_with(
         &["agents"],
@@ -588,4 +600,600 @@ fn epoch_to_date(secs: i64) -> String {
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = if month <= 2 { year + 1 } else { year };
     format!("{year:04}-{month:02}-{day:02}")
+}
+
+// ── shared: ctx downcast + arg readers ──────────────────────────────
+
+fn downcast_ctx(ctx: &dyn std::any::Any) -> Result<&AppContext, CliError> {
+    ctx.downcast_ref::<AppContext>()
+        .ok_or_else(|| CliError::Validation("binding context type mismatch".to_string()))
+}
+
+/// Read the framework's global `--dry-run` flag (defined with
+/// `global(true)`), defaulting to false if absent.
+fn dry_run_flag(matches: &clap::ArgMatches) -> bool {
+    matches
+        .try_get_one::<bool>("dry-run")
+        .ok()
+        .flatten()
+        .copied()
+        .unwrap_or(false)
+}
+
+fn opt_string(matches: &clap::ArgMatches, id: &str) -> Option<String> {
+    matches.get_one::<String>(id).cloned()
+}
+
+// ── push ────────────────────────────────────────────────────────────
+
+fn push_command() -> clap::Command {
+    clap::Command::new("push")
+        .about("Push local agent configs to ElevenLabs")
+        .arg(
+            clap::Arg::new("agent")
+                .long("agent")
+                .help("Push only the agent with this ID"),
+        )
+        .arg(
+            clap::Arg::new("branch")
+                .long("branch")
+                .help("Push to a specific branch (name or agtbrch_ id)"),
+        )
+        .arg(
+            clap::Arg::new("version-description")
+                .long("version-description")
+                .help("Version description recorded with the update"),
+        )
+}
+
+fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let agent = opt_string(matches, "agent");
+    let branch = opt_string(matches, "branch");
+    let version_description = opt_string(matches, "version-description");
+    let dry_run = dry_run_flag(matches);
+
+    let mut registry = require_agents()?;
+
+    let indices: Vec<usize> = registry
+        .agents
+        .iter()
+        .enumerate()
+        .filter(|(_, a)| {
+            agent
+                .as_ref()
+                .map_or(true, |id| a.id.as_deref() == Some(id.as_str()))
+        })
+        .map(|(i, _)| i)
+        .collect();
+    if let Some(agent_id) = &agent {
+        if indices.is_empty() {
+            return Err(CliError::Validation(format!(
+                "Agent with ID {agent_id} not found in agents.json"
+            )));
+        }
+    }
+
+    println!("Pushing {} agent(s) to ElevenLabs...", indices.len());
+    let mut changes_made = false;
+
+    for idx in indices {
+        let config_path = registry.agents[idx].config.clone();
+        let current_id = registry.agents[idx].id.clone();
+        let branches = registry.agents[idx].branches.clone();
+
+        if config_path.is_empty() {
+            println!("Warning: No config path found for agent");
+            continue;
+        }
+        if !Path::new(&config_path).exists() {
+            println!("Warning: Config file not found: {config_path}");
+            continue;
+        }
+        let agent_config = match project::read_value(Path::new(&config_path)) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("Error reading config for {config_path}: {e}");
+                continue;
+            }
+        };
+        let name = agent_config
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("Unnamed Agent")
+            .to_string();
+
+        println!("{name}: Will push (force override)");
+
+        if dry_run {
+            println!("[DRY RUN] Would update agent: {name}");
+            if let Some(branch) = &branch {
+                println!("  [DRY RUN] Would push to branch '{branch}'");
+            } else if let (Some(brs), Some(_)) = (&branches, &current_id) {
+                for branch_name in brs.keys() {
+                    println!("  [DRY RUN] Would push branch '{branch_name}'");
+                }
+            }
+            continue;
+        }
+
+        // Resolve a target branch id when --branch is given.
+        let branch_id: Option<String> = match (&branch, &current_id) {
+            (Some(branch), Some(id)) => match api::resolve_branch_id(ctx, id, branch) {
+                Ok(bid) => {
+                    println!("Pushing to branch: {branch}");
+                    Some(bid)
+                }
+                Err(e) => {
+                    println!("Error processing {name}: {e}");
+                    continue;
+                }
+            },
+            _ => None,
+        };
+
+        match &current_id {
+            None => match api::create_agent(ctx, &agent_config) {
+                Ok(new_id) => {
+                    println!("Created agent {name} (ID: {new_id})");
+                    registry.agents[idx].id = Some(new_id.clone());
+                    changes_made = true;
+                    verify::verify_agent_push(ctx, &name, &new_id, &agent_config, None);
+                }
+                Err(e) => {
+                    println!("Error processing {name}: {e}");
+                    continue;
+                }
+            },
+            Some(id) => match api::update_agent(
+                ctx,
+                id,
+                &agent_config,
+                version_description.as_deref(),
+                branch_id.as_deref(),
+            ) {
+                Ok(result) => {
+                    println!("Updated agent {name} (ID: {id})");
+                    if let Some(v) = result.version_id {
+                        registry.agents[idx].version_id = Some(v);
+                    }
+                    if let Some(b) = result.branch_id {
+                        registry.agents[idx].branch_id = Some(b);
+                    }
+                    changes_made = true;
+                    verify::verify_agent_push(ctx, &name, id, &agent_config, branch_id.as_deref());
+                }
+                Err(e) => {
+                    println!("Error processing {name}: {e}");
+                    continue;
+                }
+            },
+        }
+
+        // Auto-push every registered branch config, unless a specific
+        // --branch was targeted.
+        if branch.is_none() {
+            if let (Some(brs), Some(id)) = (branches, current_id) {
+                for (branch_name, branch_def) in &brs {
+                    if !Path::new(&branch_def.config).exists() {
+                        println!(
+                            "  Warning: Branch config file not found: {}",
+                            branch_def.config
+                        );
+                        continue;
+                    }
+                    let branch_config = match project::read_value(Path::new(&branch_def.config)) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            println!("  ✗ Error pushing branch '{branch_name}': {e}");
+                            continue;
+                        }
+                    };
+                    println!("  Pushing branch '{branch_name}'...");
+                    match api::update_agent(
+                        ctx,
+                        &id,
+                        &branch_config,
+                        version_description.as_deref(),
+                        Some(&branch_def.branch_id),
+                    ) {
+                        Ok(result) => {
+                            if let Some(v) = result.version_id {
+                                if let Some(entry) = registry.agents[idx]
+                                    .branches
+                                    .as_mut()
+                                    .and_then(|m| m.get_mut(branch_name))
+                                {
+                                    entry.version_id = Some(v);
+                                }
+                            }
+                            println!("  ✓ Pushed branch '{branch_name}'");
+                            verify::verify_agent_push(
+                                ctx,
+                                &format!("{name} (branch '{branch_name}')"),
+                                &id,
+                                &branch_config,
+                                Some(&branch_def.branch_id),
+                            );
+                        }
+                        Err(e) => println!("  ✗ Error pushing branch '{branch_name}': {e}"),
+                    }
+                }
+            }
+        }
+    }
+
+    if changes_made {
+        project::save_agents(&registry)?;
+    }
+    Ok(())
+}
+
+// ── pull ────────────────────────────────────────────────────────────
+
+fn pull_command() -> clap::Command {
+    clap::Command::new("pull")
+        .about("Pull agent configs from ElevenLabs")
+        .arg(
+            clap::Arg::new("agent")
+                .long("agent")
+                .help("Pull only the agent with this ID"),
+        )
+        .arg(
+            clap::Arg::new("branch")
+                .long("branch")
+                .help("Pull from a specific branch (requires --agent)"),
+        )
+        .arg(
+            clap::Arg::new("all-branches")
+                .long("all-branches")
+                .action(clap::ArgAction::SetTrue)
+                .help("Pull every (non-archived) branch for each agent"),
+        )
+        .arg(
+            clap::Arg::new("output-dir")
+                .long("output-dir")
+                .default_value("agent_configs")
+                .help("Directory to write config files into"),
+        )
+        .arg(
+            clap::Arg::new("update")
+                .long("update")
+                .action(clap::ArgAction::SetTrue)
+                .help("Update existing agents only; skip new ones"),
+        )
+        .arg(
+            clap::Arg::new("all")
+                .long("all")
+                .action(clap::ArgAction::SetTrue)
+                .help("Pull everything (new and existing)"),
+        )
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum PullAction {
+    Create,
+    Update,
+    Skip,
+}
+
+fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let agent = opt_string(matches, "agent");
+    let branch = opt_string(matches, "branch");
+    let all_branches = matches.get_flag("all-branches");
+    let output_dir = opt_string(matches, "output-dir").unwrap_or_else(|| "agent_configs".to_string());
+    let dry_run = dry_run_flag(matches);
+    let update = matches.get_flag("update");
+    let all = matches.get_flag("all");
+
+    if branch.is_some() && agent.is_none() {
+        return Err(CliError::Validation(
+            "--branch requires --agent to be specified, since branch names are per-agent."
+                .to_string(),
+        ));
+    }
+
+    println!("Pulling agents from ElevenLabs...");
+
+    let branch_id: Option<String> = match (&branch, &agent) {
+        (Some(branch), Some(agent)) => {
+            println!("Pulling from branch: {branch}");
+            Some(api::resolve_branch_id(ctx, agent, branch)?)
+        }
+        _ => None,
+    };
+
+    let mut registry = if Path::new(project::AGENTS_FILE).exists() {
+        project::load_agents()?
+    } else {
+        println!(
+            "{} not found. Creating initial agents configuration...",
+            project::AGENTS_FILE
+        );
+        let registry = project::AgentsConfig::default();
+        project::save_agents(&registry)?;
+        registry
+    };
+
+    // Build the remote work list: (agent_id, name).
+    let remote: Vec<(String, String)> = if let Some(agent) = &agent {
+        println!("Pulling agent with ID: {agent}...");
+        let details = api::get_agent(ctx, agent, branch_id.as_deref()).map_err(|e| {
+            CliError::Validation(format!("Failed to fetch agent with ID '{agent}': {e}"))
+        })?;
+        let id = details
+            .get("agent_id")
+            .and_then(Value::as_str)
+            .unwrap_or(agent)
+            .to_string();
+        let name = details
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        println!("Found agent: {name}");
+        vec![(id, name)]
+    } else {
+        println!("Pulling all agents from ElevenLabs...");
+        let list = api::list_agents(ctx, None)?;
+        if list.is_empty() {
+            println!("No agents found in your ElevenLabs workspace.");
+            return Ok(());
+        }
+        println!("Found {} agent(s)", list.len());
+        list.iter()
+            .filter_map(|a| {
+                let id = a
+                    .get("agent_id")
+                    .or_else(|| a.get("agentId"))
+                    .and_then(Value::as_str)?;
+                let name = a.get("name").and_then(Value::as_str).unwrap_or("").to_string();
+                Some((id.to_string(), name))
+            })
+            .collect()
+    };
+
+    // Plan: create / update / skip.
+    let mut plan: Vec<(PullAction, String, String, Option<usize>)> = Vec::new();
+    let (mut n_create, mut n_update, mut n_skip) = (0usize, 0usize, 0usize);
+    for (id, name) in &remote {
+        let existing = registry.agents.iter().position(|a| a.id.as_deref() == Some(id.as_str()));
+        let action = match existing {
+            Some(_) if update || all => PullAction::Update,
+            Some(_) => PullAction::Skip,
+            None if update => PullAction::Skip,
+            None => PullAction::Create,
+        };
+        match action {
+            PullAction::Create => n_create += 1,
+            PullAction::Update => n_update += 1,
+            PullAction::Skip => n_skip += 1,
+        }
+        plan.push((action, id.clone(), name.clone(), existing));
+    }
+
+    println!("\nPlan: {n_create} create, {n_update} update, {n_skip} skip");
+    if n_skip > 0 && !update && !all {
+        if n_create == 0 {
+            println!("\n💡 Tip: Use --update to update existing agents or --all to pull everything");
+        } else {
+            println!("\n💡 Tip: Use --all to also update existing agents");
+        }
+    }
+
+    if !dry_run && (n_create > 0 || n_update > 0) && !project::prompt_confirm("Proceed?")? {
+        println!("Pull cancelled");
+        return Ok(());
+    }
+
+    let mut processed = 0;
+    for (action, id, name, existing_idx) in &plan {
+        if *action == PullAction::Skip {
+            println!("⊘ Skipping '{name}' (already exists, use --update to overwrite)");
+            continue;
+        }
+        if dry_run {
+            let verb = if *action == PullAction::Update { "update" } else { "pull" };
+            println!("[DRY RUN] Would {verb} agent: {name} (ID: {id})");
+            continue;
+        }
+
+        let verb = if *action == PullAction::Update {
+            "↻ Updating"
+        } else {
+            "+ Pulling"
+        };
+        println!("{verb} config for '{name}'...");
+
+        let live = match api::get_agent(ctx, id, branch_id.as_deref()) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("  ✗ Error pulling agent '{name}': {e}");
+                continue;
+            }
+        };
+        let config = build_pulled_config(name, &live);
+        let version_id = live.get("version_id").and_then(Value::as_str).map(String::from);
+        let live_branch_id = live.get("branch_id").and_then(Value::as_str).map(String::from);
+
+        let entry_idx = match existing_idx {
+            Some(i) => {
+                let cfg_path = registry.agents[*i].config.clone();
+                project::write_json(Path::new(&cfg_path), &config)?;
+                if let Some(v) = &version_id {
+                    registry.agents[*i].version_id = Some(v.clone());
+                }
+                if let Some(b) = &live_branch_id {
+                    registry.agents[*i].branch_id = Some(b.clone());
+                }
+                println!("  ✓ Updated '{name}' (config: {cfg_path})");
+                *i
+            }
+            None => {
+                let cfg_path =
+                    project::generate_unique_filename(&output_dir, name, ".json")
+                        .display()
+                        .to_string();
+                project::write_json(Path::new(&cfg_path), &config)?;
+                registry.agents.push(project::AgentDefinition {
+                    config: cfg_path.clone(),
+                    id: Some(id.clone()),
+                    branch_id: live_branch_id.clone(),
+                    version_id: version_id.clone(),
+                    branches: None,
+                });
+                println!("  ✓ Added '{name}' (config: {cfg_path})");
+                registry.agents.len() - 1
+            }
+        };
+
+        // --branch: persist the branch config alongside the main one.
+        if let (Some(branch), Some(bid)) = (&branch, &branch_id) {
+            let branch_path =
+                project::generate_unique_filename(&output_dir, &format!("{name}.{branch}"), ".json")
+                    .display()
+                    .to_string();
+            project::write_json(Path::new(&branch_path), &config)?;
+            let branches = registry.agents[entry_idx]
+                .branches
+                .get_or_insert_with(Default::default);
+            branches.insert(
+                branch.clone(),
+                project::BranchDefinition {
+                    config: branch_path.clone(),
+                    branch_id: bid.clone(),
+                    version_id: version_id.clone(),
+                },
+            );
+            println!("  ✓ Stored branch '{branch}' config ({branch_path})");
+        }
+
+        if all_branches {
+            pull_all_branches(ctx, id, name, entry_idx, &mut registry, &output_dir)?;
+        }
+
+        processed += 1;
+    }
+
+    if !dry_run && processed > 0 {
+        project::save_agents(&registry)?;
+        println!("\nUpdated {}", project::AGENTS_FILE);
+    }
+
+    if dry_run {
+        println!("\n[DRY RUN] Would process {} agent(s)", n_create + n_update);
+    } else {
+        println!("\n✓ Summary: {n_create} created, {n_update} updated, {n_skip} skipped");
+        if processed > 0 {
+            println!(
+                "You can now edit the config files in '{}/' and run 'elevenlabs agents push' to update",
+                output_dir
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Pull every non-archived, non-main branch for an agent into config files
+/// tracked under its `agents.json` entry. Ports v0's `pullAllBranches`.
+fn pull_all_branches(
+    ctx: &AppContext,
+    agent_id: &str,
+    agent_name: &str,
+    entry_idx: usize,
+    registry: &mut project::AgentsConfig,
+    output_dir: &str,
+) -> Result<(), CliError> {
+    println!("  Fetching branches for '{agent_name}'...");
+    let branches = api::list_branches(ctx, agent_id, false)?;
+    if branches.is_empty() {
+        println!("  No branches found for '{agent_name}'");
+        return Ok(());
+    }
+
+    let parent_branch_id = registry.agents[entry_idx].branch_id.clone();
+    for branch in &branches {
+        if branch.get("is_archived").and_then(Value::as_bool).unwrap_or(false) {
+            continue;
+        }
+        let bid = branch.get("id").and_then(Value::as_str).unwrap_or("");
+        let bname = branch.get("name").and_then(Value::as_str).unwrap_or("");
+        // Skip the main branch (matches the agent's branch_id, or is named
+        // "main" when the agent has no branch_id).
+        let is_main = Some(bid) == parent_branch_id.as_deref()
+            || (parent_branch_id.is_none() && bname == "main");
+        if is_main {
+            continue;
+        }
+
+        let live = match api::get_agent(ctx, agent_id, Some(bid)) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("  ✗ Error pulling branch '{bname}': {e}");
+                continue;
+            }
+        };
+        let branch_config = build_pulled_config(agent_name, &live);
+        let version_id = live.get("version_id").and_then(Value::as_str).map(String::from);
+
+        let existing_path = registry.agents[entry_idx]
+            .branches
+            .as_ref()
+            .and_then(|m| m.get(bname))
+            .map(|b| b.config.clone());
+        let branch_path = existing_path.unwrap_or_else(|| {
+            project::generate_unique_filename(output_dir, &format!("{agent_name}.{bname}"), ".json")
+                .display()
+                .to_string()
+        });
+        project::write_json(Path::new(&branch_path), &branch_config)?;
+
+        let map = registry.agents[entry_idx]
+            .branches
+            .get_or_insert_with(Default::default);
+        map.insert(
+            bname.to_string(),
+            project::BranchDefinition {
+                config: branch_path.clone(),
+                branch_id: bid.to_string(),
+                version_id,
+            },
+        );
+        println!("  ✓ Branch '{bname}' ({branch_path})");
+    }
+
+    let count = registry.agents[entry_idx]
+        .branches
+        .as_ref()
+        .map(|m| m.len())
+        .unwrap_or(0);
+    if count > 0 {
+        println!("  {count} branch(es) stored");
+    }
+    Ok(())
+}
+
+/// Extract the on-disk config (name + conversation_config + platform_settings
+/// + tags [+ workflow]) from a live agent response. Ports the config
+/// assembly in v0's `pull-impl.ts`.
+fn build_pulled_config(name: &str, live: &Value) -> Value {
+    let mut obj = serde_json::Map::new();
+    obj.insert("name".to_string(), json!(name));
+    obj.insert(
+        "conversation_config".to_string(),
+        live.get("conversation_config").cloned().unwrap_or_else(|| json!({})),
+    );
+    obj.insert(
+        "platform_settings".to_string(),
+        live.get("platform_settings").cloned().unwrap_or_else(|| json!({})),
+    );
+    obj.insert(
+        "tags".to_string(),
+        live.get("tags").cloned().unwrap_or_else(|| json!([])),
+    );
+    if let Some(workflow) = live.get("workflow") {
+        if !workflow.is_null() {
+            obj.insert("workflow".to_string(), workflow.clone());
+        }
+    }
+    Value::Object(obj)
 }
