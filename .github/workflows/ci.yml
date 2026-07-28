@@ -12,6 +12,11 @@ concurrency:
 env:
   RUSTFLAGS: "-A warnings"
 
+# NOTE: this org restricts GitHub Actions to an allowlist (github-owned plus
+# specific patterns), so third-party setup actions such as
+# actions-rust-lang/setup-rust-toolchain cannot be used here — referencing one
+# fails the whole run at startup. The GitHub-hosted ubuntu runners already ship
+# a stable Rust toolchain, so we use that directly.
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -19,8 +24,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Rust version
+        run: rustc --version && cargo --version
 
       - name: Check
         run: cargo check
@@ -31,8 +36,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Rust version
+        run: rustc --version && cargo --version
 
       - name: Compile
         run: cargo build
@@ -43,8 +48,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Rust version
+        run: rustc --version && cargo --version
 
       - name: Test
         run: cargo test
