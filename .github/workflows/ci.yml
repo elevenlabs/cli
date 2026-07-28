@@ -19,9 +19,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Check
         run: cargo check
 
@@ -31,9 +28,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Compile
         run: cargo build
 
@@ -42,9 +36,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
-
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Test
         run: cargo test
