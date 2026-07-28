@@ -9,7 +9,6 @@
 
 #![allow(dead_code)]
 
-use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Map, Value};
 

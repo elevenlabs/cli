@@ -1,6 +1,9 @@
 name: ci
 
-on: [push]
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -45,3 +48,12 @@ jobs:
 
       - name: Test
         run: cargo test
+
+      # elevenlabs-sdk and elevenlabs-types are path dependencies, not members
+      # of the cargo workspace, so `cargo test` above skips them. Run their
+      # suites explicitly so the generated serialization tests are covered.
+      - name: Test generated SDK crate
+        run: cargo test --manifest-path elevenlabs-sdk/Cargo.toml
+
+      - name: Test generated types crate
+        run: cargo test --manifest-path elevenlabs-types/Cargo.toml

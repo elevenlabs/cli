@@ -1,2 +1,0 @@
-pub mod conversational_ai_conversations_messages;
-pub use conversational_ai_conversations_messages::MessagesClient;
