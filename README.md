@@ -106,7 +106,7 @@ elevenlabs agents templates list
 elevenlabs agents templates show <template>
 
 # Print an embeddable HTML widget snippet for an agent
-elevenlabs agents widget <agent_id>
+elevenlabs agents widget embed <agent_id>
 
 # Run the tests attached to an agent (polls to completion; exits non-zero on failure)
 elevenlabs agents test <agent_id>

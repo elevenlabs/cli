@@ -48,9 +48,13 @@ pub fn register(app: CliApp) -> CliApp {
         pull_command(),
         Box::new(|matches, ctx| handle_pull(matches, downcast_ctx(ctx)?)),
     )
+    // Nested under the generated `agents widget` subgroup rather than
+    // replacing it: `widget get` (config) and `widget avatar` are API
+    // commands, and a custom leaf named `widget` would shadow the whole group.
     .command_under_typed_with(
-        &["agents"],
-        clap::Command::new("widget").about("Print an embeddable HTML widget snippet for an agent"),
+        &["agents", "widget"],
+        clap::Command::new("embed")
+            .about("Print an embeddable HTML widget snippet for an agent"),
         handle_widget,
     )
     .command_under_typed_with(
