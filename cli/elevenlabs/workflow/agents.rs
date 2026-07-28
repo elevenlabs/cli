@@ -13,6 +13,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
+use super::util::{downcast_ctx, dry_run_flag, opt_string};
 use super::{api, project, settings, templates, verify};
 
 /// Register the `agents` command group.
@@ -731,28 +732,6 @@ fn epoch_to_date(secs: i64) -> String {
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = if month <= 2 { year + 1 } else { year };
     format!("{year:04}-{month:02}-{day:02}")
-}
-
-// ── shared: ctx downcast + arg readers ──────────────────────────────
-
-fn downcast_ctx(ctx: &dyn std::any::Any) -> Result<&AppContext, CliError> {
-    ctx.downcast_ref::<AppContext>()
-        .ok_or_else(|| CliError::Validation("binding context type mismatch".to_string()))
-}
-
-/// Read the framework's global `--dry-run` flag (defined with
-/// `global(true)`), defaulting to false if absent.
-fn dry_run_flag(matches: &clap::ArgMatches) -> bool {
-    matches
-        .try_get_one::<bool>("dry-run")
-        .ok()
-        .flatten()
-        .copied()
-        .unwrap_or(false)
-}
-
-fn opt_string(matches: &clap::ArgMatches, id: &str) -> Option<String> {
-    matches.get_one::<String>(id).cloned()
 }
 
 // ── push ────────────────────────────────────────────────────────────

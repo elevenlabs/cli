@@ -260,6 +260,65 @@ pub fn resolve_branch_id(
     )))
 }
 
+// ── Tool API ────────────────────────────────────────────────────────
+
+/// Create a tool (raw JSON). Returns the full response, which contains
+/// the new `id` and the persisted `tool_config`.
+pub fn create_tool(ctx: &AppContext, config: &Value) -> Result<Value, CliError> {
+    raw_request(
+        ctx,
+        Method::POST,
+        "v1/convai/tools",
+        Some(json!({ "tool_config": config })),
+        None,
+    )
+}
+
+/// Update a tool (raw JSON). Returns the full response (contains
+/// `tool_config` for verification).
+pub fn update_tool(ctx: &AppContext, tool_id: &str, config: &Value) -> Result<Value, CliError> {
+    raw_request(
+        ctx,
+        Method::PATCH,
+        &format!("v1/convai/tools/{tool_id}"),
+        Some(json!({ "tool_config": config })),
+        None,
+    )
+}
+
+/// Fetch a tool (raw JSON). The response wraps the config in `tool_config`.
+pub fn get_tool(ctx: &AppContext, tool_id: &str) -> Result<Value, CliError> {
+    raw_request(
+        ctx,
+        Method::GET,
+        &format!("v1/convai/tools/{tool_id}"),
+        None,
+        None,
+    )
+}
+
+/// List every tool (raw JSON summaries, each wrapping `tool_config`).
+pub fn list_tools(ctx: &AppContext) -> Result<Vec<Value>, CliError> {
+    let resp = raw_request(ctx, Method::GET, "v1/convai/tools", None, None)?;
+    Ok(resp
+        .get("tools")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default())
+}
+
+/// Delete a tool. The endpoint returns a JSON body, so the raw path works.
+pub fn delete_tool(ctx: &AppContext, tool_id: &str) -> Result<(), CliError> {
+    raw_request(
+        ctx,
+        Method::DELETE,
+        &format!("v1/convai/tools/{tool_id}"),
+        None,
+        None,
+    )?;
+    Ok(())
+}
+
 // ── Test-running API (for `agents test`) ────────────────────────────
 
 /// Run the given tests on an agent. Returns the invocation (raw JSON).

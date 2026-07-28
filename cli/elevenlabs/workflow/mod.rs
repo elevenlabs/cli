@@ -22,6 +22,7 @@ mod settings;
 mod templates;
 mod tests;
 mod tools;
+mod util;
 mod verify;
 
 /// Register every custom command group on the CLI app builder.
