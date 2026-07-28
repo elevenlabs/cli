@@ -6,6 +6,7 @@ use super::*;
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ProjectCreationMetaResponseModelStatus {
+    Draft,
     Pending,
     Creating,
     Finished,
@@ -18,6 +19,7 @@ pub enum ProjectCreationMetaResponseModelStatus {
 impl Serialize for ProjectCreationMetaResponseModelStatus {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
+            Self::Draft => serializer.serialize_str("draft"),
             Self::Pending => serializer.serialize_str("pending"),
             Self::Creating => serializer.serialize_str("creating"),
             Self::Finished => serializer.serialize_str("finished"),
@@ -31,6 +33,7 @@ impl<'de> Deserialize<'de> for ProjectCreationMetaResponseModelStatus {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
+            "draft" => Ok(Self::Draft),
             "pending" => Ok(Self::Pending),
             "creating" => Ok(Self::Creating),
             "finished" => Ok(Self::Finished),
@@ -43,6 +46,7 @@ impl<'de> Deserialize<'de> for ProjectCreationMetaResponseModelStatus {
 impl fmt::Display for ProjectCreationMetaResponseModelStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Draft => write!(f, "draft"),
             Self::Pending => write!(f, "pending"),
             Self::Creating => write!(f, "creating"),
             Self::Finished => write!(f, "finished"),

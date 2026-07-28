@@ -27,6 +27,9 @@ pub struct ConversationInitiationClientDataInternal {
     /// Configuration for which tools to mock and fallback behavior
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_mock_config: Option<OrchestratorToolMockBehaviorConfig>,
+    /// Per-tool response mock overrides keyed by resolved tool name, applied ahead of the tool's shared mocks. Used for test-specific mocks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_mock_overrides: Option<HashMap<String, Vec<ToolResponseMockConfigOutput>>>,
 }
 
 impl ConversationInitiationClientDataInternal {
@@ -47,6 +50,7 @@ pub struct ConversationInitiationClientDataInternalBuilder {
     starting_workflow_node_id: Option<String>,
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
     tool_mock_config: Option<OrchestratorToolMockBehaviorConfig>,
+    tool_mock_overrides: Option<HashMap<String, Vec<ToolResponseMockConfigOutput>>>,
 }
 
 impl ConversationInitiationClientDataInternalBuilder {
@@ -95,6 +99,11 @@ impl ConversationInitiationClientDataInternalBuilder {
         self
     }
 
+    pub fn tool_mock_overrides(mut self, value: HashMap<String, Vec<ToolResponseMockConfigOutput>>) -> Self {
+        self.tool_mock_overrides = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationInitiationClientDataInternal`].
     pub fn build(self) -> Result<ConversationInitiationClientDataInternal, BuildError> {
         Ok(ConversationInitiationClientDataInternal {
@@ -107,6 +116,7 @@ impl ConversationInitiationClientDataInternalBuilder {
             starting_workflow_node_id: self.starting_workflow_node_id,
             dynamic_variables: self.dynamic_variables,
             tool_mock_config: self.tool_mock_config,
+            tool_mock_overrides: self.tool_mock_overrides,
         })
     }
 }

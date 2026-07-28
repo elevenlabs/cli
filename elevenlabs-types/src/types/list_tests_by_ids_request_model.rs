@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct ListTestsByIdsRequestModel {
-    /// List of test IDs to fetch. No duplicates allowed.
+    /// List of test IDs to fetch. No duplicates allowed. Prefer at most 1000 IDs per request.
     #[serde(default)]
     pub test_ids: Vec<String>,
 }

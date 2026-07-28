@@ -11,6 +11,7 @@ pub enum WebhookUsageType {
     SpeechToText,
     AgentQaEvaluations,
     ConvAiAlerting,
+    Flows,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -25,6 +26,7 @@ impl Serialize for WebhookUsageType {
             Self::SpeechToText => serializer.serialize_str("Speech to Text"),
             Self::AgentQaEvaluations => serializer.serialize_str("Agent QA Evaluations"),
             Self::ConvAiAlerting => serializer.serialize_str("ConvAI Alerting"),
+            Self::Flows => serializer.serialize_str("Flows"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -40,6 +42,7 @@ impl<'de> Deserialize<'de> for WebhookUsageType {
             "Speech to Text" => Ok(Self::SpeechToText),
             "Agent QA Evaluations" => Ok(Self::AgentQaEvaluations),
             "ConvAI Alerting" => Ok(Self::ConvAiAlerting),
+            "Flows" => Ok(Self::Flows),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -54,6 +57,7 @@ impl fmt::Display for WebhookUsageType {
             Self::SpeechToText => write!(f, "Speech to Text"),
             Self::AgentQaEvaluations => write!(f, "Agent QA Evaluations"),
             Self::ConvAiAlerting => write!(f, "ConvAI Alerting"),
+            Self::Flows => write!(f, "Flows"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

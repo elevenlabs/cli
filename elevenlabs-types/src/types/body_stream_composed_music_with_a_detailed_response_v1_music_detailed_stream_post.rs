@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost {
     /// A simple text prompt to generate a song from. Cannot be used in conjunction with `composition_plan`.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,11 +25,6 @@ pub struct BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost
     /// The ID of the finetune to use for the generation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub finetune_id: Option<String>,
-    /// How strongly the finetune influences the generation. Defaults to 1.0 (full strength). Lower values soften the influence of the finetune, leaving more room for prompt-level steering. Only meaningful when `finetune_id` is also provided.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(with = "crate::core::number_serializers::option")]
-    pub finetune_strength: Option<f64>,
     /// Whether to store the generated song for inpainting.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub store_for_inpainting: Option<bool>,
@@ -57,7 +52,6 @@ pub struct BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost
     seed: Option<i64>,
     force_instrumental: Option<bool>,
     finetune_id: Option<String>,
-    finetune_strength: Option<f64>,
     store_for_inpainting: Option<bool>,
     with_timestamps: Option<bool>,
     output_format: Option<MusicComposeDetailedStreamRequestOutputFormat>,
@@ -99,11 +93,6 @@ impl BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPostBuilde
         self
     }
 
-    pub fn finetune_strength(mut self, value: f64) -> Self {
-        self.finetune_strength = Some(value);
-        self
-    }
-
     pub fn store_for_inpainting(mut self, value: bool) -> Self {
         self.store_for_inpainting = Some(value);
         self
@@ -129,7 +118,6 @@ impl BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPostBuilde
             seed: self.seed,
             force_instrumental: self.force_instrumental,
             finetune_id: self.finetune_id,
-            finetune_strength: self.finetune_strength,
             store_for_inpainting: self.store_for_inpainting,
             with_timestamps: self.with_timestamps,
             output_format: self.output_format,

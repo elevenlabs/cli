@@ -13,7 +13,6 @@
 //! - **User**
 //! - **Voices**
 //! - **Studio**
-//! - **Music**
 //! - **dubbing**
 //! - **Models**
 //! - **AudioNative**
@@ -22,9 +21,10 @@
 //! - **Workspace**
 //! - **ServiceAccounts**
 //! - **Webhooks**
+//! - **Music**
 //! - **SpeechToText**
 //! - **ForcedAlignment**
-//! - **ConversationalAi**
+//! - **Agents**
 //! - **Speech Engine**
 //! - **EnvironmentVariables**
 //! - **Productions**
@@ -33,9 +33,9 @@
 
 use crate::{ApiError, ClientConfig};
 
+pub mod agents;
 pub mod audio_isolation;
 pub mod audio_native;
-pub mod conversational_ai;
 pub mod dubbing;
 pub mod environment_variables;
 pub mod forced_alignment;
@@ -74,7 +74,6 @@ pub struct ApiClient {
     pub user: UserClient,
     pub voices: VoicesClient,
     pub studio: StudioClient,
-    pub music: MusicClient,
     pub dubbing: DubbingClient,
     pub models: ModelsClient,
     pub audio_native: AudioNativeClient,
@@ -83,9 +82,10 @@ pub struct ApiClient {
     pub workspace: WorkspaceClient,
     pub service_accounts: ServiceAccountsClient,
     pub webhooks: WebhooksClient,
+    pub music: MusicClient,
     pub speech_to_text: SpeechToTextClient,
     pub forced_alignment: ForcedAlignmentClient,
-    pub conversational_ai: ConversationalAiClient,
+    pub agents: AgentsClient,
     pub speech_engine: SpeechEngineClient,
     pub environment_variables: EnvironmentVariablesClient,
     pub productions: ProductionsClient,
@@ -108,7 +108,6 @@ impl ApiClient {
             user: UserClient::new(config.clone())?,
             voices: VoicesClient::new(config.clone())?,
             studio: StudioClient::new(config.clone())?,
-            music: MusicClient::new(config.clone())?,
             dubbing: DubbingClient::new(config.clone())?,
             models: ModelsClient::new(config.clone())?,
             audio_native: AudioNativeClient::new(config.clone())?,
@@ -117,9 +116,10 @@ impl ApiClient {
             workspace: WorkspaceClient::new(config.clone())?,
             service_accounts: ServiceAccountsClient::new(config.clone())?,
             webhooks: WebhooksClient::new(config.clone())?,
+            music: MusicClient::new(config.clone())?,
             speech_to_text: SpeechToTextClient::new(config.clone())?,
             forced_alignment: ForcedAlignmentClient::new(config.clone())?,
-            conversational_ai: ConversationalAiClient::new(config.clone())?,
+            agents: AgentsClient::new(config.clone())?,
             speech_engine: SpeechEngineClient::new(config.clone())?,
             environment_variables: EnvironmentVariablesClient::new(config.clone())?,
             productions: ProductionsClient::new(config.clone())?,
@@ -129,9 +129,9 @@ impl ApiClient {
     }
 }
 
+pub use agents::AgentsClient;
 pub use audio_isolation::AudioIsolationClient;
 pub use audio_native::AudioNativeClient;
-pub use conversational_ai::ConversationalAiClient;
 pub use dubbing::DubbingClient;
 pub use environment_variables::EnvironmentVariablesClient;
 pub use forced_alignment::ForcedAlignmentClient;

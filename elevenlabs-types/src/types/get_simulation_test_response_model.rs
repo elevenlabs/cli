@@ -33,6 +33,9 @@ pub struct GetSimulationTestResponseModel {
     /// Configuration for which tools to mock and fallback behavior.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_mock_config: Option<SimulationToolMockBehaviorConfig>,
+    /// Test-specific response mocks, keyed by tool ID. Applied ahead of the tool's shared mocks and only within this test. Only take effect for tools that are mocked (see tool_mock_config).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_mock_overrides: Option<HashMap<String, Vec<ToolResponseMockConfigOutput>>>,
     /// LLM model to use for evaluating simulation results. Defaults to Claude Sonnet 4.6.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub evaluation_model: Option<Llm>,
@@ -64,6 +67,7 @@ pub struct GetSimulationTestResponseModelBuilder {
     simulation_max_turns: Option<i64>,
     simulation_environment: Option<String>,
     tool_mock_config: Option<SimulationToolMockBehaviorConfig>,
+    tool_mock_overrides: Option<HashMap<String, Vec<ToolResponseMockConfigOutput>>>,
     evaluation_model: Option<Llm>,
     simulated_user_model: Option<Llm>,
     id: Option<String>,
@@ -121,6 +125,11 @@ impl GetSimulationTestResponseModelBuilder {
         self
     }
 
+    pub fn tool_mock_overrides(mut self, value: HashMap<String, Vec<ToolResponseMockConfigOutput>>) -> Self {
+        self.tool_mock_overrides = Some(value);
+        self
+    }
+
     pub fn evaluation_model(mut self, value: Llm) -> Self {
         self.evaluation_model = Some(value);
         self
@@ -157,6 +166,7 @@ impl GetSimulationTestResponseModelBuilder {
             simulation_max_turns: self.simulation_max_turns,
             simulation_environment: self.simulation_environment,
             tool_mock_config: self.tool_mock_config,
+            tool_mock_overrides: self.tool_mock_overrides,
             evaluation_model: self.evaluation_model,
             simulated_user_model: self.simulated_user_model,
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,

@@ -4,58 +4,57 @@ Full command reference for `elevenlabs`.
 
 ## Commands
 
+- [`elevenlabs agents`](#elevenlabs-agents)
+- [`elevenlabs agents agents llm-usage`](#elevenlabs-agents-agents-llm-usage)
+- [`elevenlabs agents analytics live-count`](#elevenlabs-agents-analytics-live-count)
+- [`elevenlabs agents batch-calls`](#elevenlabs-agents-batch-calls)
+- [`elevenlabs agents branches`](#elevenlabs-agents-branches)
+- [`elevenlabs agents conversations`](#elevenlabs-agents-conversations)
+- [`elevenlabs agents conversations analysis`](#elevenlabs-agents-conversations-analysis)
+- [`elevenlabs agents conversations audio`](#elevenlabs-agents-conversations-audio)
+- [`elevenlabs agents conversations feedback`](#elevenlabs-agents-conversations-feedback)
+- [`elevenlabs agents conversations files`](#elevenlabs-agents-conversations-files)
+- [`elevenlabs agents conversations messages`](#elevenlabs-agents-conversations-messages)
+- [`elevenlabs agents conversations tags`](#elevenlabs-agents-conversations-tags)
+- [`elevenlabs agents conversations topics`](#elevenlabs-agents-conversations-topics)
+- [`elevenlabs agents dashboard settings`](#elevenlabs-agents-dashboard-settings)
+- [`elevenlabs agents deployments`](#elevenlabs-agents-deployments)
+- [`elevenlabs agents drafts`](#elevenlabs-agents-drafts)
+- [`elevenlabs agents exotel`](#elevenlabs-agents-exotel)
+- [`elevenlabs agents knowledge-base`](#elevenlabs-agents-knowledge-base)
+- [`elevenlabs agents knowledge-base crawl-jobs`](#elevenlabs-agents-knowledge-base-crawl-jobs)
+- [`elevenlabs agents knowledge-base document`](#elevenlabs-agents-knowledge-base-document)
+- [`elevenlabs agents knowledge-base documents`](#elevenlabs-agents-knowledge-base-documents)
+- [`elevenlabs agents knowledge-base documents chunk`](#elevenlabs-agents-knowledge-base-documents-chunk)
+- [`elevenlabs agents knowledge-base documents chunks`](#elevenlabs-agents-knowledge-base-documents-chunks)
+- [`elevenlabs agents knowledge-base documents summaries`](#elevenlabs-agents-knowledge-base-documents-summaries)
+- [`elevenlabs agents link`](#elevenlabs-agents-link)
+- [`elevenlabs agents llm`](#elevenlabs-agents-llm)
+- [`elevenlabs agents llm-usage`](#elevenlabs-agents-llm-usage)
+- [`elevenlabs agents mcp-servers`](#elevenlabs-agents-mcp-servers)
+- [`elevenlabs agents mcp-servers approval-policy`](#elevenlabs-agents-mcp-servers-approval-policy)
+- [`elevenlabs agents mcp-servers tool-approvals`](#elevenlabs-agents-mcp-servers-tool-approvals)
+- [`elevenlabs agents mcp-servers tool-configs`](#elevenlabs-agents-mcp-servers-tool-configs)
+- [`elevenlabs agents mcp-servers tools`](#elevenlabs-agents-mcp-servers-tools)
+- [`elevenlabs agents phone-numbers`](#elevenlabs-agents-phone-numbers)
+- [`elevenlabs agents secrets`](#elevenlabs-agents-secrets)
+- [`elevenlabs agents settings`](#elevenlabs-agents-settings)
+- [`elevenlabs agents sip-trunk`](#elevenlabs-agents-sip-trunk)
+- [`elevenlabs agents summaries`](#elevenlabs-agents-summaries)
+- [`elevenlabs agents tests`](#elevenlabs-agents-tests)
+- [`elevenlabs agents tests folders`](#elevenlabs-agents-tests-folders)
+- [`elevenlabs agents tests invocations`](#elevenlabs-agents-tests-invocations)
+- [`elevenlabs agents tools`](#elevenlabs-agents-tools)
+- [`elevenlabs agents tools executions`](#elevenlabs-agents-tools-executions)
+- [`elevenlabs agents twilio`](#elevenlabs-agents-twilio)
+- [`elevenlabs agents users`](#elevenlabs-agents-users)
+- [`elevenlabs agents versions`](#elevenlabs-agents-versions)
+- [`elevenlabs agents whatsapp`](#elevenlabs-agents-whatsapp)
+- [`elevenlabs agents whatsapp-accounts`](#elevenlabs-agents-whatsapp-accounts)
+- [`elevenlabs agents widget`](#elevenlabs-agents-widget)
+- [`elevenlabs agents widget avatar`](#elevenlabs-agents-widget-avatar)
 - [`elevenlabs audio-isolation`](#elevenlabs-audio-isolation)
 - [`elevenlabs audio-native`](#elevenlabs-audio-native)
-- [`elevenlabs conversational-ai`](#elevenlabs-conversational-ai)
-- [`elevenlabs conversational-ai agents`](#elevenlabs-conversational-ai-agents)
-- [`elevenlabs conversational-ai agents branches`](#elevenlabs-conversational-ai-agents-branches)
-- [`elevenlabs conversational-ai agents deployments`](#elevenlabs-conversational-ai-agents-deployments)
-- [`elevenlabs conversational-ai agents drafts`](#elevenlabs-conversational-ai-agents-drafts)
-- [`elevenlabs conversational-ai agents knowledge-base`](#elevenlabs-conversational-ai-agents-knowledge-base)
-- [`elevenlabs conversational-ai agents link`](#elevenlabs-conversational-ai-agents-link)
-- [`elevenlabs conversational-ai agents llm-usage`](#elevenlabs-conversational-ai-agents-llm-usage)
-- [`elevenlabs conversational-ai agents summaries`](#elevenlabs-conversational-ai-agents-summaries)
-- [`elevenlabs conversational-ai agents versions`](#elevenlabs-conversational-ai-agents-versions)
-- [`elevenlabs conversational-ai agents widget`](#elevenlabs-conversational-ai-agents-widget)
-- [`elevenlabs conversational-ai agents widget avatar`](#elevenlabs-conversational-ai-agents-widget-avatar)
-- [`elevenlabs conversational-ai analytics live-count`](#elevenlabs-conversational-ai-analytics-live-count)
-- [`elevenlabs conversational-ai batch-calls`](#elevenlabs-conversational-ai-batch-calls)
-- [`elevenlabs conversational-ai conversations`](#elevenlabs-conversational-ai-conversations)
-- [`elevenlabs conversational-ai conversations analysis`](#elevenlabs-conversational-ai-conversations-analysis)
-- [`elevenlabs conversational-ai conversations audio`](#elevenlabs-conversational-ai-conversations-audio)
-- [`elevenlabs conversational-ai conversations feedback`](#elevenlabs-conversational-ai-conversations-feedback)
-- [`elevenlabs conversational-ai conversations files`](#elevenlabs-conversational-ai-conversations-files)
-- [`elevenlabs conversational-ai conversations messages`](#elevenlabs-conversational-ai-conversations-messages)
-- [`elevenlabs conversational-ai conversations tags`](#elevenlabs-conversational-ai-conversations-tags)
-- [`elevenlabs conversational-ai conversations topics`](#elevenlabs-conversational-ai-conversations-topics)
-- [`elevenlabs conversational-ai dashboard settings`](#elevenlabs-conversational-ai-dashboard-settings)
-- [`elevenlabs conversational-ai exotel`](#elevenlabs-conversational-ai-exotel)
-- [`elevenlabs conversational-ai knowledge-base`](#elevenlabs-conversational-ai-knowledge-base)
-- [`elevenlabs conversational-ai knowledge-base document`](#elevenlabs-conversational-ai-knowledge-base-document)
-- [`elevenlabs conversational-ai knowledge-base documents`](#elevenlabs-conversational-ai-knowledge-base-documents)
-- [`elevenlabs conversational-ai knowledge-base documents chunk`](#elevenlabs-conversational-ai-knowledge-base-documents-chunk)
-- [`elevenlabs conversational-ai knowledge-base documents chunks`](#elevenlabs-conversational-ai-knowledge-base-documents-chunks)
-- [`elevenlabs conversational-ai knowledge-base documents summaries`](#elevenlabs-conversational-ai-knowledge-base-documents-summaries)
-- [`elevenlabs conversational-ai llm`](#elevenlabs-conversational-ai-llm)
-- [`elevenlabs conversational-ai llm-usage`](#elevenlabs-conversational-ai-llm-usage)
-- [`elevenlabs conversational-ai mcp-servers`](#elevenlabs-conversational-ai-mcp-servers)
-- [`elevenlabs conversational-ai mcp-servers approval-policy`](#elevenlabs-conversational-ai-mcp-servers-approval-policy)
-- [`elevenlabs conversational-ai mcp-servers tool-approvals`](#elevenlabs-conversational-ai-mcp-servers-tool-approvals)
-- [`elevenlabs conversational-ai mcp-servers tool-configs`](#elevenlabs-conversational-ai-mcp-servers-tool-configs)
-- [`elevenlabs conversational-ai mcp-servers tools`](#elevenlabs-conversational-ai-mcp-servers-tools)
-- [`elevenlabs conversational-ai phone-numbers`](#elevenlabs-conversational-ai-phone-numbers)
-- [`elevenlabs conversational-ai secrets`](#elevenlabs-conversational-ai-secrets)
-- [`elevenlabs conversational-ai settings`](#elevenlabs-conversational-ai-settings)
-- [`elevenlabs conversational-ai sip-trunk`](#elevenlabs-conversational-ai-sip-trunk)
-- [`elevenlabs conversational-ai tests`](#elevenlabs-conversational-ai-tests)
-- [`elevenlabs conversational-ai tests folders`](#elevenlabs-conversational-ai-tests-folders)
-- [`elevenlabs conversational-ai tests invocations`](#elevenlabs-conversational-ai-tests-invocations)
-- [`elevenlabs conversational-ai tools`](#elevenlabs-conversational-ai-tools)
-- [`elevenlabs conversational-ai tools executions`](#elevenlabs-conversational-ai-tools-executions)
-- [`elevenlabs conversational-ai twilio`](#elevenlabs-conversational-ai-twilio)
-- [`elevenlabs conversational-ai users`](#elevenlabs-conversational-ai-users)
-- [`elevenlabs conversational-ai whatsapp`](#elevenlabs-conversational-ai-whatsapp)
-- [`elevenlabs conversational-ai whatsapp-accounts`](#elevenlabs-conversational-ai-whatsapp-accounts)
 - [`elevenlabs dubbing`](#elevenlabs-dubbing)
 - [`elevenlabs dubbing audio`](#elevenlabs-dubbing-audio)
 - [`elevenlabs dubbing project`](#elevenlabs-dubbing-project)
@@ -130,6 +129,2091 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs workspace resources`](#elevenlabs-workspace-resources)
 - [`elevenlabs workspace usage`](#elevenlabs-workspace-usage)
 - [`elevenlabs workspaces api-keys`](#elevenlabs-workspaces-api-keys)
+
+---
+
+### `elevenlabs agents`
+
+#### `elevenlabs agents add-to-knowledge-base` `[DEPRECATED]`
+
+Upload a file or webpage URL to create a knowledge base document. <br> <Note> After creating the document, update the agent's knowledge base by calling [Update agent](/docs/api-reference/agents/update). </Note>
+
+`POST /v1/convai/knowledge-base`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | No |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents create`
+
+Create an agent from a config object
+
+`POST /v1/convai/agents/create`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--enable-versioning` | `boolean` | No | Deprecated: all agents are versioned. This parameter is ignored. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents delete`
+
+Delete an agent
+
+`DELETE /v1/convai/agents/{agent_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents delete-document-rag-index`
+
+Delete RAG index for the knowledgebase document.
+
+`DELETE /v1/convai/knowledge-base/{documentation_id}/rag-index/{rag_index_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--rag-index-id` | `string` | Yes | The id of RAG index of document from the knowledge base. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents duplicate`
+
+Create a new agent by duplicating an existing one
+
+`POST /v1/convai/agents/{agent_id}/duplicate`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents get`
+
+Retrieve config for an agent
+
+`GET /v1/convai/agents/{agent_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--version-id` | `string` | No | The ID of the agent version to use |
+| `--branch-id` | `string` | No | The ID of the branch to use |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents get-document-rag-indexes`
+
+Provides information about all RAG indexes of the specified knowledgebase document.
+
+`GET /v1/convai/knowledge-base/{documentation_id}/rag-index`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents list`
+
+Returns a list of your agents and their metadata.
+
+`GET /v1/convai/agents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | How many Agents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--search` | `string` | No | Search by agents name. |
+| `--archived` | `string` | No | Filter agents by archived status |
+| `--show-only-owned-agents` | `boolean` | No | If set to true, the endpoint will omit any agents that were shared with you by someone else and include only the ones you own. Deprecated: use created_by_user_id instead. |
+| `--created-by-user-id` | `string` | No | Filter agents by creator user ID. When set, only agents created by this user are returned. Takes precedence over show_only_owned_agents. Use '@me' to refer to the authenticated user. |
+| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
+| `--sort-by` | `string` | No | The field to sort the results by |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents rag-index-overview`
+
+Provides total size and other information of RAG indexes used by knowledgebase documents
+
+`GET /v1/convai/knowledge-base/rag-index`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents run-tests`
+
+Run selected tests on the agent with provided configuration. If the agent configuration is provided, it will be used to override default agent configuration.
+
+`POST /v1/convai/agents/{agent_id}/run-tests`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents simulate-conversation` `[DEPRECATED]`
+
+Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user.
+
+`POST /v1/convai/agents/{agent_id}/simulate-conversation`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents simulate-conversation-stream` `[DEPRECATED]`
+
+Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user and stream back the response. Response is streamed back as partial lists of messages that should be concatenated and once the conversation has complete a single final message with the conversation analysis will be sent.
+
+`POST /v1/convai/agents/{agent_id}/simulate-conversation/stream`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents update`
+
+Patches an Agent settings
+
+`PATCH /v1/convai/agents/{agent_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--enable-versioning-if-not-enabled` | `boolean` | No | Deprecated: all agents are versioned. This parameter is ignored. |
+| `--branch-id` | `string` | No | The ID of the branch to use |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents agents llm-usage`
+
+#### `elevenlabs agents agents llm-usage calculate`
+
+Calculates expected number of LLM tokens needed for the specified agent.
+
+`POST /v1/convai/agent/{agent_id}/llm-usage/calculate`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents analytics live-count`
+
+#### `elevenlabs agents analytics live-count get`
+
+Get the live count of the ongoing conversations.
+
+`GET /v1/convai/analytics/live-count`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | No | The id of an agent to restrict the analytics to. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents batch-calls`
+
+#### `elevenlabs agents batch-calls cancel`
+
+Cancel a running batch call and set all recipients to cancelled status.
+
+`POST /v1/convai/batch-calling/{batch_id}/cancel`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--batch-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents batch-calls create`
+
+Submit a batch call request to schedule calls for multiple recipients.
+
+`POST /v1/convai/batch-calling/submit`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents batch-calls delete`
+
+Permanently delete a batch call and all recipient records. Conversations remain in history.
+
+`DELETE /v1/convai/batch-calling/{batch_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--batch-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents batch-calls export`
+
+Download all recipients and conversation results for a terminal batch call as CSV.
+
+`GET /v1/convai/batch-calling/{batch_id}/export`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--batch-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents batch-calls get`
+
+Get detailed information about a batch call including all recipients.
+
+`GET /v1/convai/batch-calling/{batch_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--batch-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents batch-calls list`
+
+Get all batch calls for the current workspace.
+
+`GET /v1/convai/batch-calling/workspace`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--limit` | `integer` | No |  |
+| `--last-doc` | `string` | No |  |
+| `--agent-id` | `string` | No | Filter batch calls to a single agent. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents batch-calls retry`
+
+Retry a batch call, calling failed and no-response recipients again.
+
+`POST /v1/convai/batch-calling/{batch_id}/retry`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--batch-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents branches`
+
+#### `elevenlabs agents branches create`
+
+Create a new branch from a given version of any branch
+
+`POST /v1/convai/agents/{agent_id}/branches`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents branches get`
+
+Get information about a single agent branch
+
+`GET /v1/convai/agents/{agent_id}/branches/{branch_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--branch-id` | `string` | Yes | Unique identifier for the branch. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents branches list`
+
+Returns a list of branches an agent has
+
+`GET /v1/convai/agents/{agent_id}/branches`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--include-archived` | `boolean` | No | Whether archived branches should be included |
+| `--limit` | `integer` | No | How many results at most should be returned |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents branches merge`
+
+Merge a branch into a target branch
+
+`POST /v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--source-branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
+| `--target-branch-id` | `string` | Yes | The ID of the target branch to merge into. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents branches preview-merge`
+
+Returns the result of merging the source branch into the target branch without performing the merge. Useful for showing an accurate diff before confirming.
+
+`GET /v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge-preview`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--source-branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
+| `--target-branch-id` | `string` | Yes | The ID of the target branch to merge into. |
+| `--force` | `boolean` | No | When true, source branch changes always win conflicts regardless of timestamps |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents branches preview-rebase`
+
+Returns the result of rebasing the branch onto main without performing the rebase. Useful for showing an accurate diff before confirming.
+
+`GET /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents branches rebase`
+
+Rebase a branch onto the latest main branch, incorporating main's changes while preserving the branch's own changes.
+
+`POST /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents branches update`
+
+Update agent branch properties such as archiving status and protection level
+
+`PATCH /v1/convai/agents/{agent_id}/branches/{branch_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--branch-id` | `string` | Yes | Unique identifier for the branch. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents conversations`
+
+#### `elevenlabs agents conversations delete`
+
+Delete a particular conversation
+
+`DELETE /v1/convai/conversations/{conversation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations get`
+
+Get the details of a particular conversation
+
+`GET /v1/convai/conversations/{conversation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--format` | `json | opentelemetry` | No | Response format. Defaults to 'json'. Set to 'opentelemetry' for an OTLP-compatible trace payload using the same structure as the post-call webhook. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations get-signed-url`
+
+Get a signed url to start a conversation with an agent with an agent that requires authorization
+
+`GET /v1/convai/conversation/get-signed-url`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--include-conversation-id` | `boolean` | No | Whether to include a conversation_id with the response. If included, the conversation_signature cannot be used again. |
+| `--branch-id` | `string` | No | The ID of the branch to use |
+| `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations get-sip-messages`
+
+Get SIP messages associated with a conversation's phone call
+
+`GET /v1/convai/conversations/{conversation_id}/sip-messages`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--page-size` | `integer` | No |  |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations get-webrtc-token`
+
+Get a WebRTC session token for real-time communication.
+
+`GET /v1/convai/conversation/token`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--participant-name` | `string` | No | Optional custom participant name. If not provided, user ID will be used |
+| `--branch-id` | `string` | No | The ID of the branch to use |
+| `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations list`
+
+Get all conversations of agents that user owns. With option to restrict to a specific agent.
+
+`GET /v1/convai/conversations`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--visited-agent-ids` | `string` | No | Filter conversations where any of these agents participated. Can not exceed 50 values. |
+| `--visited-agent-branch-ids` | `string` | No | Filter conversations where any of these agent branches participated. Can not exceed 50 values. |
+| `--call-successful` | `string` | No | The result of the success evaluation |
+| `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
+| `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
+| `--call-duration-min-secs` | `string` | No | Minimum call duration in seconds. |
+| `--call-duration-max-secs` | `string` | No | Maximum call duration in seconds. |
+| `--rating-max` | `string` | No | Maximum overall rating (1-5). |
+| `--rating-min` | `string` | No | Minimum overall rating (1-5). |
+| `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
+| `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
+| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
+| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in\|exists\|missing. For in, pipe-delimit values. |
+| `--data-collection-ids` | `string` | No | Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned. |
+| `--evaluation-criteria-ids` | `string` | No | Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned. |
+| `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
+| `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
+| `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
+| `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
+| `--page-size` | `integer` | No | How many conversations to return at maximum. Can not exceed 100, defaults to 30. |
+| `--summary-mode` | `exclude | include` | No | Whether to include transcript summaries in the response. |
+| `--search` | `string` | No | Full-text or fuzzy search over transcript messages |
+| `--conversation-initiation-source` | `string` | No |  |
+| `--text-only` | `string` | No |  |
+| `--conversation-product-type` | `string` | No | Restrict results to a single conversation product surface. |
+| `--branch-id` | `string` | No | Filter conversations by branch ID. |
+| `--topic-ids` | `string` | No | Filter conversations by topic IDs assigned during topic discovery. |
+| `--exclude-statuses` | `string` | No | Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views. |
+| `--tag-ids` | `string` | No | Filter conversations by conversation tag IDs assigned via the conversation-tags endpoints. |
+| `--workflow-node-entered-id` | `string` | No | Filter conversations to only those that entered the given node. |
+| `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations resolve`
+
+Resolve a conversation URL (a Slack message URL or a Zendesk ticket URL) to the deterministic conversation ID for the given agent, then confirm the conversation exists.
+
+`GET /v1/convai/conversations/resolve`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--reference` | `string` | Yes | A Slack message URL or a Zendesk ticket URL. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents conversations analysis`
+
+#### `elevenlabs agents conversations analysis run`
+
+Run the analysis for a conversation using the agent's current evaluation criteria and data collection settings.
+
+`POST /v1/convai/conversations/{conversation_id}/analysis/run`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | ID of the conversation |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations analysis run-evaluation`
+
+Rerun a specific evaluation for a conversation.
+
+`POST /v1/convai/conversations/{conversation_id}/analysis/evaluations/run`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | ID of the conversation |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents conversations audio`
+
+#### `elevenlabs agents conversations audio get`
+
+Get the audio recording of a particular conversation
+
+`GET /v1/convai/conversations/{conversation_id}/audio`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents conversations feedback`
+
+#### `elevenlabs agents conversations feedback create`
+
+Send the feedback for the given conversation
+
+`POST /v1/convai/conversations/{conversation_id}/feedback`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents conversations files`
+
+#### `elevenlabs agents conversations files create`
+
+Upload an image or PDF file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
+
+`POST /v1/convai/conversations/{conversation_id}/files`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents conversations files delete`
+
+Remove a file upload from a conversation. Only possible if the file hasn't already been used in the conversation.
+
+`DELETE /v1/convai/conversations/{conversation_id}/files/{file_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--file-id` | `string` | Yes |  |
+| `--conversation-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents conversations messages`
+
+#### `elevenlabs agents conversations messages search`
+
+Search conversation transcripts by semantic similarity to surface relevant messages based on meaning and intent, rather than exact keyword matches
+
+`GET /v1/convai/conversations/messages/smart-search`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--text-query` | `string` | Yes | The search query text for semantic similarity matching |
+| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--page-size` | `integer` | No | Number of results per page. Max 50. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations messages text-search`
+
+Search through conversation transcript messages by full-text and fuzzy search
+
+`GET /v1/convai/conversations/messages/text-search`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--text-query` | `string` | Yes | The search query text for full-text and fuzzy matching |
+| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--visited-agent-ids` | `string` | No | Filter conversations where any of these agents participated. Can not exceed 50 values. |
+| `--visited-agent-branch-ids` | `string` | No | Filter conversations where any of these agent branches participated. Can not exceed 50 values. |
+| `--call-successful` | `string` | No | The result of the success evaluation |
+| `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
+| `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
+| `--call-duration-min-secs` | `string` | No | Minimum call duration in seconds. |
+| `--call-duration-max-secs` | `string` | No | Maximum call duration in seconds. |
+| `--rating-max` | `string` | No | Maximum overall rating (1-5). |
+| `--rating-min` | `string` | No | Minimum overall rating (1-5). |
+| `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
+| `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
+| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
+| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in\|exists\|missing. For in, pipe-delimit values. |
+| `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
+| `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
+| `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
+| `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
+| `--exclude-statuses` | `string` | No | Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views. |
+| `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
+| `--page-size` | `integer` | No | Number of results per page. Max 50. |
+| `--summary-mode` | `exclude | include` | No | Whether to include transcript summaries in the response. |
+| `--conversation-initiation-source` | `string` | No |  |
+| `--text-only` | `string` | No |  |
+| `--conversation-product-type` | `string` | No | Restrict results to a single conversation product surface. |
+| `--branch-id` | `string` | No | Filter conversations by branch ID. |
+| `--topic-ids` | `string` | No | Filter conversations by topic IDs assigned during topic discovery. |
+| `--sort-by` | `MessageSearchSortBy` | No | Sort order for search results. 'search_score' sorts by search score, 'created_at' sorts by conversation start time. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents conversations tags`
+
+#### `elevenlabs agents conversations tags assign`
+
+Assign one or more conversation tags to a conversation. Tags that are already assigned are ignored. Tags must belong to the same workspace.
+
+`POST /v1/convai/conversations/{conversation_id}/tags`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents conversations tags create`
+
+Create a new conversation tag for the workspace.
+
+`POST /v1/convai/tags`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents conversations tags delete`
+
+Delete a conversation tag. Restricted to the tag owner or a workspace admin.
+
+`DELETE /v1/convai/tags/{tag_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tag-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations tags get`
+
+Get a conversation tag by ID.
+
+`GET /v1/convai/tags/{tag_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tag-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations tags list`
+
+List conversation tags for the workspace, ordered by most recently created first.
+
+`GET /v1/convai/tags`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | How many conversation tags to return. Can not exceed 100. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations tags unassign`
+
+Remove a single conversation tag from a conversation.
+
+`DELETE /v1/convai/conversations/{conversation_id}/tags/{tag_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes |  |
+| `--tag-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations tags update`
+
+Update a conversation tag's title and/or description. Restricted to the tag owner or a workspace admin.
+
+`PATCH /v1/convai/tags/{tag_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tag-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents conversations topics`
+
+#### `elevenlabs agents conversations topics get`
+
+Returns the latest topic discovery run results for a given agent.
+
+`GET /v1/convai/agents/{agent_id}/topics`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the agent |
+| `--from-unix-secs` | `string` | No | Start of the window to view topics for. When set with to_unix_secs, per-day topics in the range are aggregated together. |
+| `--to-unix-secs` | `string` | No | End of the window to view topics for. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents dashboard settings`
+
+#### `elevenlabs agents dashboard settings get`
+
+Retrieve Convai dashboard settings for the workspace
+
+`GET /v1/convai/settings/dashboard`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents dashboard settings update`
+
+Update Convai dashboard settings for the workspace
+
+`PATCH /v1/convai/settings/dashboard`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents deployments`
+
+#### `elevenlabs agents deployments create`
+
+Create a new deployment for an agent
+
+`POST /v1/convai/agents/{agent_id}/deployments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents drafts`
+
+#### `elevenlabs agents drafts create`
+
+Create a new draft for an agent
+
+`POST /v1/convai/agents/{agent_id}/drafts`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--branch-id` | `string` | Yes | The ID of the agent branch to use |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents drafts delete`
+
+Delete a draft for an agent
+
+`DELETE /v1/convai/agents/{agent_id}/drafts`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--branch-id` | `string` | Yes | The ID of the agent branch to use |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents exotel`
+
+#### `elevenlabs agents exotel outbound-call`
+
+Handle an outbound call via Exotel Connect API
+
+`POST /v1/convai/exotel/outbound-call`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents knowledge-base`
+
+#### `elevenlabs agents knowledge-base get-or-create-rag-indexes`
+
+Retrieves and/or creates RAG indexes for multiple knowledge base documents in a single request. Maximum 100 items per request.
+
+`POST /v1/convai/knowledge-base/rag-index`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base list`
+
+Get a list of available knowledge base documents
+
+`GET /v1/convai/knowledge-base`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--search` | `string` | No | If specified, the endpoint returns only such knowledge base documents whose names start with this string. |
+| `--show-only-owned-documents` | `boolean` | No | If set to true, the endpoint will return only documents owned by you (and not shared from somebody else). Deprecated: use created_by_user_id instead. |
+| `--created-by-user-id` | `string` | No | Filter documents by creator user ID. When set, only documents created by this user are returned. Takes precedence over show_only_owned_documents. Use '@me' to refer to the authenticated user. |
+| `--types` | `string` | No | If present, the endpoint will return only documents of the given types. |
+| `--parent-folder-id` | `string` | No | If set, the endpoint will return only documents that are direct children of the given folder. |
+| `--ancestor-folder-id` | `string` | No | If set, the endpoint will return only documents that are descendants of the given folder. |
+| `--folders-first` | `boolean` | No | Whether folders should be returned first in the list of documents. |
+| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
+| `--sort-by` | `string` | No | The field to sort the results by |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base search`
+
+Fuzzy text search over knowledge base document content
+
+`GET /v1/convai/knowledge-base/search`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--query` | `string` | Yes | The search query text |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--types` | `string` | No | If present, the endpoint will return only documents of the given types. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base size`
+
+Returns the number of pages in the agent's knowledge base.
+
+`GET /v1/convai/agent/{agent_id}/knowledge-base/size`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents knowledge-base crawl-jobs`
+
+#### `elevenlabs agents knowledge-base crawl-jobs cancel`
+
+Cancel a crawl job and delete all associated documents and folders.
+
+`POST /v1/convai/knowledge-base/crawl/{crawl_job_id}/cancel`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--crawl-job-id` | `string` | Yes | The id of the crawl job to retrieve |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base crawl-jobs create`
+
+Create a crawl job to crawl the given URL with specified depth and page limits.
+
+`POST /v1/convai/knowledge-base/crawl`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base crawl-jobs get`
+
+Get details about a specific crawl job including status and progress.
+
+`GET /v1/convai/knowledge-base/crawl/{crawl_job_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--crawl-job-id` | `string` | Yes | The id of the crawl job to retrieve |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base crawl-jobs list`
+
+Get a list of ongoing and recent crawl jobs for the user.
+
+`GET /v1/convai/knowledge-base/crawl`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--include-job-ids` | `string` | No | Ids of additional crawl jobs to retrieve |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents knowledge-base document`
+
+#### `elevenlabs agents knowledge-base document compute-rag-index`
+
+In case the document is not RAG indexed, it triggers rag indexing task, otherwise it just returns the current status.
+
+`POST /v1/convai/knowledge-base/{documentation_id}/rag-index`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base document refresh`
+
+Manually refresh a URL document by re-fetching its content from the source URL.
+
+`POST /v1/convai/knowledge-base/{documentation_id}/refresh`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base document update-file`
+
+Update the source file of a file document. The document name, content, and metadata are updated to reflect the new file. Any manual content edits will be overwritten.
+
+`PATCH /v1/convai/knowledge-base/{documentation_id}/update-file`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents knowledge-base documents`
+
+#### `elevenlabs agents knowledge-base documents bulk-delete`
+
+Delete multiple documents or folders from the knowledge base. Each id succeeds or fails independently.
+
+`POST /v1/convai/knowledge-base/bulk-delete`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents bulk-move`
+
+Moves multiple entities from one folder to another.
+
+`POST /v1/convai/knowledge-base/bulk-move`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents create-folder`
+
+Create a folder used for grouping documents together.
+
+`POST /v1/convai/knowledge-base/folder`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents create-from-file`
+
+Create a knowledge base document generated form the uploaded file.
+
+`POST /v1/convai/knowledge-base/file`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents create-from-text`
+
+Create a knowledge base document containing the provided text.
+
+`POST /v1/convai/knowledge-base/text`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents create-from-url`
+
+Create a knowledge base document generated by scraping the given webpage.
+
+`POST /v1/convai/knowledge-base/url`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents delete`
+
+Delete a document or folder from the knowledge base.
+
+`DELETE /v1/convai/knowledge-base/{documentation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--force` | `boolean` | No | If set to true, the document or folder will be deleted regardless of whether it is used by any agents and it will be removed from the dependent agents. For non-empty folders, this will also delete all child documents and folders. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base documents get`
+
+Get details about a specific documentation making up the agent's knowledge base
+
+`GET /v1/convai/knowledge-base/{documentation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--agent-id` | `string` | No |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base documents get-agents`
+
+Get a list of agents depending on this knowledge base document
+
+`GET /v1/convai/knowledge-base/{documentation_id}/dependent-agents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--dependent-type` | `KnowledgeBaseDependentType` | No | Type of dependent agents to return. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base documents get-bulk-agents`
+
+Get a list of agents depending on any of the given knowledge base documents.
+
+`POST /v1/convai/knowledge-base/dependent-agents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--dependent-type` | `KnowledgeBaseDependentType` | No | Type of dependent agents to return. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents get-content`
+
+Get the entire content of a document from the knowledge base
+
+`GET /v1/convai/knowledge-base/{documentation_id}/content`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base documents get-source-file-url`
+
+Get a signed URL to download the original source file of a file-type document from the knowledge base
+
+`GET /v1/convai/knowledge-base/{documentation_id}/source-file-url`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents knowledge-base documents move`
+
+Moves the entity from one folder to another.
+
+`POST /v1/convai/knowledge-base/{document_id}/move`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--document-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents update`
+
+Update the name and/or content of a document.
+
+`PATCH /v1/convai/knowledge-base/{documentation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents knowledge-base documents chunk`
+
+#### `elevenlabs agents knowledge-base documents chunk get`
+
+Get details about a specific documentation part used by RAG.
+
+`GET /v1/convai/knowledge-base/{documentation_id}/chunk/{chunk_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--chunk-id` | `string` | Yes | The id of a document RAG chunk from the knowledge base. |
+| `--embedding-model` | `string` | No | The embedding model used to retrieve the chunk. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents knowledge-base documents chunks`
+
+#### `elevenlabs agents knowledge-base documents chunks list`
+
+Get all RAG chunks for a specific knowledge base document.
+
+`GET /v1/convai/knowledge-base/{documentation_id}/chunks`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--embedding-model` | `EmbeddingModelEnum` | Yes | The embedding model used to retrieve the chunk. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents knowledge-base documents summaries`
+
+#### `elevenlabs agents knowledge-base documents summaries get`
+
+Gets multiple knowledge base document summaries by their IDs.
+
+`GET /v1/convai/knowledge-base/summaries`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--document-ids` | `string[]` | Yes | The ids of knowledge base documents. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents link`
+
+#### `elevenlabs agents link get`
+
+Get the current link used to share the agent with others
+
+`GET /v1/convai/agents/{agent_id}/link`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents llm`
+
+#### `elevenlabs agents llm list`
+
+Returns a list of available LLM models that can be used with agents, including their capabilities and any deprecation status. The response is filtered based on the data residency of the deployment and any compliance requirements (e.g. HIPAA) of the workspace subscription.
+
+`GET /v1/convai/llm/list`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents llm-usage`
+
+#### `elevenlabs agents llm-usage calculate`
+
+Returns a list of LLM models and the expected cost for using them based on the provided values.
+
+`POST /v1/convai/llm-usage/calculate`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents mcp-servers`
+
+#### `elevenlabs agents mcp-servers create`
+
+Create a new MCP server configuration in the workspace.
+
+`POST /v1/convai/mcp-servers`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents mcp-servers delete`
+
+Delete a specific MCP server configuration from the workspace.
+
+`DELETE /v1/convai/mcp-servers/{mcp_server_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents mcp-servers get`
+
+Retrieve a specific MCP server configuration from the workspace.
+
+`GET /v1/convai/mcp-servers/{mcp_server_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents mcp-servers list`
+
+Retrieve all MCP server configurations available in the workspace.
+
+`GET /v1/convai/mcp-servers`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents mcp-servers update`
+
+Update the configuration settings for an MCP server.
+
+`PATCH /v1/convai/mcp-servers/{mcp_server_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents mcp-servers approval-policy`
+
+#### `elevenlabs agents mcp-servers approval-policy update` `[DEPRECATED]`
+
+Update the approval policy configuration for an MCP server. DEPRECATED: Use PATCH /mcp-servers/{id} endpoint instead.
+
+`PATCH /v1/convai/mcp-servers/{mcp_server_id}/approval-policy`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents mcp-servers tool-approvals`
+
+#### `elevenlabs agents mcp-servers tool-approvals create`
+
+Add approval for a specific MCP tool when using per-tool approval mode.
+
+`POST /v1/convai/mcp-servers/{mcp_server_id}/tool-approvals`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents mcp-servers tool-approvals delete`
+
+Remove approval for a specific MCP tool when using per-tool approval mode.
+
+`DELETE /v1/convai/mcp-servers/{mcp_server_id}/tool-approvals/{tool_name}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--tool-name` | `string` | Yes | Name of the MCP tool to remove approval for. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents mcp-servers tool-configs`
+
+#### `elevenlabs agents mcp-servers tool-configs create`
+
+Create configuration overrides for a specific MCP tool.
+
+`POST /v1/convai/mcp-servers/{mcp_server_id}/tool-configs`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents mcp-servers tool-configs delete`
+
+Remove configuration overrides for a specific MCP tool.
+
+`DELETE /v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--tool-name` | `string` | Yes | Name of the MCP tool to remove config overrides for. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents mcp-servers tool-configs get`
+
+Retrieve configuration overrides for a specific MCP tool.
+
+`GET /v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--tool-name` | `string` | Yes | Name of the MCP tool to retrieve config overrides for. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents mcp-servers tool-configs update`
+
+Update configuration overrides for a specific MCP tool.
+
+`PATCH /v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--tool-name` | `string` | Yes | Name of the MCP tool to update config overrides for. |
+| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents mcp-servers tools`
+
+#### `elevenlabs agents mcp-servers tools list`
+
+Retrieve all tools available for a specific MCP server configuration.
+
+`GET /v1/convai/mcp-servers/{mcp_server_id}/tools`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
+| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents phone-numbers`
+
+#### `elevenlabs agents phone-numbers create`
+
+Import Phone Number from provider configuration (Twilio, Exotel, or SIP trunk)
+
+`POST /v1/convai/phone-numbers`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents phone-numbers delete`
+
+Delete Phone Number by ID
+
+`DELETE /v1/convai/phone-numbers/{phone_number_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents phone-numbers get`
+
+Retrieve Phone Number details by ID
+
+`GET /v1/convai/phone-numbers/{phone_number_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents phone-numbers get-sip-messages`
+
+Get SIP messages for a phone number
+
+`GET /v1/convai/phone-numbers/{phone_number_id}/sip-messages`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
+| `--page-size` | `integer` | No |  |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents phone-numbers list`
+
+Retrieve all Phone Numbers
+
+`GET /v1/convai/phone-numbers`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--provider` | `string` | No | Filter by telephony provider |
+| `--agent-id` | `string` | No | Filter by assigned agent ID |
+| `--branch-id` | `string` | No | Filter by assigned branch ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents phone-numbers update`
+
+Update assigned agent of a phone number
+
+`PATCH /v1/convai/phone-numbers/{phone_number_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents secrets`
+
+#### `elevenlabs agents secrets create`
+
+Create a new secret for the workspace
+
+`POST /v1/convai/secrets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents secrets delete`
+
+Delete a workspace secret if it's not in use
+
+`DELETE /v1/convai/secrets/{secret_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--secret-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents secrets get`
+
+Get a workspace secret by ID
+
+`GET /v1/convai/secrets/{secret_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--secret-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents secrets get-dependencies`
+
+Get paginated list of resources that depend on a specific secret, filtered by resource type.
+
+`GET /v1/convai/secrets/{secret_id}/dependencies/{resource_type}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--secret-id` | `string` | Yes |  |
+| `--resource-type` | `SecretDependencyResourceType` | Yes |  |
+| `--page-size` | `integer` | No | How many dependency items to return per page. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents secrets list`
+
+Get all workspace secrets for the user
+
+`GET /v1/convai/secrets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `string` | No | How many documents to return at maximum. Can not exceed 100. If not provided, returns all secrets. |
+| `--dependency-limit` | `string` | No | Maximum number of dependent resources (tools, agents, phone numbers) to return per secret. Can not exceed 100. |
+| `--search` | `string` | No | If specified, returns only secrets whose names start with this string. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents secrets update`
+
+Update an existing secret for the workspace
+
+`PATCH /v1/convai/secrets/{secret_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--secret-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents settings`
+
+#### `elevenlabs agents settings get`
+
+Retrieve Convai settings for the workspace
+
+`GET /v1/convai/settings`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents settings update`
+
+Update Convai settings for the workspace
+
+`PATCH /v1/convai/settings`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents sip-trunk`
+
+#### `elevenlabs agents sip-trunk outbound-call`
+
+Handle an outbound call via SIP trunk
+
+`POST /v1/convai/sip-trunk/outbound-call`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents summaries`
+
+#### `elevenlabs agents summaries get`
+
+Returns summaries for the specified agents.
+
+`GET /v1/convai/agents/summaries`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-ids` | `string[]` | Yes | List of agent IDs to fetch summaries for |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents tests`
+
+#### `elevenlabs agents tests create`
+
+Creates a new agent response test.
+
+`POST /v1/convai/agent-testing/create`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents tests delete`
+
+Deletes an agent response test by ID.
+
+`DELETE /v1/convai/agent-testing/{test_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-id` | `string` | Yes | The id of a chat response test. This is returned on test creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests get`
+
+Gets an agent response test by ID.
+
+`GET /v1/convai/agent-testing/{test_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-id` | `string` | Yes | The id of a chat response test. This is returned on test creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests list`
+
+Lists all agent response tests with pagination support and optional search filtering.
+
+`GET /v1/convai/agent-testing`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
+| `--search` | `string` | No | Search query to filter tests by name. |
+| `--parent-folder-id` | `string` | No | Filter by parent folder ID. Use 'root' to get items in the root folder. |
+| `--types` | `string` | No | If present, the endpoint will return only tests/folders of the given types. |
+| `--include-folders` | `string` | No | Deprecated. Use the `types` query param and include `folder` instead. |
+| `--sort-mode` | `default | folders_first` | No | Sort mode for listing tests. Use 'folders_first' to place folders before tests. |
+| `--sharing-mode` | `TestSharingMode` | No | Filter test visibility. Use `shared_with_me` to return only tests/folders shared with the current user that they did not create. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests move`
+
+Moves multiple tests or folders from one folder to another.
+
+`POST /v1/convai/agent-testing/bulk-move`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents tests summaries`
+
+Gets agent response test summaries for the requested test IDs.
+
+`POST /v1/convai/agent-testing/summaries`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents tests update`
+
+Updates an agent response test by ID.
+
+`PUT /v1/convai/agent-testing/{test_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-id` | `string` | Yes | The id of a chat response test. This is returned on test creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents tests folders`
+
+#### `elevenlabs agents tests folders create`
+
+Creates a folder for organizing agent tests.
+
+`POST /v1/convai/agent-testing/folders`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents tests folders delete`
+
+Deletes an agent test folder by ID. Use force=true to delete a non-empty folder and all its contents.
+
+`DELETE /v1/convai/agent-testing/folders/{folder_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--folder-id` | `string` | Yes | The folder ID. |
+| `--force` | `boolean` | No | Force delete. Required for deleting non-empty folders. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests folders get`
+
+Gets an agent test folder by ID, including its folder path.
+
+`GET /v1/convai/agent-testing/folders/{folder_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--folder-id` | `string` | Yes | The folder ID. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests folders update`
+
+Updates an agent test folder. Currently only supports updating the folder name.
+
+`PATCH /v1/convai/agent-testing/folders/{folder_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--folder-id` | `string` | Yes | The folder ID. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents tests invocations`
+
+#### `elevenlabs agents tests invocations get`
+
+Gets a test invocation by ID.
+
+`GET /v1/convai/test-invocations/{test_invocation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-invocation-id` | `string` | Yes | The id of a test invocation. This is returned when tests are run. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests invocations list`
+
+Lists all test invocations with pagination support and optional search filtering.
+
+`GET /v1/convai/test-invocations`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | No | Filter by agent ID |
+| `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tests invocations resubmit`
+
+Resubmits specific test runs from a test invocation.
+
+`POST /v1/convai/test-invocations/{test_invocation_id}/resubmit`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-invocation-id` | `string` | Yes | The id of a test invocation. This is returned when tests are run. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents tools`
+
+#### `elevenlabs agents tools create`
+
+Add a new tool to the available tools in the workspace.
+
+`POST /v1/convai/tools`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents tools delete`
+
+Delete tool from the workspace.
+
+`DELETE /v1/convai/tools/{tool_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tool-id` | `string` | Yes | ID of the requested tool. |
+| `--force` | `boolean` | No | If set to true, the tool will be deleted regardless of whether it is used by any agents and it will be removed from the dependent agents and branches. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tools get`
+
+Get tool that is available in the workspace.
+
+`GET /v1/convai/tools/{tool_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tool-id` | `string` | Yes | ID of the requested tool. |
+| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tools get-dependent-agents`
+
+Get a list of agents depending on this tool
+
+`GET /v1/convai/tools/{tool_id}/dependent-agents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tool-id` | `string` | Yes | ID of the requested tool. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tools list`
+
+Get all available tools in the workspace.
+
+`GET /v1/convai/tools`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--search` | `string` | No | If specified, the endpoint returns only tools whose names start with this string. |
+| `--page-size` | `string` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--show-only-owned-documents` | `boolean` | No | If set to true, the endpoint will return only tools owned by you (and not shared from somebody else). Deprecated: use created_by_user_id instead. |
+| `--created-by-user-id` | `string` | No | Filter tools by creator user ID. When set, only tools created by this user are returned. Takes precedence over show_only_owned_documents. Use '@me' to refer to the authenticated user. |
+| `--types` | `string` | No | If present, the endpoint will return only tools of the given types. |
+| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
+| `--sort-by` | `string` | No | The field to sort the results by |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents tools update`
+
+Update tool that is available in the workspace.
+
+`PATCH /v1/convai/tools/{tool_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tool-id` | `string` | Yes | ID of the requested tool. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents tools executions`
+
+#### `elevenlabs agents tools executions get`
+
+Get paginated list of tool executions for a specific tool.
+
+`GET /v1/convai/tools/{tool_id}/executions`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tool-id` | `string` | Yes | ID of the requested tool. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--is-error` | `string` | No | Filter by error status. If not provided, returns all executions. |
+| `--agent-id` | `string` | No | Filter by agent ID. |
+| `--branch-id` | `string` | No | Filter by agent branch ID. |
+| `--start-time` | `string` | No | Filter executions from this Unix timestamp (inclusive). |
+| `--end-time` | `string` | No | Filter executions until this Unix timestamp (inclusive). |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents twilio`
+
+#### `elevenlabs agents twilio outbound-call`
+
+Handle an outbound call via Twilio
+
+`POST /v1/convai/twilio/outbound-call`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents twilio register-call`
+
+Register a Twilio call and return TwiML to connect the call
+
+`POST /v1/convai/twilio/register-call`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents users`
+
+#### `elevenlabs agents users list`
+
+Get distinct users from conversations with pagination.
+
+`GET /v1/convai/users`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--branch-id` | `string` | No | Filter conversations by branch ID. |
+| `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
+| `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
+| `--search` | `string` | No | Search/filter by user ID (exact match). |
+| `--page-size` | `integer` | No | How many users to return at maximum. Defaults to 30. |
+| `--sort-by` | `UsersSortBy` | No | The field to sort the results by. Defaults to last_contact_unix_secs. |
+| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents versions`
+
+#### `elevenlabs agents versions get`
+
+Get metadata for a specific agent version
+
+`GET /v1/convai/agents/{agent_id}/versions/{version_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--version-id` | `string` | Yes | Unique identifier for the version. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents whatsapp`
+
+#### `elevenlabs agents whatsapp outbound-call`
+
+Make an outbound call via WhatsApp
+
+`POST /v1/convai/whatsapp/outbound-call`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents whatsapp outbound-message`
+
+Send an outbound message via WhatsApp
+
+`POST /v1/convai/whatsapp/outbound-message`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents whatsapp-accounts`
+
+#### `elevenlabs agents whatsapp-accounts delete`
+
+Delete a WhatsApp account
+
+`DELETE /v1/convai/whatsapp-accounts/{phone_number_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents whatsapp-accounts get`
+
+Get a WhatsApp account
+
+`GET /v1/convai/whatsapp-accounts/{phone_number_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents whatsapp-accounts list`
+
+List all WhatsApp accounts
+
+`GET /v1/convai/whatsapp-accounts`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | No | Filter by assigned agent ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents whatsapp-accounts update`
+
+Update a WhatsApp account
+
+`PATCH /v1/convai/whatsapp-accounts/{phone_number_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-number-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents widget`
+
+#### `elevenlabs agents widget get`
+
+Retrieve the widget configuration for an agent
+
+`GET /v1/convai/agents/{agent_id}/widget`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--conversation-signature` | `string` | No | An expiring token that enables a websocket conversation to start. These can be generated for an agent using the /v1/convai/conversation/get_signed_url endpoint |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents widget avatar`
+
+#### `elevenlabs agents widget avatar create`
+
+Sets the avatar for an agent displayed in the widget
+
+`POST /v1/convai/agents/{agent_id}/avatar`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
 ---
 
@@ -227,2005 +2311,6 @@ Finds an AudioNative project matching the provided URL, extracts content from th
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai`
-
-#### `elevenlabs conversational-ai add-to-knowledge-base` `[DEPRECATED]`
-
-Upload a file or webpage URL to create a knowledge base document. <br> <Note> After creating the document, update the agent's knowledge base by calling [Update agent](/docs/api-reference/agents/update). </Note>
-
-`POST /v1/convai/knowledge-base`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | No |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai delete-document-rag-index`
-
-Delete RAG index for the knowledgebase document.
-
-`DELETE /v1/convai/knowledge-base/{documentation_id}/rag-index/{rag_index_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--rag-index-id` | `string` | Yes | The id of RAG index of document from the knowledge base. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai get-document-rag-indexes`
-
-Provides information about all RAG indexes of the specified knowledgebase document.
-
-`GET /v1/convai/knowledge-base/{documentation_id}/rag-index`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai rag-index-overview`
-
-Provides total size and other information of RAG indexes used by knowledgebase documents
-
-`GET /v1/convai/knowledge-base/rag-index`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents`
-
-#### `elevenlabs conversational-ai agents create`
-
-Create an agent from a config object
-
-`POST /v1/convai/agents/create`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--enable-versioning` | `boolean` | No | Deprecated: all agents are versioned. This parameter is ignored. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents delete`
-
-Delete an agent
-
-`DELETE /v1/convai/agents/{agent_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents duplicate`
-
-Create a new agent by duplicating an existing one
-
-`POST /v1/convai/agents/{agent_id}/duplicate`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents get`
-
-Retrieve config for an agent
-
-`GET /v1/convai/agents/{agent_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--version-id` | `string` | No | The ID of the agent version to use |
-| `--branch-id` | `string` | No | The ID of the branch to use |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents list`
-
-Returns a list of your agents and their metadata.
-
-`GET /v1/convai/agents`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--page-size` | `integer` | No | How many Agents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--search` | `string` | No | Search by agents name. |
-| `--archived` | `string` | No | Filter agents by archived status |
-| `--show-only-owned-agents` | `boolean` | No | If set to true, the endpoint will omit any agents that were shared with you by someone else and include only the ones you own. Deprecated: use created_by_user_id instead. |
-| `--created-by-user-id` | `string` | No | Filter agents by creator user ID. When set, only agents created by this user are returned. Takes precedence over show_only_owned_agents. Use '@me' to refer to the authenticated user. |
-| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
-| `--sort-by` | `string` | No | The field to sort the results by |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents run-tests`
-
-Run selected tests on the agent with provided configuration. If the agent configuration is provided, it will be used to override default agent configuration.
-
-`POST /v1/convai/agents/{agent_id}/run-tests`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents simulate-conversation` `[DEPRECATED]`
-
-Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user.
-
-`POST /v1/convai/agents/{agent_id}/simulate-conversation`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents simulate-conversation-stream` `[DEPRECATED]`
-
-Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user and stream back the response. Response is streamed back as partial lists of messages that should be concatenated and once the conversation has complete a single final message with the conversation analysis will be sent.
-
-`POST /v1/convai/agents/{agent_id}/simulate-conversation/stream`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents update`
-
-Patches an Agent settings
-
-`PATCH /v1/convai/agents/{agent_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--enable-versioning-if-not-enabled` | `boolean` | No | Deprecated: all agents are versioned. This parameter is ignored. |
-| `--branch-id` | `string` | No | The ID of the branch to use |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai agents branches`
-
-#### `elevenlabs conversational-ai agents branches create`
-
-Create a new branch from a given version of any branch
-
-`POST /v1/convai/agents/{agent_id}/branches`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents branches get`
-
-Get information about a single agent branch
-
-`GET /v1/convai/agents/{agent_id}/branches/{branch_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--branch-id` | `string` | Yes | Unique identifier for the branch. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents branches list`
-
-Returns a list of branches an agent has
-
-`GET /v1/convai/agents/{agent_id}/branches`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--include-archived` | `boolean` | No | Whether archived branches should be included |
-| `--limit` | `integer` | No | How many results at most should be returned |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents branches merge`
-
-Merge a branch into a target branch
-
-`POST /v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--source-branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
-| `--target-branch-id` | `string` | Yes | The ID of the target branch to merge into. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents branches preview-merge`
-
-Returns the result of merging the source branch into the target branch without performing the merge. Useful for showing an accurate diff before confirming.
-
-`GET /v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge-preview`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--source-branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
-| `--target-branch-id` | `string` | Yes | The ID of the target branch to merge into. |
-| `--force` | `boolean` | No | When true, source branch changes always win conflicts regardless of timestamps |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents branches preview-rebase`
-
-Returns the result of rebasing the branch onto main without performing the rebase. Useful for showing an accurate diff before confirming.
-
-`GET /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents branches rebase`
-
-Rebase a branch onto the latest main branch, incorporating main's changes while preserving the branch's own changes.
-
-`POST /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai agents branches update`
-
-Update agent branch properties such as archiving status and protection level
-
-`PATCH /v1/convai/agents/{agent_id}/branches/{branch_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--branch-id` | `string` | Yes | Unique identifier for the branch. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai agents deployments`
-
-#### `elevenlabs conversational-ai agents deployments create`
-
-Create a new deployment for an agent
-
-`POST /v1/convai/agents/{agent_id}/deployments`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai agents drafts`
-
-#### `elevenlabs conversational-ai agents drafts create`
-
-Create a new draft for an agent
-
-`POST /v1/convai/agents/{agent_id}/drafts`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--branch-id` | `string` | Yes | The ID of the agent branch to use |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai agents drafts delete`
-
-Delete a draft for an agent
-
-`DELETE /v1/convai/agents/{agent_id}/drafts`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--branch-id` | `string` | Yes | The ID of the agent branch to use |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents knowledge-base`
-
-#### `elevenlabs conversational-ai agents knowledge-base size`
-
-Returns the number of pages in the agent's knowledge base.
-
-`GET /v1/convai/agent/{agent_id}/knowledge-base/size`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents link`
-
-#### `elevenlabs conversational-ai agents link get`
-
-Get the current link used to share the agent with others
-
-`GET /v1/convai/agents/{agent_id}/link`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents llm-usage`
-
-#### `elevenlabs conversational-ai agents llm-usage calculate`
-
-Calculates expected number of LLM tokens needed for the specified agent.
-
-`POST /v1/convai/agent/{agent_id}/llm-usage/calculate`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai agents summaries`
-
-#### `elevenlabs conversational-ai agents summaries get`
-
-Returns summaries for the specified agents.
-
-`GET /v1/convai/agents/summaries`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-ids` | `string[]` | Yes | List of agent IDs to fetch summaries for |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents versions`
-
-#### `elevenlabs conversational-ai agents versions get`
-
-Get metadata for a specific agent version
-
-`GET /v1/convai/agents/{agent_id}/versions/{version_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--version-id` | `string` | Yes | Unique identifier for the version. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents widget`
-
-#### `elevenlabs conversational-ai agents widget get`
-
-Retrieve the widget configuration for an agent
-
-`GET /v1/convai/agents/{agent_id}/widget`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--conversation-signature` | `string` | No | An expiring token that enables a websocket conversation to start. These can be generated for an agent using the /v1/convai/conversation/get_signed_url endpoint |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai agents widget avatar`
-
-#### `elevenlabs conversational-ai agents widget avatar create`
-
-Sets the avatar for an agent displayed in the widget
-
-`POST /v1/convai/agents/{agent_id}/avatar`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai analytics live-count`
-
-#### `elevenlabs conversational-ai analytics live-count get`
-
-Get the live count of the ongoing conversations.
-
-`GET /v1/convai/analytics/live-count`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | No | The id of an agent to restrict the analytics to. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai batch-calls`
-
-#### `elevenlabs conversational-ai batch-calls cancel`
-
-Cancel a running batch call and set all recipients to cancelled status.
-
-`POST /v1/convai/batch-calling/{batch_id}/cancel`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--batch-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai batch-calls create`
-
-Submit a batch call request to schedule calls for multiple recipients.
-
-`POST /v1/convai/batch-calling/submit`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai batch-calls delete`
-
-Permanently delete a batch call and all recipient records. Conversations remain in history.
-
-`DELETE /v1/convai/batch-calling/{batch_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--batch-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai batch-calls get`
-
-Get detailed information about a batch call including all recipients.
-
-`GET /v1/convai/batch-calling/{batch_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--batch-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai batch-calls list`
-
-Get all batch calls for the current workspace.
-
-`GET /v1/convai/batch-calling/workspace`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--limit` | `integer` | No |  |
-| `--last-doc` | `string` | No |  |
-| `--agent-id` | `string` | No | Filter batch calls to a single agent. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai batch-calls retry`
-
-Retry a batch call, calling failed and no-response recipients again.
-
-`POST /v1/convai/batch-calling/{batch_id}/retry`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--batch-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai conversations`
-
-#### `elevenlabs conversational-ai conversations delete`
-
-Delete a particular conversation
-
-`DELETE /v1/convai/conversations/{conversation_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations get`
-
-Get the details of a particular conversation
-
-`GET /v1/convai/conversations/{conversation_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
-| `--format` | `json | opentelemetry` | No | Response format. Defaults to 'json'. Set to 'opentelemetry' for an OTLP-compatible trace payload using the same structure as the post-call webhook. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations get-signed-url`
-
-Get a signed url to start a conversation with an agent with an agent that requires authorization
-
-`GET /v1/convai/conversation/get-signed-url`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--include-conversation-id` | `boolean` | No | Whether to include a conversation_id with the response. If included, the conversation_signature cannot be used again. |
-| `--branch-id` | `string` | No | The ID of the branch to use |
-| `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations get-sip-messages`
-
-Get SIP messages associated with a conversation's phone call
-
-`GET /v1/convai/conversations/{conversation_id}/sip-messages`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
-| `--page-size` | `integer` | No |  |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations get-webrtc-token`
-
-Get a WebRTC session token for real-time communication.
-
-`GET /v1/convai/conversation/token`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--participant-name` | `string` | No | Optional custom participant name. If not provided, user ID will be used |
-| `--branch-id` | `string` | No | The ID of the branch to use |
-| `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations list`
-
-Get all conversations of agents that user owns. With option to restrict to a specific agent.
-
-`GET /v1/convai/conversations`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--call-successful` | `string` | No | The result of the success evaluation |
-| `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
-| `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
-| `--call-duration-min-secs` | `string` | No | Minimum call duration in seconds. |
-| `--call-duration-max-secs` | `string` | No | Maximum call duration in seconds. |
-| `--rating-max` | `string` | No | Maximum overall rating (1-5). |
-| `--rating-min` | `string` | No | Minimum overall rating (1-5). |
-| `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
-| `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
-| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
-| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in\|exists\|missing. For in, pipe-delimit values. |
-| `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
-| `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
-| `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
-| `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
-| `--page-size` | `integer` | No | How many conversations to return at maximum. Can not exceed 100, defaults to 30. |
-| `--summary-mode` | `exclude | include` | No | Whether to include transcript summaries in the response. |
-| `--search` | `string` | No | Full-text or fuzzy search over transcript messages |
-| `--conversation-initiation-source` | `string` | No |  |
-| `--text-only` | `string` | No |  |
-| `--conversation-product-type` | `string` | No | Restrict results to a single conversation product surface. |
-| `--branch-id` | `string` | No | Filter conversations by branch ID. |
-| `--topic-ids` | `string` | No | Filter conversations by topic IDs assigned during topic discovery. |
-| `--exclude-statuses` | `string` | No | Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views. |
-| `--tag-ids` | `string` | No | Filter conversations by conversation tag IDs assigned via the conversation-tags endpoints. |
-| `--workflow-node-entered-id` | `string` | No | Filter conversations to only those that entered the given node. |
-| `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations resolve`
-
-Resolve a conversation URL (a Slack message URL or a Zendesk ticket URL) to the deterministic conversation ID for the given agent, then confirm the conversation exists.
-
-`GET /v1/convai/conversations/resolve`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--reference` | `string` | Yes | A Slack message URL or a Zendesk ticket URL. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai conversations analysis`
-
-#### `elevenlabs conversational-ai conversations analysis run`
-
-Run the analysis for a conversation using the agent's current evaluation criteria and data collection settings.
-
-`POST /v1/convai/conversations/{conversation_id}/analysis/run`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | ID of the conversation |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations analysis run-evaluation`
-
-Rerun a specific evaluation for a conversation.
-
-`POST /v1/convai/conversations/{conversation_id}/analysis/evaluations/run`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | ID of the conversation |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai conversations audio`
-
-#### `elevenlabs conversational-ai conversations audio get`
-
-Get the audio recording of a particular conversation
-
-`GET /v1/convai/conversations/{conversation_id}/audio`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai conversations feedback`
-
-#### `elevenlabs conversational-ai conversations feedback create`
-
-Send the feedback for the given conversation
-
-`POST /v1/convai/conversations/{conversation_id}/feedback`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai conversations files`
-
-#### `elevenlabs conversational-ai conversations files create`
-
-Upload an image or PDF file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
-
-`POST /v1/convai/conversations/{conversation_id}/files`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai conversations files delete`
-
-Remove a file upload from a conversation. Only possible if the file hasn't already been used in the conversation.
-
-`DELETE /v1/convai/conversations/{conversation_id}/files/{file_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--file-id` | `string` | Yes |  |
-| `--conversation-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai conversations messages`
-
-#### `elevenlabs conversational-ai conversations messages search`
-
-Search conversation transcripts by semantic similarity to surface relevant messages based on meaning and intent, rather than exact keyword matches
-
-`GET /v1/convai/conversations/messages/smart-search`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--text-query` | `string` | Yes | The search query text for semantic similarity matching |
-| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--page-size` | `integer` | No | Number of results per page. Max 50. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations messages text-search`
-
-Search through conversation transcript messages by full-text and fuzzy search
-
-`GET /v1/convai/conversations/messages/text-search`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--text-query` | `string` | Yes | The search query text for full-text and fuzzy matching |
-| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--call-successful` | `string` | No | The result of the success evaluation |
-| `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
-| `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
-| `--call-duration-min-secs` | `string` | No | Minimum call duration in seconds. |
-| `--call-duration-max-secs` | `string` | No | Maximum call duration in seconds. |
-| `--rating-max` | `string` | No | Maximum overall rating (1-5). |
-| `--rating-min` | `string` | No | Minimum overall rating (1-5). |
-| `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
-| `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
-| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
-| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in\|exists\|missing. For in, pipe-delimit values. |
-| `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
-| `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
-| `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
-| `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
-| `--page-size` | `integer` | No | Number of results per page. Max 50. |
-| `--summary-mode` | `exclude | include` | No | Whether to include transcript summaries in the response. |
-| `--conversation-initiation-source` | `string` | No |  |
-| `--text-only` | `string` | No |  |
-| `--conversation-product-type` | `string` | No | Restrict results to a single conversation product surface. |
-| `--branch-id` | `string` | No | Filter conversations by branch ID. |
-| `--topic-ids` | `string` | No | Filter conversations by topic IDs assigned during topic discovery. |
-| `--sort-by` | `MessageSearchSortBy` | No | Sort order for search results. 'search_score' sorts by search score, 'created_at' sorts by conversation start time. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai conversations tags`
-
-#### `elevenlabs conversational-ai conversations tags assign`
-
-Assign one or more conversation tags to a conversation. Tags that are already assigned are ignored. Tags must belong to the same workspace.
-
-`POST /v1/convai/conversations/{conversation_id}/tags`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai conversations tags create`
-
-Create a new conversation tag for the workspace.
-
-`POST /v1/convai/tags`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai conversations tags delete`
-
-Delete a conversation tag. Restricted to the tag owner or a workspace admin.
-
-`DELETE /v1/convai/tags/{tag_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tag-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations tags get`
-
-Get a conversation tag by ID.
-
-`GET /v1/convai/tags/{tag_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tag-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations tags list`
-
-List conversation tags for the workspace, ordered by most recently created first.
-
-`GET /v1/convai/tags`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--page-size` | `integer` | No | How many conversation tags to return. Can not exceed 100. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations tags unassign`
-
-Remove a single conversation tag from a conversation.
-
-`DELETE /v1/convai/conversations/{conversation_id}/tags/{tag_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--conversation-id` | `string` | Yes |  |
-| `--tag-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai conversations tags update`
-
-Update a conversation tag's title and/or description. Restricted to the tag owner or a workspace admin.
-
-`PATCH /v1/convai/tags/{tag_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tag-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai conversations topics`
-
-#### `elevenlabs conversational-ai conversations topics get`
-
-Returns the latest topic discovery run results for a given agent.
-
-`GET /v1/convai/agents/{agent_id}/topics`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | Yes | ID of the agent |
-| `--from-unix-secs` | `string` | No | Start of the window to view topics for. When set with to_unix_secs, per-day topics in the range are aggregated together. |
-| `--to-unix-secs` | `string` | No | End of the window to view topics for. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai dashboard settings`
-
-#### `elevenlabs conversational-ai dashboard settings get`
-
-Retrieve Convai dashboard settings for the workspace
-
-`GET /v1/convai/settings/dashboard`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai dashboard settings update`
-
-Update Convai dashboard settings for the workspace
-
-`PATCH /v1/convai/settings/dashboard`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai exotel`
-
-#### `elevenlabs conversational-ai exotel outbound-call`
-
-Handle an outbound call via Exotel Connect API
-
-`POST /v1/convai/exotel/outbound-call`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai knowledge-base`
-
-#### `elevenlabs conversational-ai knowledge-base get-or-create-rag-indexes`
-
-Retrieves and/or creates RAG indexes for multiple knowledge base documents in a single request. Maximum 100 items per request.
-
-`POST /v1/convai/knowledge-base/rag-index`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base list`
-
-Get a list of available knowledge base documents
-
-`GET /v1/convai/knowledge-base`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--search` | `string` | No | If specified, the endpoint returns only such knowledge base documents whose names start with this string. |
-| `--show-only-owned-documents` | `boolean` | No | If set to true, the endpoint will return only documents owned by you (and not shared from somebody else). Deprecated: use created_by_user_id instead. |
-| `--created-by-user-id` | `string` | No | Filter documents by creator user ID. When set, only documents created by this user are returned. Takes precedence over show_only_owned_documents. Use '@me' to refer to the authenticated user. |
-| `--types` | `string` | No | If present, the endpoint will return only documents of the given types. |
-| `--parent-folder-id` | `string` | No | If set, the endpoint will return only documents that are direct children of the given folder. |
-| `--ancestor-folder-id` | `string` | No | If set, the endpoint will return only documents that are descendants of the given folder. |
-| `--folders-first` | `boolean` | No | Whether folders should be returned first in the list of documents. |
-| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
-| `--sort-by` | `string` | No | The field to sort the results by |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base search`
-
-Fuzzy text search over knowledge base document content
-
-`GET /v1/convai/knowledge-base/search`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--query` | `string` | Yes | The search query text |
-| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--types` | `string` | No | If present, the endpoint will return only documents of the given types. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai knowledge-base document`
-
-#### `elevenlabs conversational-ai knowledge-base document compute-rag-index`
-
-In case the document is not RAG indexed, it triggers rag indexing task, otherwise it just returns the current status.
-
-`POST /v1/convai/knowledge-base/{documentation_id}/rag-index`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base document refresh`
-
-Manually refresh a URL document by re-fetching its content from the source URL.
-
-`POST /v1/convai/knowledge-base/{documentation_id}/refresh`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base document update-file`
-
-Update the source file of a file document. The document name, content, and metadata are updated to reflect the new file. Any manual content edits will be overwritten.
-
-`PATCH /v1/convai/knowledge-base/{documentation_id}/update-file`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai knowledge-base documents`
-
-#### `elevenlabs conversational-ai knowledge-base documents bulk-move`
-
-Moves multiple entities from one folder to another.
-
-`POST /v1/convai/knowledge-base/bulk-move`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base documents create-folder`
-
-Create a folder used for grouping documents together.
-
-`POST /v1/convai/knowledge-base/folder`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base documents create-from-file`
-
-Create a knowledge base document generated form the uploaded file.
-
-`POST /v1/convai/knowledge-base/file`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base documents create-from-text`
-
-Create a knowledge base document containing the provided text.
-
-`POST /v1/convai/knowledge-base/text`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base documents create-from-url`
-
-Create a knowledge base document generated by scraping the given webpage.
-
-`POST /v1/convai/knowledge-base/url`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base documents delete`
-
-Delete a document or folder from the knowledge base.
-
-`DELETE /v1/convai/knowledge-base/{documentation_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--force` | `boolean` | No | If set to true, the document or folder will be deleted regardless of whether it is used by any agents and it will be removed from the dependent agents. For non-empty folders, this will also delete all child documents and folders. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base documents get`
-
-Get details about a specific documentation making up the agent's knowledge base
-
-`GET /v1/convai/knowledge-base/{documentation_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--agent-id` | `string` | No |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base documents get-agents`
-
-Get a list of agents depending on this knowledge base document
-
-`GET /v1/convai/knowledge-base/{documentation_id}/dependent-agents`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--dependent-type` | `KnowledgeBaseDependentType` | No | Type of dependent agents to return. |
-| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base documents get-content`
-
-Get the entire content of a document from the knowledge base
-
-`GET /v1/convai/knowledge-base/{documentation_id}/content`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base documents get-source-file-url`
-
-Get a signed URL to download the original source file of a file-type document from the knowledge base
-
-`GET /v1/convai/knowledge-base/{documentation_id}/source-file-url`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai knowledge-base documents move`
-
-Moves the entity from one folder to another.
-
-`POST /v1/convai/knowledge-base/{document_id}/move`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--document-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai knowledge-base documents update`
-
-Update the name and/or content of a document.
-
-`PATCH /v1/convai/knowledge-base/{documentation_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai knowledge-base documents chunk`
-
-#### `elevenlabs conversational-ai knowledge-base documents chunk get`
-
-Get details about a specific documentation part used by RAG.
-
-`GET /v1/convai/knowledge-base/{documentation_id}/chunk/{chunk_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--chunk-id` | `string` | Yes | The id of a document RAG chunk from the knowledge base. |
-| `--embedding-model` | `string` | No | The embedding model used to retrieve the chunk. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai knowledge-base documents chunks`
-
-#### `elevenlabs conversational-ai knowledge-base documents chunks list`
-
-Get all RAG chunks for a specific knowledge base document.
-
-`GET /v1/convai/knowledge-base/{documentation_id}/chunks`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
-| `--embedding-model` | `EmbeddingModelEnum` | Yes | The embedding model used to retrieve the chunk. |
-| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai knowledge-base documents summaries`
-
-#### `elevenlabs conversational-ai knowledge-base documents summaries get`
-
-Gets multiple knowledge base document summaries by their IDs.
-
-`GET /v1/convai/knowledge-base/summaries`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--document-ids` | `string[]` | Yes | The ids of knowledge base documents. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai llm`
-
-#### `elevenlabs conversational-ai llm list`
-
-Returns a list of available LLM models that can be used with agents, including their capabilities and any deprecation status. The response is filtered based on the data residency of the deployment and any compliance requirements (e.g. HIPAA) of the workspace subscription.
-
-`GET /v1/convai/llm/list`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai llm-usage`
-
-#### `elevenlabs conversational-ai llm-usage calculate`
-
-Returns a list of LLM models and the expected cost for using them based on the provided values.
-
-`POST /v1/convai/llm-usage/calculate`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai mcp-servers`
-
-#### `elevenlabs conversational-ai mcp-servers create`
-
-Create a new MCP server configuration in the workspace.
-
-`POST /v1/convai/mcp-servers`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai mcp-servers delete`
-
-Delete a specific MCP server configuration from the workspace.
-
-`DELETE /v1/convai/mcp-servers/{mcp_server_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai mcp-servers get`
-
-Retrieve a specific MCP server configuration from the workspace.
-
-`GET /v1/convai/mcp-servers/{mcp_server_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai mcp-servers list`
-
-Retrieve all MCP server configurations available in the workspace.
-
-`GET /v1/convai/mcp-servers`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai mcp-servers update`
-
-Update the configuration settings for an MCP server.
-
-`PATCH /v1/convai/mcp-servers/{mcp_server_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai mcp-servers approval-policy`
-
-#### `elevenlabs conversational-ai mcp-servers approval-policy update` `[DEPRECATED]`
-
-Update the approval policy configuration for an MCP server. DEPRECATED: Use PATCH /mcp-servers/{id} endpoint instead.
-
-`PATCH /v1/convai/mcp-servers/{mcp_server_id}/approval-policy`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai mcp-servers tool-approvals`
-
-#### `elevenlabs conversational-ai mcp-servers tool-approvals create`
-
-Add approval for a specific MCP tool when using per-tool approval mode.
-
-`POST /v1/convai/mcp-servers/{mcp_server_id}/tool-approvals`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai mcp-servers tool-approvals delete`
-
-Remove approval for a specific MCP tool when using per-tool approval mode.
-
-`DELETE /v1/convai/mcp-servers/{mcp_server_id}/tool-approvals/{tool_name}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--tool-name` | `string` | Yes | Name of the MCP tool to remove approval for. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai mcp-servers tool-configs`
-
-#### `elevenlabs conversational-ai mcp-servers tool-configs create`
-
-Create configuration overrides for a specific MCP tool.
-
-`POST /v1/convai/mcp-servers/{mcp_server_id}/tool-configs`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai mcp-servers tool-configs delete`
-
-Remove configuration overrides for a specific MCP tool.
-
-`DELETE /v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--tool-name` | `string` | Yes | Name of the MCP tool to remove config overrides for. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai mcp-servers tool-configs get`
-
-Retrieve configuration overrides for a specific MCP tool.
-
-`GET /v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--tool-name` | `string` | Yes | Name of the MCP tool to retrieve config overrides for. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai mcp-servers tool-configs update`
-
-Update configuration overrides for a specific MCP tool.
-
-`PATCH /v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--tool-name` | `string` | Yes | Name of the MCP tool to update config overrides for. |
-| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai mcp-servers tools`
-
-#### `elevenlabs conversational-ai mcp-servers tools list`
-
-Retrieve all tools available for a specific MCP server configuration.
-
-`GET /v1/convai/mcp-servers/{mcp_server_id}/tools`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--mcp-server-id` | `string` | Yes | ID of the MCP Server. |
-| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai phone-numbers`
-
-#### `elevenlabs conversational-ai phone-numbers create`
-
-Import Phone Number from provider configuration (Twilio, Exotel, or SIP trunk)
-
-`POST /v1/convai/phone-numbers`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai phone-numbers delete`
-
-Delete Phone Number by ID
-
-`DELETE /v1/convai/phone-numbers/{phone_number_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai phone-numbers get`
-
-Retrieve Phone Number details by ID
-
-`GET /v1/convai/phone-numbers/{phone_number_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai phone-numbers get-sip-messages`
-
-Get SIP messages for a phone number
-
-`GET /v1/convai/phone-numbers/{phone_number_id}/sip-messages`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
-| `--page-size` | `integer` | No |  |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai phone-numbers list`
-
-Retrieve all Phone Numbers
-
-`GET /v1/convai/phone-numbers`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--provider` | `string` | No | Filter by telephony provider |
-| `--agent-id` | `string` | No | Filter by assigned agent ID |
-| `--branch-id` | `string` | No | Filter by assigned branch ID |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai phone-numbers update`
-
-Update assigned agent of a phone number
-
-`PATCH /v1/convai/phone-numbers/{phone_number_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai secrets`
-
-#### `elevenlabs conversational-ai secrets create`
-
-Create a new secret for the workspace
-
-`POST /v1/convai/secrets`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai secrets delete`
-
-Delete a workspace secret if it's not in use
-
-`DELETE /v1/convai/secrets/{secret_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--secret-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai secrets get`
-
-Get a workspace secret by ID
-
-`GET /v1/convai/secrets/{secret_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--secret-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai secrets get-dependencies`
-
-Get paginated list of resources that depend on a specific secret, filtered by resource type.
-
-`GET /v1/convai/secrets/{secret_id}/dependencies/{resource_type}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--secret-id` | `string` | Yes |  |
-| `--resource-type` | `SecretDependencyResourceType` | Yes |  |
-| `--page-size` | `integer` | No | How many dependency items to return per page. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai secrets list`
-
-Get all workspace secrets for the user
-
-`GET /v1/convai/secrets`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--page-size` | `string` | No | How many documents to return at maximum. Can not exceed 100. If not provided, returns all secrets. |
-| `--dependency-limit` | `string` | No | Maximum number of dependent resources (tools, agents, phone numbers) to return per secret. Can not exceed 100. |
-| `--search` | `string` | No | If specified, returns only secrets whose names start with this string. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai secrets update`
-
-Update an existing secret for the workspace
-
-`PATCH /v1/convai/secrets/{secret_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--secret-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai settings`
-
-#### `elevenlabs conversational-ai settings get`
-
-Retrieve Convai settings for the workspace
-
-`GET /v1/convai/settings`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai settings update`
-
-Update Convai settings for the workspace
-
-`PATCH /v1/convai/settings`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai sip-trunk`
-
-#### `elevenlabs conversational-ai sip-trunk outbound-call`
-
-Handle an outbound call via SIP trunk
-
-`POST /v1/convai/sip-trunk/outbound-call`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai tests`
-
-#### `elevenlabs conversational-ai tests create`
-
-Creates a new agent response test.
-
-`POST /v1/convai/agent-testing/create`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai tests delete`
-
-Deletes an agent response test by ID.
-
-`DELETE /v1/convai/agent-testing/{test_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--test-id` | `string` | Yes | The id of a chat response test. This is returned on test creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests get`
-
-Gets an agent response test by ID.
-
-`GET /v1/convai/agent-testing/{test_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--test-id` | `string` | Yes | The id of a chat response test. This is returned on test creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests list`
-
-Lists all agent response tests with pagination support and optional search filtering.
-
-`GET /v1/convai/agent-testing`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
-| `--search` | `string` | No | Search query to filter tests by name. |
-| `--parent-folder-id` | `string` | No | Filter by parent folder ID. Use 'root' to get items in the root folder. |
-| `--types` | `string` | No | If present, the endpoint will return only tests/folders of the given types. |
-| `--include-folders` | `string` | No | Deprecated. Use the `types` query param and include `folder` instead. |
-| `--sort-mode` | `default | folders_first` | No | Sort mode for listing tests. Use 'folders_first' to place folders before tests. |
-| `--sharing-mode` | `TestSharingMode` | No | Filter test visibility. Use `shared_with_me` to return only tests/folders shared with the current user that they did not create. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests move`
-
-Moves multiple tests or folders from one folder to another.
-
-`POST /v1/convai/agent-testing/bulk-move`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai tests summaries`
-
-Gets multiple agent response tests by their IDs. Returns a dictionary mapping test IDs to test summaries.
-
-`POST /v1/convai/agent-testing/summaries`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai tests update`
-
-Updates an agent response test by ID.
-
-`PUT /v1/convai/agent-testing/{test_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--test-id` | `string` | Yes | The id of a chat response test. This is returned on test creation. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai tests folders`
-
-#### `elevenlabs conversational-ai tests folders create`
-
-Creates a folder for organizing agent tests.
-
-`POST /v1/convai/agent-testing/folders`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai tests folders delete`
-
-Deletes an agent test folder by ID. Use force=true to delete a non-empty folder and all its contents.
-
-`DELETE /v1/convai/agent-testing/folders/{folder_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--folder-id` | `string` | Yes | The folder ID. |
-| `--force` | `boolean` | No | Force delete. Required for deleting non-empty folders. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests folders get`
-
-Gets an agent test folder by ID, including its folder path.
-
-`GET /v1/convai/agent-testing/folders/{folder_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--folder-id` | `string` | Yes | The folder ID. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests folders update`
-
-Updates an agent test folder. Currently only supports updating the folder name.
-
-`PATCH /v1/convai/agent-testing/folders/{folder_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--folder-id` | `string` | Yes | The folder ID. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai tests invocations`
-
-#### `elevenlabs conversational-ai tests invocations get`
-
-Gets a test invocation by ID.
-
-`GET /v1/convai/test-invocations/{test_invocation_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--test-invocation-id` | `string` | Yes | The id of a test invocation. This is returned when tests are run. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests invocations list`
-
-Lists all test invocations with pagination support and optional search filtering.
-
-`GET /v1/convai/test-invocations`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | No | Filter by agent ID |
-| `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tests invocations resubmit`
-
-Resubmits specific test runs from a test invocation.
-
-`POST /v1/convai/test-invocations/{test_invocation_id}/resubmit`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--test-invocation-id` | `string` | Yes | The id of a test invocation. This is returned when tests are run. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai tools`
-
-#### `elevenlabs conversational-ai tools create`
-
-Add a new tool to the available tools in the workspace.
-
-`POST /v1/convai/tools`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai tools delete`
-
-Delete tool from the workspace.
-
-`DELETE /v1/convai/tools/{tool_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tool-id` | `string` | Yes | ID of the requested tool. |
-| `--force` | `boolean` | No | If set to true, the tool will be deleted regardless of whether it is used by any agents and it will be removed from the dependent agents and branches. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tools get`
-
-Get tool that is available in the workspace.
-
-`GET /v1/convai/tools/{tool_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tool-id` | `string` | Yes | ID of the requested tool. |
-| `--environment` | `string` | No | Environment whose values are used when the MCP server URL, headers, or auth connection reference environment variables. Mirrors the environment a conversation would run in; defaults to production. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tools get-dependent-agents`
-
-Get a list of agents depending on this tool
-
-`GET /v1/convai/tools/{tool_id}/dependent-agents`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tool-id` | `string` | Yes | ID of the requested tool. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tools list`
-
-Get all available tools in the workspace.
-
-`GET /v1/convai/tools`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--search` | `string` | No | If specified, the endpoint returns only tools whose names start with this string. |
-| `--page-size` | `string` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--show-only-owned-documents` | `boolean` | No | If set to true, the endpoint will return only tools owned by you (and not shared from somebody else). Deprecated: use created_by_user_id instead. |
-| `--created-by-user-id` | `string` | No | Filter tools by creator user ID. When set, only tools created by this user are returned. Takes precedence over show_only_owned_documents. Use '@me' to refer to the authenticated user. |
-| `--types` | `string` | No | If present, the endpoint will return only tools of the given types. |
-| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
-| `--sort-by` | `string` | No | The field to sort the results by |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai tools update`
-
-Update tool that is available in the workspace.
-
-`PATCH /v1/convai/tools/{tool_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tool-id` | `string` | Yes | ID of the requested tool. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai tools executions`
-
-#### `elevenlabs conversational-ai tools executions get`
-
-Get paginated list of tool executions for a specific tool.
-
-`GET /v1/convai/tools/{tool_id}/executions`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--tool-id` | `string` | Yes | ID of the requested tool. |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
-| `--is-error` | `string` | No | Filter by error status. If not provided, returns all executions. |
-| `--agent-id` | `string` | No | Filter by agent ID. |
-| `--branch-id` | `string` | No | Filter by agent branch ID. |
-| `--start-time` | `string` | No | Filter executions from this Unix timestamp (inclusive). |
-| `--end-time` | `string` | No | Filter executions until this Unix timestamp (inclusive). |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai twilio`
-
-#### `elevenlabs conversational-ai twilio outbound-call`
-
-Handle an outbound call via Twilio
-
-`POST /v1/convai/twilio/outbound-call`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai twilio register-call`
-
-Register a Twilio call and return TwiML to connect the call
-
-`POST /v1/convai/twilio/register-call`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai users`
-
-#### `elevenlabs conversational-ai users list`
-
-Get distinct users from conversations with pagination.
-
-`GET /v1/convai/users`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
-| `--branch-id` | `string` | No | Filter conversations by branch ID. |
-| `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
-| `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
-| `--search` | `string` | No | Search/filter by user ID (exact match). |
-| `--page-size` | `integer` | No | How many users to return at maximum. Defaults to 30. |
-| `--sort-by` | `UsersSortBy` | No | The field to sort the results by. Defaults to last_contact_unix_secs. |
-| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
-| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
----
-
-### `elevenlabs conversational-ai whatsapp`
-
-#### `elevenlabs conversational-ai whatsapp outbound-call`
-
-Make an outbound call via WhatsApp
-
-`POST /v1/convai/whatsapp/outbound-call`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
-#### `elevenlabs conversational-ai whatsapp outbound-message`
-
-Send an outbound message via WhatsApp
-
-`POST /v1/convai/whatsapp/outbound-message`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
-
----
-
-### `elevenlabs conversational-ai whatsapp-accounts`
-
-#### `elevenlabs conversational-ai whatsapp-accounts delete`
-
-Delete a WhatsApp account
-
-`DELETE /v1/convai/whatsapp-accounts/{phone_number_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai whatsapp-accounts get`
-
-Get a WhatsApp account
-
-`GET /v1/convai/whatsapp-accounts/{phone_number_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes |  |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai whatsapp-accounts list`
-
-List all WhatsApp accounts
-
-`GET /v1/convai/whatsapp-accounts`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--agent-id` | `string` | No | Filter by assigned agent ID |
-| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-
-#### `elevenlabs conversational-ai whatsapp-accounts update`
-
-Update a WhatsApp account
-
-`PATCH /v1/convai/whatsapp-accounts/{phone_number_id}`
-
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--phone-number-id` | `string` | Yes |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 

@@ -11,7 +11,7 @@ pub struct ProjectCreationMetaResponseModel {
     /// The status of the project creation action.
     pub status: ProjectCreationMetaResponseModelStatus,
     /// The type of the project creation action.
-    pub r#type: ProjectCreationMetaResponseModelType,
+    pub r#type: ProjectCreationMetaType,
 }
 
 impl ProjectCreationMetaResponseModel {
@@ -25,7 +25,7 @@ impl ProjectCreationMetaResponseModel {
 pub struct ProjectCreationMetaResponseModelBuilder {
     creation_progress: Option<f64>,
     status: Option<ProjectCreationMetaResponseModelStatus>,
-    r#type: Option<ProjectCreationMetaResponseModelType>,
+    r#type: Option<ProjectCreationMetaType>,
 }
 
 impl ProjectCreationMetaResponseModelBuilder {
@@ -39,7 +39,7 @@ impl ProjectCreationMetaResponseModelBuilder {
         self
     }
 
-    pub fn r#type(mut self, value: ProjectCreationMetaResponseModelType) -> Self {
+    pub fn r#type(mut self, value: ProjectCreationMetaType) -> Self {
         self.r#type = Some(value);
         self
     }

@@ -40,7 +40,7 @@ fn raw_request(
     let client = crate::sdk::client(ctx);
     crate::sdk::block_on(
         client
-            .conversational_ai
+            .agents
             .http_client
             .execute_request::<Value>(method, path, body, query, request_options()),
     )
@@ -207,12 +207,7 @@ pub fn list_agents(ctx: &AppContext, search: Option<&str>) -> Result<Vec<Value>,
 /// Delete an agent. Uses the typed SDK method (empty response body).
 pub fn delete_agent(ctx: &AppContext, agent_id: &str) -> Result<(), CliError> {
     let client = crate::sdk::client(ctx);
-    crate::sdk::block_on(
-        client
-            .conversational_ai
-            .agents
-            .delete(agent_id, request_options()),
-    )
+    crate::sdk::block_on(client.agents.delete(agent_id, request_options()))
 }
 
 /// List an agent's branches (raw JSON summaries).

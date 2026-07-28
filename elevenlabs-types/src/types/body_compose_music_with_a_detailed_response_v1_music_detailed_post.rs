@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
     /// A simple text prompt to generate a song from. Cannot be used in conjunction with `composition_plan`.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,11 +25,6 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
     /// The ID of the finetune to use for the generation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub finetune_id: Option<String>,
-    /// How strongly the finetune influences the generation. Defaults to 1.0 (full strength). Lower values soften the influence of the finetune, leaving more room for prompt-level steering. Only meaningful when `finetune_id` is also provided.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(with = "crate::core::number_serializers::option")]
-    pub finetune_strength: Option<f64>,
     /// Controls how strictly section durations in the `composition_plan` are enforced. Only used with `composition_plan` and only applies to `music_v1`; for `music_v2` section durations are always enforced and this is ignored. When false for `music_v1`, the model may adjust individual section durations for better quality and latency, while preserving the total song duration from the plan.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub respect_sections_durations: Option<bool>,
@@ -63,7 +58,6 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
     seed: Option<i64>,
     force_instrumental: Option<bool>,
     finetune_id: Option<String>,
-    finetune_strength: Option<f64>,
     respect_sections_durations: Option<bool>,
     store_for_inpainting: Option<bool>,
     with_timestamps: Option<bool>,
@@ -107,11 +101,6 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
         self
     }
 
-    pub fn finetune_strength(mut self, value: f64) -> Self {
-        self.finetune_strength = Some(value);
-        self
-    }
-
     pub fn respect_sections_durations(mut self, value: bool) -> Self {
         self.respect_sections_durations = Some(value);
         self
@@ -147,7 +136,6 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
             seed: self.seed,
             force_instrumental: self.force_instrumental,
             finetune_id: self.finetune_id,
-            finetune_strength: self.finetune_strength,
             respect_sections_durations: self.respect_sections_durations,
             store_for_inpainting: self.store_for_inpainting,
             with_timestamps: self.with_timestamps,

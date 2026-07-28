@@ -11,6 +11,12 @@ pub struct TextSearchQueryRequest {
     /// Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
+    /// Filter conversations where any of these agents participated. Can not exceed 50 values.
+    #[serde(default)]
+    pub visited_agent_ids: Vec<Option<String>>,
+    /// Filter conversations where any of these agent branches participated. Can not exceed 50 values.
+    #[serde(default)]
+    pub visited_agent_branch_ids: Vec<Option<String>>,
     /// The result of the success evaluation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_successful: Option<EvaluationSuccessResult>,
@@ -56,6 +62,12 @@ pub struct TextSearchQueryRequest {
     /// Filter conversations by detected main language (language code).
     #[serde(default)]
     pub main_languages: Vec<Option<String>>,
+    /// Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views.
+    #[serde(default)]
+    pub exclude_statuses: Vec<Option<MessagesTextSearchRequestExcludeStatusesItem>>,
+    /// Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several.
+    #[serde(default)]
+    pub termination_reasons: Vec<Option<String>>,
     /// Number of results per page. Max 50.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
@@ -94,6 +106,8 @@ impl TextSearchQueryRequest {
 pub struct TextSearchQueryRequestBuilder {
     text_query: Option<String>,
     agent_id: Option<String>,
+    visited_agent_ids: Option<Vec<Option<String>>>,
+    visited_agent_branch_ids: Option<Vec<Option<String>>>,
     call_successful: Option<EvaluationSuccessResult>,
     call_start_before_unix: Option<i64>,
     call_start_after_unix: Option<i64>,
@@ -109,6 +123,8 @@ pub struct TextSearchQueryRequestBuilder {
     tool_names_successful: Option<Vec<Option<String>>>,
     tool_names_errored: Option<Vec<Option<String>>>,
     main_languages: Option<Vec<Option<String>>>,
+    exclude_statuses: Option<Vec<Option<MessagesTextSearchRequestExcludeStatusesItem>>>,
+    termination_reasons: Option<Vec<Option<String>>>,
     page_size: Option<i64>,
     summary_mode: Option<MessagesTextSearchRequestSummaryMode>,
     conversation_initiation_source: Option<ConversationInitiationSource>,
@@ -128,6 +144,16 @@ impl TextSearchQueryRequestBuilder {
 
     pub fn agent_id(mut self, value: impl Into<String>) -> Self {
         self.agent_id = Some(value.into());
+        self
+    }
+
+    pub fn visited_agent_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.visited_agent_ids = Some(value);
+        self
+    }
+
+    pub fn visited_agent_branch_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.visited_agent_branch_ids = Some(value);
         self
     }
 
@@ -206,6 +232,16 @@ impl TextSearchQueryRequestBuilder {
         self
     }
 
+    pub fn exclude_statuses(mut self, value: Vec<Option<MessagesTextSearchRequestExcludeStatusesItem>>) -> Self {
+        self.exclude_statuses = Some(value);
+        self
+    }
+
+    pub fn termination_reasons(mut self, value: Vec<Option<String>>) -> Self {
+        self.termination_reasons = Some(value);
+        self
+    }
+
     pub fn page_size(mut self, value: i64) -> Self {
         self.page_size = Some(value);
         self
@@ -254,17 +290,23 @@ impl TextSearchQueryRequestBuilder {
     /// Consumes the builder and constructs a [`TextSearchQueryRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`text_query`](TextSearchQueryRequestBuilder::text_query)
+    /// - [`visited_agent_ids`](TextSearchQueryRequestBuilder::visited_agent_ids)
+    /// - [`visited_agent_branch_ids`](TextSearchQueryRequestBuilder::visited_agent_branch_ids)
     /// - [`evaluation_params`](TextSearchQueryRequestBuilder::evaluation_params)
     /// - [`data_collection_params`](TextSearchQueryRequestBuilder::data_collection_params)
     /// - [`tool_names`](TextSearchQueryRequestBuilder::tool_names)
     /// - [`tool_names_successful`](TextSearchQueryRequestBuilder::tool_names_successful)
     /// - [`tool_names_errored`](TextSearchQueryRequestBuilder::tool_names_errored)
     /// - [`main_languages`](TextSearchQueryRequestBuilder::main_languages)
+    /// - [`exclude_statuses`](TextSearchQueryRequestBuilder::exclude_statuses)
+    /// - [`termination_reasons`](TextSearchQueryRequestBuilder::termination_reasons)
     /// - [`topic_ids`](TextSearchQueryRequestBuilder::topic_ids)
     pub fn build(self) -> Result<TextSearchQueryRequest, BuildError> {
         Ok(TextSearchQueryRequest {
             text_query: self.text_query.ok_or_else(|| BuildError::missing_field("text_query"))?,
             agent_id: self.agent_id,
+            visited_agent_ids: self.visited_agent_ids.ok_or_else(|| BuildError::missing_field("visited_agent_ids"))?,
+            visited_agent_branch_ids: self.visited_agent_branch_ids.ok_or_else(|| BuildError::missing_field("visited_agent_branch_ids"))?,
             call_successful: self.call_successful,
             call_start_before_unix: self.call_start_before_unix,
             call_start_after_unix: self.call_start_after_unix,
@@ -280,6 +322,8 @@ impl TextSearchQueryRequestBuilder {
             tool_names_successful: self.tool_names_successful.ok_or_else(|| BuildError::missing_field("tool_names_successful"))?,
             tool_names_errored: self.tool_names_errored.ok_or_else(|| BuildError::missing_field("tool_names_errored"))?,
             main_languages: self.main_languages.ok_or_else(|| BuildError::missing_field("main_languages"))?,
+            exclude_statuses: self.exclude_statuses.ok_or_else(|| BuildError::missing_field("exclude_statuses"))?,
+            termination_reasons: self.termination_reasons.ok_or_else(|| BuildError::missing_field("termination_reasons"))?,
             page_size: self.page_size,
             summary_mode: self.summary_mode,
             conversation_initiation_source: self.conversation_initiation_source,

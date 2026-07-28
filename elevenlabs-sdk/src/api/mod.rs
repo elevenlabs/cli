@@ -10,7 +10,7 @@
 pub mod resources;
 
 pub use resources::{
-    ApiClient, AudioIsolationClient, AudioNativeClient, ConversationalAiClient, DubbingClient,
+    AgentsClient, ApiClient, AudioIsolationClient, AudioNativeClient, DubbingClient,
     EnvironmentVariablesClient, ForcedAlignmentClient, HistoryClient, ModelsClient, MusicClient,
     ProductionsClient, PronunciationDictionariesClient, SamplesClient, ServiceAccountsClient,
     SpeechEngineClient, SpeechToSpeechClient, SpeechToTextClient, StudioClient,

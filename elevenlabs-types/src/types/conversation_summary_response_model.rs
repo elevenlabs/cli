@@ -46,6 +46,13 @@ pub struct ConversationSummaryResponseModel {
     pub rating: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentiment_analysis: Option<ConversationSentimentAnalysis>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection_results: Option<HashMap<String, serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evaluation_criteria_results: Option<HashMap<String, Option<EvaluationCriteriaSummaryResult>>>,
+    /// Conversation tag ids assigned to this conversation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag_ids: Option<Vec<String>>,
 }
 
 impl ConversationSummaryResponseModel {
@@ -77,6 +84,9 @@ pub struct ConversationSummaryResponseModelBuilder {
     direction: Option<TelephonyDirection>,
     rating: Option<f64>,
     sentiment_analysis: Option<ConversationSentimentAnalysis>,
+    data_collection_results: Option<HashMap<String, serde_json::Value>>,
+    evaluation_criteria_results: Option<HashMap<String, Option<EvaluationCriteriaSummaryResult>>>,
+    tag_ids: Option<Vec<String>>,
 }
 
 impl ConversationSummaryResponseModelBuilder {
@@ -180,6 +190,21 @@ impl ConversationSummaryResponseModelBuilder {
         self
     }
 
+    pub fn data_collection_results(mut self, value: HashMap<String, serde_json::Value>) -> Self {
+        self.data_collection_results = Some(value);
+        self
+    }
+
+    pub fn evaluation_criteria_results(mut self, value: HashMap<String, Option<EvaluationCriteriaSummaryResult>>) -> Self {
+        self.evaluation_criteria_results = Some(value);
+        self
+    }
+
+    pub fn tag_ids(mut self, value: Vec<String>) -> Self {
+        self.tag_ids = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationSummaryResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`agent_id`](ConversationSummaryResponseModelBuilder::agent_id)
@@ -211,6 +236,9 @@ impl ConversationSummaryResponseModelBuilder {
             direction: self.direction,
             rating: self.rating,
             sentiment_analysis: self.sentiment_analysis,
+            data_collection_results: self.data_collection_results,
+            evaluation_criteria_results: self.evaluation_criteria_results,
+            tag_ids: self.tag_ids,
         })
     }
 }

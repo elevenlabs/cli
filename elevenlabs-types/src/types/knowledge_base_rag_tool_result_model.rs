@@ -12,6 +12,9 @@ pub struct KnowledgeBaseRagToolResultModel {
     /// Human-readable status for the LLM about the search results
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Retrieved chunks; populated only in the rag-result-in-tool-result mode
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunks: Option<Vec<KnowledgeBaseRagChunkModel>>,
 }
 
 impl KnowledgeBaseRagToolResultModel {
@@ -26,6 +29,7 @@ pub struct KnowledgeBaseRagToolResultModelBuilder {
     status: Option<KnowledgeBaseRagToolStatus>,
     chunk_count: Option<i64>,
     message: Option<String>,
+    chunks: Option<Vec<KnowledgeBaseRagChunkModel>>,
 }
 
 impl KnowledgeBaseRagToolResultModelBuilder {
@@ -44,12 +48,18 @@ impl KnowledgeBaseRagToolResultModelBuilder {
         self
     }
 
+    pub fn chunks(mut self, value: Vec<KnowledgeBaseRagChunkModel>) -> Self {
+        self.chunks = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`KnowledgeBaseRagToolResultModel`].
     pub fn build(self) -> Result<KnowledgeBaseRagToolResultModel, BuildError> {
         Ok(KnowledgeBaseRagToolResultModel {
             status: self.status,
             chunk_count: self.chunk_count,
             message: self.message,
+            chunks: self.chunks,
         })
     }
 }

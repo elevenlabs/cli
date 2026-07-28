@@ -6,6 +6,8 @@ use super::*;
 pub struct TokenResponseModel {
     #[serde(default)]
     pub token: String,
+    #[serde(default)]
+    pub conversation_id: String,
 }
 
 impl TokenResponseModel {
@@ -18,6 +20,7 @@ impl TokenResponseModel {
 #[non_exhaustive]
 pub struct TokenResponseModelBuilder {
     token: Option<String>,
+    conversation_id: Option<String>,
 }
 
 impl TokenResponseModelBuilder {
@@ -26,12 +29,19 @@ impl TokenResponseModelBuilder {
         self
     }
 
+    pub fn conversation_id(mut self, value: impl Into<String>) -> Self {
+        self.conversation_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`TokenResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`token`](TokenResponseModelBuilder::token)
+    /// - [`conversation_id`](TokenResponseModelBuilder::conversation_id)
     pub fn build(self) -> Result<TokenResponseModel, BuildError> {
         Ok(TokenResponseModel {
             token: self.token.ok_or_else(|| BuildError::missing_field("token"))?,
+            conversation_id: self.conversation_id.ok_or_else(|| BuildError::missing_field("conversation_id"))?,
         })
     }
 }

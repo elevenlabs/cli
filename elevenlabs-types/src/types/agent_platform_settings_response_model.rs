@@ -16,6 +16,9 @@ pub struct AgentPlatformSettingsResponseModel {
     /// Scope per data collection item ID. Missing keys default to conversation scope.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data_collection_scopes: Option<HashMap<String, AnalysisScope>>,
+    /// Evaluation + data-collection items attached by reference. None means the agent has not been migrated onto analysis items yet (distinct from an empty, migrated set); reads fall back to the legacy evaluation/data_collection fields in that case.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub analysis_items: Option<AgentAnalysisItemsOutput>,
     /// Additional overrides for the agent during conversation initiation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub overrides: Option<ConversationInitiationClientDataConfigOutput>,
@@ -75,6 +78,7 @@ pub struct AgentPlatformSettingsResponseModelBuilder {
     widget: Option<WidgetConfig>,
     data_collection: Option<HashMap<String, AnalysisProperty>>,
     data_collection_scopes: Option<HashMap<String, AnalysisScope>>,
+    analysis_items: Option<AgentAnalysisItemsOutput>,
     overrides: Option<ConversationInitiationClientDataConfigOutput>,
     workspace_overrides: Option<AgentWorkspaceOverridesOutput>,
     testing: Option<AgentTestingSettings>,
@@ -110,6 +114,11 @@ impl AgentPlatformSettingsResponseModelBuilder {
 
     pub fn data_collection_scopes(mut self, value: HashMap<String, AnalysisScope>) -> Self {
         self.data_collection_scopes = Some(value);
+        self
+    }
+
+    pub fn analysis_items(mut self, value: AgentAnalysisItemsOutput) -> Self {
+        self.analysis_items = Some(value);
         self
     }
 
@@ -195,6 +204,7 @@ impl AgentPlatformSettingsResponseModelBuilder {
             widget: self.widget,
             data_collection: self.data_collection,
             data_collection_scopes: self.data_collection_scopes,
+            analysis_items: self.analysis_items,
             overrides: self.overrides,
             workspace_overrides: self.workspace_overrides,
             testing: self.testing,
