@@ -9,3 +9,14 @@ cli/elevenlabs/workflow/
 # we own it to document the agents-as-code workflow and hero image).
 README.md
 assets/
+
+# The generated ci.yml uses actions-rust-lang/setup-rust-toolchain, which this
+# org's Actions allowlist rejects — that fails the whole workflow at startup, so
+# no job ever runs. Our version drops it and uses the runner's preinstalled
+# toolchain. Do not let a regeneration reintroduce it. (release.yml is left
+# unprotected on purpose so cargo-dist updates still come through.)
+.github/workflows/ci.yml
+
+# Hand-written: the generated types crate ships without a .gitignore, so running
+# its test suite leaves untracked build artifacts.
+elevenlabs-types/.gitignore

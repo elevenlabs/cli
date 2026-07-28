@@ -15,7 +15,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::util::{downcast_ctx, dry_run_flag, opt_string};
+use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
 use super::{api, project, settings, templates, verify};
 
 /// Register the `agents` command group.
@@ -751,13 +751,6 @@ fn pull_command() -> clap::Command {
         )
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum PullAction {
-    Create,
-    Update,
-    Skip,
-}
-
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
@@ -839,12 +832,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let (mut n_create, mut n_update, mut n_skip) = (0usize, 0usize, 0usize);
     for (id, name) in &remote {
         let existing = registry.agents.iter().position(|a| a.id.as_deref() == Some(id.as_str()));
-        let action = match existing {
-            Some(_) if update || all => PullAction::Update,
-            Some(_) => PullAction::Skip,
-            None if update => PullAction::Skip,
-            None => PullAction::Create,
-        };
+        let action = plan_pull_action(existing.is_some(), update, all);
         match action {
             PullAction::Create => n_create += 1,
             PullAction::Update => n_update += 1,
@@ -1078,4 +1066,50 @@ fn build_pulled_config(name: &str, live: &Value) -> Value {
         }
     }
     Value::Object(obj)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pulled_config_keeps_only_the_on_disk_shape() {
+        // Server-side metadata (agent_id, version_id, …) must not leak into the
+        // config file — ids live in agents.json, so a pulled config stays
+        // pushable as-is.
+        let live = json!({
+            "agent_id": "agent_1",
+            "version_id": "ver_1",
+            "conversation_config": { "agent": { "language": "en" } },
+            "platform_settings": { "auth": { "enable_auth": false } },
+            "tags": ["a"]
+        });
+        let config = build_pulled_config("My Agent", &live);
+        assert_eq!(config["name"], json!("My Agent"));
+        assert_eq!(config["conversation_config"]["agent"]["language"], json!("en"));
+        assert_eq!(config["tags"], json!(["a"]));
+        assert!(config.get("agent_id").is_none());
+        assert!(config.get("version_id").is_none());
+    }
+
+    #[test]
+    fn pulled_config_fills_defaults_for_missing_blocks() {
+        let config = build_pulled_config("A", &json!({}));
+        assert_eq!(config["conversation_config"], json!({}));
+        assert_eq!(config["platform_settings"], json!({}));
+        assert_eq!(config["tags"], json!([]));
+    }
+
+    #[test]
+    fn workflow_is_included_only_when_present_and_non_null() {
+        let with = build_pulled_config("A", &json!({ "workflow": { "nodes": [] } }));
+        assert_eq!(with["workflow"], json!({ "nodes": [] }));
+
+        // A null workflow would be rejected on push, so it's omitted entirely.
+        let null = build_pulled_config("A", &json!({ "workflow": Value::Null }));
+        assert!(null.get("workflow").is_none());
+
+        let absent = build_pulled_config("A", &json!({}));
+        assert!(absent.get("workflow").is_none());
+    }
 }
