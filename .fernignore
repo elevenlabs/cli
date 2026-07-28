@@ -1,1 +1,11 @@
 # Specify files that shouldn't be modified by Fern
+
+# Hand-written custom commands (the "agents-as-code" workflow).
+# These must never be overwritten by `fern generate`.
+cli/elevenlabs/custom.rs
+cli/elevenlabs/workflow/
+
+# Hand-maintained README + assets (Fern generates a default README;
+# we own it to document the agents-as-code workflow and hero image).
+README.md
+assets/
