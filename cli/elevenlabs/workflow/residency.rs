@@ -21,6 +21,21 @@ use super::settings;
 /// name (`elevenlabs` → `ELEVENLABS_`), which the generator pins.
 const BASE_URL_ENV: &str = "ELEVENLABS_BASE_URL";
 
+/// Which base URL to export, given whatever the env already holds and the
+/// stored region. `None` means "leave the env alone" — either something more
+/// explicit is already set, or the region is the API's default host. Kept
+/// separate from the env plumbing so the precedence rules are unit-testable.
+fn base_url_to_export(existing: Option<&str>, residency: &str) -> Option<&'static str> {
+    // An empty value is treated as unset; exporting "" would break every request.
+    if existing.is_some_and(|v| !v.trim().is_empty()) {
+        return None;
+    }
+    if residency == settings::DEFAULT_RESIDENCY {
+        return None;
+    }
+    Some(settings::base_url_for(residency))
+}
+
 /// Export the stored residency's base URL unless something more explicit
 /// already set one. Precedence ends up: `--base-url` > `ELEVENLABS_BASE_URL`
 /// (real env or `.env`) > stored residency > default.
@@ -29,15 +44,11 @@ fn apply_stored_residency() {
     // dotenvy never overrides an existing var — so load it here first to see
     // a `.env`-provided base URL and leave it alone.
     let _ = dotenvy::dotenv();
-    if std::env::var_os(BASE_URL_ENV).is_some() {
-        return;
-    }
+    let existing = std::env::var(BASE_URL_ENV).ok();
     let residency = settings::read_residency();
-    if residency == settings::DEFAULT_RESIDENCY {
-        // `global` is the API's default host; nothing to override.
-        return;
+    if let Some(url) = base_url_to_export(existing.as_deref(), &residency) {
+        std::env::set_var(BASE_URL_ENV, url);
     }
-    std::env::set_var(BASE_URL_ENV, settings::base_url_for(&residency));
 }
 
 #[derive(clap::Args)]
@@ -84,4 +95,39 @@ pub fn register(app: CliApp) -> CliApp {
             .about("Show or set the data-residency region (selects the API base URL)"),
         handle_residency,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_explicit_base_url_is_never_overridden() {
+        assert_eq!(
+            base_url_to_export(Some("https://example.test"), "eu-residency"),
+            None
+        );
+    }
+
+    #[test]
+    fn an_empty_base_url_counts_as_unset() {
+        // Exporting "" would break every request, so treat it as absent.
+        assert_eq!(
+            base_url_to_export(Some("   "), "eu-residency"),
+            Some("https://api.eu.residency.elevenlabs.io")
+        );
+    }
+
+    #[test]
+    fn the_default_region_exports_nothing() {
+        assert_eq!(base_url_to_export(None, settings::DEFAULT_RESIDENCY), None);
+    }
+
+    #[test]
+    fn an_isolated_region_exports_its_host() {
+        assert_eq!(
+            base_url_to_export(None, "sg-residency"),
+            Some("https://api.sg.residency.elevenlabs.io")
+        );
+    }
 }
