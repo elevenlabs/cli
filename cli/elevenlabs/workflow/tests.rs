@@ -10,7 +10,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::util::{downcast_ctx, dry_run_flag, opt_string};
+use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
 use super::{api, project};
 
 /// Register the `tests` command group.
@@ -564,13 +564,6 @@ fn pull_command() -> clap::Command {
         )
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum PullAction {
-    Create,
-    Update,
-    Skip,
-}
-
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let test_filter = opt_string(matches, "test");
     let output_dir =
@@ -632,12 +625,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             .tests
             .iter()
             .position(|t| t.id.as_deref() == Some(id.as_str()));
-        let action = match existing {
-            Some(_) if update || all => PullAction::Update,
-            Some(_) => PullAction::Skip,
-            None if update => PullAction::Skip,
-            None => PullAction::Create,
-        };
+        let action = plan_pull_action(existing.is_some(), update, all);
         match action {
             PullAction::Create => n_create += 1,
             PullAction::Update => n_update += 1,
@@ -773,5 +761,17 @@ mod tests {
         assert!(!looks_like_test_config(
             &json!({ "name": "T", "type": "webhook", "api_schema": {} })
         ));
+    }
+}
+
+#[cfg(test)]
+mod id_tests {
+    use super::*;
+
+    #[test]
+    fn test_id_tolerates_both_spellings() {
+        assert_eq!(test_id_of(&json!({ "id": "t1" })), Some("t1".to_string()));
+        assert_eq!(test_id_of(&json!({ "test_id": "t2" })), Some("t2".to_string()));
+        assert_eq!(test_id_of(&json!({ "name": "none" })), None);
     }
 }

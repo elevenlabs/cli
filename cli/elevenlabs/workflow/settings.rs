@@ -55,17 +55,26 @@ pub fn write_residency(residency: &str) -> Result<(), CliError> {
         .map_err(|e| CliError::Other(anyhow::anyhow!("Could not create {}: {e}", dir.display())))?;
     let path = dir.join("config.json");
 
-    let mut obj = std::fs::read_to_string(&path)
+    let existing = std::fs::read_to_string(&path)
         .ok()
-        .and_then(|d| serde_json::from_str::<Value>(&d).ok())
+        .and_then(|d| serde_json::from_str::<Value>(&d).ok());
+
+    let rendered = super::project::to_pretty_string(&merge_residency(existing, residency))?;
+    std::fs::write(&path, rendered)
+        .map_err(|e| CliError::Other(anyhow::anyhow!("Could not write {}: {e}", path.display())))
+}
+
+/// Set `residency` on the existing config, preserving unrelated keys and
+/// dropping any `api_key` — credentials belong in the framework's keyring, never
+/// in this file. Split out from [`write_residency`] so it's testable without
+/// touching a real home directory.
+fn merge_residency(existing: Option<Value>, residency: &str) -> Value {
+    let mut obj = existing
         .and_then(|v| v.as_object().cloned())
         .unwrap_or_default();
     obj.insert("residency".to_string(), Value::String(residency.to_string()));
     obj.remove("api_key");
-
-    let rendered = super::project::to_pretty_string(&Value::Object(obj))?;
-    std::fs::write(&path, rendered)
-        .map_err(|e| CliError::Other(anyhow::anyhow!("Could not write {}: {e}", path.display())))
+    Value::Object(obj)
 }
 
 /// Map a residency to its API base URL. Ports v0's `getApiBaseUrl`.
@@ -77,5 +86,72 @@ pub fn base_url_for(residency: &str) -> &'static str {
         "us" => "https://api.us.elevenlabs.io",
         // "global" and anything unrecognized
         _ => "https://api.elevenlabs.io",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn every_region_maps_to_its_host() {
+        // Ports v0's residency.test.ts.
+        assert_eq!(base_url_for("global"), "https://api.elevenlabs.io");
+        assert_eq!(base_url_for("us"), "https://api.us.elevenlabs.io");
+        assert_eq!(
+            base_url_for("eu-residency"),
+            "https://api.eu.residency.elevenlabs.io"
+        );
+        assert_eq!(
+            base_url_for("in-residency"),
+            "https://api.in.residency.elevenlabs.io"
+        );
+        assert_eq!(
+            base_url_for("sg-residency"),
+            "https://api.sg.residency.elevenlabs.io"
+        );
+    }
+
+    #[test]
+    fn an_unrecognized_region_falls_back_to_the_default_host() {
+        assert_eq!(base_url_for("mars"), base_url_for(DEFAULT_RESIDENCY));
+    }
+
+    #[test]
+    fn the_default_region_is_offered_as_a_choice() {
+        assert!(RESIDENCY_VALUES.contains(&DEFAULT_RESIDENCY));
+        // Every advertised region must map somewhere.
+        for region in RESIDENCY_VALUES {
+            assert!(base_url_for(region).starts_with("https://"));
+        }
+    }
+
+    #[test]
+    fn merging_preserves_unrelated_keys() {
+        let existing = json!({ "residency": "us", "other": 1 });
+        let merged = merge_residency(Some(existing), "eu-residency");
+        assert_eq!(merged["residency"], json!("eu-residency"));
+        assert_eq!(merged["other"], json!(1));
+    }
+
+    #[test]
+    fn merging_never_persists_an_api_key() {
+        let existing = json!({ "api_key": "sk-secret", "residency": "us" });
+        let merged = merge_residency(Some(existing), "global");
+        assert!(
+            merged.get("api_key").is_none(),
+            "api_key must never be written to the config file"
+        );
+    }
+
+    #[test]
+    fn merging_handles_a_missing_or_malformed_config() {
+        assert_eq!(merge_residency(None, "us")["residency"], json!("us"));
+        // A non-object config (e.g. hand-edited to a list) is replaced, not crashed on.
+        assert_eq!(
+            merge_residency(Some(json!([1, 2])), "us")["residency"],
+            json!("us")
+        );
     }
 }

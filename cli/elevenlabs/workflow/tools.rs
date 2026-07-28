@@ -9,7 +9,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::util::{downcast_ctx, dry_run_flag, opt_string};
+use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
 use super::{api, project, verify};
 
 /// Register the `tools` command group.
@@ -415,13 +415,6 @@ fn pull_command() -> clap::Command {
         )
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum PullAction {
-    Create,
-    Update,
-    Skip,
-}
-
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let tool_filter = opt_string(matches, "tool");
     let output_dir =
@@ -484,12 +477,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let (mut n_create, mut n_update, mut n_skip) = (0usize, 0usize, 0usize);
     for (id, name) in &remote {
         let existing = registry.tools.iter().position(|t| t.id.as_deref() == Some(id.as_str()));
-        let action = match existing {
-            Some(_) if update || all => PullAction::Update,
-            Some(_) => PullAction::Skip,
-            None if update => PullAction::Skip,
-            None => PullAction::Create,
-        };
+        let action = plan_pull_action(existing.is_some(), update, all);
         match action {
             PullAction::Create => n_create += 1,
             PullAction::Update => n_update += 1,
@@ -586,4 +574,48 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tool_id_tolerates_every_spelling_the_api_uses() {
+        assert_eq!(tool_id_of(&json!({ "id": "t1" })), Some("t1".to_string()));
+        assert_eq!(tool_id_of(&json!({ "tool_id": "t2" })), Some("t2".to_string()));
+        assert_eq!(tool_id_of(&json!({ "toolId": "t3" })), Some("t3".to_string()));
+        assert_eq!(tool_id_of(&json!({ "name": "no id here" })), None);
+    }
+
+    #[test]
+    fn tool_id_prefers_id_when_several_are_present() {
+        assert_eq!(
+            tool_id_of(&json!({ "id": "first", "tool_id": "second" })),
+            Some("first".to_string())
+        );
+    }
+
+    #[test]
+    fn default_tools_carry_their_type_and_name() {
+        let webhook = default_webhook_tool("My Hook");
+        assert_eq!(webhook["name"], json!("My Hook"));
+        assert_eq!(webhook["type"], json!("webhook"));
+        assert_eq!(webhook["api_schema"]["method"], json!("POST"));
+
+        let client = default_client_tool("My Client");
+        assert_eq!(client["name"], json!("My Client"));
+        assert_eq!(client["type"], json!("client"));
+        assert_eq!(client["expects_response"], json!(false));
+    }
+
+    #[test]
+    fn default_webhook_preserves_header_names_verbatim() {
+        // Header names are user-facing keys; a casing transform would break them.
+        let webhook = default_webhook_tool("H");
+        assert_eq!(
+            webhook["api_schema"]["request_headers"]["Content-Type"],
+            json!("application/json")
+        );
+    }
 }
