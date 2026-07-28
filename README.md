@@ -1,12 +1,20 @@
-# ElevenLabs API Documentation CLI
+# ElevenLabs CLI — Agents as Code
 
-Command-line interface for the ElevenLabs API Documentation API.
+![hero](./assets/Cover.png)
+
+Command-line interface for the [ElevenLabs platform](https://elevenlabs.io/docs/agents-platform/overview).
+
+The CLI does two things:
+
+- **Full API access** — every ElevenLabs API endpoint is available as a subcommand (`elevenlabs <resource> <method>`).
+- **Agents as Code** — manage Conversational AI agents from local configuration files, with templates, branches, and push/pull sync.
 
 ## Table of contents
 
 - [Installation](#installation)
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
+- [Agents as Code](#agents-as-code)
 - [Usage](#usage)
 - [Documentation](#documentation)
 - [Advanced](#advanced)
@@ -57,6 +65,106 @@ elevenlabs <resource> <method>
 ```
 
 Run `elevenlabs <resource> --help` to see available methods for a resource.
+
+## Agents as Code
+
+Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live as JSON on disk and sync to ElevenLabs. Pulled configs are stored as raw wire JSON and pushed back verbatim, so they round-trip losslessly.
+
+### Project structure
+
+```
+your_project/
+├── agents.json         # Agent registry: ids + branch mappings → config paths
+├── tools.json          # Tool registry
+├── tests.json          # Test registry
+├── agent_configs/      # Agent configuration files
+├── tool_configs/       # Tool configuration files
+└── test_configs/       # Test configuration files
+```
+
+### Commands
+
+```bash
+# Scaffold a new project (pass a path, or --override to reset an existing one)
+elevenlabs agents init [path] [--override]
+
+# Create an agent from a template (or an existing file), upload it, and register it
+elevenlabs agents add <name> [--template <template>] [--output-path <path>]
+elevenlabs agents add [name] --from-file <path>
+
+# Show the status of locally-configured agents
+elevenlabs agents status
+
+# Sync configs with ElevenLabs (push force-overrides main + registered branches)
+elevenlabs agents push [--agent <agent_id>] [--branch <name|id>] [--version-description <text>] [--dry-run]
+elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--dry-run]
+
+# List available agent templates, or print one's full configuration
+elevenlabs agents templates list
+elevenlabs agents templates show <template>
+
+# Print an embeddable HTML widget snippet for an agent
+elevenlabs agents widget embed <agent_id>
+
+# Run the tests attached to an agent (polls to completion; exits non-zero on failure)
+elevenlabs agents test <agent_id>
+```
+
+These sit alongside the generated API commands in the same group, which own the
+primitives — `elevenlabs agents create | get | list | update | delete`, and the
+`elevenlabs agents branches ...` subgroup for branch management.
+
+> `residency` and `components add` are being ported from v0 and will land in follow-up changes.
+
+### Tools
+
+Manage the webhook and client tools your agents reference. Tools are tracked in `tools.json` with configs under `tool_configs/`.
+
+```bash
+# Create a webhook or client tool, upload it, and register it in tools.json
+elevenlabs tools add <name> [--type webhook|client] [--config-path <path>]
+
+# Sync tool configs with ElevenLabs
+elevenlabs tools push [--tool <tool_id>] [--dry-run]
+elevenlabs tools pull [--tool <tool_id>] [--output-dir tool_configs] [--update] [--all] [--dry-run]
+
+# Delete a tool locally and in ElevenLabs
+elevenlabs tools delete <tool_id>
+elevenlabs tools delete --all
+```
+
+### Tests
+
+Manage agent tests, tracked in `tests.json` with configs under `test_configs/`. Attach them to an agent's `platform_settings.testing.attached_tests` and run them with `elevenlabs agents test <agent_id>`.
+
+```bash
+# Create a test from a template, upload it, and register it in tests.json
+elevenlabs tests add <name> [--template basic-llm|tool|conversation-flow|customer-service]
+elevenlabs tests templates list
+
+# Sync test configs with ElevenLabs
+elevenlabs tests push [--test <test_id>] [--config-dir test_configs] [--dry-run]
+elevenlabs tests pull [--test <test_id>] [--output-dir test_configs] [--update] [--all] [--dry-run]
+
+# Delete a test locally and in ElevenLabs
+elevenlabs tests delete <test_id>
+elevenlabs tests delete --all
+```
+
+`tests push` also **auto-discovers** untracked configs: it scans `--config-dir` recursively for `.json` files that look like tests (a `chat_history` array or a `success_condition` string) and registers them in `tests.json` before pushing, so you can drop a config in and push without editing the index by hand.
+
+### Templates
+
+Pre-built starting configurations for `agents add`, listed by `elevenlabs agents templates list` (inspect one with `agents templates show <template>`):
+
+| Template | Description |
+|----------|-------------|
+| `default` | Complete configuration with all available fields and sensible defaults |
+| `minimal` | Minimal configuration with only essential fields |
+| `voice-only` | Optimized for voice-only conversations |
+| `text-only` | Optimized for text-only conversations |
+| `customer-service` | Pre-configured for customer service scenarios |
+| `assistant` | General purpose AI assistant configuration |
 
 ## Usage
 
