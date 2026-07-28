@@ -15,6 +15,8 @@ The CLI does two things:
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
 - [Agents as Code](#agents-as-code)
+- [Data residency](#data-residency)
+- [UI components](#ui-components)
 - [Usage](#usage)
 - [Documentation](#documentation)
 - [Advanced](#advanced)
@@ -114,7 +116,6 @@ These sit alongside the generated API commands in the same group, which own the
 primitives — `elevenlabs agents create | get | list | update | delete`, and the
 `elevenlabs agents branches ...` subgroup for branch management.
 
-> `residency` and `components add` are being ported from v0 and will land in follow-up changes.
 
 ### Tools
 
@@ -165,6 +166,34 @@ Pre-built starting configurations for `agents add`, listed by `elevenlabs agents
 | `text-only` | Optimized for text-only conversations |
 | `customer-service` | Pre-configured for customer service scenarios |
 | `assistant` | General purpose AI assistant configuration |
+
+## Data residency
+
+Select the region your requests are routed to. The setting is stored in `~/.elevenlabs/config.json` and applies to **every** command:
+
+```bash
+elevenlabs residency                 # show the current region and its base URL
+elevenlabs residency eu-residency    # switch region
+```
+
+| Region | Base URL |
+|--------|----------|
+| `global` (default) | `https://api.elevenlabs.io` |
+| `us` | `https://api.us.elevenlabs.io` |
+| `eu-residency` | `https://api.eu.residency.elevenlabs.io` |
+| `in-residency` | `https://api.in.residency.elevenlabs.io` |
+| `sg-residency` | `https://api.sg.residency.elevenlabs.io` |
+
+`--base-url` and `ELEVENLABS_BASE_URL` take precedence when you need a one-off override. The region also sets the `server-location` attribute emitted by `agents widget`.
+
+## UI components
+
+Install [ElevenLabs UI](https://ui.elevenlabs.io) components into your project (delegates to `shadcn`, so Node.js/npm is required):
+
+```bash
+elevenlabs components add                    # all components
+elevenlabs components add conversation-bar
+```
 
 ## Usage
 
