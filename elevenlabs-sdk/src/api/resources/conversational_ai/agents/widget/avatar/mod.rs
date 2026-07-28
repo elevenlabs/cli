@@ -1,2 +1,0 @@
-pub mod conversational_ai_agents_widget_avatar;
-pub use conversational_ai_agents_widget_avatar::AvatarClient;

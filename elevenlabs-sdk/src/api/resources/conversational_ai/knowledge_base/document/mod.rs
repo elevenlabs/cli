@@ -1,2 +1,0 @@
-pub mod conversational_ai_knowledge_base_document;
-pub use conversational_ai_knowledge_base_document::DocumentClient;

@@ -1,2 +1,0 @@
-pub mod conversational_ai_knowledge_base_documents_chunks;
-pub use conversational_ai_knowledge_base_documents_chunks::ChunksClient;

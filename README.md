@@ -92,8 +92,7 @@ elevenlabs agents init [path] [--override]
 elevenlabs agents add <name> [--template <template>] [--output-path <path>]
 elevenlabs agents add [name] --from-file <path>
 
-# Inspect locally-configured agents
-elevenlabs agents list
+# Show the status of locally-configured agents
 elevenlabs agents status
 
 # Sync configs with ElevenLabs (push force-overrides main + registered branches)
@@ -109,14 +108,11 @@ elevenlabs agents widget <agent_id>
 
 # Run the tests attached to an agent (polls to completion; exits non-zero on failure)
 elevenlabs agents test <agent_id>
-
-# List an agent's branches (e.g. staging vs production)
-elevenlabs agents branches list --agent <agent_id> [--include-archived]
-
-# Delete an agent locally and in ElevenLabs
-elevenlabs agents delete <agent_id>
-elevenlabs agents delete --all
 ```
+
+These sit alongside the generated API commands in the same group, which own the
+primitives — `elevenlabs agents create | get | list | update | delete`, and the
+`elevenlabs agents branches ...` subgroup for branch management.
 
 > The `tests` command group, `residency`, and `components add` are being ported from v0 and will land in follow-up changes.
 

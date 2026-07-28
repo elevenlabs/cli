@@ -1,2 +1,0 @@
-pub mod conversational_ai_whatsapp_accounts;
-pub use conversational_ai_whatsapp_accounts::WhatsappAccountsClient;

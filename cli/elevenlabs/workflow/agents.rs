@@ -1,8 +1,10 @@
-//! The `agents` command group: init/add/list/status/push/pull/delete/
-//! widget/test/branches. Ports v0's `src/agents/`.
+//! The `agents` command group: init/add/status/push/pull/widget/test.
+//! Ports v0's `src/agents/`.
 //!
-//! Implemented so far: `init`. The remaining subcommands (add/list/
-//! status/push/pull/delete/widget/test/branches) land in a later step.
+//! These are the config-oriented verbs the raw API doesn't provide. The
+//! primitives (`create`/`get`/`list`/`update`/`delete`/`run_tests`, and the
+//! `branches` subgroup) come from the generated API commands in the same
+//! `agents` group, so the workflow deliberately does not redefine them.
 //! The `agents templates` subgroup is registered from [`super::templates`].
 
 use std::path::{Path, PathBuf};
@@ -31,11 +33,6 @@ pub fn register(app: CliApp) -> CliApp {
     )
     .command_under_typed_with(
         &["agents"],
-        clap::Command::new("list").about("List all configured agents"),
-        handle_list,
-    )
-    .command_under_typed_with(
-        &["agents"],
         clap::Command::new("status").about("Show the status of configured agents"),
         handle_status,
     )
@@ -53,11 +50,6 @@ pub fn register(app: CliApp) -> CliApp {
     )
     .command_under_typed_with(
         &["agents"],
-        clap::Command::new("delete").about("Delete an agent locally and in ElevenLabs"),
-        handle_delete,
-    )
-    .command_under_typed_with(
-        &["agents"],
         clap::Command::new("widget").about("Print an embeddable HTML widget snippet for an agent"),
         handle_widget,
     )
@@ -65,11 +57,6 @@ pub fn register(app: CliApp) -> CliApp {
         &["agents"],
         clap::Command::new("test").about("Run the tests attached to an agent"),
         handle_test,
-    )
-    .command_under_typed_with(
-        &["agents", "branches"],
-        clap::Command::new("list").about("List branches for an agent"),
-        handle_branches_list,
     )
 }
 
@@ -313,29 +300,10 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
     Ok(())
 }
 
-// ── list ────────────────────────────────────────────────────────────
+// ── status ──────────────────────────────────────────────────────────
 
 #[derive(clap::Args)]
 struct NoArgs {}
-
-fn handle_list(_args: NoArgs, _ctx: &AppContext) -> Result<(), CliError> {
-    let config = require_agents()?;
-    if config.agents.is_empty() {
-        println!("No agents configured");
-        return Ok(());
-    }
-    println!("Configured Agents:");
-    println!("{}", "=".repeat(50));
-    for (i, agent) in config.agents.iter().enumerate() {
-        println!("{}. {}", i + 1, agent_display_name(&agent.config));
-        println!("   ID: {}", agent.id.as_deref().unwrap_or("No ID"));
-        println!("   Config: {}", agent.config);
-        println!();
-    }
-    Ok(())
-}
-
-// ── status ──────────────────────────────────────────────────────────
 
 fn handle_status(_args: NoArgs, _ctx: &AppContext) -> Result<(), CliError> {
     let config = require_agents()?;
@@ -370,114 +338,6 @@ fn handle_status(_args: NoArgs, _ctx: &AppContext) -> Result<(), CliError> {
         }
     }
     Ok(())
-}
-
-// ── delete ──────────────────────────────────────────────────────────
-
-#[derive(clap::Args)]
-struct DeleteArgs {
-    /// The agent ID to delete (omit with --all).
-    agent_id: Option<String>,
-    /// Delete every configured agent.
-    #[arg(long)]
-    all: bool,
-    /// Skip the confirmation prompt (for --all).
-    #[arg(long)]
-    yes: bool,
-}
-
-fn handle_delete(args: DeleteArgs, ctx: &AppContext) -> Result<(), CliError> {
-    let mut config = require_agents()?;
-
-    if args.all {
-        if config.agents.is_empty() {
-            println!("No agents found to delete");
-            return Ok(());
-        }
-        println!("\nFound {} agent(s) to delete:", config.agents.len());
-        for (i, agent) in config.agents.iter().enumerate() {
-            println!(
-                "  {}. {} ({})",
-                i + 1,
-                agent_display_name(&agent.config),
-                agent.id.as_deref().unwrap_or("no id")
-            );
-        }
-        if !args.yes {
-            println!(
-                "\nWARNING: This will delete ALL agents from both local configuration and ElevenLabs."
-            );
-            if !project::prompt_confirm("Are you sure you want to delete these agents?")? {
-                println!("Deletion cancelled");
-                return Ok(());
-            }
-        }
-        println!("\nDeleting agents...\n");
-        for agent in &config.agents {
-            let name = agent_display_name(&agent.config);
-            println!(
-                "Deleting '{name}' ({})...",
-                agent.id.as_deref().unwrap_or("no id")
-            );
-            match &agent.id {
-                Some(id) => match api::delete_agent(ctx, id) {
-                    Ok(()) => println!("  ✓ Deleted from ElevenLabs"),
-                    Err(e) => eprintln!("  Warning: Failed to delete from ElevenLabs: {e}"),
-                },
-                None => println!("  Warning: No agent ID found, skipping ElevenLabs deletion"),
-            }
-            remove_config_file(&agent.config);
-        }
-        config.agents.clear();
-        project::save_agents(&config)?;
-        println!("\n✓ Deleted all agents");
-        return Ok(());
-    }
-
-    let Some(agent_id) = args.agent_id else {
-        return Err(CliError::Validation(
-            "Provide an agent ID to delete, or pass --all.".to_string(),
-        ));
-    };
-
-    let index = config
-        .agents
-        .iter()
-        .position(|a| a.id.as_deref() == Some(agent_id.as_str()))
-        .ok_or_else(|| {
-            CliError::Validation(format!(
-                "Agent with ID '{agent_id}' not found in local configuration"
-            ))
-        })?;
-
-    let removed = config.agents.remove(index);
-    let name = agent_display_name(&removed.config);
-    println!("Deleting agent '{name}' (ID: {agent_id})...");
-    println!("Deleting from ElevenLabs...");
-    match api::delete_agent(ctx, &agent_id) {
-        Ok(()) => println!("✓ Successfully deleted from ElevenLabs"),
-        Err(e) => {
-            eprintln!("Warning: Failed to delete from ElevenLabs: {e}");
-            println!("Continuing with local deletion...");
-        }
-    }
-    project::save_agents(&config)?;
-    println!("✓ Removed '{name}' from agents.json");
-    if remove_config_file(&removed.config) {
-        println!("✓ Deleted config file: {}", removed.config);
-    }
-    println!("\n✓ Successfully deleted agent '{name}'");
-    Ok(())
-}
-
-/// Remove a config file if present; returns whether it was deleted.
-fn remove_config_file(config_path: &str) -> bool {
-    let path = Path::new(config_path);
-    if path.exists() {
-        std::fs::remove_file(path).is_ok()
-    } else {
-        false
-    }
 }
 
 // ── widget ──────────────────────────────────────────────────────────
@@ -644,94 +504,6 @@ fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
 
     eprintln!("Tests did not complete within the timeout period.");
     std::process::exit(1);
-}
-
-// ── branches list ───────────────────────────────────────────────────
-
-#[derive(clap::Args)]
-struct BranchesListArgs {
-    /// The agent whose branches to list.
-    #[arg(long)]
-    agent: String,
-    /// Include archived branches.
-    #[arg(long)]
-    include_archived: bool,
-}
-
-fn handle_branches_list(args: BranchesListArgs, ctx: &AppContext) -> Result<(), CliError> {
-    println!("Listing branches for agent: {}...", args.agent);
-    let branches = api::list_branches(ctx, &args.agent, args.include_archived)?;
-    if branches.is_empty() {
-        println!("No branches found for this agent.");
-        return Ok(());
-    }
-
-    println!(
-        "{:<25}{:<40}{:<12}{:<10}LAST UPDATED",
-        "NAME", "BRANCH ID", "STATUS", "TRAFFIC"
-    );
-    println!("{}", "─".repeat(110));
-    for branch in &branches {
-        let raw_name = branch.get("name").and_then(Value::as_str).unwrap_or("");
-        let name = if raw_name.chars().count() > 23 {
-            format!("{}...", raw_name.chars().take(20).collect::<String>())
-        } else {
-            raw_name.to_string()
-        };
-        let id = branch.get("id").and_then(Value::as_str).unwrap_or("");
-        let status = if branch
-            .get("is_archived")
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
-        {
-            "archived"
-        } else {
-            "active"
-        };
-        let traffic = format!(
-            "{}%",
-            format_percent(
-                branch
-                    .get("current_live_percentage")
-                    .and_then(Value::as_f64)
-                    .unwrap_or(0.0)
-            )
-        );
-        let last_updated = branch
-            .get("last_committed_at")
-            .and_then(Value::as_i64)
-            .map(epoch_to_date)
-            .unwrap_or_default();
-        println!("{name:<25}{id:<40}{status:<12}{traffic:<10}{last_updated}");
-    }
-    println!("\n{} branch(es) found", branches.len());
-    Ok(())
-}
-
-/// Format a percentage dropping a trailing `.0` (12.0 → "12", 12.5 → "12.5").
-fn format_percent(n: f64) -> String {
-    if n.fract() == 0.0 {
-        format!("{}", n as i64)
-    } else {
-        format!("{n}")
-    }
-}
-
-/// Convert a Unix timestamp (seconds) to `YYYY-MM-DD` (UTC), using the
-/// standard civil-from-days algorithm (no external date dependency).
-fn epoch_to_date(secs: i64) -> String {
-    let days = secs.div_euclid(86_400);
-    let z = days + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let year = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = if month <= 2 { year + 1 } else { year };
-    format!("{year:04}-{month:02}-{day:02}")
 }
 
 // ── push ────────────────────────────────────────────────────────────
