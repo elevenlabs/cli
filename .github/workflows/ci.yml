@@ -12,11 +12,6 @@ concurrency:
 env:
   RUSTFLAGS: "-A warnings"
 
-# NOTE: this org restricts GitHub Actions to an allowlist (github-owned plus
-# specific patterns), so third-party setup actions such as
-# actions-rust-lang/setup-rust-toolchain cannot be used here — referencing one
-# fails the whole run at startup. The GitHub-hosted ubuntu runners already ship
-# a stable Rust toolchain, so we use that directly.
 jobs:
   check:
     runs-on: ubuntu-latest
