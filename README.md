@@ -114,7 +114,7 @@ These sit alongside the generated API commands in the same group, which own the
 primitives — `elevenlabs agents create | get | list | update | delete`, and the
 `elevenlabs agents branches ...` subgroup for branch management.
 
-> The `tests` command group, `residency`, and `components add` are being ported from v0 and will land in follow-up changes.
+> `residency` and `components add` are being ported from v0 and will land in follow-up changes.
 
 ### Tools
 
@@ -132,6 +132,26 @@ elevenlabs tools pull [--tool <tool_id>] [--output-dir tool_configs] [--update] 
 elevenlabs tools delete <tool_id>
 elevenlabs tools delete --all
 ```
+
+### Tests
+
+Manage agent tests, tracked in `tests.json` with configs under `test_configs/`. Attach them to an agent's `platform_settings.testing.attached_tests` and run them with `elevenlabs agents test <agent_id>`.
+
+```bash
+# Create a test from a template, upload it, and register it in tests.json
+elevenlabs tests add <name> [--template basic-llm|tool|conversation-flow|customer-service]
+elevenlabs tests templates list
+
+# Sync test configs with ElevenLabs
+elevenlabs tests push [--test <test_id>] [--config-dir test_configs] [--dry-run]
+elevenlabs tests pull [--test <test_id>] [--output-dir test_configs] [--update] [--all] [--dry-run]
+
+# Delete a test locally and in ElevenLabs
+elevenlabs tests delete <test_id>
+elevenlabs tests delete --all
+```
+
+`tests push` also **auto-discovers** untracked configs: it scans `--config-dir` recursively for `.json` files that look like tests (a `chat_history` array or a `success_condition` string) and registers them in `tests.json` before pushing, so you can drop a config in and push without editing the index by hand.
 
 ### Templates
 

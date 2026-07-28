@@ -273,6 +273,43 @@ pub fn save_tests(config: &TestsConfig) -> Result<(), CliError> {
     write_json(&tests_path(), config)
 }
 
+// ── Config discovery ────────────────────────────────────────────────
+
+/// Recursively collect every `.json` file under `dir`, sorted, with paths
+/// normalized to forward slashes so index files stay portable across
+/// platforms. Returns empty when the directory doesn't exist. Ports v0's
+/// `discoverJsonFiles`.
+pub fn discover_json_files(dir: &str) -> Vec<String> {
+    let root = Path::new(dir);
+    if !root.exists() {
+        return Vec::new();
+    }
+    let mut found = Vec::new();
+    walk_json(root, &mut found);
+    found.sort();
+    found
+}
+
+fn walk_json(dir: &Path, found: &mut Vec<String>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            walk_json(&path, found);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("json") {
+            // Normalize to posix separators for portable index entries.
+            let as_posix = path
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy())
+                .collect::<Vec<_>>()
+                .join("/");
+            found.push(as_posix);
+        }
+    }
+}
+
 // ── Interactive prompt ──────────────────────────────────────────────
 
 /// Ask a `y/N` question on stdin. Ports v0's `promptForConfirmation`:
