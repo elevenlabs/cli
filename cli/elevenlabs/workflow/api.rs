@@ -314,6 +314,86 @@ pub fn delete_tool(ctx: &AppContext, tool_id: &str) -> Result<(), CliError> {
     Ok(())
 }
 
+// ── Test API ────────────────────────────────────────────────────────
+
+/// Create a test (raw JSON). Returns the full response, containing the new `id`.
+pub fn create_test(ctx: &AppContext, config: &Value) -> Result<Value, CliError> {
+    raw_request(
+        ctx,
+        Method::POST,
+        "v1/convai/agent-testing/create",
+        Some(config.clone()),
+        None,
+    )
+}
+
+/// Update a test (raw JSON).
+pub fn update_test(ctx: &AppContext, test_id: &str, config: &Value) -> Result<Value, CliError> {
+    raw_request(
+        ctx,
+        Method::PUT,
+        &format!("v1/convai/agent-testing/{test_id}"),
+        Some(config.clone()),
+        None,
+    )
+}
+
+/// Fetch a test's full config (raw JSON).
+pub fn get_test(ctx: &AppContext, test_id: &str) -> Result<Value, CliError> {
+    raw_request(
+        ctx,
+        Method::GET,
+        &format!("v1/convai/agent-testing/{test_id}"),
+        None,
+        None,
+    )
+}
+
+/// List every test, paginating to completion.
+pub fn list_tests(ctx: &AppContext) -> Result<Vec<Value>, CliError> {
+    let mut all = Vec::new();
+    let mut cursor: Option<String> = None;
+    loop {
+        let mut query = vec![("page_size".to_string(), "100".to_string())];
+        if let Some(c) = &cursor {
+            query.push(("cursor".to_string(), c.clone()));
+        }
+        let resp = raw_request(
+            ctx,
+            Method::GET,
+            "v1/convai/agent-testing",
+            None,
+            Some(query),
+        )?;
+        if let Some(tests) = resp.get("tests").and_then(Value::as_array) {
+            all.extend(tests.iter().cloned());
+        }
+        if !resp.get("has_more").and_then(Value::as_bool).unwrap_or(false) {
+            break;
+        }
+        cursor = resp
+            .get("next_cursor")
+            .and_then(Value::as_str)
+            .map(String::from);
+        if cursor.is_none() {
+            break;
+        }
+    }
+    Ok(all)
+}
+
+/// Delete a test.
+pub fn delete_test(ctx: &AppContext, test_id: &str) -> Result<(), CliError> {
+    raw_request(
+        ctx,
+        Method::DELETE,
+        &format!("v1/convai/agent-testing/{test_id}"),
+        None,
+        None,
+    )?;
+    Ok(())
+}
+
 // ── Test-running API (for `agents test`) ────────────────────────────
 
 /// Run the given tests on an agent. Returns the invocation (raw JSON).
