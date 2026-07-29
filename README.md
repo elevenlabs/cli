@@ -28,11 +28,19 @@ The CLI does two things:
 
 ## Installation
 
-> **Pre-release.** This version hasn't been published yet, so there are no
-> prebuilt binaries to download — build from source as below. The installers
-> documented at the bottom of this section start working with the first release.
+### Shell (macOS / Linux)
 
-### Build from source (alpha testers)
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.sh | sh
+```
+
+### PowerShell (Windows)
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.ps1 | iex"
+```
+
+### Build from source
 
 Install the [Rust toolchain](https://rustup.rs/), then:
 
@@ -42,44 +50,28 @@ cd cli
 cargo build --release
 ```
 
-The binary lands at `./target/release/elevenlabs`:
-
-```bash
-./target/release/elevenlabs --help
-```
-
-To run it as `elevenlabs` from anywhere, either put it on your `PATH`:
-
-```bash
-# macOS / Linux — adjust to a directory already on your PATH
-ln -sf "$PWD/target/release/elevenlabs" /usr/local/bin/elevenlabs
-```
-
-…or install it with cargo, which copies the binary into `~/.cargo/bin`:
+The binary lands at `./target/release/elevenlabs`. To run it as `elevenlabs`
+from anywhere, install it with cargo, which copies it into `~/.cargo/bin`:
 
 ```bash
 cargo install --path .
 ```
 
-Rebuild after pulling (`git pull && cargo build --release`) to pick up changes.
-
-### Prebuilt binaries (once released)
-
-These will work from the first tagged release onward:
-
-```bash
-# macOS / Linux
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.sh | sh
-```
-
-```powershell
-# Windows
-powershell -ExecutionPolicy ByPass -c "irm https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.ps1 | iex"
-```
-
 ## Authentication
 
-This API requires authentication. Run `elevenlabs --help` for details.
+Every request is authenticated with an [ElevenLabs API key](https://elevenlabs.io/app/settings/api-keys), sent as the `xi-api-key` header. Set it in the environment:
+
+```bash
+export ELEVENLABS_API_KEY=xi-...
+```
+
+A `.env` file in the working directory is loaded automatically, so putting `ELEVENLABS_API_KEY=xi-...` there works too — handy for keeping a key scoped to one project.
+
+For a one-off call, pass it per command instead:
+
+```bash
+elevenlabs user get --xi-api-key xi-...
+```
 
 ## Quick start
 
