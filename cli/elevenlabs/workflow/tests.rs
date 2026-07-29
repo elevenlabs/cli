@@ -183,7 +183,7 @@ fn require_tests() -> Result<project::TestsConfig, CliError> {
 }
 
 fn test_name_from_config(config_path: &str) -> Option<String> {
-    project::read_value(Path::new(config_path))
+    project::read_value_in_project(config_path)
         .ok()
         .and_then(|v| v.get("name").and_then(Value::as_str).map(String::from))
 }
@@ -246,9 +246,17 @@ fn register_discovered(registry: &mut project::TestsConfig, config_dir: &str) ->
     added
 }
 
+/// Delete a config file, refusing paths that escape the project or point at a
+/// symlink. A hostile index file previously turned this into an arbitrary
+/// unlink; failures are surfaced rather than swallowed.
 fn remove_config_file(config_path: &str) -> bool {
-    let path = Path::new(config_path);
-    path.exists() && std::fs::remove_file(path).is_ok()
+    match project::remove_in_project(config_path) {
+        Ok(removed) => removed,
+        Err(e) => {
+            eprintln!("  Warning: {e}");
+            false
+        }
+    }
 }
 
 // ── add ─────────────────────────────────────────────────────────────
@@ -292,7 +300,7 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
             .display()
             .to_string(),
     };
-    project::write_json(Path::new(&config_path), &config)?;
+    project::write_json_in_project(&config_path, &config)?;
     println!("Created config file: {config_path} (template: {})", args.template);
 
     registry.tests.push(project::TestDefinition {
@@ -484,7 +492,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             println!("Warning: Config file not found: {config_path}");
             continue;
         }
-        let test_config = match project::read_value(Path::new(&config_path)) {
+        let test_config = match project::read_value_in_project(&config_path) {
             Ok(v) => v,
             Err(e) => {
                 println!("Error reading config from {config_path}: {e}");
@@ -682,14 +690,14 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         match existing_idx {
             Some(i) => {
                 let cfg_path = registry.tests[*i].config.clone();
-                project::write_json(Path::new(&cfg_path), &config)?;
+                project::write_json_in_project(&cfg_path, &config)?;
                 println!("  ✓ Updated '{name}' (config: {cfg_path})");
             }
             None => {
                 let cfg_path = project::generate_unique_filename(&output_dir, name, ".json")
                     .display()
                     .to_string();
-                project::write_json(Path::new(&cfg_path), &config)?;
+                project::write_json_in_project(&cfg_path, &config)?;
                 registry.tests.push(project::TestDefinition {
                     config: cfg_path.clone(),
                     test_type,

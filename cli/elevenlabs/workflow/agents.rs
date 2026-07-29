@@ -80,7 +80,7 @@ fn require_agents() -> Result<project::AgentsConfig, CliError> {
 /// Read an agent's display name from its config file. Ports v0's
 /// `getAgentName` (Unknown when unreadable, Unnamed when nameless).
 fn agent_display_name(config_path: &str) -> String {
-    match project::read_value(Path::new(config_path)) {
+    match project::read_value_in_project(config_path) {
         Ok(value) => value
             .get("name")
             .and_then(Value::as_str)
@@ -280,7 +280,7 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
             .display()
             .to_string(),
     };
-    project::write_json(Path::new(&config_path), &agent_config)?;
+    project::write_json_in_project(&config_path, &agent_config)?;
     match &args.from_file {
         Some(from_file) => println!("Created config file: {config_path} (from: {from_file})"),
         None => println!(
@@ -575,7 +575,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             println!("Warning: Config file not found: {config_path}");
             continue;
         }
-        let agent_config = match project::read_value(Path::new(&config_path)) {
+        let agent_config = match project::read_value_in_project(&config_path) {
             Ok(v) => v,
             Err(e) => {
                 println!("Error reading config for {config_path}: {e}");
@@ -667,7 +667,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                         );
                         continue;
                     }
-                    let branch_config = match project::read_value(Path::new(&branch_def.config)) {
+                    let branch_config = match project::read_value_in_project(&branch_def.config) {
                         Ok(v) => v,
                         Err(e) => {
                             println!("  ✗ Error pushing branch '{branch_name}': {e}");
@@ -892,7 +892,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         let entry_idx = match existing_idx {
             Some(i) => {
                 let cfg_path = registry.agents[*i].config.clone();
-                project::write_json(Path::new(&cfg_path), &config)?;
+                project::write_json_in_project(&cfg_path, &config)?;
                 if let Some(v) = &version_id {
                     registry.agents[*i].version_id = Some(v.clone());
                 }
@@ -907,7 +907,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                     project::generate_unique_filename(&output_dir, name, ".json")
                         .display()
                         .to_string();
-                project::write_json(Path::new(&cfg_path), &config)?;
+                project::write_json_in_project(&cfg_path, &config)?;
                 registry.agents.push(project::AgentDefinition {
                     config: cfg_path.clone(),
                     id: Some(id.clone()),
@@ -926,7 +926,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 project::generate_unique_filename(&output_dir, &format!("{name}.{branch}"), ".json")
                     .display()
                     .to_string();
-            project::write_json(Path::new(&branch_path), &config)?;
+            project::write_json_in_project(&branch_path, &config)?;
             let branches = registry.agents[entry_idx]
                 .branches
                 .get_or_insert_with(Default::default);
@@ -1019,7 +1019,7 @@ fn pull_all_branches(
                 .display()
                 .to_string()
         });
-        project::write_json(Path::new(&branch_path), &branch_config)?;
+        project::write_json_in_project(&branch_path, &branch_config)?;
 
         let map = registry.agents[entry_idx]
             .branches
