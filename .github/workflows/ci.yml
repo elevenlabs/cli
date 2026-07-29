@@ -1,10 +1,6 @@
 name: ci
 
 on:
-  # Only the long-lived branches, so this validates what actually landed.
-  # Without the filter, pushing to a branch that has an open PR runs every job
-  # twice — once for `push`, once for `pull_request` — since the two events use
-  # different refs and so land in different concurrency groups.
   push:
     branches: [next, main]
   pull_request:
