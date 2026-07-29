@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches: [next, main]
   pull_request:
     types: [opened, synchronize, reopened]
 
