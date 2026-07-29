@@ -104,6 +104,17 @@ struct InitArgs {
     yes: bool,
 }
 
+/// Contents of the .gitignore written by `init`.
+///
+/// Only .env is ignored. The config directories are deliberately left tracked:
+/// committing them is the entire point of managing agents as code, and ignoring
+/// them fails silently rather than loudly — agents.json is tracked while the
+/// configs it references are not, so a fresh clone gets an index pointing at
+/// files that do not exist. Secrets belong in .env or in workspace secrets,
+/// which pulled configs reference by locator rather than by value.
+const GITIGNORE_BODY: &str =
+    "# Credentials — never commit these. Use .env.example as the tracked template.\n.env\n";
+
 fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
     let root = PathBuf::from(&args.path);
     let abs = std::env::current_dir()
@@ -167,22 +178,12 @@ fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
         }
     }
 
-    // A .gitignore matters here: `pull` writes API responses verbatim, and a
-    // webhook's request_headers can legally contain a literal bearer token, so
-    // these files should not be committed by accident. It also keeps the .env
-    // this scaffold encourages out of git.
     let gitignore_path = root.join(".gitignore");
     if !args.r#override && gitignore_path.exists() {
         println!(".gitignore already exists (skipped)");
     } else {
-        std::fs::write(
-            &gitignore_path,
-            "# Credentials — never commit these.\n.env\n\n\
-             # Pulled configs can contain secrets (e.g. literal webhook auth headers).\n\
-             # Remove these lines if you intend to track your agent configs in git.\n\
-             agent_configs/\ntool_configs/\ntest_configs/\n",
-        )
-        .map_err(io_err("write .gitignore", &gitignore_path))?;
+        std::fs::write(&gitignore_path, GITIGNORE_BODY)
+            .map_err(io_err("write .gitignore", &gitignore_path))?;
         println!("Created .gitignore");
     }
 
@@ -1150,6 +1151,22 @@ fn build_pulled_config(name: &str, live: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gitignore_covers_env_but_never_the_config_dirs() {
+        assert!(GITIGNORE_BODY.lines().any(|l| l.trim() == ".env"));
+        for dir in [
+            project::AGENT_CONFIGS_DIR,
+            project::TOOL_CONFIGS_DIR,
+            project::TEST_CONFIGS_DIR,
+        ] {
+            assert!(
+                !GITIGNORE_BODY.contains(dir),
+                ".gitignore must not ignore {dir}: agents.json would be tracked while \
+                 the configs it references are not, breaking only on a fresh clone"
+            );
+        }
+    }
 
     #[test]
     fn pulled_config_keeps_only_the_on_disk_shape() {

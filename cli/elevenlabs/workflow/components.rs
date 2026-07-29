@@ -11,8 +11,9 @@ const REGISTRY_BASE: &str = "https://ui.elevenlabs.io/r";
 
 /// Pinned rather than `@latest`: this runs `npx`, which downloads and executes
 /// the package with the user's privileges, so an upstream compromise would run
-/// here. Bump deliberately.
-const SHADCN_PACKAGE: &str = "shadcn@2.3.0";
+/// here. Tracks the current major, since the registry at `REGISTRY_BASE` is
+/// authored against it — pinning further back breaks `add`. Bump deliberately.
+const SHADCN_PACKAGE: &str = "shadcn@4.16.0";
 
 /// Registry component name. Restricted to the characters a registry slug can
 /// contain so it can't inject extra arguments or reshape the URL.
