@@ -9,10 +9,7 @@ use fern_cli_sdk::openapi::OpenApiBinding;
 
 fn main() {
     let app = CliApp::new("elevenlabs")
-        .binding(
-            OpenApiBinding::new()
-                .spec(include_str!("openapi0.json"))
-        );
+        .binding(OpenApiBinding::new().spec(include_str!("openapi0.json")));
 
     let app = custom::register(app);
 

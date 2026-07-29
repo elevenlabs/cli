@@ -48,8 +48,14 @@ pub fn register(app: CliApp) -> CliApp {
 /// `(name, description)` for every built-in test template, in display
 /// order. Mirrors v0's `getTestTemplateOptions()`.
 pub const TEST_TEMPLATE_OPTIONS: &[(&str, &str)] = &[
-    ("basic-llm", "Basic LLM response test with simple user input"),
-    ("tool", "Tool usage test to verify agent calls specific tools"),
+    (
+        "basic-llm",
+        "Basic LLM response test with simple user input",
+    ),
+    (
+        "tool",
+        "Tool usage test to verify agent calls specific tools",
+    ),
     ("conversation-flow", "Multi-turn conversation flow test"),
     (
         "customer-service",
@@ -235,10 +241,7 @@ fn register_discovered(registry: &mut project::TestsConfig, config_dir: &str) ->
         }
         registry.tests.push(project::TestDefinition {
             config: candidate,
-            test_type: config
-                .get("type")
-                .and_then(Value::as_str)
-                .map(String::from),
+            test_type: config.get("type").and_then(Value::as_str).map(String::from),
             id: config.get("id").and_then(Value::as_str).map(String::from),
         });
         added += 1;
@@ -301,19 +304,21 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
             .to_string(),
     };
     project::write_json_in_project(&config_path, &config)?;
-    println!("Created config file: {config_path} (template: {})", args.template);
+    println!(
+        "Created config file: {config_path} (template: {})",
+        args.template
+    );
 
     registry.tests.push(project::TestDefinition {
         config: config_path.clone(),
-        test_type: config
-            .get("type")
-            .and_then(Value::as_str)
-            .map(String::from),
+        test_type: config.get("type").and_then(Value::as_str).map(String::from),
         id: Some(test_id),
     });
     project::save_tests(&registry)?;
     println!("Added test '{}' to tests.json", args.name);
-    println!("Edit {config_path} to customize your test, then run 'elevenlabs tests push' to update");
+    println!(
+        "Edit {config_path} to customize your test, then run 'elevenlabs tests push' to update"
+    );
     Ok(())
 }
 
@@ -507,7 +512,11 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
         println!("{name}: Will push (force override)");
         if dry_run {
-            let verb = if current_id.is_some() { "update" } else { "create" };
+            let verb = if current_id.is_some() {
+                "update"
+            } else {
+                "create"
+            };
             println!("[DRY RUN] Would {verb} test: {name}");
             continue;
         }
@@ -619,7 +628,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         list.iter()
             .filter_map(|t| {
                 let id = test_id_of(t)?;
-                let name = t.get("name").and_then(Value::as_str).unwrap_or("").to_string();
+                let name = t
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
                 Some((id, name))
             })
             .collect()
@@ -663,7 +676,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             continue;
         }
         if dry_run {
-            let verb = if *action == PullAction::Update { "update" } else { "pull" };
+            let verb = if *action == PullAction::Update {
+                "update"
+            } else {
+                "pull"
+            };
             println!("[DRY RUN] Would {verb} test: {name} (ID: {id})");
             continue;
         }
@@ -682,10 +699,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 continue;
             }
         };
-        let test_type = config
-            .get("type")
-            .and_then(Value::as_str)
-            .map(String::from);
+        let test_type = config.get("type").and_then(Value::as_str).map(String::from);
 
         match existing_idx {
             Some(i) => {
@@ -779,7 +793,10 @@ mod id_tests {
     #[test]
     fn test_id_tolerates_both_spellings() {
         assert_eq!(test_id_of(&json!({ "id": "t1" })), Some("t1".to_string()));
-        assert_eq!(test_id_of(&json!({ "test_id": "t2" })), Some("t2".to_string()));
+        assert_eq!(
+            test_id_of(&json!({ "test_id": "t2" })),
+            Some("t2".to_string())
+        );
         assert_eq!(test_id_of(&json!({ "name": "none" })), None);
     }
 }

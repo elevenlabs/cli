@@ -168,7 +168,9 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
     });
     project::save_tools(&registry)?;
     println!("Added tool '{}' to tools.json", args.name);
-    println!("Edit {config_path} to customize your tool, then run 'elevenlabs tools push' to update");
+    println!(
+        "Edit {config_path} to customize your tool, then run 'elevenlabs tools push' to update"
+    );
     Ok(())
 }
 
@@ -480,7 +482,10 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let mut plan: Vec<(PullAction, String, String, Option<usize>)> = Vec::new();
     let (mut n_create, mut n_update, mut n_skip) = (0usize, 0usize, 0usize);
     for (id, name) in &remote {
-        let existing = registry.tools.iter().position(|t| t.id.as_deref() == Some(id.as_str()));
+        let existing = registry
+            .tools
+            .iter()
+            .position(|t| t.id.as_deref() == Some(id.as_str()));
         let action = plan_pull_action(existing.is_some(), update, all);
         match action {
             PullAction::Create => n_create += 1,
@@ -511,7 +516,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             continue;
         }
         if dry_run {
-            let verb = if *action == PullAction::Update { "update" } else { "pull" };
+            let verb = if *action == PullAction::Update {
+                "update"
+            } else {
+                "pull"
+            };
             println!("[DRY RUN] Would {verb} tool: {name} (ID: {id})");
             continue;
         }
@@ -587,8 +596,14 @@ mod tests {
     #[test]
     fn tool_id_tolerates_every_spelling_the_api_uses() {
         assert_eq!(tool_id_of(&json!({ "id": "t1" })), Some("t1".to_string()));
-        assert_eq!(tool_id_of(&json!({ "tool_id": "t2" })), Some("t2".to_string()));
-        assert_eq!(tool_id_of(&json!({ "toolId": "t3" })), Some("t3".to_string()));
+        assert_eq!(
+            tool_id_of(&json!({ "tool_id": "t2" })),
+            Some("t2".to_string())
+        );
+        assert_eq!(
+            tool_id_of(&json!({ "toolId": "t3" })),
+            Some("t3".to_string())
+        );
         assert_eq!(tool_id_of(&json!({ "name": "no id here" })), None);
     }
 

@@ -56,7 +56,11 @@ mod tests {
 
     fn matches_from(args: &[&str]) -> clap::ArgMatches {
         clap::Command::new("test")
-            .arg(clap::Arg::new("dry-run").long("dry-run").action(clap::ArgAction::SetTrue))
+            .arg(
+                clap::Arg::new("dry-run")
+                    .long("dry-run")
+                    .action(clap::ArgAction::SetTrue),
+            )
             .arg(clap::Arg::new("agent").long("agent"))
             .get_matches_from(args)
     }

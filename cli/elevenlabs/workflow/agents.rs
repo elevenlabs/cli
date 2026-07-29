@@ -53,8 +53,7 @@ pub fn register(app: CliApp) -> CliApp {
     // commands, and a custom leaf named `widget` would shadow the whole group.
     .command_under_typed_with(
         &["agents", "widget"],
-        clap::Command::new("embed")
-            .about("Print an embeddable HTML widget snippet for an agent"),
+        clap::Command::new("embed").about("Print an embeddable HTML widget snippet for an agent"),
         handle_widget,
     )
     .command_under_typed_with(
@@ -100,6 +99,9 @@ struct InitArgs {
     /// Override existing files and recreate config dirs from scratch.
     #[arg(long)]
     r#override: bool,
+    /// Skip the confirmation prompt shown for --override.
+    #[arg(long)]
+    yes: bool,
 }
 
 fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
@@ -109,7 +111,21 @@ fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
         .unwrap_or_else(|_| root.clone());
     println!("Initializing project in {}", abs.display());
     if args.r#override {
+        // --override recursively deletes the config directories, so confirm
+        // first. A non-interactive run declines, which keeps an agent or a
+        // script from wiping a directory it was merely pointed at.
         println!("⚠ Override mode: existing files will be overwritten");
+        println!(
+            "   This deletes {}/, {}/ and {}/ under {} and their contents.",
+            project::AGENT_CONFIGS_DIR,
+            project::TOOL_CONFIGS_DIR,
+            project::TEST_CONFIGS_DIR,
+            abs.display()
+        );
+        if !args.yes && !project::prompt_confirm("Continue?")? {
+            println!("Initialization cancelled");
+            return Ok(());
+        }
     }
 
     std::fs::create_dir_all(&root).map_err(io_err("create project directory", &root))?;
@@ -151,6 +167,25 @@ fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
         }
     }
 
+    // A .gitignore matters here: `pull` writes API responses verbatim, and a
+    // webhook's request_headers can legally contain a literal bearer token, so
+    // these files should not be committed by accident. It also keeps the .env
+    // this scaffold encourages out of git.
+    let gitignore_path = root.join(".gitignore");
+    if !args.r#override && gitignore_path.exists() {
+        println!(".gitignore already exists (skipped)");
+    } else {
+        std::fs::write(
+            &gitignore_path,
+            "# Credentials — never commit these.\n.env\n\n\
+             # Pulled configs can contain secrets (e.g. literal webhook auth headers).\n\
+             # Remove these lines if you intend to track your agent configs in git.\n\
+             agent_configs/\ntool_configs/\ntest_configs/\n",
+        )
+        .map_err(io_err("write .gitignore", &gitignore_path))?;
+        println!("Created .gitignore");
+    }
+
     let env_path = root.join(".env.example");
     if !args.r#override && env_path.exists() {
         println!(".env.example already exists (skipped)");
@@ -185,7 +220,8 @@ fn init_index_file<T: serde::Serialize>(
 fn print_next_steps() {
     println!("\nProject initialized successfully!");
     println!("Next steps:");
-    println!("1. Set your ElevenLabs API key: elevenlabs auth login");
+    println!("1. Set your ElevenLabs API key: export ELEVENLABS_API_KEY=xi-...");
+    println!("   (or copy .env.example to .env and put it there)");
     println!("2. Create an agent: elevenlabs agents add \"My Agent\" --template default");
     println!("3. Create tools: elevenlabs tools add \"My Webhook\" --type webhook");
     println!("4. Create tests: elevenlabs tests add \"My Test\" --template basic-llm");
@@ -263,7 +299,10 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
         let name = args.name.clone().ok_or_else(|| {
             CliError::Validation("Agent name is required when using templates".to_string())
         })?;
-        let template_type = args.template.clone().unwrap_or_else(|| "default".to_string());
+        let template_type = args
+            .template
+            .clone()
+            .unwrap_or_else(|| "default".to_string());
         let cfg = templates::template_by_name(&name, &template_type)?;
         (cfg, name)
     };
@@ -439,7 +478,10 @@ fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
         )));
     }
 
-    println!("Running {} test(s) for agent '{agent_name}'...", test_ids.len());
+    println!(
+        "Running {} test(s) for agent '{agent_name}'...",
+        test_ids.len()
+    );
     println!();
 
     let invocation = api::run_tests_on_agent(ctx, &args.agent, &test_ids, None)?;
@@ -759,7 +801,8 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
     let all_branches = matches.get_flag("all-branches");
-    let output_dir = opt_string(matches, "output-dir").unwrap_or_else(|| "agent_configs".to_string());
+    let output_dir =
+        opt_string(matches, "output-dir").unwrap_or_else(|| "agent_configs".to_string());
     let dry_run = dry_run_flag(matches);
     let update = matches.get_flag("update");
     let all = matches.get_flag("all");
@@ -825,7 +868,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                     .get("agent_id")
                     .or_else(|| a.get("agentId"))
                     .and_then(Value::as_str)?;
-                let name = a.get("name").and_then(Value::as_str).unwrap_or("").to_string();
+                let name = a
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
                 Some((id.to_string(), name))
             })
             .collect()
@@ -835,7 +882,10 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let mut plan: Vec<(PullAction, String, String, Option<usize>)> = Vec::new();
     let (mut n_create, mut n_update, mut n_skip) = (0usize, 0usize, 0usize);
     for (id, name) in &remote {
-        let existing = registry.agents.iter().position(|a| a.id.as_deref() == Some(id.as_str()));
+        let existing = registry
+            .agents
+            .iter()
+            .position(|a| a.id.as_deref() == Some(id.as_str()));
         let action = plan_pull_action(existing.is_some(), update, all);
         match action {
             PullAction::Create => n_create += 1,
@@ -848,7 +898,9 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     println!("\nPlan: {n_create} create, {n_update} update, {n_skip} skip");
     if n_skip > 0 && !update && !all {
         if n_create == 0 {
-            println!("\n💡 Tip: Use --update to update existing agents or --all to pull everything");
+            println!(
+                "\n💡 Tip: Use --update to update existing agents or --all to pull everything"
+            );
         } else {
             println!("\n💡 Tip: Use --all to also update existing agents");
         }
@@ -866,7 +918,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             continue;
         }
         if dry_run {
-            let verb = if *action == PullAction::Update { "update" } else { "pull" };
+            let verb = if *action == PullAction::Update {
+                "update"
+            } else {
+                "pull"
+            };
             println!("[DRY RUN] Would {verb} agent: {name} (ID: {id})");
             continue;
         }
@@ -886,8 +942,14 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             }
         };
         let config = build_pulled_config(name, &live);
-        let version_id = live.get("version_id").and_then(Value::as_str).map(String::from);
-        let live_branch_id = live.get("branch_id").and_then(Value::as_str).map(String::from);
+        let version_id = live
+            .get("version_id")
+            .and_then(Value::as_str)
+            .map(String::from);
+        let live_branch_id = live
+            .get("branch_id")
+            .and_then(Value::as_str)
+            .map(String::from);
 
         let entry_idx = match existing_idx {
             Some(i) => {
@@ -903,10 +965,9 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 *i
             }
             None => {
-                let cfg_path =
-                    project::generate_unique_filename(&output_dir, name, ".json")
-                        .display()
-                        .to_string();
+                let cfg_path = project::generate_unique_filename(&output_dir, name, ".json")
+                    .display()
+                    .to_string();
                 project::write_json_in_project(&cfg_path, &config)?;
                 registry.agents.push(project::AgentDefinition {
                     config: cfg_path.clone(),
@@ -922,10 +983,13 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
         // --branch: persist the branch config alongside the main one.
         if let (Some(branch), Some(bid)) = (&branch, &branch_id) {
-            let branch_path =
-                project::generate_unique_filename(&output_dir, &format!("{name}.{branch}"), ".json")
-                    .display()
-                    .to_string();
+            let branch_path = project::generate_unique_filename(
+                &output_dir,
+                &format!("{name}.{branch}"),
+                ".json",
+            )
+            .display()
+            .to_string();
             project::write_json_in_project(&branch_path, &config)?;
             let branches = registry.agents[entry_idx]
                 .branches
@@ -986,7 +1050,11 @@ fn pull_all_branches(
 
     let parent_branch_id = registry.agents[entry_idx].branch_id.clone();
     for branch in &branches {
-        if branch.get("is_archived").and_then(Value::as_bool).unwrap_or(false) {
+        if branch
+            .get("is_archived")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
             continue;
         }
         let bid = branch.get("id").and_then(Value::as_str).unwrap_or("");
@@ -1007,7 +1075,10 @@ fn pull_all_branches(
             }
         };
         let branch_config = build_pulled_config(agent_name, &live);
-        let version_id = live.get("version_id").and_then(Value::as_str).map(String::from);
+        let version_id = live
+            .get("version_id")
+            .and_then(Value::as_str)
+            .map(String::from);
 
         let existing_path = registry.agents[entry_idx]
             .branches
@@ -1054,11 +1125,15 @@ fn build_pulled_config(name: &str, live: &Value) -> Value {
     obj.insert("name".to_string(), json!(name));
     obj.insert(
         "conversation_config".to_string(),
-        live.get("conversation_config").cloned().unwrap_or_else(|| json!({})),
+        live.get("conversation_config")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
     );
     obj.insert(
         "platform_settings".to_string(),
-        live.get("platform_settings").cloned().unwrap_or_else(|| json!({})),
+        live.get("platform_settings")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
     );
     obj.insert(
         "tags".to_string(),
@@ -1090,7 +1165,10 @@ mod tests {
         });
         let config = build_pulled_config("My Agent", &live);
         assert_eq!(config["name"], json!("My Agent"));
-        assert_eq!(config["conversation_config"]["agent"]["language"], json!("en"));
+        assert_eq!(
+            config["conversation_config"]["agent"]["language"],
+            json!("en")
+        );
         assert_eq!(config["tags"], json!(["a"]));
         assert!(config.get("agent_id").is_none());
         assert!(config.get("version_id").is_none());

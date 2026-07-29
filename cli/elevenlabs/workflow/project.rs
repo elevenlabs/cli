@@ -122,7 +122,11 @@ pub struct TestDefinition {
 fn project_root() -> Result<PathBuf, CliError> {
     std::env::current_dir()
         .and_then(|cwd| cwd.canonicalize())
-        .map_err(|e| CliError::Other(anyhow::anyhow!("Could not determine project directory: {e}")))
+        .map_err(|e| {
+            CliError::Other(anyhow::anyhow!(
+                "Could not determine project directory: {e}"
+            ))
+        })
 }
 
 /// Resolve `.` and `..` without touching the filesystem, so a path that does
@@ -642,7 +646,11 @@ mod tests {
             std::os::unix::fs::symlink(outside.path(), "test_configs/shared").expect("symlink");
 
             let found = discover_json_files("test_configs");
-            assert_eq!(found.len(), 1, "only the real file should be discovered: {found:?}");
+            assert_eq!(
+                found.len(),
+                1,
+                "only the real file should be discovered: {found:?}"
+            );
             assert!(found[0].ends_with("real.json"));
         });
     }
@@ -678,6 +686,9 @@ mod tests {
     fn pretty_string_uses_four_space_indent() {
         let v = serde_json::json!({ "a": { "b": 1 } });
         let s = to_pretty_string(&v).unwrap();
-        assert!(s.contains("\n    \"a\""), "expected 4-space indent, got:\n{s}");
+        assert!(
+            s.contains("\n    \"a\""),
+            "expected 4-space indent, got:\n{s}"
+        );
     }
 }

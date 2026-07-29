@@ -9,6 +9,11 @@ use fern_cli_sdk::openapi::AppContext;
 
 const REGISTRY_BASE: &str = "https://ui.elevenlabs.io/r";
 
+/// Pinned rather than `@latest`: this runs `npx`, which downloads and executes
+/// the package with the user's privileges, so an upstream compromise would run
+/// here. Bump deliberately.
+const SHADCN_PACKAGE: &str = "shadcn@2.3.0";
+
 /// Registry component name. Restricted to the characters a registry slug can
 /// contain so it can't inject extra arguments or reshape the URL.
 fn validate_component(name: &str) -> Result<(), CliError> {
@@ -32,7 +37,7 @@ fn validate_component(name: &str) -> Result<(), CliError> {
 /// Windows needs `cmd /C` because `npx` is a `.cmd` shim that
 /// `std::process::Command` won't resolve on its own.
 fn shadcn_argv(url: &str) -> (&'static str, Vec<String>) {
-    let shadcn = ["-y", "shadcn@latest", "add", url].map(str::to_string);
+    let shadcn = ["-y", SHADCN_PACKAGE, "add", url].map(str::to_string);
     if cfg!(windows) {
         let mut args = vec!["/C".to_string(), "npx".to_string()];
         args.extend(shadcn);
@@ -53,7 +58,10 @@ fn handle_add(args: AddArgs, _ctx: &AppContext) -> Result<(), CliError> {
     validate_component(&args.name)?;
     let url = format!("{REGISTRY_BASE}/{}.json", args.name);
 
-    println!("Installing {} from the ElevenLabs UI registry...", args.name);
+    println!(
+        "Installing {} from the ElevenLabs UI registry...",
+        args.name
+    );
     println!("Source: {url}\n");
 
     let (program, argv) = shadcn_argv(&url);
@@ -127,7 +135,7 @@ mod tests {
                 argv,
                 vec![
                     "-y",
-                    "shadcn@latest",
+                    SHADCN_PACKAGE,
                     "add",
                     "https://ui.elevenlabs.io/r/all.json"
                 ]
