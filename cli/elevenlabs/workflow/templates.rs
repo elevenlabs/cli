@@ -13,7 +13,10 @@ pub const TEMPLATE_OPTIONS: &[(&str, &str)] = &[
         "default",
         "Complete configuration with all available fields and sensible defaults",
     ),
-    ("minimal", "Minimal configuration with only essential fields"),
+    (
+        "minimal",
+        "Minimal configuration with only essential fields",
+    ),
     ("voice-only", "Optimized for voice-only conversations"),
     ("text-only", "Optimized for text-only conversations"),
     (

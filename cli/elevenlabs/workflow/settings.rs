@@ -14,8 +14,13 @@ use fern_cli_sdk::error::CliError;
 use serde_json::Value;
 
 /// Accepted residency values (matches v0's `LOCATIONS`).
-pub const RESIDENCY_VALUES: &[&str] =
-    &["us", "global", "eu-residency", "in-residency", "sg-residency"];
+pub const RESIDENCY_VALUES: &[&str] = &[
+    "us",
+    "global",
+    "eu-residency",
+    "in-residency",
+    "sg-residency",
+];
 
 pub const DEFAULT_RESIDENCY: &str = "global";
 
@@ -38,11 +43,7 @@ pub fn read_residency() -> String {
     };
     serde_json::from_str::<Value>(&data)
         .ok()
-        .and_then(|v| {
-            v.get("residency")
-                .and_then(Value::as_str)
-                .map(String::from)
-        })
+        .and_then(|v| v.get("residency").and_then(Value::as_str).map(String::from))
         .unwrap_or_else(|| DEFAULT_RESIDENCY.to_string())
 }
 
@@ -53,15 +54,21 @@ pub fn write_residency(residency: &str) -> Result<(), CliError> {
         .ok_or_else(|| CliError::Other(anyhow::anyhow!("Could not determine home directory")))?;
     std::fs::create_dir_all(&dir)
         .map_err(|e| CliError::Other(anyhow::anyhow!("Could not create {}: {e}", dir.display())))?;
+    // Owner-only, matching v0's posture for ~/.elevenlabs. Nothing sensitive
+    // lives here today (api_key is stripped below), but the directory is the
+    // natural home for anything that later does.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+    }
     let path = dir.join("config.json");
 
     let existing = std::fs::read_to_string(&path)
         .ok()
         .and_then(|d| serde_json::from_str::<Value>(&d).ok());
 
-    let rendered = super::project::to_pretty_string(&merge_residency(existing, residency))?;
-    std::fs::write(&path, rendered)
-        .map_err(|e| CliError::Other(anyhow::anyhow!("Could not write {}: {e}", path.display())))
+    super::project::write_json(&path, &merge_residency(existing, residency))
 }
 
 /// Set `residency` on the existing config, preserving unrelated keys and
@@ -72,7 +79,10 @@ fn merge_residency(existing: Option<Value>, residency: &str) -> Value {
     let mut obj = existing
         .and_then(|v| v.as_object().cloned())
         .unwrap_or_default();
-    obj.insert("residency".to_string(), Value::String(residency.to_string()));
+    obj.insert(
+        "residency".to_string(),
+        Value::String(residency.to_string()),
+    );
     obj.remove("api_key");
     Value::Object(obj)
 }

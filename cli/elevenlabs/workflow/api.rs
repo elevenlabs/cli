@@ -15,6 +15,34 @@ use fern_cli_sdk::openapi::AppContext;
 use reqwest::Method;
 use serde_json::{json, Value};
 
+/// Upper bound on pages any list helper will fetch. A hostile or buggy API
+/// that keeps returning `has_more` with the same cursor would otherwise pin the
+/// CLI in an infinite request loop with unbounded memory growth. The framework
+/// applies the same idea to its own `--page-all` (default 10 pages); these
+/// helpers need their own limit because they don't go through it.
+const MAX_PAGES: usize = 100;
+
+/// Decide whether to fetch another page, and with which cursor.
+///
+/// Split out from the list helpers so the termination guarantees are testable
+/// without an HTTP server: a missing/false `has_more`, an absent `next_cursor`,
+/// or a cursor we have already followed all stop the loop.
+fn advance_cursor(resp: &Value, seen: &mut std::collections::HashSet<String>) -> Option<String> {
+    if !resp
+        .get("has_more")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return None;
+    }
+    let next = resp.get("next_cursor").and_then(Value::as_str)?;
+    // A cursor we have already followed means the API is looping.
+    if !seen.insert(next.to_string()) {
+        return None;
+    }
+    Some(next.to_string())
+}
+
 /// `X-Source` tag v0 attached to every request.
 const X_SOURCE: &str = "agents-cli";
 
@@ -38,12 +66,13 @@ fn raw_request(
     query: Option<Vec<(String, String)>>,
 ) -> Result<Value, CliError> {
     let client = crate::sdk::client(ctx);
-    crate::sdk::block_on(
-        client
-            .agents
-            .http_client
-            .execute_request::<Value>(method, path, body, query, request_options()),
-    )
+    crate::sdk::block_on(client.agents.http_client.execute_request::<Value>(
+        method,
+        path,
+        body,
+        query,
+        request_options(),
+    ))
 }
 
 // ── Config cleaning ─────────────────────────────────────────────────
@@ -178,7 +207,8 @@ pub fn get_agent(
 pub fn list_agents(ctx: &AppContext, search: Option<&str>) -> Result<Vec<Value>, CliError> {
     let mut all = Vec::new();
     let mut cursor: Option<String> = None;
-    loop {
+    let mut seen_cursors: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for page in 0..MAX_PAGES {
         let mut query = vec![("page_size".to_string(), "100".to_string())];
         if let Some(c) = &cursor {
             query.push(("cursor".to_string(), c.clone()));
@@ -190,15 +220,12 @@ pub fn list_agents(ctx: &AppContext, search: Option<&str>) -> Result<Vec<Value>,
         if let Some(agents) = resp.get("agents").and_then(Value::as_array) {
             all.extend(agents.iter().cloned());
         }
-        if !resp.get("has_more").and_then(Value::as_bool).unwrap_or(false) {
-            break;
+        match advance_cursor(&resp, &mut seen_cursors) {
+            Some(next) => cursor = Some(next),
+            None => break,
         }
-        cursor = resp
-            .get("next_cursor")
-            .and_then(Value::as_str)
-            .map(String::from);
-        if cursor.is_none() {
-            break;
+        if page + 1 == MAX_PAGES {
+            eprintln!("Warning: stopped after {MAX_PAGES} pages; results may be incomplete.");
         }
     }
     Ok(all)
@@ -353,7 +380,8 @@ pub fn get_test(ctx: &AppContext, test_id: &str) -> Result<Value, CliError> {
 pub fn list_tests(ctx: &AppContext) -> Result<Vec<Value>, CliError> {
     let mut all = Vec::new();
     let mut cursor: Option<String> = None;
-    loop {
+    let mut seen_cursors: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for page in 0..MAX_PAGES {
         let mut query = vec![("page_size".to_string(), "100".to_string())];
         if let Some(c) = &cursor {
             query.push(("cursor".to_string(), c.clone()));
@@ -368,15 +396,12 @@ pub fn list_tests(ctx: &AppContext) -> Result<Vec<Value>, CliError> {
         if let Some(tests) = resp.get("tests").and_then(Value::as_array) {
             all.extend(tests.iter().cloned());
         }
-        if !resp.get("has_more").and_then(Value::as_bool).unwrap_or(false) {
-            break;
+        match advance_cursor(&resp, &mut seen_cursors) {
+            Some(next) => cursor = Some(next),
+            None => break,
         }
-        cursor = resp
-            .get("next_cursor")
-            .and_then(Value::as_str)
-            .map(String::from);
-        if cursor.is_none() {
-            break;
+        if page + 1 == MAX_PAGES {
+            eprintln!("Warning: stopped after {MAX_PAGES} pages; results may be incomplete.");
         }
     }
     Ok(all)
@@ -455,5 +480,56 @@ mod tests {
         let body = build_agent_body(&json!({ "name": "A" }), None);
         assert_eq!(body["name"], json!("A"));
         assert_eq!(body["conversation_config"], json!({}));
+    }
+
+    fn seen() -> std::collections::HashSet<String> {
+        std::collections::HashSet::new()
+    }
+
+    #[test]
+    fn stops_when_has_more_is_absent_or_false() {
+        assert_eq!(advance_cursor(&json!({}), &mut seen()), None);
+        assert_eq!(
+            advance_cursor(&json!({"has_more": false}), &mut seen()),
+            None
+        );
+    }
+
+    #[test]
+    fn stops_when_has_more_is_a_non_bool() {
+        // A hostile API cannot keep the loop alive with a truthy-looking value.
+        assert_eq!(
+            advance_cursor(&json!({"has_more": "yes"}), &mut seen()),
+            None
+        );
+        assert_eq!(advance_cursor(&json!({"has_more": 1}), &mut seen()), None);
+    }
+
+    #[test]
+    fn stops_when_next_cursor_is_missing_despite_has_more() {
+        let resp = json!({"has_more": true});
+        assert_eq!(advance_cursor(&resp, &mut seen()), None);
+    }
+
+    #[test]
+    fn follows_a_fresh_cursor() {
+        let mut s = seen();
+        let resp = json!({"has_more": true, "next_cursor": "abc"});
+        assert_eq!(advance_cursor(&resp, &mut s), Some("abc".to_string()));
+        assert!(s.contains("abc"));
+    }
+
+    #[test]
+    fn stops_on_a_repeated_cursor() {
+        let mut s = seen();
+        let resp = json!({"has_more": true, "next_cursor": "loop"});
+        assert_eq!(advance_cursor(&resp, &mut s), Some("loop".to_string()));
+        // Same cursor again: the API is looping, so refuse to follow it.
+        assert_eq!(advance_cursor(&resp, &mut s), None);
+    }
+
+    #[test]
+    fn page_cap_is_bounded() {
+        assert!(MAX_PAGES > 0 && MAX_PAGES <= 1000);
     }
 }

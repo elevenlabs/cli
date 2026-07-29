@@ -53,8 +53,7 @@ pub fn register(app: CliApp) -> CliApp {
     // commands, and a custom leaf named `widget` would shadow the whole group.
     .command_under_typed_with(
         &["agents", "widget"],
-        clap::Command::new("embed")
-            .about("Print an embeddable HTML widget snippet for an agent"),
+        clap::Command::new("embed").about("Print an embeddable HTML widget snippet for an agent"),
         handle_widget,
     )
     .command_under_typed_with(
@@ -80,7 +79,7 @@ fn require_agents() -> Result<project::AgentsConfig, CliError> {
 /// Read an agent's display name from its config file. Ports v0's
 /// `getAgentName` (Unknown when unreadable, Unnamed when nameless).
 fn agent_display_name(config_path: &str) -> String {
-    match project::read_value(Path::new(config_path)) {
+    match project::read_value_in_project(config_path) {
         Ok(value) => value
             .get("name")
             .and_then(Value::as_str)
@@ -100,7 +99,21 @@ struct InitArgs {
     /// Override existing files and recreate config dirs from scratch.
     #[arg(long)]
     r#override: bool,
+    /// Skip the confirmation prompt shown for --override.
+    #[arg(long)]
+    yes: bool,
 }
+
+/// Contents of the .gitignore written by `init`.
+///
+/// Only .env is ignored. The config directories are deliberately left tracked:
+/// committing them is the entire point of managing agents as code, and ignoring
+/// them fails silently rather than loudly — agents.json is tracked while the
+/// configs it references are not, so a fresh clone gets an index pointing at
+/// files that do not exist. Secrets belong in .env or in workspace secrets,
+/// which pulled configs reference by locator rather than by value.
+const GITIGNORE_BODY: &str =
+    "# Credentials — never commit these. Use .env.example as the tracked template.\n.env\n";
 
 fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
     let root = PathBuf::from(&args.path);
@@ -109,7 +122,21 @@ fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
         .unwrap_or_else(|_| root.clone());
     println!("Initializing project in {}", abs.display());
     if args.r#override {
+        // --override recursively deletes the config directories, so confirm
+        // first. A non-interactive run declines, which keeps an agent or a
+        // script from wiping a directory it was merely pointed at.
         println!("⚠ Override mode: existing files will be overwritten");
+        println!(
+            "   This deletes {}/, {}/ and {}/ under {} and their contents.",
+            project::AGENT_CONFIGS_DIR,
+            project::TOOL_CONFIGS_DIR,
+            project::TEST_CONFIGS_DIR,
+            abs.display()
+        );
+        if !args.yes && !project::prompt_confirm("Continue?")? {
+            println!("Initialization cancelled");
+            return Ok(());
+        }
     }
 
     std::fs::create_dir_all(&root).map_err(io_err("create project directory", &root))?;
@@ -151,6 +178,15 @@ fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
         }
     }
 
+    let gitignore_path = root.join(".gitignore");
+    if !args.r#override && gitignore_path.exists() {
+        println!(".gitignore already exists (skipped)");
+    } else {
+        std::fs::write(&gitignore_path, GITIGNORE_BODY)
+            .map_err(io_err("write .gitignore", &gitignore_path))?;
+        println!("Created .gitignore");
+    }
+
     let env_path = root.join(".env.example");
     if !args.r#override && env_path.exists() {
         println!(".env.example already exists (skipped)");
@@ -185,7 +221,8 @@ fn init_index_file<T: serde::Serialize>(
 fn print_next_steps() {
     println!("\nProject initialized successfully!");
     println!("Next steps:");
-    println!("1. Set your ElevenLabs API key: elevenlabs auth login");
+    println!("1. Set your ElevenLabs API key: export ELEVENLABS_API_KEY=xi-...");
+    println!("   (or copy .env.example to .env and put it there)");
     println!("2. Create an agent: elevenlabs agents add \"My Agent\" --template default");
     println!("3. Create tools: elevenlabs tools add \"My Webhook\" --type webhook");
     println!("4. Create tests: elevenlabs tests add \"My Test\" --template basic-llm");
@@ -263,7 +300,10 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
         let name = args.name.clone().ok_or_else(|| {
             CliError::Validation("Agent name is required when using templates".to_string())
         })?;
-        let template_type = args.template.clone().unwrap_or_else(|| "default".to_string());
+        let template_type = args
+            .template
+            .clone()
+            .unwrap_or_else(|| "default".to_string());
         let cfg = templates::template_by_name(&name, &template_type)?;
         (cfg, name)
     };
@@ -280,7 +320,7 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
             .display()
             .to_string(),
     };
-    project::write_json(Path::new(&config_path), &agent_config)?;
+    project::write_json_in_project(&config_path, &agent_config)?;
     match &args.from_file {
         Some(from_file) => println!("Created config file: {config_path} (from: {from_file})"),
         None => println!(
@@ -439,7 +479,10 @@ fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
         )));
     }
 
-    println!("Running {} test(s) for agent '{agent_name}'...", test_ids.len());
+    println!(
+        "Running {} test(s) for agent '{agent_name}'...",
+        test_ids.len()
+    );
     println!();
 
     let invocation = api::run_tests_on_agent(ctx, &args.agent, &test_ids, None)?;
@@ -575,7 +618,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             println!("Warning: Config file not found: {config_path}");
             continue;
         }
-        let agent_config = match project::read_value(Path::new(&config_path)) {
+        let agent_config = match project::read_value_in_project(&config_path) {
             Ok(v) => v,
             Err(e) => {
                 println!("Error reading config for {config_path}: {e}");
@@ -667,7 +710,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                         );
                         continue;
                     }
-                    let branch_config = match project::read_value(Path::new(&branch_def.config)) {
+                    let branch_config = match project::read_value_in_project(&branch_def.config) {
                         Ok(v) => v,
                         Err(e) => {
                             println!("  ✗ Error pushing branch '{branch_name}': {e}");
@@ -759,7 +802,8 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
     let all_branches = matches.get_flag("all-branches");
-    let output_dir = opt_string(matches, "output-dir").unwrap_or_else(|| "agent_configs".to_string());
+    let output_dir =
+        opt_string(matches, "output-dir").unwrap_or_else(|| "agent_configs".to_string());
     let dry_run = dry_run_flag(matches);
     let update = matches.get_flag("update");
     let all = matches.get_flag("all");
@@ -825,7 +869,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                     .get("agent_id")
                     .or_else(|| a.get("agentId"))
                     .and_then(Value::as_str)?;
-                let name = a.get("name").and_then(Value::as_str).unwrap_or("").to_string();
+                let name = a
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
                 Some((id.to_string(), name))
             })
             .collect()
@@ -835,7 +883,10 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let mut plan: Vec<(PullAction, String, String, Option<usize>)> = Vec::new();
     let (mut n_create, mut n_update, mut n_skip) = (0usize, 0usize, 0usize);
     for (id, name) in &remote {
-        let existing = registry.agents.iter().position(|a| a.id.as_deref() == Some(id.as_str()));
+        let existing = registry
+            .agents
+            .iter()
+            .position(|a| a.id.as_deref() == Some(id.as_str()));
         let action = plan_pull_action(existing.is_some(), update, all);
         match action {
             PullAction::Create => n_create += 1,
@@ -848,7 +899,9 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     println!("\nPlan: {n_create} create, {n_update} update, {n_skip} skip");
     if n_skip > 0 && !update && !all {
         if n_create == 0 {
-            println!("\n💡 Tip: Use --update to update existing agents or --all to pull everything");
+            println!(
+                "\n💡 Tip: Use --update to update existing agents or --all to pull everything"
+            );
         } else {
             println!("\n💡 Tip: Use --all to also update existing agents");
         }
@@ -866,7 +919,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             continue;
         }
         if dry_run {
-            let verb = if *action == PullAction::Update { "update" } else { "pull" };
+            let verb = if *action == PullAction::Update {
+                "update"
+            } else {
+                "pull"
+            };
             println!("[DRY RUN] Would {verb} agent: {name} (ID: {id})");
             continue;
         }
@@ -886,13 +943,19 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             }
         };
         let config = build_pulled_config(name, &live);
-        let version_id = live.get("version_id").and_then(Value::as_str).map(String::from);
-        let live_branch_id = live.get("branch_id").and_then(Value::as_str).map(String::from);
+        let version_id = live
+            .get("version_id")
+            .and_then(Value::as_str)
+            .map(String::from);
+        let live_branch_id = live
+            .get("branch_id")
+            .and_then(Value::as_str)
+            .map(String::from);
 
         let entry_idx = match existing_idx {
             Some(i) => {
                 let cfg_path = registry.agents[*i].config.clone();
-                project::write_json(Path::new(&cfg_path), &config)?;
+                project::write_json_in_project(&cfg_path, &config)?;
                 if let Some(v) = &version_id {
                     registry.agents[*i].version_id = Some(v.clone());
                 }
@@ -903,11 +966,10 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 *i
             }
             None => {
-                let cfg_path =
-                    project::generate_unique_filename(&output_dir, name, ".json")
-                        .display()
-                        .to_string();
-                project::write_json(Path::new(&cfg_path), &config)?;
+                let cfg_path = project::generate_unique_filename(&output_dir, name, ".json")
+                    .display()
+                    .to_string();
+                project::write_json_in_project(&cfg_path, &config)?;
                 registry.agents.push(project::AgentDefinition {
                     config: cfg_path.clone(),
                     id: Some(id.clone()),
@@ -922,11 +984,14 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
         // --branch: persist the branch config alongside the main one.
         if let (Some(branch), Some(bid)) = (&branch, &branch_id) {
-            let branch_path =
-                project::generate_unique_filename(&output_dir, &format!("{name}.{branch}"), ".json")
-                    .display()
-                    .to_string();
-            project::write_json(Path::new(&branch_path), &config)?;
+            let branch_path = project::generate_unique_filename(
+                &output_dir,
+                &format!("{name}.{branch}"),
+                ".json",
+            )
+            .display()
+            .to_string();
+            project::write_json_in_project(&branch_path, &config)?;
             let branches = registry.agents[entry_idx]
                 .branches
                 .get_or_insert_with(Default::default);
@@ -986,7 +1051,11 @@ fn pull_all_branches(
 
     let parent_branch_id = registry.agents[entry_idx].branch_id.clone();
     for branch in &branches {
-        if branch.get("is_archived").and_then(Value::as_bool).unwrap_or(false) {
+        if branch
+            .get("is_archived")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
             continue;
         }
         let bid = branch.get("id").and_then(Value::as_str).unwrap_or("");
@@ -1007,7 +1076,10 @@ fn pull_all_branches(
             }
         };
         let branch_config = build_pulled_config(agent_name, &live);
-        let version_id = live.get("version_id").and_then(Value::as_str).map(String::from);
+        let version_id = live
+            .get("version_id")
+            .and_then(Value::as_str)
+            .map(String::from);
 
         let existing_path = registry.agents[entry_idx]
             .branches
@@ -1019,7 +1091,7 @@ fn pull_all_branches(
                 .display()
                 .to_string()
         });
-        project::write_json(Path::new(&branch_path), &branch_config)?;
+        project::write_json_in_project(&branch_path, &branch_config)?;
 
         let map = registry.agents[entry_idx]
             .branches
@@ -1054,11 +1126,15 @@ fn build_pulled_config(name: &str, live: &Value) -> Value {
     obj.insert("name".to_string(), json!(name));
     obj.insert(
         "conversation_config".to_string(),
-        live.get("conversation_config").cloned().unwrap_or_else(|| json!({})),
+        live.get("conversation_config")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
     );
     obj.insert(
         "platform_settings".to_string(),
-        live.get("platform_settings").cloned().unwrap_or_else(|| json!({})),
+        live.get("platform_settings")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
     );
     obj.insert(
         "tags".to_string(),
@@ -1077,6 +1153,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn gitignore_covers_env_but_never_the_config_dirs() {
+        assert!(GITIGNORE_BODY.lines().any(|l| l.trim() == ".env"));
+        for dir in [
+            project::AGENT_CONFIGS_DIR,
+            project::TOOL_CONFIGS_DIR,
+            project::TEST_CONFIGS_DIR,
+        ] {
+            assert!(
+                !GITIGNORE_BODY.contains(dir),
+                ".gitignore must not ignore {dir}: agents.json would be tracked while \
+                 the configs it references are not, breaking only on a fresh clone"
+            );
+        }
+    }
+
+    #[test]
     fn pulled_config_keeps_only_the_on_disk_shape() {
         // Server-side metadata (agent_id, version_id, …) must not leak into the
         // config file — ids live in agents.json, so a pulled config stays
@@ -1090,7 +1182,10 @@ mod tests {
         });
         let config = build_pulled_config("My Agent", &live);
         assert_eq!(config["name"], json!("My Agent"));
-        assert_eq!(config["conversation_config"]["agent"]["language"], json!("en"));
+        assert_eq!(
+            config["conversation_config"]["agent"]["language"],
+            json!("en")
+        );
         assert_eq!(config["tags"], json!(["a"]));
         assert!(config.get("agent_id").is_none());
         assert!(config.get("version_id").is_none());
