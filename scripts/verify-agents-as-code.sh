@@ -5,7 +5,7 @@
 # Creates REAL agents/tools/tests in the workspace the API key belongs to, and
 # deletes them again in phase 7. Run against a scratch account if you have one.
 #
-#   bash scratch-e2e/run.sh
+#   bash scripts/verify-agents-as-code.sh
 #
 set -uo pipefail
 
@@ -15,7 +15,7 @@ set -uo pipefail
 exec < /dev/null
 
 CLI="$(cd "$(dirname "$0")/.." && pwd)/target/release/elevenlabs"
-WORK="$(cd "$(dirname "$0")" && pwd)/project"
+WORK="$(cd "$(dirname "$0")/.." && pwd)/.verify-project"
 
 pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗ %s\033[0m\n' "$1"; FAILED=$((FAILED + 1)); }
