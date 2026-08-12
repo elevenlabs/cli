@@ -1,0 +1,2 @@
+pub mod agents_knowledge_base_documents_chunk;
+pub use agents_knowledge_base_documents_chunk::ChunkClient;

@@ -1,0 +1,2 @@
+pub mod studio_projects_pronunciation_dictionaries;
+pub use studio_projects_pronunciation_dictionaries::PronunciationDictionariesClient2;
