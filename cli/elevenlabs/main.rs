@@ -6,9 +6,11 @@ mod sdk;
 
 use fern_cli_sdk::app::CliApp;
 use fern_cli_sdk::openapi::OpenApiBinding;
+use fern_cli_sdk::auth::{PkceLoginFlow};
 
 fn main() {
     let app = CliApp::new("elevenlabs")
+        .login_flow(PkceLoginFlow::new("OAuth").client_id("c9c18126-5718-406a-8a12-21b69e5a888d").authorization_url("https://elevenlabs.io/app/oauth/authorize").token_url("https://api.us.elevenlabs.io/v1/oauth/token").redirect_host("localhost").redirect_ports([8484, 8483, 8482]))
         .binding(
             OpenApiBinding::new()
                 .spec(include_str!("openapi0.json"))

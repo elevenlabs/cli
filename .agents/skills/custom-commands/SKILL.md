@@ -221,6 +221,15 @@ let result = super::sdk::block_on(
 use elevenlabs_sdk::api::*;
 ```
 
+### 4. Authentication
+
+Custom commands automatically inherit the CLI's authentication.
+The following auth schemes are configured:
+
+- **OAuth** (oauth-authorization-code): env ``
+
+No manual auth wiring is needed in custom command handlers.
+
 ## Regeneration Safety
 
 | File | Regenerated? | Notes |
