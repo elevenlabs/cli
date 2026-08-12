@@ -19,8 +19,6 @@ pub struct WorkspaceGroupResponseModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub character_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scim_external_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_scim_synced: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scim_group: Option<ScimGroupResponseModel>,
@@ -44,7 +42,6 @@ pub struct WorkspaceGroupResponseModelBuilder {
     group_usage_limit: Option<WorkspaceGroupResponseModelGroupUsageLimit>,
     group_pvc_limit: Option<WorkspaceGroupResponseModelGroupPvcLimit>,
     character_count: Option<i64>,
-    scim_external_id: Option<String>,
     is_scim_synced: Option<bool>,
     scim_group: Option<ScimGroupResponseModel>,
     scim_frozen: Option<bool>,
@@ -86,11 +83,6 @@ impl WorkspaceGroupResponseModelBuilder {
         self
     }
 
-    pub fn scim_external_id(mut self, value: impl Into<String>) -> Self {
-        self.scim_external_id = Some(value.into());
-        self
-    }
-
     pub fn is_scim_synced(mut self, value: bool) -> Self {
         self.is_scim_synced = Some(value);
         self
@@ -120,7 +112,6 @@ impl WorkspaceGroupResponseModelBuilder {
             group_usage_limit: self.group_usage_limit,
             group_pvc_limit: self.group_pvc_limit,
             character_count: self.character_count,
-            scim_external_id: self.scim_external_id,
             is_scim_synced: self.is_scim_synced,
             scim_group: self.scim_group,
             scim_frozen: self.scim_frozen,

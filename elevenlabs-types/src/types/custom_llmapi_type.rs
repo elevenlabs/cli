@@ -7,6 +7,7 @@ use super::*;
 pub enum CustomLlmapiType {
     ChatCompletions,
     Responses,
+    Websocket,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -17,6 +18,7 @@ impl Serialize for CustomLlmapiType {
         match self {
             Self::ChatCompletions => serializer.serialize_str("chat_completions"),
             Self::Responses => serializer.serialize_str("responses"),
+            Self::Websocket => serializer.serialize_str("websocket"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -28,6 +30,7 @@ impl<'de> Deserialize<'de> for CustomLlmapiType {
         match value.as_str() {
             "chat_completions" => Ok(Self::ChatCompletions),
             "responses" => Ok(Self::Responses),
+            "websocket" => Ok(Self::Websocket),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -38,6 +41,7 @@ impl fmt::Display for CustomLlmapiType {
         match self {
             Self::ChatCompletions => write!(f, "chat_completions"),
             Self::Responses => write!(f, "responses"),
+            Self::Websocket => write!(f, "websocket"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

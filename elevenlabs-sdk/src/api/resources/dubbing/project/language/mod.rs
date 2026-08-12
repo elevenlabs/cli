@@ -108,8 +108,8 @@ impl LanguageClient {
     ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
     ///             &BodyCreateDubbingLanguageTargetV1DubbingProjectProjectIDLanguagePost {
     ///                 target_language: "es".to_string(),
-    ///                 model_id: Some("dubbing_v2".to_string()),
     ///                 voice_settings: None,
+    ///                 translations: None,
     ///             },
     ///             None,
     ///         )

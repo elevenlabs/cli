@@ -20,6 +20,7 @@ impl BranchesClient {
     /// * `agent_id` - The id of an agent. This is returned on agent creation.
     /// * `include_archived` - Whether archived branches should be included
     /// * `limit` - How many results at most should be returned
+    /// * `include_commit_status` - Whether to compute how far each branch has diverged from main (commits_ahead/commits_behind). This walks the version DAG of every branch, so it is slow on agents with long histories and is off by default, leaving those fields null.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -45,6 +46,7 @@ impl BranchesClient {
     ///             &AgentsBranchesListQueryRequest {
     ///                 include_archived: Some(true),
     ///                 limit: Some(1),
+    ///                 include_commit_status: Some(true),
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -66,6 +68,10 @@ impl BranchesClient {
                 QueryBuilder::new()
                     .bool("include_archived", request.include_archived.clone())
                     .int("limit", request.limit.clone())
+                    .bool(
+                        "include_commit_status",
+                        request.include_commit_status.clone(),
+                    )
                     .build(),
                 options,
             )

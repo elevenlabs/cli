@@ -15,6 +15,8 @@ pub struct UpdateSpeechEngineRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn: Option<BaseTurnConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub vad: Option<VadConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation: Option<ConversationConfigInput>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub privacy: Option<PrivacyConfigInput>,
@@ -42,6 +44,7 @@ pub struct UpdateSpeechEngineRequestBuilder {
     asr: Option<AsrConversationalConfig>,
     tts: Option<TtsConversationalConfigInput>,
     turn: Option<BaseTurnConfig>,
+    vad: Option<VadConfig>,
     conversation: Option<ConversationConfigInput>,
     privacy: Option<PrivacyConfigInput>,
     call_limits: Option<AgentCallLimits>,
@@ -73,6 +76,11 @@ impl UpdateSpeechEngineRequestBuilder {
 
     pub fn turn(mut self, value: BaseTurnConfig) -> Self {
         self.turn = Some(value);
+        self
+    }
+
+    pub fn vad(mut self, value: VadConfig) -> Self {
+        self.vad = Some(value);
         self
     }
 
@@ -114,6 +122,7 @@ impl UpdateSpeechEngineRequestBuilder {
             asr: self.asr,
             tts: self.tts,
             turn: self.turn,
+            vad: self.vad,
             conversation: self.conversation,
             privacy: self.privacy,
             call_limits: self.call_limits,

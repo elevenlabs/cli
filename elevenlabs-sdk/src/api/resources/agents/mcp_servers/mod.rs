@@ -95,6 +95,7 @@ impl McpServersClient {
     ///                     url: McpServerConfigInputURL::String("url".to_string()),
     ///                     secret_token: None,
     ///                     request_headers: None,
+    ///                     request_meta: None,
     ///                     auth_connection: None,
     ///                     name: "name".to_string(),
     ///                     description: None,

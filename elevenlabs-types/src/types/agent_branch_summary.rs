@@ -38,6 +38,15 @@ pub struct AgentBranchSummary {
     #[serde(rename = "calls_7d")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub calls7d: Option<i64>,
+    /// Number of commits on this branch not yet on main, relative to their common ancestor. Null if it could not be computed (e.g. no common ancestor, or the branch history exceeds the comparison budget).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commits_ahead: Option<i64>,
+    /// Number of commits on main not yet incorporated into this branch, relative to their common ancestor. Null if it could not be computed (e.g. no common ancestor, or the branch history exceeds the comparison budget).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commits_behind: Option<i64>,
+    /// ID of the branch this branch's tip version was merged into, if any
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub merged_into_branch_id: Option<String>,
 }
 
 impl AgentBranchSummary {
@@ -62,6 +71,9 @@ pub struct AgentBranchSummaryBuilder {
     parent_branch_id: Option<String>,
     draft_exists: Option<bool>,
     calls7d: Option<i64>,
+    commits_ahead: Option<i64>,
+    commits_behind: Option<i64>,
+    merged_into_branch_id: Option<String>,
 }
 
 impl AgentBranchSummaryBuilder {
@@ -130,6 +142,21 @@ impl AgentBranchSummaryBuilder {
         self
     }
 
+    pub fn commits_ahead(mut self, value: i64) -> Self {
+        self.commits_ahead = Some(value);
+        self
+    }
+
+    pub fn commits_behind(mut self, value: i64) -> Self {
+        self.commits_behind = Some(value);
+        self
+    }
+
+    pub fn merged_into_branch_id(mut self, value: impl Into<String>) -> Self {
+        self.merged_into_branch_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentBranchSummary`].
     /// This method will fail if any of the following fields are not set:
     /// - [`id`](AgentBranchSummaryBuilder::id)
@@ -154,6 +181,9 @@ impl AgentBranchSummaryBuilder {
             parent_branch_id: self.parent_branch_id,
             draft_exists: self.draft_exists,
             calls7d: self.calls7d,
+            commits_ahead: self.commits_ahead,
+            commits_behind: self.commits_behind,
+            merged_into_branch_id: self.merged_into_branch_id,
         })
     }
 }

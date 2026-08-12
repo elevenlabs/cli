@@ -19,6 +19,8 @@ pub struct ConversationHistoryTranscriptResponseModel {
     pub feedback: Option<UserFeedback>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_override: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub producing_llm: Option<String>,
     #[serde(default)]
     pub time_in_call_secs: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,6 +46,10 @@ pub struct ConversationHistoryTranscriptResponseModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_identifier: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub file_input: Option<ConversationHistoryTranscriptFileInputResponseModel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contextual_update_info: Option<ContextualUpdateInfo>,
@@ -68,6 +74,7 @@ pub struct ConversationHistoryTranscriptResponseModelBuilder {
     tool_results: Option<Vec<ConversationHistoryTranscriptResponseModelToolResultsItem>>,
     feedback: Option<UserFeedback>,
     llm_override: Option<String>,
+    producing_llm: Option<String>,
     time_in_call_secs: Option<i64>,
     conversation_turn_metrics: Option<ConversationTurnMetrics>,
     rag_retrieval_info: Option<RagRetrievalInfo>,
@@ -80,6 +87,8 @@ pub struct ConversationHistoryTranscriptResponseModelBuilder {
     source_event_id: Option<i64>,
     used_static_kb_document_ids: Option<Vec<String>>,
     user_identifier: Option<String>,
+    id: Option<String>,
+    triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
     file_input: Option<ConversationHistoryTranscriptFileInputResponseModel>,
     contextual_update_info: Option<ContextualUpdateInfo>,
     reasoned: Option<bool>,
@@ -123,6 +132,11 @@ impl ConversationHistoryTranscriptResponseModelBuilder {
 
     pub fn llm_override(mut self, value: impl Into<String>) -> Self {
         self.llm_override = Some(value.into());
+        self
+    }
+
+    pub fn producing_llm(mut self, value: impl Into<String>) -> Self {
+        self.producing_llm = Some(value.into());
         self
     }
 
@@ -186,6 +200,16 @@ impl ConversationHistoryTranscriptResponseModelBuilder {
         self
     }
 
+    pub fn id(mut self, value: impl Into<String>) -> Self {
+        self.id = Some(value.into());
+        self
+    }
+
+    pub fn triggered_guardrails(mut self, value: Vec<TriggeredGuardrailCommonModel>) -> Self {
+        self.triggered_guardrails = Some(value);
+        self
+    }
+
     pub fn file_input(mut self, value: ConversationHistoryTranscriptFileInputResponseModel) -> Self {
         self.file_input = Some(value);
         self
@@ -215,6 +239,7 @@ impl ConversationHistoryTranscriptResponseModelBuilder {
             tool_results: self.tool_results,
             feedback: self.feedback,
             llm_override: self.llm_override,
+            producing_llm: self.producing_llm,
             time_in_call_secs: self.time_in_call_secs.ok_or_else(|| BuildError::missing_field("time_in_call_secs"))?,
             conversation_turn_metrics: self.conversation_turn_metrics,
             rag_retrieval_info: self.rag_retrieval_info,
@@ -227,6 +252,8 @@ impl ConversationHistoryTranscriptResponseModelBuilder {
             source_event_id: self.source_event_id,
             used_static_kb_document_ids: self.used_static_kb_document_ids,
             user_identifier: self.user_identifier,
+            id: self.id,
+            triggered_guardrails: self.triggered_guardrails,
             file_input: self.file_input,
             contextual_update_info: self.contextual_update_info,
             reasoned: self.reasoned,

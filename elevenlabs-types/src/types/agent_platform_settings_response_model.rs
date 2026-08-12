@@ -61,6 +61,9 @@ pub struct AgentPlatformSettingsResponseModel {
     /// Per-agent post-call sentiment analysis configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentiment_analysis: Option<SentimentAnalysisSettings>,
+    /// Agent-level alerting configuration overriding workspace settings.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alerting: Option<AlertingSettingsResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub safety: Option<SafetyResponseModel>,
 }
@@ -93,6 +96,7 @@ pub struct AgentPlatformSettingsResponseModelBuilder {
     analysis_llm: Option<Llm>,
     topic_discovery: Option<TopicDiscoverySettings>,
     sentiment_analysis: Option<SentimentAnalysisSettings>,
+    alerting: Option<AlertingSettingsResponse>,
     safety: Option<SafetyResponseModel>,
 }
 
@@ -192,6 +196,11 @@ impl AgentPlatformSettingsResponseModelBuilder {
         self
     }
 
+    pub fn alerting(mut self, value: AlertingSettingsResponse) -> Self {
+        self.alerting = Some(value);
+        self
+    }
+
     pub fn safety(mut self, value: SafetyResponseModel) -> Self {
         self.safety = Some(value);
         self
@@ -219,6 +228,7 @@ impl AgentPlatformSettingsResponseModelBuilder {
             analysis_llm: self.analysis_llm,
             topic_discovery: self.topic_discovery,
             sentiment_analysis: self.sentiment_analysis,
+            alerting: self.alerting,
             safety: self.safety,
         })
     }

@@ -53,11 +53,51 @@ fn request_options() -> Option<RequestOptions> {
     Some(opts)
 }
 
-/// Perform a raw JSON request through the CLI's authenticated executor.
+/// Pull a human-readable message out of the API's error body.
+///
+/// ElevenLabs returns several shapes: `{"detail": "..."}`, `{"detail":
+/// {"message": ..., "status": ...}}`, FastAPI's `{"detail": [{"msg": ...}]}`,
+/// and bare `{"message": ..., "status": ...}`. Fall back to the whole body so
+/// an unrecognized shape is still shown rather than swallowed.
+fn api_error_message(body: &Value) -> String {
+    let detail = body.get("detail");
+    if let Some(s) = detail.and_then(Value::as_str) {
+        return s.to_string();
+    }
+    if let Some(msg) = detail
+        .and_then(|d| d.get("message"))
+        .and_then(Value::as_str)
+        .or_else(|| body.get("message").and_then(Value::as_str))
+    {
+        return msg.to_string();
+    }
+    if let Some(msgs) = detail.and_then(Value::as_array) {
+        let joined: Vec<String> = msgs
+            .iter()
+            .filter_map(|m| m.get("msg").and_then(Value::as_str).map(String::from))
+            .collect();
+        if !joined.is_empty() {
+            return joined.join("; ");
+        }
+    }
+    body.to_string()
+}
+
+/// Perform a raw JSON request through the CLI's authenticated executor,
+/// surfacing non-2xx responses as errors.
 ///
 /// Body and response are untyped [`Value`], so agent/tool/test configs
 /// round-trip losslessly. Paths are relative (no leading slash), matching
 /// the generated SDK's convention.
+///
+/// The status check is ours on purpose. The generated SDK's `execute_request`
+/// does not reliably reject error responses: `parse_response` only fails when
+/// the body is *empty*, and the executor-backed path this CLI uses skips
+/// `execute_with_retries`, which is the only other place status is inspected.
+/// So a non-2xx with a JSON body deserializes straight into `Ok`. Left alone,
+/// a 401 surfaced as "No agents found in your ElevenLabs workspace" with exit
+/// code 0 — a wrong answer reported as success. `execute_request_raw` hands
+/// back the status alongside the body, so we can judge it here.
 fn raw_request(
     ctx: &AppContext,
     method: Method,
@@ -66,13 +106,21 @@ fn raw_request(
     query: Option<Vec<(String, String)>>,
 ) -> Result<Value, CliError> {
     let client = crate::sdk::client(ctx);
-    crate::sdk::block_on(client.agents.http_client.execute_request::<Value>(
+    let raw = crate::sdk::block_on(client.agents.http_client.execute_request_raw::<Value>(
         method,
         path,
         body,
         query,
         request_options(),
-    ))
+    ))?;
+    if raw.status_code >= 400 {
+        return Err(CliError::Api {
+            code: raw.status_code,
+            message: api_error_message(&raw.body),
+            reason: format!("http_{}", raw.status_code),
+        });
+    }
+    Ok(raw.body)
 }
 
 // ── Config cleaning ─────────────────────────────────────────────────
@@ -457,6 +505,37 @@ pub fn get_test_invocation(ctx: &AppContext, invocation_id: &str) -> Result<Valu
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn api_error_message_handles_every_shape_the_api_returns() {
+        // {"detail": "..."}
+        assert_eq!(
+            api_error_message(&json!({"detail": "Invalid API key"})),
+            "Invalid API key"
+        );
+        // {"detail": {"message": ..., "status": ...}}
+        assert_eq!(
+            api_error_message(&json!({"detail": {"message": "bad model", "status": "invalid"}})),
+            "bad model"
+        );
+        // bare {"message": ..., "status": ...}
+        assert_eq!(
+            api_error_message(&json!({"message": "Internal Server error", "status": "ise"})),
+            "Internal Server error"
+        );
+        // FastAPI validation list
+        assert_eq!(
+            api_error_message(&json!({"detail": [{"msg": "field required"}, {"msg": "bad type"}]})),
+            "field required; bad type"
+        );
+    }
+
+    #[test]
+    fn api_error_message_falls_back_to_the_whole_body() {
+        // An unrecognized shape must still be shown, not swallowed.
+        let body = json!({"weird": {"nested": true}});
+        assert_eq!(api_error_message(&body), body.to_string());
+    }
 
     #[test]
     fn clean_removes_tools_when_tool_ids_present() {

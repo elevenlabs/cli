@@ -50,6 +50,8 @@ pub mod deployments;
 pub use deployments::DeploymentsClient;
 pub mod drafts;
 pub use drafts::DraftsClient;
+pub mod procedures;
+pub use procedures::ProceduresClient;
 pub mod agents;
 pub use agents::AgentsClient2;
 pub mod analytics;
@@ -82,6 +84,7 @@ pub struct AgentsClient {
     pub versions: VersionsClient,
     pub deployments: DeploymentsClient,
     pub drafts: DraftsClient,
+    pub procedures: ProceduresClient,
     pub agents: AgentsClient2,
     pub analytics: AnalyticsClient,
     pub dashboard: DashboardClient,
@@ -115,6 +118,7 @@ impl AgentsClient {
             versions: VersionsClient::new(config.clone())?,
             deployments: DeploymentsClient::new(config.clone())?,
             drafts: DraftsClient::new(config.clone())?,
+            procedures: ProceduresClient::new(config.clone())?,
             agents: AgentsClient2::new(config.clone())?,
             analytics: AnalyticsClient::new(config.clone())?,
             dashboard: DashboardClient::new(config.clone())?,

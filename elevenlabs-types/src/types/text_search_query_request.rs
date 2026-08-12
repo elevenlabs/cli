@@ -84,6 +84,9 @@ pub struct TextSearchQueryRequest {
     /// Filter conversations by branch ID.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    /// Filter conversations by version ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
     /// Filter conversations by topic IDs assigned during topic discovery.
     #[serde(default)]
     pub topic_ids: Vec<Option<String>>,
@@ -131,6 +134,7 @@ pub struct TextSearchQueryRequestBuilder {
     text_only: Option<bool>,
     conversation_product_type: Option<ConversationProduct>,
     branch_id: Option<String>,
+    version_id: Option<String>,
     topic_ids: Option<Vec<Option<String>>>,
     sort_by: Option<MessageSearchSortBy>,
     cursor: Option<String>,
@@ -272,6 +276,11 @@ impl TextSearchQueryRequestBuilder {
         self
     }
 
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
     pub fn topic_ids(mut self, value: Vec<Option<String>>) -> Self {
         self.topic_ids = Some(value);
         self
@@ -330,6 +339,7 @@ impl TextSearchQueryRequestBuilder {
             text_only: self.text_only,
             conversation_product_type: self.conversation_product_type,
             branch_id: self.branch_id,
+            version_id: self.version_id,
             topic_ids: self.topic_ids.ok_or_else(|| BuildError::missing_field("topic_ids"))?,
             sort_by: self.sort_by,
             cursor: self.cursor,

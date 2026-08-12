@@ -9,7 +9,7 @@ pub struct ApiIntegrationWebhookToolConfigOutput {
     /// Description of when the tool should be used and what it does.
     #[serde(default)]
     pub description: String,
-    /// The maximum time in seconds to wait for the tool call to complete. Must be between 5 and 120 seconds (inclusive).
+    /// The maximum time in seconds to wait for the tool call to complete. Must be between 5 and 300 seconds (inclusive).
     #[serde(default)]
     pub response_timeout_secs: i64,
     /// DEPRECATED: use `interruption_mode` instead. If true, the user will not be able to interrupt the agent while this tool is running.

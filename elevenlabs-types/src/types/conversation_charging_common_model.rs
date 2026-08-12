@@ -40,6 +40,8 @@ pub struct ConversationChargingCommonModel {
     pub tts_usage: Option<ConversationTtsUsageModel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asr_usage: Option<ConversationAsrUsageModel>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub analysis: Option<AnalysisCharging>,
 }
 
 impl ConversationChargingCommonModel {
@@ -65,6 +67,7 @@ pub struct ConversationChargingCommonModelBuilder {
     free_llm_dollars_consumed: Option<f64>,
     tts_usage: Option<ConversationTtsUsageModel>,
     asr_usage: Option<ConversationAsrUsageModel>,
+    analysis: Option<AnalysisCharging>,
 }
 
 impl ConversationChargingCommonModelBuilder {
@@ -138,6 +141,11 @@ impl ConversationChargingCommonModelBuilder {
         self
     }
 
+    pub fn analysis(mut self, value: AnalysisCharging) -> Self {
+        self.analysis = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationChargingCommonModel`].
     pub fn build(self) -> Result<ConversationChargingCommonModel, BuildError> {
         Ok(ConversationChargingCommonModel {
@@ -155,6 +163,7 @@ impl ConversationChargingCommonModelBuilder {
             free_llm_dollars_consumed: self.free_llm_dollars_consumed,
             tts_usage: self.tts_usage,
             asr_usage: self.asr_usage,
+            analysis: self.analysis,
         })
     }
 }

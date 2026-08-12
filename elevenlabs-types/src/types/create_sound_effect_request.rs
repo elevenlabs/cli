@@ -22,7 +22,7 @@ pub struct CreateSoundEffectRequest {
     pub prompt_influence: Option<f64>,
     /// The model ID to use for the sound generation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<String>,
+    pub model_id: Option<SfxModelId>,
     /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
     #[serde(skip)]
     pub output_format: Option<AllowedOutputFormats>,
@@ -41,7 +41,7 @@ pub struct CreateSoundEffectRequestBuilder {
     r#loop: Option<bool>,
     duration_seconds: Option<f64>,
     prompt_influence: Option<f64>,
-    model_id: Option<String>,
+    model_id: Option<SfxModelId>,
     output_format: Option<AllowedOutputFormats>,
 }
 
@@ -66,8 +66,8 @@ impl CreateSoundEffectRequestBuilder {
         self
     }
 
-    pub fn model_id(mut self, value: impl Into<String>) -> Self {
-        self.model_id = Some(value.into());
+    pub fn model_id(mut self, value: SfxModelId) -> Self {
+        self.model_id = Some(value);
         self
     }
 

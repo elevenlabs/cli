@@ -16,6 +16,8 @@ pub struct CharacterMetadataResponseModel {
     pub age: Option<CharacterAge>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<CharacterRole>,
 }
 
 impl CharacterMetadataResponseModel {
@@ -33,6 +35,7 @@ pub struct CharacterMetadataResponseModelBuilder {
     gender: Option<CharacterGender>,
     age: Option<CharacterAge>,
     accent: Option<String>,
+    role: Option<CharacterRole>,
 }
 
 impl CharacterMetadataResponseModelBuilder {
@@ -66,6 +69,11 @@ impl CharacterMetadataResponseModelBuilder {
         self
     }
 
+    pub fn role(mut self, value: CharacterRole) -> Self {
+        self.role = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`CharacterMetadataResponseModel`].
     pub fn build(self) -> Result<CharacterMetadataResponseModel, BuildError> {
         Ok(CharacterMetadataResponseModel {
@@ -75,6 +83,7 @@ impl CharacterMetadataResponseModelBuilder {
             gender: self.gender,
             age: self.age,
             accent: self.accent,
+            role: self.role,
         })
     }
 }

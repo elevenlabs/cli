@@ -36,10 +36,10 @@ pub struct GetSimulationTestResponseModel {
     /// Test-specific response mocks, keyed by tool ID. Applied ahead of the tool's shared mocks and only within this test. Only take effect for tools that are mocked (see tool_mock_config).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_mock_overrides: Option<HashMap<String, Vec<ToolResponseMockConfigOutput>>>,
-    /// LLM model to use for evaluating simulation results. Defaults to Claude Sonnet 4.6.
+    /// LLM model to use for evaluating simulation results.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub evaluation_model: Option<Llm>,
-    /// LLM model for the simulated user. Defaults to Claude Sonnet 4.6.
+    /// LLM model for the simulated user.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub simulated_user_model: Option<Llm>,
     #[serde(default)]

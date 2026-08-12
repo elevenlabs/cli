@@ -19,6 +19,9 @@ pub struct CreateSpeechEngineRequest {
     /// Turn detection configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn: Option<BaseTurnConfig>,
+    /// Configuration for voice activity detection
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vad: Option<VadConfig>,
     /// Conversation configuration (client events, etc.)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation: Option<ConversationConfigInput>,
@@ -53,6 +56,7 @@ pub struct CreateSpeechEngineRequestBuilder {
     asr: Option<AsrConversationalConfig>,
     tts: Option<TtsConversationalConfigInput>,
     turn: Option<BaseTurnConfig>,
+    vad: Option<VadConfig>,
     conversation: Option<ConversationConfigInput>,
     privacy: Option<PrivacyConfigInput>,
     call_limits: Option<AgentCallLimits>,
@@ -84,6 +88,11 @@ impl CreateSpeechEngineRequestBuilder {
 
     pub fn turn(mut self, value: BaseTurnConfig) -> Self {
         self.turn = Some(value);
+        self
+    }
+
+    pub fn vad(mut self, value: VadConfig) -> Self {
+        self.vad = Some(value);
         self
     }
 
@@ -127,6 +136,7 @@ impl CreateSpeechEngineRequestBuilder {
             asr: self.asr,
             tts: self.tts,
             turn: self.turn,
+            vad: self.vad,
             conversation: self.conversation,
             privacy: self.privacy,
             call_limits: self.call_limits,

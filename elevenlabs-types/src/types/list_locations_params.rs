@@ -2,6 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
+/// Params + Reception-proxied ``run()`` for list_locations.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct ListLocationsParams {
     #[serde(skip_serializing_if = "Option::is_none")]

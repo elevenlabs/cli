@@ -47,6 +47,9 @@ pub struct OrderResponse {
     #[serde(default)]
     #[serde(with = "crate::core::flexible_datetime::offset::option")]
     pub completed_at: Option<DateTime<FixedOffset>>,
+    /// The reason the order was cancelled, if applicable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancel_reason: Option<String>,
 }
 
 impl OrderResponse {
@@ -69,6 +72,7 @@ pub struct OrderResponseBuilder {
     paid_at: Option<DateTime<FixedOffset>>,
     accepted_at: Option<DateTime<FixedOffset>>,
     completed_at: Option<DateTime<FixedOffset>>,
+    cancel_reason: Option<String>,
 }
 
 impl OrderResponseBuilder {
@@ -127,6 +131,11 @@ impl OrderResponseBuilder {
         self
     }
 
+    pub fn cancel_reason(mut self, value: impl Into<String>) -> Self {
+        self.cancel_reason = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`OrderResponse`].
     /// This method will fail if any of the following fields are not set:
     /// - [`order_id`](OrderResponseBuilder::order_id)
@@ -147,6 +156,7 @@ impl OrderResponseBuilder {
             paid_at: self.paid_at,
             accepted_at: self.accepted_at,
             completed_at: self.completed_at,
+            cancel_reason: self.cancel_reason,
         })
     }
 }

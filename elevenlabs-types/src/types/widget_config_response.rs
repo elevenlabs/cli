@@ -136,6 +136,9 @@ pub struct WidgetConfigResponse {
     /// Styles for the widget
     #[serde(skip_serializing_if = "Option::is_none")]
     pub styles: Option<WidgetStyles>,
+    /// Whether to show the resize button
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_resize_button: Option<bool>,
     #[serde(default)]
     pub language: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -212,6 +215,7 @@ pub struct WidgetConfigResponseBuilder {
     syntax_highlight_theme: Option<WidgetConfigResponseSyntaxHighlightTheme>,
     text_contents: Option<WidgetTextContents>,
     styles: Option<WidgetStyles>,
+    show_resize_button: Option<bool>,
     language: Option<String>,
     supported_language_overrides: Option<Vec<String>>,
     language_presets: Option<HashMap<String, WidgetLanguagePresetResponse>>,
@@ -443,6 +447,11 @@ impl WidgetConfigResponseBuilder {
         self
     }
 
+    pub fn show_resize_button(mut self, value: bool) -> Self {
+        self.show_resize_button = Some(value);
+        self
+    }
+
     pub fn language(mut self, value: impl Into<String>) -> Self {
         self.language = Some(value.into());
         self
@@ -532,6 +541,7 @@ impl WidgetConfigResponseBuilder {
             syntax_highlight_theme: self.syntax_highlight_theme,
             text_contents: self.text_contents,
             styles: self.styles,
+            show_resize_button: self.show_resize_button,
             language: self.language.ok_or_else(|| BuildError::missing_field("language"))?,
             supported_language_overrides: self.supported_language_overrides,
             language_presets: self.language_presets,

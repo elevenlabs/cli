@@ -39,6 +39,8 @@ pub enum ReceiveTranscription {
 
         ScribeInputErrorPayload(ScribeInputErrorPayload),
 
+        ScribeInvalidRequestError(ScribeInvalidRequestError),
+
         ScribeChunkSizeExceededErrorPayload(ScribeChunkSizeExceededErrorPayload),
 
         ScribeInsufficientAudioActivityErrorPayload(ScribeInsufficientAudioActivityErrorPayload),
@@ -113,6 +115,10 @@ impl ReceiveTranscription {
 
     pub fn is_scribe_input_error_payload(&self) -> bool {
         matches!(self, Self::ScribeInputErrorPayload(_))
+    }
+
+    pub fn is_scribe_invalid_request_error(&self) -> bool {
+        matches!(self, Self::ScribeInvalidRequestError(_))
     }
 
     pub fn is_scribe_chunk_size_exceeded_error_payload(&self) -> bool {
@@ -366,6 +372,20 @@ impl ReceiveTranscription {
                 }
     }
 
+    pub fn as_scribe_invalid_request_error(&self) -> Option<&ScribeInvalidRequestError> {
+        match self {
+                    Self::ScribeInvalidRequestError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_scribe_invalid_request_error(self) -> Option<ScribeInvalidRequestError> {
+        match self {
+                    Self::ScribeInvalidRequestError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
     pub fn as_scribe_chunk_size_exceeded_error_payload(&self) -> Option<&ScribeChunkSizeExceededErrorPayload> {
         match self {
                     Self::ScribeChunkSizeExceededErrorPayload(value) => Some(value),
@@ -429,6 +449,7 @@ impl fmt::Display for ReceiveTranscription {
             Self::ScribeResourceExhaustedErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeSessionTimeLimitExceededErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeInputErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::ScribeInvalidRequestError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeChunkSizeExceededErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeInsufficientAudioActivityErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeTranscriberErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),

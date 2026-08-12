@@ -39,7 +39,7 @@ const DEFAULT_TEMPLATE_JSON: &str = r##"{
     "asr": { "quality": "high", "provider": "scribe_realtime", "user_input_audio_format": "pcm_16000", "keywords": [] },
     "turn": { "turn_timeout": 7.0, "silence_end_call_timeout": -1.0, "mode": "turn" },
     "tts": {
-      "model_id": "eleven_flash_v2_5",
+      "model_id": "eleven_flash_v2",
       "voice_id": "cjVigY5qzO86Huf0OWal",
       "supported_voices": [],
       "agent_output_audio_format": "pcm_16000",
@@ -174,7 +174,7 @@ fn minimal_template(name: &str) -> Value {
                 "text_only": false
             },
             "tts": {
-                "model_id": "eleven_flash_v2_5",
+                "model_id": "eleven_flash_v2",
                 "voice_id": "cjVigY5qzO86Huf0OWal"
             }
         },
@@ -212,11 +212,28 @@ fn customer_service_template(name: &str) -> Value {
     t["conversation_config"]["agent"]["prompt"]["temperature"] = json!(0.1);
     t["conversation_config"]["conversation"]["max_duration_seconds"] = json!(1800);
     t["platform_settings"]["call_limits"]["daily_limit"] = json!(10000);
+    // PromptEvaluationCriteria objects, not bare strings: `id`, `name` and
+    // `conversation_goal_prompt` are all required, and a list of strings makes
+    // the create endpoint return 500.
     t["platform_settings"]["evaluation"]["criteria"] = json!([
-        "Helpfulness",
-        "Professionalism",
-        "Problem Resolution",
-        "Response Time"
+        {
+            "id": "helpfulness",
+            "name": "Helpfulness",
+            "type": "prompt",
+            "conversation_goal_prompt": "Did the agent address the customer's question and move them toward a resolution?"
+        },
+        {
+            "id": "professionalism",
+            "name": "Professionalism",
+            "type": "prompt",
+            "conversation_goal_prompt": "Did the agent stay courteous and professional for the whole conversation?"
+        },
+        {
+            "id": "problem_resolution",
+            "name": "Problem Resolution",
+            "type": "prompt",
+            "conversation_goal_prompt": "Was the customer's problem resolved, or correctly escalated when it could not be?"
+        }
     ]);
     t["tags"] = json!(["customer-service"]);
     t

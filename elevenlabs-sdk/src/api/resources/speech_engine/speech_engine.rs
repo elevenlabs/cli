@@ -110,6 +110,7 @@ impl SpeechEngineClient {
     ///                 asr: None,
     ///                 tts: None,
     ///                 turn: None,
+    ///                 vad: None,
     ///                 conversation: None,
     ///                 privacy: None,
     ///                 call_limits: None,

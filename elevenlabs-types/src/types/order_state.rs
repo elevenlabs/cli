@@ -11,6 +11,9 @@ pub enum OrderState {
     Accepted,
     Rejected,
     Done,
+    Cancelling,
+    Cancelled,
+    Expired,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -25,6 +28,9 @@ impl Serialize for OrderState {
             Self::Accepted => serializer.serialize_str("accepted"),
             Self::Rejected => serializer.serialize_str("rejected"),
             Self::Done => serializer.serialize_str("done"),
+            Self::Cancelling => serializer.serialize_str("cancelling"),
+            Self::Cancelled => serializer.serialize_str("cancelled"),
+            Self::Expired => serializer.serialize_str("expired"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -40,6 +46,9 @@ impl<'de> Deserialize<'de> for OrderState {
             "accepted" => Ok(Self::Accepted),
             "rejected" => Ok(Self::Rejected),
             "done" => Ok(Self::Done),
+            "cancelling" => Ok(Self::Cancelling),
+            "cancelled" => Ok(Self::Cancelled),
+            "expired" => Ok(Self::Expired),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -54,6 +63,9 @@ impl fmt::Display for OrderState {
             Self::Accepted => write!(f, "accepted"),
             Self::Rejected => write!(f, "rejected"),
             Self::Done => write!(f, "done"),
+            Self::Cancelling => write!(f, "cancelling"),
+            Self::Cancelled => write!(f, "cancelled"),
+            Self::Expired => write!(f, "expired"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

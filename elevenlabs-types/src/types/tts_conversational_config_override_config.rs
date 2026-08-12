@@ -19,6 +19,9 @@ pub struct TtsConversationalConfigOverrideConfig {
     /// Whether to allow overriding the similarity_boost field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub similarity_boost: Option<bool>,
+    /// Whether to allow overriding the pronunciation_dictionary_locators field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pronunciation_dictionary_locators: Option<bool>,
 }
 
 impl TtsConversationalConfigOverrideConfig {
@@ -35,6 +38,7 @@ pub struct TtsConversationalConfigOverrideConfigBuilder {
     stability: Option<bool>,
     speed: Option<bool>,
     similarity_boost: Option<bool>,
+    pronunciation_dictionary_locators: Option<bool>,
 }
 
 impl TtsConversationalConfigOverrideConfigBuilder {
@@ -63,6 +67,11 @@ impl TtsConversationalConfigOverrideConfigBuilder {
         self
     }
 
+    pub fn pronunciation_dictionary_locators(mut self, value: bool) -> Self {
+        self.pronunciation_dictionary_locators = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`TtsConversationalConfigOverrideConfig`].
     pub fn build(self) -> Result<TtsConversationalConfigOverrideConfig, BuildError> {
         Ok(TtsConversationalConfigOverrideConfig {
@@ -71,6 +80,7 @@ impl TtsConversationalConfigOverrideConfigBuilder {
             stability: self.stability,
             speed: self.speed,
             similarity_boost: self.similarity_boost,
+            pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
         })
     }
 }

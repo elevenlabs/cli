@@ -73,6 +73,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
         voices: elevenlabs_sdk::api::VoicesClient {
             http_client: http_client.clone(),
             settings: elevenlabs_sdk::api::resources::voices::SettingsClient3 { http_client: http_client.clone() },
+            accents: elevenlabs_sdk::api::resources::voices::AccentsClient { http_client: http_client.clone() },
             ivc: elevenlabs_sdk::api::resources::voices::IvcClient { http_client: http_client.clone() },
             pvc: elevenlabs_sdk::api::resources::voices::PvcClient {
                 http_client: http_client.clone(),
@@ -231,6 +232,10 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             versions: elevenlabs_sdk::api::resources::agents::VersionsClient { http_client: http_client.clone() },
             deployments: elevenlabs_sdk::api::resources::agents::DeploymentsClient { http_client: http_client.clone() },
             drafts: elevenlabs_sdk::api::resources::agents::DraftsClient { http_client: http_client.clone() },
+            procedures: elevenlabs_sdk::api::resources::agents::ProceduresClient {
+                http_client: http_client.clone(),
+                drafts: elevenlabs_sdk::api::resources::agents::procedures::DraftsClient2 { http_client: http_client.clone() },
+            },
             agents: elevenlabs_sdk::api::resources::agents::AgentsClient2 {
                 http_client: http_client.clone(),
                 llm_usage: elevenlabs_sdk::api::resources::agents::agents::LlmUsageClient2 { http_client: http_client.clone() },

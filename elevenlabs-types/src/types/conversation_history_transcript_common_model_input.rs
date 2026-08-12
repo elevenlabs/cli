@@ -19,6 +19,8 @@ pub struct ConversationHistoryTranscriptCommonModelInput {
     pub feedback: Option<UserFeedback>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_override: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub producing_llm: Option<String>,
     #[serde(default)]
     pub time_in_call_secs: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -43,6 +45,10 @@ pub struct ConversationHistoryTranscriptCommonModelInput {
     pub used_static_kb_document_ids: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_identifier: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
 }
 
 impl ConversationHistoryTranscriptCommonModelInput {
@@ -62,6 +68,7 @@ pub struct ConversationHistoryTranscriptCommonModelInputBuilder {
     tool_results: Option<Vec<ConversationHistoryTranscriptCommonModelInputToolResultsItem>>,
     feedback: Option<UserFeedback>,
     llm_override: Option<String>,
+    producing_llm: Option<String>,
     time_in_call_secs: Option<i64>,
     conversation_turn_metrics: Option<ConversationTurnMetrics>,
     rag_retrieval_info: Option<RagRetrievalInfo>,
@@ -74,6 +81,8 @@ pub struct ConversationHistoryTranscriptCommonModelInputBuilder {
     source_event_id: Option<i64>,
     used_static_kb_document_ids: Option<Vec<String>>,
     user_identifier: Option<String>,
+    id: Option<String>,
+    triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
 }
 
 impl ConversationHistoryTranscriptCommonModelInputBuilder {
@@ -114,6 +123,11 @@ impl ConversationHistoryTranscriptCommonModelInputBuilder {
 
     pub fn llm_override(mut self, value: impl Into<String>) -> Self {
         self.llm_override = Some(value.into());
+        self
+    }
+
+    pub fn producing_llm(mut self, value: impl Into<String>) -> Self {
+        self.producing_llm = Some(value.into());
         self
     }
 
@@ -177,6 +191,16 @@ impl ConversationHistoryTranscriptCommonModelInputBuilder {
         self
     }
 
+    pub fn id(mut self, value: impl Into<String>) -> Self {
+        self.id = Some(value.into());
+        self
+    }
+
+    pub fn triggered_guardrails(mut self, value: Vec<TriggeredGuardrailCommonModel>) -> Self {
+        self.triggered_guardrails = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationHistoryTranscriptCommonModelInput`].
     /// This method will fail if any of the following fields are not set:
     /// - [`role`](ConversationHistoryTranscriptCommonModelInputBuilder::role)
@@ -191,6 +215,7 @@ impl ConversationHistoryTranscriptCommonModelInputBuilder {
             tool_results: self.tool_results,
             feedback: self.feedback,
             llm_override: self.llm_override,
+            producing_llm: self.producing_llm,
             time_in_call_secs: self.time_in_call_secs.ok_or_else(|| BuildError::missing_field("time_in_call_secs"))?,
             conversation_turn_metrics: self.conversation_turn_metrics,
             rag_retrieval_info: self.rag_retrieval_info,
@@ -203,6 +228,8 @@ impl ConversationHistoryTranscriptCommonModelInputBuilder {
             source_event_id: self.source_event_id,
             used_static_kb_document_ids: self.used_static_kb_document_ids,
             user_identifier: self.user_identifier,
+            id: self.id,
+            triggered_guardrails: self.triggered_guardrails,
         })
     }
 }

@@ -46,6 +46,9 @@ pub struct MergePreviewResponseModel {
     /// Dot-paths of config fields where both branches modified the same field relative to their common ancestor (conflicts). Present regardless of which side wins the conflict.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub overridden_fields: Option<Vec<String>>,
+    /// Structured view of the same conflicts as overridden_fields, each carrying the value on the base (common ancestor), source branch, and target branch so the divergence can be presented and resolved field-by-field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conflicts: Option<Vec<FieldConflict>>,
     /// True when the merge/rebase would be a no-op, i.e. the merged result is identical to the source branch tip. The rebase endpoint rejects in this case.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_identical_to_target: Option<bool>,
@@ -74,6 +77,7 @@ pub struct MergePreviewResponseModelBuilder {
     branch_id: Option<String>,
     main_branch_id: Option<String>,
     overridden_fields: Option<Vec<String>>,
+    conflicts: Option<Vec<FieldConflict>>,
     source_identical_to_target: Option<bool>,
 }
 
@@ -148,6 +152,11 @@ impl MergePreviewResponseModelBuilder {
         self
     }
 
+    pub fn conflicts(mut self, value: Vec<FieldConflict>) -> Self {
+        self.conflicts = Some(value);
+        self
+    }
+
     pub fn source_identical_to_target(mut self, value: bool) -> Self {
         self.source_identical_to_target = Some(value);
         self
@@ -175,6 +184,7 @@ impl MergePreviewResponseModelBuilder {
             branch_id: self.branch_id,
             main_branch_id: self.main_branch_id,
             overridden_fields: self.overridden_fields,
+            conflicts: self.conflicts,
             source_identical_to_target: self.source_identical_to_target,
         })
     }

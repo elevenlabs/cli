@@ -125,8 +125,11 @@ fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
         // --override recursively deletes the config directories, so confirm
         // first. A non-interactive run declines, which keeps an agent or a
         // script from wiping a directory it was merely pointed at.
-        println!("⚠ Override mode: existing files will be overwritten");
-        println!(
+        // On stderr with the prompt itself: a caller redirecting stdout would
+        // otherwise be asked to confirm a destructive action with no visible
+        // explanation of what it destroys.
+        eprintln!("⚠ Override mode: existing files will be overwritten");
+        eprintln!(
             "   This deletes {}/, {}/ and {}/ under {} and their contents.",
             project::AGENT_CONFIGS_DIR,
             project::TOOL_CONFIGS_DIR,
@@ -796,6 +799,12 @@ fn pull_command() -> clap::Command {
                 .action(clap::ArgAction::SetTrue)
                 .help("Pull everything (new and existing)"),
         )
+        .arg(
+            clap::Arg::new("yes")
+                .long("yes")
+                .action(clap::ArgAction::SetTrue)
+                .help("Skip the confirmation prompt (for unattended use)"),
+        )
 }
 
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
@@ -907,7 +916,12 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         }
     }
 
-    if !dry_run && (n_create > 0 || n_update > 0) && !project::prompt_confirm("Proceed?")? {
+    let assume_yes = matches.get_flag("yes");
+    if !dry_run
+        && (n_create > 0 || n_update > 0)
+        && !assume_yes
+        && !project::prompt_confirm("Proceed?")?
+    {
         println!("Pull cancelled");
         return Ok(());
     }

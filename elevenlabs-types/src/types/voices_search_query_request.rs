@@ -32,6 +32,33 @@ pub struct VoicesSearchQueryRequest {
     /// Collection ID to filter voices by.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collection_id: Option<String>,
+    /// Gender used for filtering, based on the voice's 'gender' label.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gender: Option<String>,
+    /// Age used for filtering, based on the voice's 'age' label.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub age: Option<String>,
+    /// Languages used for filtering, based on the voice's 'language' label. Voices matching any of the given languages are returned.
+    #[serde(default)]
+    pub language: Vec<Option<String>>,
+    /// Accent used for filtering, based on the voice's 'accent' label.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accent: Option<String>,
+    /// Use cases used for filtering, based on the voice's 'use_case' label. Voices matching any of the given use cases are returned.
+    #[serde(default)]
+    pub use_cases: Vec<Option<String>>,
+    /// Filter to voices whose sharing notice period is at least the given number of days.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_notice_period_days: Option<i64>,
+    /// Whether to include voices that have a custom sharing rate. Defaults to including them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_custom_rates: Option<bool>,
+    /// Whether to include voices that have live moderation enabled. Defaults to including them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_live_moderated: Option<bool>,
+    /// When true, only return studio-quality voices (those whose category is 'high_quality').
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub high_quality: Option<bool>,
     /// Whether to include the total count of voices found in the response. NOTE: The total_count value is a live snapshot and may change between requests as users create, modify, or delete voices. For pagination, rely on the has_more flag instead. Only enable this when you actually need the total count (e.g., for display purposes), as it incurs a performance cost.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include_total_count: Option<bool>,
@@ -58,6 +85,15 @@ pub struct VoicesSearchQueryRequestBuilder {
     category: Option<String>,
     fine_tuning_state: Option<String>,
     collection_id: Option<String>,
+    gender: Option<String>,
+    age: Option<String>,
+    language: Option<Vec<Option<String>>>,
+    accent: Option<String>,
+    use_cases: Option<Vec<Option<String>>>,
+    min_notice_period_days: Option<i64>,
+    include_custom_rates: Option<bool>,
+    include_live_moderated: Option<bool>,
+    high_quality: Option<bool>,
     include_total_count: Option<bool>,
     voice_ids: Option<Vec<Option<String>>>,
 }
@@ -108,6 +144,51 @@ impl VoicesSearchQueryRequestBuilder {
         self
     }
 
+    pub fn gender(mut self, value: impl Into<String>) -> Self {
+        self.gender = Some(value.into());
+        self
+    }
+
+    pub fn age(mut self, value: impl Into<String>) -> Self {
+        self.age = Some(value.into());
+        self
+    }
+
+    pub fn language(mut self, value: Vec<Option<String>>) -> Self {
+        self.language = Some(value);
+        self
+    }
+
+    pub fn accent(mut self, value: impl Into<String>) -> Self {
+        self.accent = Some(value.into());
+        self
+    }
+
+    pub fn use_cases(mut self, value: Vec<Option<String>>) -> Self {
+        self.use_cases = Some(value);
+        self
+    }
+
+    pub fn min_notice_period_days(mut self, value: i64) -> Self {
+        self.min_notice_period_days = Some(value);
+        self
+    }
+
+    pub fn include_custom_rates(mut self, value: bool) -> Self {
+        self.include_custom_rates = Some(value);
+        self
+    }
+
+    pub fn include_live_moderated(mut self, value: bool) -> Self {
+        self.include_live_moderated = Some(value);
+        self
+    }
+
+    pub fn high_quality(mut self, value: bool) -> Self {
+        self.high_quality = Some(value);
+        self
+    }
+
     pub fn include_total_count(mut self, value: bool) -> Self {
         self.include_total_count = Some(value);
         self
@@ -120,6 +201,8 @@ impl VoicesSearchQueryRequestBuilder {
 
     /// Consumes the builder and constructs a [`VoicesSearchQueryRequest`].
     /// This method will fail if any of the following fields are not set:
+    /// - [`language`](VoicesSearchQueryRequestBuilder::language)
+    /// - [`use_cases`](VoicesSearchQueryRequestBuilder::use_cases)
     /// - [`voice_ids`](VoicesSearchQueryRequestBuilder::voice_ids)
     pub fn build(self) -> Result<VoicesSearchQueryRequest, BuildError> {
         Ok(VoicesSearchQueryRequest {
@@ -132,6 +215,15 @@ impl VoicesSearchQueryRequestBuilder {
             category: self.category,
             fine_tuning_state: self.fine_tuning_state,
             collection_id: self.collection_id,
+            gender: self.gender,
+            age: self.age,
+            language: self.language.ok_or_else(|| BuildError::missing_field("language"))?,
+            accent: self.accent,
+            use_cases: self.use_cases.ok_or_else(|| BuildError::missing_field("use_cases"))?,
+            min_notice_period_days: self.min_notice_period_days,
+            include_custom_rates: self.include_custom_rates,
+            include_live_moderated: self.include_live_moderated,
+            high_quality: self.high_quality,
             include_total_count: self.include_total_count,
             voice_ids: self.voice_ids.ok_or_else(|| BuildError::missing_field("voice_ids"))?,
         })

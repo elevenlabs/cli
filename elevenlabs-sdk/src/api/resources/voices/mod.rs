@@ -4,6 +4,8 @@ use reqwest::Method;
 
 pub mod settings;
 pub use settings::SettingsClient3;
+pub mod accents;
+pub use accents::AccentsClient;
 pub mod ivc;
 pub use ivc::IvcClient;
 pub mod pvc;
@@ -13,6 +15,7 @@ pub use samples::SamplesClient3;
 pub struct VoicesClient {
     pub http_client: HttpClient,
     pub settings: SettingsClient3,
+    pub accents: AccentsClient,
     pub ivc: IvcClient,
     pub pvc: PvcClient,
     pub samples: SamplesClient3,
@@ -23,6 +26,7 @@ impl VoicesClient {
         Ok(Self {
             http_client: HttpClient::new(config.clone())?,
             settings: SettingsClient3::new(config.clone())?,
+            accents: AccentsClient::new(config.clone())?,
             ivc: IvcClient::new(config.clone())?,
             pvc: PvcClient::new(config.clone())?,
             samples: SamplesClient3::new(config.clone())?,
@@ -249,6 +253,15 @@ impl VoicesClient {
     /// * `category` - Category of the voice to filter by. One of 'premade', 'cloned', 'generated', 'professional'
     /// * `fine_tuning_state` - State of the voice's fine tuning to filter by. Applicable only to professional voices clones. One of 'draft', 'not_verified', 'not_started', 'queued', 'fine_tuning', 'fine_tuned', 'failed', 'delayed'
     /// * `collection_id` - Collection ID to filter voices by.
+    /// * `gender` - Gender used for filtering, based on the voice's 'gender' label.
+    /// * `age` - Age used for filtering, based on the voice's 'age' label.
+    /// * `language` - Languages used for filtering, based on the voice's 'language' label. Voices matching any of the given languages are returned.
+    /// * `accent` - Accent used for filtering, based on the voice's 'accent' label.
+    /// * `use_cases` - Use cases used for filtering, based on the voice's 'use_case' label. Voices matching any of the given use cases are returned.
+    /// * `min_notice_period_days` - Filter to voices whose sharing notice period is at least the given number of days.
+    /// * `include_custom_rates` - Whether to include voices that have a custom sharing rate. Defaults to including them.
+    /// * `include_live_moderated` - Whether to include voices that have live moderation enabled. Defaults to including them.
+    /// * `high_quality` - When true, only return studio-quality voices (those whose category is 'high_quality').
     /// * `include_total_count` - Whether to include the total count of voices found in the response. NOTE: The total_count value is a live snapshot and may change between requests as users create, modify, or delete voices. For pagination, rely on the has_more flag instead. Only enable this when you actually need the total count (e.g., for display purposes), as it incurs a performance cost.
     /// * `voice_ids` - Voice IDs to lookup by. Maximum 100 voice IDs.
     /// * `options` - Additional request options such as headers, timeout, etc.
@@ -281,6 +294,15 @@ impl VoicesClient {
     ///                 category: Some("category".to_string()),
     ///                 fine_tuning_state: Some("fine_tuning_state".to_string()),
     ///                 collection_id: Some("collection_id".to_string()),
+    ///                 gender: Some("gender".to_string()),
+    ///                 age: Some("age".to_string()),
+    ///                 language: vec![Some("language".to_string())],
+    ///                 accent: Some("accent".to_string()),
+    ///                 use_cases: vec![Some("use_cases".to_string())],
+    ///                 min_notice_period_days: Some(1),
+    ///                 include_custom_rates: Some(true),
+    ///                 include_live_moderated: Some(true),
+    ///                 high_quality: Some(true),
     ///                 include_total_count: Some(true),
     ///                 voice_ids: vec![Some("voice_ids".to_string())],
     ///             },
@@ -309,9 +331,76 @@ impl VoicesClient {
                     .string("category", request.category.clone())
                     .string("fine_tuning_state", request.fine_tuning_state.clone())
                     .string("collection_id", request.collection_id.clone())
+                    .string("gender", request.gender.clone())
+                    .string("age", request.age.clone())
+                    .string_array("language", request.language.clone())
+                    .string("accent", request.accent.clone())
+                    .string_array("use_cases", request.use_cases.clone())
+                    .int(
+                        "min_notice_period_days",
+                        request.min_notice_period_days.clone(),
+                    )
+                    .bool("include_custom_rates", request.include_custom_rates.clone())
+                    .bool(
+                        "include_live_moderated",
+                        request.include_live_moderated.clone(),
+                    )
+                    .bool("high_quality", request.high_quality.clone())
                     .bool("include_total_count", request.include_total_count.clone())
                     .string_array("voice_ids", request.voice_ids.clone())
                     .build(),
+                options,
+            )
+            .await
+    }
+
+    /// Replicates an Instant Voice Clone or Voice Design voice to a workspace in a different data residency. The target workspace must belong to the same consolidated billing group. The user must have VOICES_WRITE in the source workspace, and be an admin on the source voice. Human users (i.e. not service accounts) must also have VOICES_WRITE in the target workspace. This endpoint is available on the central environment only.
+    ///
+    /// # Arguments
+    ///
+    /// * `voice_id` - Voice ID to be used, you can use https://api.elevenlabs.io/v1/voices to list all the available voices.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .replicate_to_isolated_environment(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &ReplicateVoiceToIsolatedEnvironmentRequestModel {
+    ///                 target_workspace_id: "target_workspace_id".to_string(),
+    ///                 preserve_voice_id: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn replicate_to_isolated_environment(
+        &self,
+        voice_id: &str,
+        request: &ReplicateVoiceToIsolatedEnvironmentRequestModel,
+        options: Option<RequestOptions>,
+    ) -> Result<ReplicateVoiceToIsolatedEnvironmentResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!("v1/voices/{}/replicate-to-isolated-environment", voice_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
                 options,
             )
             .await

@@ -22,6 +22,9 @@ pub struct DubbingTranscriptSegment {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers")]
     pub end_s: f64,
+    /// The caller-supplied external id for this segment, if one was provided.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
 }
 
 impl DubbingTranscriptSegment {
@@ -38,6 +41,7 @@ pub struct DubbingTranscriptSegmentBuilder {
     speaker_id: Option<String>,
     start_s: Option<f64>,
     end_s: Option<f64>,
+    external_id: Option<String>,
 }
 
 impl DubbingTranscriptSegmentBuilder {
@@ -66,6 +70,11 @@ impl DubbingTranscriptSegmentBuilder {
         self
     }
 
+    pub fn external_id(mut self, value: impl Into<String>) -> Self {
+        self.external_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`DubbingTranscriptSegment`].
     /// This method will fail if any of the following fields are not set:
     /// - [`id`](DubbingTranscriptSegmentBuilder::id)
@@ -80,6 +89,7 @@ impl DubbingTranscriptSegmentBuilder {
             speaker_id: self.speaker_id.ok_or_else(|| BuildError::missing_field("speaker_id"))?,
             start_s: self.start_s.ok_or_else(|| BuildError::missing_field("start_s"))?,
             end_s: self.end_s.ok_or_else(|| BuildError::missing_field("end_s"))?,
+            external_id: self.external_id,
         })
     }
 }

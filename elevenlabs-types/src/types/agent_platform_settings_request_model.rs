@@ -61,6 +61,9 @@ pub struct AgentPlatformSettingsRequestModel {
     /// Per-agent post-call sentiment analysis configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentiment_analysis: Option<SentimentAnalysisSettings>,
+    /// Agent-level alerting configuration overriding workspace settings.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alerting: Option<AlertingSettings>,
 }
 
 impl AgentPlatformSettingsRequestModel {
@@ -91,6 +94,7 @@ pub struct AgentPlatformSettingsRequestModelBuilder {
     analysis_llm: Option<Llm>,
     topic_discovery: Option<TopicDiscoverySettings>,
     sentiment_analysis: Option<SentimentAnalysisSettings>,
+    alerting: Option<AlertingSettings>,
 }
 
 impl AgentPlatformSettingsRequestModelBuilder {
@@ -189,6 +193,11 @@ impl AgentPlatformSettingsRequestModelBuilder {
         self
     }
 
+    pub fn alerting(mut self, value: AlertingSettings) -> Self {
+        self.alerting = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentPlatformSettingsRequestModel`].
     pub fn build(self) -> Result<AgentPlatformSettingsRequestModel, BuildError> {
         Ok(AgentPlatformSettingsRequestModel {
@@ -211,6 +220,7 @@ impl AgentPlatformSettingsRequestModelBuilder {
             analysis_llm: self.analysis_llm,
             topic_discovery: self.topic_discovery,
             sentiment_analysis: self.sentiment_analysis,
+            alerting: self.alerting,
         })
     }
 }

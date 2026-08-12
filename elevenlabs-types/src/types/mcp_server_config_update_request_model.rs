@@ -34,6 +34,9 @@ pub struct McpServerConfigUpdateRequestModel {
     /// The headers to include in requests to the MCP server
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_headers: Option<HashMap<String, Option<McpServerConfigUpdateRequestModelRequestHeadersValue>>>,
+    /// Entries sent in the MCP `_meta` field of tools/call requests. Values may be JSON scalars, or references to a workspace secret, dynamic variable, or environment variable resolved per call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_meta: Option<HashMap<String, Option<McpServerConfigUpdateRequestModelRequestMetaValue>>>,
     /// Whether to disable HTTP compression for this MCP server
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disable_compression: Option<bool>,
@@ -64,6 +67,7 @@ pub struct McpServerConfigUpdateRequestModelBuilder {
     execution_mode: Option<ToolExecutionMode>,
     response_timeout_secs: Option<i64>,
     request_headers: Option<HashMap<String, Option<McpServerConfigUpdateRequestModelRequestHeadersValue>>>,
+    request_meta: Option<HashMap<String, Option<McpServerConfigUpdateRequestModelRequestMetaValue>>>,
     disable_compression: Option<bool>,
     secret_token: Option<ConvAiSecretLocator>,
     auth_connection: Option<McpServerConfigUpdateRequestModelAuthConnection>,
@@ -120,6 +124,11 @@ impl McpServerConfigUpdateRequestModelBuilder {
         self
     }
 
+    pub fn request_meta(mut self, value: HashMap<String, Option<McpServerConfigUpdateRequestModelRequestMetaValue>>) -> Self {
+        self.request_meta = Some(value);
+        self
+    }
+
     pub fn disable_compression(mut self, value: bool) -> Self {
         self.disable_compression = Some(value);
         self
@@ -148,6 +157,7 @@ impl McpServerConfigUpdateRequestModelBuilder {
             execution_mode: self.execution_mode,
             response_timeout_secs: self.response_timeout_secs,
             request_headers: self.request_headers,
+            request_meta: self.request_meta,
             disable_compression: self.disable_compression,
             secret_token: self.secret_token,
             auth_connection: self.auth_connection,

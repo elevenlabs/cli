@@ -30,6 +30,12 @@ pub struct DubbingLanguageResponse {
     /// The `revision` the current dubbed output was generated from; equal to `revision` when up to date, less than it when 'stale'. Null until a generation has completed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_revision: Option<i64>,
+    /// Why this language failed; null unless `status` is 'failed', and also null for the few languages that failed before failure reporting was introduced. A code of 'project_failed' means the parent project failed, so read the project for the underlying cause.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<DubbingError>,
+    /// Non-fatal conditions raised while dubbing this language, empty when there are none. Reflects the latest generation. Conditions raised while preparing the source are reported on the project instead.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warnings: Option<Vec<VoicesNotPermittedWarning>>,
     /// When the language target was created.
     #[serde(default)]
     #[serde(with = "crate::core::flexible_datetime::offset")]
@@ -58,6 +64,8 @@ pub struct DubbingLanguageResponseBuilder {
     outputs: Option<DubbingLanguageOutputs>,
     revision: Option<i64>,
     output_revision: Option<i64>,
+    error: Option<DubbingError>,
+    warnings: Option<Vec<VoicesNotPermittedWarning>>,
     created_at: Option<DateTime<FixedOffset>>,
     updated_at: Option<DateTime<FixedOffset>>,
 }
@@ -108,6 +116,16 @@ impl DubbingLanguageResponseBuilder {
         self
     }
 
+    pub fn error(mut self, value: DubbingError) -> Self {
+        self.error = Some(value);
+        self
+    }
+
+    pub fn warnings(mut self, value: Vec<VoicesNotPermittedWarning>) -> Self {
+        self.warnings = Some(value);
+        self
+    }
+
     pub fn created_at(mut self, value: DateTime<FixedOffset>) -> Self {
         self.created_at = Some(value);
         self
@@ -138,6 +156,8 @@ impl DubbingLanguageResponseBuilder {
             outputs: self.outputs,
             revision: self.revision.ok_or_else(|| BuildError::missing_field("revision"))?,
             output_revision: self.output_revision,
+            error: self.error,
+            warnings: self.warnings,
             created_at: self.created_at.ok_or_else(|| BuildError::missing_field("created_at"))?,
             updated_at: self.updated_at.ok_or_else(|| BuildError::missing_field("updated_at"))?,
         })

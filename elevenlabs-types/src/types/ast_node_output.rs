@@ -115,9 +115,7 @@ pub enum AstNodeOutput {
         #[serde(rename = "number_literal")]
         #[non_exhaustive]
         NumberLiteral {
-            #[serde(default)]
-            #[serde(with = "crate::core::number_serializers")]
-            value: f64,
+            value: AstNumberNodeOutputValue,
         },
 
         #[serde(rename = "or_operator")]
@@ -209,7 +207,7 @@ impl AstNodeOutput {
         Self::NullLiteral {}
     }
 
-    pub fn number_literal(value: f64) -> Self {
+    pub fn number_literal(value: AstNumberNodeOutputValue) -> Self {
         Self::NumberLiteral { value }
     }
 

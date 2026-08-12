@@ -37,6 +37,8 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents mcp-servers tool-configs`](#elevenlabs-agents-mcp-servers-tool-configs)
 - [`elevenlabs agents mcp-servers tools`](#elevenlabs-agents-mcp-servers-tools)
 - [`elevenlabs agents phone-numbers`](#elevenlabs-agents-phone-numbers)
+- [`elevenlabs agents procedures`](#elevenlabs-agents-procedures)
+- [`elevenlabs agents procedures drafts`](#elevenlabs-agents-procedures-drafts)
 - [`elevenlabs agents secrets`](#elevenlabs-agents-secrets)
 - [`elevenlabs agents settings`](#elevenlabs-agents-settings)
 - [`elevenlabs agents sip-trunk`](#elevenlabs-agents-sip-trunk)
@@ -106,6 +108,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs user`](#elevenlabs-user)
 - [`elevenlabs user subscription`](#elevenlabs-user-subscription)
 - [`elevenlabs voices`](#elevenlabs-voices)
+- [`elevenlabs voices accents`](#elevenlabs-voices-accents)
 - [`elevenlabs voices ivc`](#elevenlabs-voices-ivc)
 - [`elevenlabs voices pvc`](#elevenlabs-voices-pvc)
 - [`elevenlabs voices pvc samples`](#elevenlabs-voices-pvc-samples)
@@ -448,6 +451,7 @@ Returns a list of branches an agent has
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--include-archived` | `boolean` | No | Whether archived branches should be included |
 | `--limit` | `integer` | No | How many results at most should be returned |
+| `--include-commit-status` | `boolean` | No | Whether to compute how far each branch has diverged from main (commits_ahead/commits_behind). This walks the version DAG of every branch, so it is slow on agents with long histories and is off by default, leaving those fields null. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents branches merge`
@@ -619,11 +623,15 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--text-only` | `string` | No |  |
 | `--conversation-product-type` | `string` | No | Restrict results to a single conversation product surface. |
 | `--branch-id` | `string` | No | Filter conversations by branch ID. |
+| `--version-id` | `string` | No | Filter conversations by version ID. |
+| `--parent-conversation-id` | `string` | No | Filter conversations by parent conversation ID for subagent conversations. |
 | `--topic-ids` | `string` | No | Filter conversations by topic IDs assigned during topic discovery. |
 | `--exclude-statuses` | `string` | No | Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views. |
 | `--tag-ids` | `string` | No | Filter conversations by conversation tag IDs assigned via the conversation-tags endpoints. |
 | `--workflow-node-entered-id` | `string` | No | Filter conversations to only those that entered the given node. |
 | `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
+| `--guardrail-types` | `string` | No | Filter to conversations where a guardrail of any of these types triggered (metadata.triggered_guardrails.guardrail_type). Repeat param to match any of several. |
+| `--custom-guardrail-names` | `string` | No | Filter to conversations where a custom guardrail with any of these names triggered (metadata.triggered_guardrails.guardrail_name). Only custom guardrails carry a name. Repeat param to match any of several. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents conversations resolve`
@@ -776,6 +784,7 @@ Search through conversation transcript messages by full-text and fuzzy search
 | `--text-only` | `string` | No |  |
 | `--conversation-product-type` | `string` | No | Restrict results to a single conversation product surface. |
 | `--branch-id` | `string` | No | Filter conversations by branch ID. |
+| `--version-id` | `string` | No | Filter conversations by version ID. |
 | `--topic-ids` | `string` | No | Filter conversations by topic IDs assigned during topic discovery. |
 | `--sort-by` | `MessageSearchSortBy` | No | Sort order for search results. 'search_score' sorts by search score, 'created_at' sorts by conversation start time. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
@@ -1625,6 +1634,118 @@ Update assigned agent of a phone number
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--phone-number-id` | `string` | Yes | The phone number ID. This is returned when a phone number is imported. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents procedures`
+
+#### `elevenlabs agents procedures compile`
+
+Compile procedure drafts into a workflow.
+
+`POST /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/compile`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents procedures create`
+
+Create a new procedure for the agent on a branch.
+
+`POST /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents procedures get`
+
+Retrieve a procedure at a specific version or the current branch HEAD.
+
+`GET /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--procedure-id` | `string` | Yes | The procedure ID |
+| `--version-id` | `string` | No | The version ID to retrieve. If omitted, returns the version at branch HEAD. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents procedures list`
+
+List the agent's procedures on a branch with their procedure_id, version_id, name, type, trigger, and has_draft. has_draft is true when a procedure has unpublished draft changes on this branch; its name/type/trigger then reflect that draft. Does not return procedure content -- use Get Procedure to read a procedure's body.
+
+`GET /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents procedures remove`
+
+Remove a procedure from the agent's draft working set.
+
+`DELETE /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--procedure-id` | `string` | Yes | The procedure ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents procedures drafts`
+
+#### `elevenlabs agents procedures drafts delete`
+
+Delete user's draft for a procedure, resetting to the committed version
+
+`DELETE /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--procedure-id` | `string` | Yes | The procedure ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents procedures drafts get`
+
+Get user's draft for a procedure
+
+`GET /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--procedure-id` | `string` | Yes | The procedure ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents procedures drafts update`
+
+Create or update user's draft for a procedure
+
+`PATCH /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
+| `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--procedure-id` | `string` | Yes | The procedure ID |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -2510,7 +2631,7 @@ A language target's transcript: source segments with their translations.
 
 #### `elevenlabs dubbing project language transcript regenerate`
 
-Re-dub a target from its edited transcript (charged like a generation).
+Enterprise only. Re-dub a target from its edited transcript, re-synthesizing only the edited regions (charged like a generation). Conflicts when the target has no edits to apply -- nothing is dispatched and nothing is charged.
 
 `POST /v1/dubbing/project/{project_id}/language/{language_id}/transcript/regenerate`
 
@@ -2522,7 +2643,7 @@ Re-dub a target from its edited transcript (charged like a generation).
 
 #### `elevenlabs dubbing project language transcript update-segment`
 
-Edit a segment's translation for a language target.
+Enterprise only. Edit a segment's translation for a language target.
 
 `PATCH /v1/dubbing/project/{project_id}/language/{language_id}/transcript/segment/{segment_id}`
 
@@ -2534,13 +2655,26 @@ Edit a segment's translation for a language target.
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
+#### `elevenlabs dubbing project language transcript update-segments`
+
+Enterprise only. Edit several segments' translations for a language target in one atomic request.
+
+`PATCH /v1/dubbing/project/{project_id}/language/{language_id}/transcript/segments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--project-id` | `string` | Yes | Identifier of the dubbing project. |
+| `--language-id` | `string` | Yes | Identifier of the language target. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 ---
 
 ### `elevenlabs dubbing project transcript`
 
 #### `elevenlabs dubbing project transcript create-segment`
 
-Add a new source segment to the transcript.
+Enterprise only. Add a new source segment to the transcript.
 
 `POST /v1/dubbing/project/{project_id}/transcript/segment`
 
@@ -2552,7 +2686,7 @@ Add a new source segment to the transcript.
 
 #### `elevenlabs dubbing project transcript delete-segment`
 
-Remove a source segment from the transcript.
+Enterprise only. Remove a source segment from the transcript.
 
 `DELETE /v1/dubbing/project/{project_id}/transcript/segment/{segment_id}`
 
@@ -2575,7 +2709,7 @@ The project's source transcript, as editable segments.
 
 #### `elevenlabs dubbing project transcript update-segment`
 
-Edit a source segment's text, speaker, or timing.
+Enterprise only. Edit a source segment's text, speaker, or timing.
 
 `PATCH /v1/dubbing/project/{project_id}/transcript/segment/{segment_id}`
 
@@ -2583,6 +2717,18 @@ Edit a source segment's text, speaker, or timing.
 |------|------|----------|-------------|
 | `--project-id` | `string` | Yes | Identifier of the dubbing project. |
 | `--segment-id` | `string` | Yes | Identifier of the segment to edit. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs dubbing project transcript update-segments`
+
+Enterprise only. Edit several source segments' text, speaker, or timing in one atomic request.
+
+`PATCH /v1/dubbing/project/{project_id}/transcript/segments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--project-id` | `string` | Yes | Identifier of the dubbing project. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -4313,6 +4459,18 @@ Retrieves a list of shared voices.
 | `--page` | `integer` | No |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
+#### `elevenlabs voices replicate-to-isolated-environment`
+
+Replicates an Instant Voice Clone or Voice Design voice to a workspace in a different data residency. The target workspace must belong to the same consolidated billing group. The user must have VOICES_WRITE in the source workspace, and be an admin on the source voice. Human users (i.e. not service accounts) must also have VOICES_WRITE in the target workspace. This endpoint is available on the central environment only.
+
+`POST /v1/voices/{voice_id}/replicate-to-isolated-environment`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--voice-id` | `string` | Yes | Voice ID to be used, you can use https://api.elevenlabs.io/v1/voices to list all the available voices. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 #### `elevenlabs voices search`
 
 Gets a list of all available voices for a user with search, filtering and pagination.
@@ -4330,6 +4488,15 @@ Gets a list of all available voices for a user with search, filtering and pagina
 | `--category` | `string` | No | Category of the voice to filter by. One of 'premade', 'cloned', 'generated', 'professional' |
 | `--fine-tuning-state` | `string` | No | State of the voice's fine tuning to filter by. Applicable only to professional voices clones. One of 'draft', 'not_verified', 'not_started', 'queued', 'fine_tuning', 'fine_tuned', 'failed', 'delayed' |
 | `--collection-id` | `string` | No | Collection ID to filter voices by. |
+| `--gender` | `string` | No | Gender used for filtering, based on the voice's 'gender' label. |
+| `--age` | `string` | No | Age used for filtering, based on the voice's 'age' label. |
+| `--language` | `string` | No | Languages used for filtering, based on the voice's 'language' label. Voices matching any of the given languages are returned. |
+| `--accent` | `string` | No | Accent used for filtering, based on the voice's 'accent' label. |
+| `--use-cases` | `string` | No | Use cases used for filtering, based on the voice's 'use_case' label. Voices matching any of the given use cases are returned. |
+| `--min-notice-period-days` | `string` | No | Filter to voices whose sharing notice period is at least the given number of days. |
+| `--include-custom-rates` | `string` | No | Whether to include voices that have a custom sharing rate. Defaults to including them. |
+| `--include-live-moderated` | `string` | No | Whether to include voices that have live moderation enabled. Defaults to including them. |
+| `--high-quality` | `string` | No | When true, only return studio-quality voices (those whose category is 'high_quality'). |
 | `--include-total-count` | `boolean` | No | Whether to include the total count of voices found in the response. NOTE: The total_count value is a live snapshot and may change between requests as users create, modify, or delete voices. For pagination, rely on the has_more flag instead. Only enable this when you actually need the total count (e.g., for display purposes), as it incurs a performance cost. |
 | `--voice-ids` | `string` | No | Voice IDs to lookup by. Maximum 100 voice IDs. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
@@ -4358,6 +4525,22 @@ Edit a voice created by you.
 | `--voice-id` | `string` | Yes | ID of the voice to be used. You can use the [Get voices](/docs/api-reference/voices/search) endpoint list all the available voices. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs voices accents`
+
+#### `elevenlabs voices accents get`
+
+Gets the list of available accents in the shared voice library.
+
+`GET /v1/voices/accents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--language` | `string` | No | If provided, only accents for this language code are returned. |
+| `--model-id` | `string` | No | If provided, returns the accents available for this model. Defaults to the most complete accent list when omitted. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 

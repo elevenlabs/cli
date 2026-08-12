@@ -20,6 +20,13 @@ pub enum SystemToolConfigInputParams {
             procedures: Option<HashMap<String, ProcedureAtVersionInput>>,
         },
 
+        #[serde(rename = "knowledge_base")]
+        #[non_exhaustive]
+        KnowledgeBase {
+            #[serde(flatten)]
+            data: KnowledgeBaseToolConfig,
+        },
+
         #[serde(rename = "knowledge_base_rag")]
         #[non_exhaustive]
         KnowledgeBaseRag {
@@ -99,6 +106,10 @@ impl SystemToolConfigInputParams {
 
     pub fn end_procedure() -> Self {
         Self::EndProcedure { procedures: None }
+    }
+
+    pub fn knowledge_base(data: KnowledgeBaseToolConfig) -> Self {
+        Self::KnowledgeBase { data }
     }
 
     pub fn knowledge_base_rag(data: KnowledgeBaseRagToolConfig) -> Self {

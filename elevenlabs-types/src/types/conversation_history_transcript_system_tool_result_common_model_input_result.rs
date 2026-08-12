@@ -6,6 +6,13 @@ use super::*;
 #[serde(tag = "result_type")]
 #[non_exhaustive]
 pub enum ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
+        #[serde(rename = "dummy")]
+        #[non_exhaustive]
+        Dummy {
+            #[serde(flatten)]
+            data: DummyToolResultModel,
+        },
+
         #[serde(rename = "end_call_success")]
         #[non_exhaustive]
         EndCallSuccess {
@@ -18,6 +25,13 @@ pub enum ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
         KnowledgeBaseRagSuccess {
             #[serde(flatten)]
             data: KnowledgeBaseRagToolResultModel,
+        },
+
+        #[serde(rename = "knowledge_base_success")]
+        #[non_exhaustive]
+        KnowledgeBaseSuccess {
+            #[serde(flatten)]
+            data: KnowledgeBaseToolResultModel,
         },
 
         #[serde(rename = "language_detection_success")]
@@ -39,20 +53,6 @@ pub enum ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
         PlayDtmfSuccess {
             #[serde(flatten)]
             data: PlayDtmfResultSuccessModel,
-        },
-
-        #[serde(rename = "run_subagent_error")]
-        #[non_exhaustive]
-        RunSubagentError {
-            #[serde(flatten)]
-            data: RunSubagentToolResultErrorModel,
-        },
-
-        #[serde(rename = "run_subagent_success")]
-        #[non_exhaustive]
-        RunSubagentSuccess {
-            #[serde(flatten)]
-            data: RunSubagentToolResultSuccessModel,
         },
 
         #[serde(rename = "skip_turn_success")]
@@ -144,12 +144,20 @@ pub enum ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
 }
 
 impl ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
+    pub fn dummy(data: DummyToolResultModel) -> Self {
+        Self::Dummy { data }
+    }
+
     pub fn end_call_success(data: EndCallToolResultModel) -> Self {
         Self::EndCallSuccess { data }
     }
 
     pub fn knowledge_base_rag_success(data: KnowledgeBaseRagToolResultModel) -> Self {
         Self::KnowledgeBaseRagSuccess { data }
+    }
+
+    pub fn knowledge_base_success(data: KnowledgeBaseToolResultModel) -> Self {
+        Self::KnowledgeBaseSuccess { data }
     }
 
     pub fn language_detection_success(data: LanguageDetectionToolResultModel) -> Self {
@@ -162,14 +170,6 @@ impl ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
 
     pub fn play_dtmf_success(data: PlayDtmfResultSuccessModel) -> Self {
         Self::PlayDtmfSuccess { data }
-    }
-
-    pub fn run_subagent_error(data: RunSubagentToolResultErrorModel) -> Self {
-        Self::RunSubagentError { data }
-    }
-
-    pub fn run_subagent_success(data: RunSubagentToolResultSuccessModel) -> Self {
-        Self::RunSubagentSuccess { data }
     }
 
     pub fn skip_turn_success(data: SkipTurnToolResponseModel) -> Self {

@@ -87,6 +87,12 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter conversations by branch ID.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    /// Filter conversations by version ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
+    /// Filter conversations by parent conversation ID for subagent conversations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_conversation_id: Option<String>,
     /// Filter conversations by topic IDs assigned during topic discovery.
     #[serde(default)]
     pub topic_ids: Vec<Option<String>>,
@@ -102,6 +108,12 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several.
     #[serde(default)]
     pub termination_reasons: Vec<Option<String>>,
+    /// Filter to conversations where a guardrail of any of these types triggered (metadata.triggered_guardrails.guardrail_type). Repeat param to match any of several.
+    #[serde(default)]
+    pub guardrail_types: Vec<Option<GuardrailType>>,
+    /// Filter to conversations where a custom guardrail with any of these names triggered (metadata.triggered_guardrails.guardrail_name). Only custom guardrails carry a name. Repeat param to match any of several.
+    #[serde(default)]
+    pub custom_guardrail_names: Vec<Option<String>>,
 }
 
 impl AgentsConversationsListQueryRequest {
@@ -141,11 +153,15 @@ pub struct AgentsConversationsListQueryRequestBuilder {
     text_only: Option<bool>,
     conversation_product_type: Option<ConversationProduct>,
     branch_id: Option<String>,
+    version_id: Option<String>,
+    parent_conversation_id: Option<String>,
     topic_ids: Option<Vec<Option<String>>>,
     exclude_statuses: Option<Vec<Option<ConversationsListRequestExcludeStatusesItem>>>,
     tag_ids: Option<Vec<Option<String>>>,
     workflow_node_entered_id: Option<String>,
     termination_reasons: Option<Vec<Option<String>>>,
+    guardrail_types: Option<Vec<Option<GuardrailType>>>,
+    custom_guardrail_names: Option<Vec<Option<String>>>,
 }
 
 impl AgentsConversationsListQueryRequestBuilder {
@@ -289,6 +305,16 @@ impl AgentsConversationsListQueryRequestBuilder {
         self
     }
 
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
+    pub fn parent_conversation_id(mut self, value: impl Into<String>) -> Self {
+        self.parent_conversation_id = Some(value.into());
+        self
+    }
+
     pub fn topic_ids(mut self, value: Vec<Option<String>>) -> Self {
         self.topic_ids = Some(value);
         self
@@ -314,6 +340,16 @@ impl AgentsConversationsListQueryRequestBuilder {
         self
     }
 
+    pub fn guardrail_types(mut self, value: Vec<Option<GuardrailType>>) -> Self {
+        self.guardrail_types = Some(value);
+        self
+    }
+
+    pub fn custom_guardrail_names(mut self, value: Vec<Option<String>>) -> Self {
+        self.custom_guardrail_names = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentsConversationsListQueryRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`visited_agent_ids`](AgentsConversationsListQueryRequestBuilder::visited_agent_ids)
@@ -330,6 +366,8 @@ impl AgentsConversationsListQueryRequestBuilder {
     /// - [`exclude_statuses`](AgentsConversationsListQueryRequestBuilder::exclude_statuses)
     /// - [`tag_ids`](AgentsConversationsListQueryRequestBuilder::tag_ids)
     /// - [`termination_reasons`](AgentsConversationsListQueryRequestBuilder::termination_reasons)
+    /// - [`guardrail_types`](AgentsConversationsListQueryRequestBuilder::guardrail_types)
+    /// - [`custom_guardrail_names`](AgentsConversationsListQueryRequestBuilder::custom_guardrail_names)
     pub fn build(self) -> Result<AgentsConversationsListQueryRequest, BuildError> {
         Ok(AgentsConversationsListQueryRequest {
             cursor: self.cursor,
@@ -360,11 +398,15 @@ impl AgentsConversationsListQueryRequestBuilder {
             text_only: self.text_only,
             conversation_product_type: self.conversation_product_type,
             branch_id: self.branch_id,
+            version_id: self.version_id,
+            parent_conversation_id: self.parent_conversation_id,
             topic_ids: self.topic_ids.ok_or_else(|| BuildError::missing_field("topic_ids"))?,
             exclude_statuses: self.exclude_statuses.ok_or_else(|| BuildError::missing_field("exclude_statuses"))?,
             tag_ids: self.tag_ids.ok_or_else(|| BuildError::missing_field("tag_ids"))?,
             workflow_node_entered_id: self.workflow_node_entered_id,
             termination_reasons: self.termination_reasons.ok_or_else(|| BuildError::missing_field("termination_reasons"))?,
+            guardrail_types: self.guardrail_types.ok_or_else(|| BuildError::missing_field("guardrail_types"))?,
+            custom_guardrail_names: self.custom_guardrail_names.ok_or_else(|| BuildError::missing_field("custom_guardrail_names"))?,
         })
     }
 }

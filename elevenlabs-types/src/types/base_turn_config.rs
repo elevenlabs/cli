@@ -39,6 +39,9 @@ pub struct BaseTurnConfig {
     /// Language codes for which preset ignore-term categories have been activated. Stored explicitly so display is not inferred from term overlap.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interruption_ignore_term_languages: Option<Vec<String>>,
+    /// When enabled, the curated default terms for interruption_ignore_term_languages are used in addition to interruption_ignore_terms.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub merge_with_default_ignore_terms: Option<bool>,
     /// When interruptions are disabled, still transcribe what the user says so it can carry into the next turn. When off, user speech during a non-interruptible turn is ignored and won't trigger a turn.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transcribe_on_disabled_interruptions: Option<bool>,
@@ -63,6 +66,7 @@ pub struct BaseTurnConfigBuilder {
     turn_model: Option<TurnModel>,
     interruption_ignore_terms: Option<Vec<String>>,
     interruption_ignore_term_languages: Option<Vec<String>>,
+    merge_with_default_ignore_terms: Option<bool>,
     transcribe_on_disabled_interruptions: Option<bool>,
 }
 
@@ -117,6 +121,11 @@ impl BaseTurnConfigBuilder {
         self
     }
 
+    pub fn merge_with_default_ignore_terms(mut self, value: bool) -> Self {
+        self.merge_with_default_ignore_terms = Some(value);
+        self
+    }
+
     pub fn transcribe_on_disabled_interruptions(mut self, value: bool) -> Self {
         self.transcribe_on_disabled_interruptions = Some(value);
         self
@@ -135,6 +144,7 @@ impl BaseTurnConfigBuilder {
             turn_model: self.turn_model,
             interruption_ignore_terms: self.interruption_ignore_terms,
             interruption_ignore_term_languages: self.interruption_ignore_term_languages,
+            merge_with_default_ignore_terms: self.merge_with_default_ignore_terms,
             transcribe_on_disabled_interruptions: self.transcribe_on_disabled_interruptions,
         })
     }

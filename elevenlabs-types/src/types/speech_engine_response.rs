@@ -22,6 +22,9 @@ pub struct SpeechEngineResponse {
     /// Turn detection configuration
     #[serde(default)]
     pub turn: BaseTurnConfig,
+    /// Configuration for voice activity detection
+    #[serde(default)]
+    pub vad: VadConfig,
     /// Conversation-level settings including client events and duration limits
     #[serde(default)]
     pub conversation: ConversationConfigOutput,
@@ -63,6 +66,7 @@ pub struct SpeechEngineResponseBuilder {
     asr: Option<AsrConversationalConfig>,
     tts: Option<TtsConversationalConfigOutput>,
     turn: Option<BaseTurnConfig>,
+    vad: Option<VadConfig>,
     conversation: Option<ConversationConfigOutput>,
     privacy: Option<PrivacyConfigOutput>,
     call_limits: Option<AgentCallLimits>,
@@ -101,6 +105,11 @@ impl SpeechEngineResponseBuilder {
 
     pub fn turn(mut self, value: BaseTurnConfig) -> Self {
         self.turn = Some(value);
+        self
+    }
+
+    pub fn vad(mut self, value: VadConfig) -> Self {
+        self.vad = Some(value);
         self
     }
 
@@ -152,6 +161,7 @@ impl SpeechEngineResponseBuilder {
     /// - [`asr`](SpeechEngineResponseBuilder::asr)
     /// - [`tts`](SpeechEngineResponseBuilder::tts)
     /// - [`turn`](SpeechEngineResponseBuilder::turn)
+    /// - [`vad`](SpeechEngineResponseBuilder::vad)
     /// - [`conversation`](SpeechEngineResponseBuilder::conversation)
     /// - [`privacy`](SpeechEngineResponseBuilder::privacy)
     /// - [`call_limits`](SpeechEngineResponseBuilder::call_limits)
@@ -167,6 +177,7 @@ impl SpeechEngineResponseBuilder {
             asr: self.asr.ok_or_else(|| BuildError::missing_field("asr"))?,
             tts: self.tts.ok_or_else(|| BuildError::missing_field("tts"))?,
             turn: self.turn.ok_or_else(|| BuildError::missing_field("turn"))?,
+            vad: self.vad.ok_or_else(|| BuildError::missing_field("vad"))?,
             conversation: self.conversation.ok_or_else(|| BuildError::missing_field("conversation"))?,
             privacy: self.privacy.ok_or_else(|| BuildError::missing_field("privacy"))?,
             call_limits: self.call_limits.ok_or_else(|| BuildError::missing_field("call_limits"))?,

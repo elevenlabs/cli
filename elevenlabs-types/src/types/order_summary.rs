@@ -30,6 +30,9 @@ pub struct OrderSummary {
     #[serde(default)]
     #[serde(with = "crate::core::flexible_datetime::offset::option")]
     pub updated_at: Option<DateTime<FixedOffset>>,
+    /// The reason the order was cancelled, if applicable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancel_reason: Option<String>,
 }
 
 impl OrderSummary {
@@ -48,6 +51,7 @@ pub struct OrderSummaryBuilder {
     sandbox: Option<bool>,
     submitted_at: Option<DateTime<FixedOffset>>,
     updated_at: Option<DateTime<FixedOffset>>,
+    cancel_reason: Option<String>,
 }
 
 impl OrderSummaryBuilder {
@@ -86,6 +90,11 @@ impl OrderSummaryBuilder {
         self
     }
 
+    pub fn cancel_reason(mut self, value: impl Into<String>) -> Self {
+        self.cancel_reason = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`OrderSummary`].
     /// This method will fail if any of the following fields are not set:
     /// - [`order_id`](OrderSummaryBuilder::order_id)
@@ -100,6 +109,7 @@ impl OrderSummaryBuilder {
             sandbox: self.sandbox,
             submitted_at: self.submitted_at,
             updated_at: self.updated_at,
+            cancel_reason: self.cancel_reason,
         })
     }
 }

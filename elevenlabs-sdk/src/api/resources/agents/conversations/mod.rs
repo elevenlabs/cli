@@ -196,11 +196,15 @@ impl ConversationsClient {
     /// * `search` - Full-text or fuzzy search over transcript messages
     /// * `conversation_product_type` - Restrict results to a single conversation product surface.
     /// * `branch_id` - Filter conversations by branch ID.
+    /// * `version_id` - Filter conversations by version ID.
+    /// * `parent_conversation_id` - Filter conversations by parent conversation ID for subagent conversations.
     /// * `topic_ids` - Filter conversations by topic IDs assigned during topic discovery.
     /// * `exclude_statuses` - Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views.
     /// * `tag_ids` - Filter conversations by conversation tag IDs assigned via the conversation-tags endpoints.
     /// * `workflow_node_entered_id` - Filter conversations to only those that entered the given node.
     /// * `termination_reasons` - Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several.
+    /// * `guardrail_types` - Filter to conversations where a guardrail of any of these types triggered (metadata.triggered_guardrails.guardrail_type). Repeat param to match any of several.
+    /// * `custom_guardrail_names` - Filter to conversations where a custom guardrail with any of these names triggered (metadata.triggered_guardrails.guardrail_name). Only custom guardrails carry a name. Repeat param to match any of several.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -251,6 +255,8 @@ impl ConversationsClient {
     ///                 text_only: Some(true),
     ///                 conversation_product_type: Some(ConversationProduct::Agents),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 version_id: Some("version_id".to_string()),
+    ///                 parent_conversation_id: Some("parent_conversation_id".to_string()),
     ///                 topic_ids: vec![Some("topic_ids".to_string())],
     ///                 exclude_statuses: vec![Some(
     ///                     ConversationsListRequestExcludeStatusesItem::Initiated,
@@ -258,6 +264,8 @@ impl ConversationsClient {
     ///                 tag_ids: vec![Some("tag_ids".to_string())],
     ///                 workflow_node_entered_id: Some("workflow_node_entered_id".to_string()),
     ///                 termination_reasons: vec![Some("termination_reasons".to_string())],
+    ///                 guardrail_types: vec![Some(GuardrailType::Custom)],
+    ///                 custom_guardrail_names: vec![Some("custom_guardrail_names".to_string())],
     ///             },
     ///             None,
     ///         )
@@ -333,6 +341,11 @@ impl ConversationsClient {
                         request.conversation_product_type.clone(),
                     )
                     .string("branch_id", request.branch_id.clone())
+                    .string("version_id", request.version_id.clone())
+                    .string(
+                        "parent_conversation_id",
+                        request.parent_conversation_id.clone(),
+                    )
                     .string_array("topic_ids", request.topic_ids.clone())
                     .serialize_array("exclude_statuses", request.exclude_statuses.clone())
                     .string_array("tag_ids", request.tag_ids.clone())
@@ -341,6 +354,11 @@ impl ConversationsClient {
                         request.workflow_node_entered_id.clone(),
                     )
                     .string_array("termination_reasons", request.termination_reasons.clone())
+                    .serialize_array("guardrail_types", request.guardrail_types.clone())
+                    .string_array(
+                        "custom_guardrail_names",
+                        request.custom_guardrail_names.clone(),
+                    )
                     .build(),
                 options,
             )

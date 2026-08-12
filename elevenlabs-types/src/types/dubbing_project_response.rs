@@ -24,9 +24,18 @@ pub struct DubbingProjectResponse {
     /// Identifiers of the language targets created under this project.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_ids: Option<Vec<String>>,
+    /// Workspace webhooks notified when this project becomes ready or fails, and when any of its languages completes or fails.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhook_ids: Option<Vec<String>>,
     /// Monotonic counter incremented whenever the source transcript is edited (segment add/edit/delete).
     #[serde(default)]
     pub revision: i64,
+    /// Why the project failed; null unless `status` is 'failed'. Also null for the few projects that failed before failure reporting was introduced.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<DubbingError>,
+    /// Non-fatal conditions raised while preparing the source, empty when there are none. Reflects the latest preparation. Conditions raised while dubbing a particular language are reported on that language instead.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warnings: Option<Vec<VoicesNotPermittedWarning>>,
     /// When the project was created.
     #[serde(default)]
     #[serde(with = "crate::core::flexible_datetime::offset")]
@@ -53,7 +62,10 @@ pub struct DubbingProjectResponseBuilder {
     model_id: Option<String>,
     media: Option<DubbingSourceMediaInfo>,
     language_ids: Option<Vec<String>>,
+    webhook_ids: Option<Vec<String>>,
     revision: Option<i64>,
+    error: Option<DubbingError>,
+    warnings: Option<Vec<VoicesNotPermittedWarning>>,
     created_at: Option<DateTime<FixedOffset>>,
     updated_at: Option<DateTime<FixedOffset>>,
 }
@@ -94,8 +106,23 @@ impl DubbingProjectResponseBuilder {
         self
     }
 
+    pub fn webhook_ids(mut self, value: Vec<String>) -> Self {
+        self.webhook_ids = Some(value);
+        self
+    }
+
     pub fn revision(mut self, value: i64) -> Self {
         self.revision = Some(value);
+        self
+    }
+
+    pub fn error(mut self, value: DubbingError) -> Self {
+        self.error = Some(value);
+        self
+    }
+
+    pub fn warnings(mut self, value: Vec<VoicesNotPermittedWarning>) -> Self {
+        self.warnings = Some(value);
         self
     }
 
@@ -125,7 +152,10 @@ impl DubbingProjectResponseBuilder {
             model_id: self.model_id,
             media: self.media,
             language_ids: self.language_ids,
+            webhook_ids: self.webhook_ids,
             revision: self.revision.ok_or_else(|| BuildError::missing_field("revision"))?,
+            error: self.error,
+            warnings: self.warnings,
             created_at: self.created_at.ok_or_else(|| BuildError::missing_field("created_at"))?,
             updated_at: self.updated_at.ok_or_else(|| BuildError::missing_field("updated_at"))?,
         })

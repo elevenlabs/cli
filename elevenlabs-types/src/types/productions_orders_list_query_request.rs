@@ -13,7 +13,7 @@ pub struct ProductionsOrdersListQueryRequest {
     pub offset: Option<i64>,
     /// Filter orders by one or more statuses.
     #[serde(default)]
-    pub status: Vec<Option<OrderRequestState>>,
+    pub status: Vec<Option<OrderState>>,
     /// Filter orders created on or after this date.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
@@ -37,7 +37,7 @@ impl ProductionsOrdersListQueryRequest {
 pub struct ProductionsOrdersListQueryRequestBuilder {
     page_size: Option<i64>,
     offset: Option<i64>,
-    status: Option<Vec<Option<OrderRequestState>>>,
+    status: Option<Vec<Option<OrderState>>>,
     start_date: Option<DateTime<FixedOffset>>,
     end_date: Option<DateTime<FixedOffset>>,
 }
@@ -53,7 +53,7 @@ impl ProductionsOrdersListQueryRequestBuilder {
         self
     }
 
-    pub fn status(mut self, value: Vec<Option<OrderRequestState>>) -> Self {
+    pub fn status(mut self, value: Vec<Option<OrderState>>) -> Self {
         self.status = Some(value);
         self
     }

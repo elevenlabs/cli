@@ -107,11 +107,13 @@ impl ProjectClient {
     ///         .create(
     ///             &CreateRequest {
     ///                 file: b"test file content".to_vec(),
+    ///                 transcript: b"test file content".to_vec(),
     ///                 source_url: Some("https://example.com/promo.mp4".to_string()),
     ///                 reference: Some("Q3 marketing video".to_string()),
     ///                 source_language: Some("en".to_string()),
     ///                 model_id: None,
     ///                 keyterms: None,
+    ///                 webhook_ids: None,
     ///                 target_language: None,
     ///             },
     ///             None,

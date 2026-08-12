@@ -521,14 +521,26 @@ fn walk_json(dir: &Path, found: &mut Vec<String>) {
 /// Ask a `y/N` question on stdin. Ports v0's `promptForConfirmation`:
 /// only an explicit `y`/`yes` (case-insensitive) counts as yes, so a
 /// non-interactive/empty stdin safely defaults to no.
+/// Ask for a y/N confirmation on stderr.
+///
+/// The prompt goes to stderr, not stdout: a caller redirecting stdout (to a
+/// file, a pipe, or /dev/null) would otherwise never see it while the read
+/// still blocked on their terminal, which reads as a hang. Callers that need
+/// to run unattended should offer a `--yes` flag rather than rely on this.
 pub fn prompt_confirm(message: &str) -> Result<bool, CliError> {
     use std::io::Write;
-    print!("{message} (y/N): ");
-    std::io::stdout().flush().ok();
+    eprint!("{message} (y/N): ");
+    std::io::stderr().flush().ok();
     let mut input = String::new();
-    std::io::stdin()
+    let read = std::io::stdin()
         .read_line(&mut input)
         .map_err(|e| CliError::Other(anyhow::anyhow!("Could not read confirmation input: {e}")))?;
+    // EOF (0 bytes) means nothing is attached to stdin — decline rather than
+    // treat an empty read as agreement.
+    if read == 0 {
+        eprintln!();
+        return Ok(false);
+    }
     let answer = input.trim().to_lowercase();
     Ok(answer == "y" || answer == "yes")
 }

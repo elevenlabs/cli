@@ -13,50 +13,6 @@ impl BatchCallsClient {
         })
     }
 
-    /// Download all recipients and conversation results for a terminal batch call as CSV.
-    ///
-    /// # Arguments
-    ///
-    /// * `options` - Additional request options such as headers, timeout, etc.
-    ///
-    /// # Returns
-    ///
-    /// Streaming file download (use .into_bytes() to collect or stream chunks)
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use elevenlabs_sdk::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let config = ClientConfig {
-    ///         ..Default::default()
-    ///     };
-    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client
-    ///         .agents
-    ///         .batch_calls
-    ///         .export(&"batch_id".to_string(), None)
-    ///         .await;
-    /// }
-    /// ```
-    pub async fn export(
-        &self,
-        batch_id: &str,
-        options: Option<RequestOptions>,
-    ) -> Result<ByteStream, ApiError> {
-        self.http_client
-            .execute_stream_request(
-                Method::GET,
-                &format!("v1/convai/batch-calling/{}/export", batch_id),
-                None,
-                None,
-                options,
-            )
-            .await
-    }
-
     /// Submit a batch call request to schedule calls for multiple recipients.
     ///
     /// # Arguments
@@ -344,6 +300,50 @@ impl BatchCallsClient {
             .execute_request(
                 Method::POST,
                 &format!("v1/convai/batch-calling/{}/retry", batch_id),
+                None,
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Download all recipients and conversation results for a terminal batch call as CSV.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// Streaming file download (use .into_bytes() to collect or stream chunks)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .batch_calls
+    ///         .export(&"batch_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn export(
+        &self,
+        batch_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<ByteStream, ApiError> {
+        self.http_client
+            .execute_stream_request(
+                Method::GET,
+                &format!("v1/convai/batch-calling/{}/export", batch_id),
                 None,
                 None,
                 options,

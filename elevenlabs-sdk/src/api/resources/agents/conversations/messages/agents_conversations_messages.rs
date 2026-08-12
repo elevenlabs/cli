@@ -42,6 +42,7 @@ impl MessagesClient {
     /// * `summary_mode` - Whether to include transcript summaries in the response.
     /// * `conversation_product_type` - Restrict results to a single conversation product surface.
     /// * `branch_id` - Filter conversations by branch ID.
+    /// * `version_id` - Filter conversations by version ID.
     /// * `topic_ids` - Filter conversations by topic IDs assigned during topic discovery.
     /// * `sort_by` - Sort order for search results. 'search_score' sorts by search score, 'created_at' sorts by conversation start time.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
@@ -97,6 +98,7 @@ impl MessagesClient {
     ///                 text_only: Some(true),
     ///                 conversation_product_type: Some(ConversationProduct::Agents),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 version_id: Some("version_id".to_string()),
     ///                 topic_ids: vec![Some("topic_ids".to_string())],
     ///                 sort_by: Some(MessageSearchSortBy::SearchScore),
     ///                 cursor: Some("cursor".to_string()),
@@ -171,6 +173,7 @@ impl MessagesClient {
                         request.conversation_product_type.clone(),
                     )
                     .string("branch_id", request.branch_id.clone())
+                    .string("version_id", request.version_id.clone())
                     .string_array("topic_ids", request.topic_ids.clone())
                     .serialize("sort_by", request.sort_by.clone())
                     .string("cursor", request.cursor.clone())

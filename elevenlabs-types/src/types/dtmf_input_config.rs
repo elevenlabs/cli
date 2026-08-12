@@ -13,6 +13,9 @@ pub struct DtmfInputConfig {
     /// If true, pressing # immediately completes DTMF input
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hash_terminator: Option<bool>,
+    /// If true, replace the caller's DTMF (keypad) entries with a redaction marker in the transcript, conversation log and analysis. Digits the agent repeats back or passes to a tool are not affected.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redact_input: Option<bool>,
 }
 
 impl DtmfInputConfig {
@@ -26,6 +29,7 @@ impl DtmfInputConfig {
 pub struct DtmfInputConfigBuilder {
     dtmf_input_timeout: Option<f64>,
     hash_terminator: Option<bool>,
+    redact_input: Option<bool>,
 }
 
 impl DtmfInputConfigBuilder {
@@ -39,11 +43,17 @@ impl DtmfInputConfigBuilder {
         self
     }
 
+    pub fn redact_input(mut self, value: bool) -> Self {
+        self.redact_input = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`DtmfInputConfig`].
     pub fn build(self) -> Result<DtmfInputConfig, BuildError> {
         Ok(DtmfInputConfig {
             dtmf_input_timeout: self.dtmf_input_timeout,
             hash_terminator: self.hash_terminator,
+            redact_input: self.redact_input,
         })
     }
 }

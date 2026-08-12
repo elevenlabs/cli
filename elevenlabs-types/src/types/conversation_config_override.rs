@@ -7,6 +7,9 @@ pub struct ConversationConfigOverride {
     /// If enabled audio will not be processed and only text will be used, use to avoid audio pricing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text_only: Option<bool>,
+    /// The maximum duration of a conversation in seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_duration_seconds: Option<i64>,
 }
 
 impl ConversationConfigOverride {
@@ -19,6 +22,7 @@ impl ConversationConfigOverride {
 #[non_exhaustive]
 pub struct ConversationConfigOverrideBuilder {
     text_only: Option<bool>,
+    max_duration_seconds: Option<i64>,
 }
 
 impl ConversationConfigOverrideBuilder {
@@ -27,10 +31,16 @@ impl ConversationConfigOverrideBuilder {
         self
     }
 
+    pub fn max_duration_seconds(mut self, value: i64) -> Self {
+        self.max_duration_seconds = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationConfigOverride`].
     pub fn build(self) -> Result<ConversationConfigOverride, BuildError> {
         Ok(ConversationConfigOverride {
             text_only: self.text_only,
+            max_duration_seconds: self.max_duration_seconds,
         })
     }
 }

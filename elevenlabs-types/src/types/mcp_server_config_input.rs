@@ -20,6 +20,9 @@ pub struct McpServerConfigInput {
     /// The headers included in the request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_headers: Option<HashMap<String, McpServerConfigInputRequestHeadersValue>>,
+    /// Entries sent in the MCP `_meta` field of tools/call requests. Values may be JSON scalars, or references to a workspace secret, dynamic variable, or environment variable resolved per call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_meta: Option<HashMap<String, McpServerConfigInputRequestMetaValue>>,
     /// Optional auth connection to use for authentication with this MCP server
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_connection: Option<McpServerConfigInputAuthConnection>,
@@ -74,6 +77,7 @@ pub struct McpServerConfigInputBuilder {
     url: Option<McpServerConfigInputUrl>,
     secret_token: Option<McpServerConfigInputSecretToken>,
     request_headers: Option<HashMap<String, McpServerConfigInputRequestHeadersValue>>,
+    request_meta: Option<HashMap<String, McpServerConfigInputRequestMetaValue>>,
     auth_connection: Option<McpServerConfigInputAuthConnection>,
     name: Option<String>,
     description: Option<String>,
@@ -117,6 +121,11 @@ impl McpServerConfigInputBuilder {
 
     pub fn request_headers(mut self, value: HashMap<String, McpServerConfigInputRequestHeadersValue>) -> Self {
         self.request_headers = Some(value);
+        self
+    }
+
+    pub fn request_meta(mut self, value: HashMap<String, McpServerConfigInputRequestMetaValue>) -> Self {
+        self.request_meta = Some(value);
         self
     }
 
@@ -197,6 +206,7 @@ impl McpServerConfigInputBuilder {
             url: self.url.ok_or_else(|| BuildError::missing_field("url"))?,
             secret_token: self.secret_token,
             request_headers: self.request_headers,
+            request_meta: self.request_meta,
             auth_connection: self.auth_connection,
             name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
             description: self.description,

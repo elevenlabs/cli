@@ -50,7 +50,7 @@ pub struct PromptAgentApiModelOutput {
     pub ignore_default_personality: Option<bool>,
     /// Configuration for RAG
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub rag: Option<RagConfig>,
+    pub rag: Option<RagConfigOutput>,
     /// Timezone for displaying current time in system prompt. If set, the current time will be included in the system prompt using this timezone. Must be a valid timezone name (e.g., 'America/New_York', 'Europe/London', 'UTC'). Recommended for accurate time-aware responses; without this, the agent has no knowledge of the current date/time unless you provide it via dynamic variables or tools, which can lead to incorrect or hallucinated time references.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timezone: Option<String>,
@@ -90,7 +90,7 @@ pub struct PromptAgentApiModelOutputBuilder {
     knowledge_base: Option<Vec<KnowledgeBaseLocator>>,
     custom_llm: Option<CustomLlm>,
     ignore_default_personality: Option<bool>,
-    rag: Option<RagConfig>,
+    rag: Option<RagConfigOutput>,
     timezone: Option<String>,
     backup_llm_config: Option<PromptAgentApiModelOutputBackupLlmConfig>,
     cascade_timeout_seconds: Option<f64>,
@@ -168,7 +168,7 @@ impl PromptAgentApiModelOutputBuilder {
         self
     }
 
-    pub fn rag(mut self, value: RagConfig) -> Self {
+    pub fn rag(mut self, value: RagConfigOutput) -> Self {
         self.rag = Some(value);
         self
     }

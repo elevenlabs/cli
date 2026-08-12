@@ -2,6 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
+/// A partial update to a source segment; omitted fields are left unchanged.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct DubbingSegmentUpdateRequest {
     /// New text for the segment.
@@ -68,4 +69,3 @@ impl DubbingSegmentUpdateRequestBuilder {
         })
     }
 }
-

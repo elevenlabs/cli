@@ -15,11 +15,17 @@ pub struct CreateRequest6 {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_language: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<String>,
+    pub model_id: Option<ProjectCreateRequestModelId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub keyterms: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhook_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub target_language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::base64_bytes::option")]
+    pub transcript: Option<Vec<u8>>,
 }
 impl CreateRequest6 {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
@@ -30,6 +36,15 @@ impl CreateRequest6 {
             "file",
             reqwest::multipart::Part::bytes(file_data.clone())
                 .file_name("file")
+                .mime_str("application/octet-stream").unwrap()
+        );
+    }
+
+    if let Some(ref file_data) = self.transcript {
+        form = form.part(
+            "transcript",
+            reqwest::multipart::Part::bytes(file_data.clone())
+                .file_name("transcript")
                 .mime_str("application/octet-stream").unwrap()
         );
     }
@@ -64,6 +79,12 @@ impl CreateRequest6 {
         }
     }
 
+    if let Some(ref value) = self.webhook_ids {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("webhook_ids", json_str);
+        }
+    }
+
     if let Some(ref value) = self.target_language {
         if let Ok(json_str) = serde_json::to_string(value) {
             form = form.text("target_language", json_str);
@@ -87,9 +108,11 @@ pub struct CreateRequest6Builder {
     source_url: Option<String>,
     reference: Option<String>,
     source_language: Option<String>,
-    model_id: Option<String>,
+    model_id: Option<ProjectCreateRequestModelId>,
     keyterms: Option<Vec<String>>,
+    webhook_ids: Option<Vec<String>>,
     target_language: Option<String>,
+    transcript: Option<Vec<u8>>,
 }
 
 impl CreateRequest6Builder {
@@ -113,8 +136,8 @@ impl CreateRequest6Builder {
         self
     }
 
-    pub fn model_id(mut self, value: impl Into<String>) -> Self {
-        self.model_id = Some(value.into());
+    pub fn model_id(mut self, value: ProjectCreateRequestModelId) -> Self {
+        self.model_id = Some(value);
         self
     }
 
@@ -123,8 +146,18 @@ impl CreateRequest6Builder {
         self
     }
 
+    pub fn webhook_ids(mut self, value: Vec<String>) -> Self {
+        self.webhook_ids = Some(value);
+        self
+    }
+
     pub fn target_language(mut self, value: impl Into<String>) -> Self {
         self.target_language = Some(value.into());
+        self
+    }
+
+    pub fn transcript(mut self, value: Vec<u8>) -> Self {
+        self.transcript = Some(value);
         self
     }
 
@@ -137,7 +170,9 @@ impl CreateRequest6Builder {
             source_language: self.source_language,
             model_id: self.model_id,
             keyterms: self.keyterms,
+            webhook_ids: self.webhook_ids,
             target_language: self.target_language,
+            transcript: self.transcript,
         })
     }
 }

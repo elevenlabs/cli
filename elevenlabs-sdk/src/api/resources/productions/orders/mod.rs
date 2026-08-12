@@ -62,7 +62,7 @@ impl OrdersClient {
     ///             &ProductionsOrdersListQueryRequest {
     ///                 page_size: Some(1),
     ///                 offset: Some(1),
-    ///                 status: vec![Some(OrderRequestState::Open)],
+    ///                 status: vec![Some(OrderState::Open)],
     ///                 start_date: Some(DateTime::parse_from_rfc3339("2024-01-15T09:30:00Z").unwrap()),
     ///                 end_date: Some(DateTime::parse_from_rfc3339("2024-01-15T09:30:00Z").unwrap()),
     ///             },

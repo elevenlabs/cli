@@ -22,7 +22,7 @@ pub struct CustomLlm {
     /// The API version to use for the request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_version: Option<String>,
-    /// The API type to use (chat_completions or responses)
+    /// The API type to use (chat_completions, responses or websocket)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_type: Option<CustomLlmapiType>,
 }
