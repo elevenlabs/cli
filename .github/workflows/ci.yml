@@ -1,6 +1,10 @@
 name: ci
 
-on: [push]
+on:
+  push:
+    branches: [next, main]
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,9 +20,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Check
         run: cargo check
 
@@ -28,11 +29,30 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Compile
         run: cargo build
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      # A regeneration that adds a dependency without refreshing Cargo.lock
+      # leaves it unresolvable, which silently disables `cargo audit`. Fail here
+      # instead: `--locked` proves the committed lockfile still describes the
+      # dependency graph. The fix is to run `cargo build` and commit the lock.
+      - name: Verify Cargo.lock is complete
+        run: cargo metadata --locked --format-version 1 > /dev/null
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      # Fails on advisories only. Warnings (unmaintained, yanked) are left
+      # non-blocking on purpose: the dependency graph comes from the generator,
+      # so a warning we cannot promptly fix would block every unrelated PR.
+      - name: Audit dependencies
+        run: cargo audit
 
   test:
     runs-on: ubuntu-latest
@@ -40,8 +60,14 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Test
         run: cargo test
+
+      # elevenlabs-sdk and elevenlabs-types are path dependencies, not members
+      # of the cargo workspace, so `cargo test` above skips them. Run their
+      # suites explicitly so the generated serialization tests are covered.
+      - name: Test generated SDK crate
+        run: cargo test --manifest-path elevenlabs-sdk/Cargo.toml
+
+      - name: Test generated types crate
+        run: cargo test --manifest-path elevenlabs-types/Cargo.toml
