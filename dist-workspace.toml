@@ -13,15 +13,15 @@ ci = "github"
 # musl builds.
 precise-builds = true
 # The installers to generate for each app
-installers = ["shell", "powershell"]
+installers = ["shell", "powershell", "homebrew"]
 # Whether to enable GitHub Attestations
 github-attestations = true
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "aarch64-unknown-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
+targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
 # Which actions to run on pull requests
 pr-run-mode = "plan"
 # Publish jobs to run (npm publishing deferred until pipeline is validated)
-publish-jobs = []
+publish-jobs = ["homebrew"]
 # Don't overwrite release.yml on `dist init` (preserves customizations)
 allow-dirty = ["ci"]
 # The archive format to use for windows builds (defaults .zip)
@@ -32,3 +32,7 @@ unix-archive = ".tar.gz"
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = false
+default-features = false
+features = ["rustls"]
+tap = "elevenlabs/homebrew-tap"
+formula = "elevenlabs"

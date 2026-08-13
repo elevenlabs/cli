@@ -133,6 +133,36 @@ jobs:
           fi
       - name: Install dist
         run: ${{ matrix.install_dist.run }}
+      # cargo-dist guards the installer download with pipefail in the `plan`
+      # job but not here, where the same `curl ... | sh` runs once per matrix
+      # leg. A dead curl pipes nothing into `sh`, which exits 0, so the step
+      # above reports success and `dist build` fails two steps later with an
+      # opaque exit 127. Observed on 2 of 3 real releases.
+      #
+      # Deliberately does not branch on `matrix.install_dist.shell`: steps 1
+      # and 3 reuse the matrix's own command and shell exactly as upstream
+      # does, so this can only ever add a retry — it cannot mis-route a leg
+      # and skip the install entirely.
+      - id: dist-check
+        name: Check dist installed
+        shell: bash
+        run: |
+          if dist --version > /dev/null 2>&1; then
+            echo "ok=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::The dist installer did not put 'dist' on PATH — most likely a transient download failure. Retrying."
+          fi
+      - name: Install dist (retry)
+        if: ${{ steps.dist-check.outputs.ok == 'no' }}
+        run: ${{ matrix.install_dist.run }}
+      - name: Verify dist
+        shell: bash
+        run: |
+          dist --version || {
+            echo "::error::The cargo-dist installer failed twice on this runner, so 'dist' is not available. This is usually a transient network failure downloading https://github.com/axodotdev/cargo-dist/releases — re-run this job."
+            exit 1
+          }
       # Get the dist-manifest
       - name: Fetch local artifacts
         uses: actions/download-artifact@v7
@@ -287,10 +317,214 @@ jobs:
 
           gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
 
+  publish-homebrew-formula:
+    needs:
+      - plan
+      - host
+    runs-on: "ubuntu-22.04"
+    env:
+      GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      PLAN: ${{ needs.plan.outputs.val }}
+      GITHUB_USER: "github-actions[bot]"
+      GITHUB_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+    if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: "elevenlabs/homebrew-tap"
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # Credentials must persist — the final step pushes the formula back.
+          persist-credentials: true
+          # So we have access to the formula
+          fetch-depth: 1
+      # So we have access to "dist"
+      - name: Install cached dist
+        uses: actions/download-artifact@v7
+        with:
+          name: cargo-dist-cache
+          path: ~/.cargo/bin/
+      - run: chmod +x ~/.cargo/bin/dist
+      - name: Fetch homebrew formulae
+        uses: actions/download-artifact@v7
+        with:
+          pattern: artifacts-*
+          path: Formula/
+          merge-multiple: true
+      # This is extra complex because you can make your Formula name not match your app name
+      # so we need to find the formula file based on the app name
+      - name: Commit formula files
+        run: |
+          git config --global user.name "${GITHUB_USER}"
+          git config --global user.email "${GITHUB_EMAIL}"
+
+          for release in $(echo "$PLAN" | jq --compact-output '.releases[] | select([.artifacts[] | endswith(".rb")] | any)'); do
+            name=$(echo "$release" | jq .app_name --raw-output)
+            version=$(echo "$release" | jq .app_version --raw-output)
+
+            # GitHub's ubuntu runner images no longer ship Homebrew, so
+            # cargo-dist's unconditional `brew --prefix` aborts this step
+            # under `bash -e` with exit 127 — before the formula is ever
+            # committed. `brew style` is only cosmetic reformatting of a
+            # file cargo-dist already renders validly, so skip it when brew
+            # is absent instead of failing the publish.
+            if command -v brew > /dev/null 2>&1; then
+              export PATH="$(brew --prefix)/bin:$PATH"
+              brew update
+              # We avoid reformatting user-provided data such as the app description and homepage.
+              for filename in $(echo "$release" | jq --compact-output --raw-output '.artifacts[] | select(endswith(".rb"))'); do
+                brew style --except-cops FormulaAudit/Homepage,FormulaAudit/Desc,FormulaAuditStrict --fix "Formula/${filename}" || true
+              done
+            else
+              echo "::notice::brew is not available on this runner; skipping the formula style pass."
+            fi
+
+            git add Formula/*.rb
+            # Re-running a release must be a no-op rather than an
+            # empty-commit failure, matching the Scoop job.
+            if git diff --cached --quiet; then
+              echo "Formula for ${name} ${version} is already up to date; nothing to commit."
+            else
+              git commit -m "${name} ${version}"
+            fi
+          done
+
+          git push
+
+  publish-scoop:
+    needs:
+      - plan
+      - host
+    runs-on: "ubuntu-22.04"
+    # The same expression cargo-dist uses for its own publish jobs. A Scoop
+    # bucket has no prerelease channel — a manifest simply *is* the version
+    # `scoop install` hands out — so an RC must not become what every user
+    # installs. Deferring to cargo-dist's own semver determination instead of
+    # re-parsing the tag keeps both channels in agreement by construction.
+    if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
+    steps:
+      - name: Resolve the Windows release archive
+        id: archive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          SUFFIX="-x86_64-pc-windows-msvc.zip"
+
+          # Resolved by target-triple suffix rather than full name: cargo-dist
+          # names archives after the cargo *package*, which the generator does
+          # not always control.
+          ASSET_NAME=""
+          for attempt in $(seq 1 6); do
+            ASSET_NAME=$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json assets \
+              --jq ".assets[].name | select(endswith(\"${SUFFIX}\"))" 2>/dev/null | head -n1 || true)
+            if [ -n "${ASSET_NAME}" ]; then
+              break
+            fi
+            echo "Release assets not listable yet (attempt ${attempt}/6); retrying..."
+            sleep 10
+          done
+
+          if [ -z "${ASSET_NAME}" ]; then
+            echo "::error::No asset ending in ${SUFFIX} on release ${TAG}. The host job already created the release, so this means the Windows archive was never built — check the build-local-artifacts leg for x86_64-pc-windows-msvc."
+            exit 1
+          fi
+
+          echo "asset-name=${ASSET_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Download the archive and hash it
+        id: manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASSET_NAME: ${{ steps.archive.outputs.asset-name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "${ASSET_NAME}" --dir "${RUNNER_TEMP}/scoop"
+          HASH=$(sha256sum "${RUNNER_TEMP}/scoop/${ASSET_NAME}" | cut -d' ' -f1)
+
+          # cargo-dist archive names carry no version, so the autoupdate URL
+          # is the release URL with the tag replaced by Scoop's $version
+          # placeholder. Preserve whether the tag is v-prefixed.
+          if [ "${TAG}" = "v${VERSION}" ]; then
+            TAG_TEMPLATE='v$version'
+          else
+            TAG_TEMPLATE='$version'
+          fi
+
+          {
+            echo "version=${VERSION}"
+            echo "hash=${HASH}"
+            echo "url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET_NAME}"
+            echo "autoupdate-url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG_TEMPLATE}/${ASSET_NAME}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check out the Scoop bucket
+        uses: actions/checkout@v6
+        with:
+          repository: "elevenlabs/scoop-bucket"
+          token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+          path: scoop-bucket
+          # Credentials must persist — the next step pushes the manifest back.
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Write and push the manifest
+        env:
+          VERSION: ${{ steps.manifest.outputs.version }}
+          URL: ${{ steps.manifest.outputs.url }}
+          HASH: ${{ steps.manifest.outputs.hash }}
+          AUTOUPDATE_URL: ${{ steps.manifest.outputs.autoupdate-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p scoop-bucket/bucket
+          jq -n \
+            --arg version "${VERSION}" \
+            --arg description 'CLI for the ElevenLabs API Documentation' \
+            --arg homepage 'https://github.com/elevenlabs/cli' \
+            --arg url "${URL}" \
+            --arg hash "${HASH}" \
+            --arg bin 'elevenlabs.exe' \
+            --arg autoupdate "${AUTOUPDATE_URL}" \
+            --arg checkver 'https://github.com/elevenlabs/cli' \
+            '{
+              version: $version,
+              description: $description,
+              homepage: $homepage,
+              architecture: { "64bit": { url: $url, hash: $hash, bin: $bin } },
+              autoupdate: { architecture: { "64bit": { url: $autoupdate } } },
+              checkver: { github: $checkver }
+            }' > "scoop-bucket/bucket/elevenlabs.json"
+
+          cd scoop-bucket
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "bucket/elevenlabs.json"
+
+          # Re-running a release must be a no-op rather than an empty-commit
+          # failure — unlike npm, this channel is idempotent.
+          if git diff --cached --quiet; then
+            echo "bucket/elevenlabs.json is already up to date; nothing to commit."
+          else
+            git commit -m "elevenlabs ${VERSION}"
+            git push
+          fi
+
   announce:
     needs:
       - plan
       - host
+      - publish-homebrew-formula
+      - publish-scoop
     # use "always() && ..." to allow us to wait for all publish jobs while
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!

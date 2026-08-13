@@ -251,6 +251,13 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
         },
         speech_engine: elevenlabs_sdk::api::SpeechEngineClient { http_client: http_client.clone() },
         environment_variables: elevenlabs_sdk::api::EnvironmentVariablesClient { http_client: http_client.clone() },
+        assets: elevenlabs_sdk::api::AssetsClient { http_client: http_client.clone() },
+        flows: elevenlabs_sdk::api::FlowsClient {
+            http_client: http_client.clone(),
+            video: elevenlabs_sdk::api::resources::flows::VideoClient { http_client: http_client.clone() },
+            image: elevenlabs_sdk::api::resources::flows::ImageClient { http_client: http_client.clone() },
+            text_to_speech: elevenlabs_sdk::api::resources::flows::TextToSpeechClient2 { http_client: http_client.clone() },
+        },
         productions: elevenlabs_sdk::api::ProductionsClient {
             http_client: http_client.clone(),
             orders: elevenlabs_sdk::api::resources::productions::OrdersClient {

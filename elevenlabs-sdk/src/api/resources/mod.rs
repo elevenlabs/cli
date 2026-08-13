@@ -27,6 +27,8 @@
 //! - **Agents**
 //! - **Speech Engine**
 //! - **EnvironmentVariables**
+//! - **Assets**
+//! - **Flows**
 //! - **Productions**
 //! - **Tokens**
 //! - **Workspaces**
@@ -34,10 +36,12 @@
 use crate::{ApiError, ClientConfig};
 
 pub mod agents;
+pub mod assets;
 pub mod audio_isolation;
 pub mod audio_native;
 pub mod dubbing;
 pub mod environment_variables;
+pub mod flows;
 pub mod forced_alignment;
 pub mod history;
 pub mod models;
@@ -88,6 +92,8 @@ pub struct ApiClient {
     pub agents: AgentsClient,
     pub speech_engine: SpeechEngineClient,
     pub environment_variables: EnvironmentVariablesClient,
+    pub assets: AssetsClient,
+    pub flows: FlowsClient,
     pub productions: ProductionsClient,
     pub tokens: TokensClient,
     pub workspaces: WorkspacesClient,
@@ -122,6 +128,8 @@ impl ApiClient {
             agents: AgentsClient::new(config.clone())?,
             speech_engine: SpeechEngineClient::new(config.clone())?,
             environment_variables: EnvironmentVariablesClient::new(config.clone())?,
+            assets: AssetsClient::new(config.clone())?,
+            flows: FlowsClient::new(config.clone())?,
             productions: ProductionsClient::new(config.clone())?,
             tokens: TokensClient::new(config.clone())?,
             workspaces: WorkspacesClient::new(config.clone())?,
@@ -130,10 +138,12 @@ impl ApiClient {
 }
 
 pub use agents::AgentsClient;
+pub use assets::AssetsClient;
 pub use audio_isolation::AudioIsolationClient;
 pub use audio_native::AudioNativeClient;
 pub use dubbing::DubbingClient;
 pub use environment_variables::EnvironmentVariablesClient;
+pub use flows::FlowsClient;
 pub use forced_alignment::ForcedAlignmentClient;
 pub use history::HistoryClient;
 pub use models::ModelsClient;

@@ -55,6 +55,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents whatsapp-accounts`](#elevenlabs-agents-whatsapp-accounts)
 - [`elevenlabs agents widget`](#elevenlabs-agents-widget)
 - [`elevenlabs agents widget avatar`](#elevenlabs-agents-widget-avatar)
+- [`elevenlabs assets`](#elevenlabs-assets)
 - [`elevenlabs audio-isolation`](#elevenlabs-audio-isolation)
 - [`elevenlabs audio-native`](#elevenlabs-audio-native)
 - [`elevenlabs dubbing`](#elevenlabs-dubbing)
@@ -71,6 +72,9 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs dubbing transcript`](#elevenlabs-dubbing-transcript)
 - [`elevenlabs dubbing transcripts`](#elevenlabs-dubbing-transcripts)
 - [`elevenlabs environment-variables`](#elevenlabs-environment-variables)
+- [`elevenlabs flows image`](#elevenlabs-flows-image)
+- [`elevenlabs flows text-to-speech`](#elevenlabs-flows-text-to-speech)
+- [`elevenlabs flows video`](#elevenlabs-flows-video)
 - [`elevenlabs forced-alignment`](#elevenlabs-forced-alignment)
 - [`elevenlabs history`](#elevenlabs-history)
 - [`elevenlabs models`](#elevenlabs-models)
@@ -2338,6 +2342,56 @@ Sets the avatar for an agent displayed in the widget
 
 ---
 
+### `elevenlabs assets`
+
+#### `elevenlabs assets create`
+
+Upload a new asset.
+
+`POST /v1/assets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs assets delete`
+
+Delete an asset by ID.
+
+`DELETE /v1/assets/{asset_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--asset-id` | `string` | Yes | ID of the asset. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs assets get`
+
+Retrieve a single asset by ID.
+
+`GET /v1/assets/{asset_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--asset-id` | `string` | Yes | ID of the asset. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs assets list`
+
+List assets in the workspace, most recently created first.
+
+`GET /v1/assets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | Number of assets to return. |
+| `--cursor` | `string` | No | Token from a previous response's `next_cursor`. Omit to fetch the first page. |
+| `--search` | `string` | No | Optional free-text search filter over asset names. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
 ### `elevenlabs audio-isolation`
 
 #### `elevenlabs audio-isolation convert`
@@ -2998,6 +3052,126 @@ Replace an environment variable's values. Use null to remove an environment (exc
 | `--env-var-id` | `string` | Yes |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs flows image`
+
+#### `elevenlabs flows image create`
+
+Start an image generation with the selected model.
+
+`POST /v1/flows/image`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs flows image get`
+
+Retrieve the status of an image generation, and retrieve its output URL once completed.
+
+`GET /v1/flows/image/{generation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--generation-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs flows image list`
+
+List the image generations created through this API, newest first.
+
+`GET /v1/flows/image`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Pagination cursor: the `next_cursor` value of the previous page's response. Omit it for the first page. |
+| `--page-size` | `integer` | No | How many generations to return per page. |
+| `--status` | `string` | No | Only return generations with this lifecycle status. |
+| `--model-id` | `string` | No | Only return generations of this model. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs flows text-to-speech`
+
+#### `elevenlabs flows text-to-speech create`
+
+Start a speech generation with the selected model. Charged per character via text-to-speech billing. Use this over `/v1/text-to-speech` for the asynchronous generation lifecycle or for models not offered there; for direct, synchronous speech synthesis, prefer `/v1/text-to-speech`.
+
+`POST /v1/flows/text-to-speech`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs flows text-to-speech get`
+
+Retrieve the status of a speech generation, and retrieve its output URL once completed.
+
+`GET /v1/flows/text-to-speech/{generation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--generation-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs flows text-to-speech list`
+
+List the speech generations created through this API, newest first.
+
+`GET /v1/flows/text-to-speech`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Pagination cursor: the `next_cursor` value of the previous page's response. Omit it for the first page. |
+| `--page-size` | `integer` | No | How many generations to return per page. |
+| `--status` | `string` | No | Only return generations with this lifecycle status. |
+| `--model-id` | `string` | No | Only return generations of this model. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs flows video`
+
+#### `elevenlabs flows video create`
+
+Start a video generation with the selected model.
+
+`POST /v1/flows/video`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs flows video get`
+
+Retrieve the status of a video generation, and retrieve its output URL once completed.
+
+`GET /v1/flows/video/{generation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--generation-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs flows video list`
+
+List the video generations created through this API, newest first.
+
+`GET /v1/flows/video`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Pagination cursor: the `next_cursor` value of the previous page's response. Omit it for the first page. |
+| `--page-size` | `integer` | No | How many generations to return per page. |
+| `--status` | `string` | No | Only return generations with this lifecycle status. |
+| `--model-id` | `string` | No | Only return generations of this model. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 

@@ -2,59 +2,92 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct CreateRequest7 {
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub name: String,
+    #[serde(with = "crate::core::base64_bytes::option")]
+    pub file: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reference: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_id: Option<ProjectCreateRequestModelId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keyterms: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhook_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub primary_genre: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub files: Option<Vec<Vec<u8>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub visibility: Option<FinetunesCreateRequestVisibility>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<FinetunesCreateRequestModelId>,
+    #[serde(with = "crate::core::base64_bytes::option")]
+    pub transcript: Option<Vec<u8>>,
 }
 impl CreateRequest7 {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
     let mut form = reqwest::multipart::Form::new();
 
-    if let Some(ref files) = self.files {
-        for file_data in files {
-            form = form.part(
-                "files",
-                reqwest::multipart::Part::bytes(file_data.clone())
-                    .file_name("files")
-                    .mime_str("application/octet-stream").unwrap()
-            );
+    if let Some(ref file_data) = self.file {
+        form = form.part(
+            "file",
+            reqwest::multipart::Part::bytes(file_data.clone())
+                .file_name("file")
+                .mime_str("application/octet-stream").unwrap()
+        );
+    }
+
+    if let Some(ref file_data) = self.transcript {
+        form = form.part(
+            "transcript",
+            reqwest::multipart::Part::bytes(file_data.clone())
+                .file_name("transcript")
+                .mime_str("application/octet-stream").unwrap()
+        );
+    }
+
+    if let Some(ref value) = self.source_url {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("source_url", json_str);
         }
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.name) {
-        form = form.text("name", json_str);
-    }
-
-    if let Ok(json_str) = serde_json::to_string(&self.primary_genre) {
-        form = form.text("primary_genre", json_str);
-    }
-
-    if let Some(ref value) = self.tags {
+    if let Some(ref value) = self.reference {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("tags", json_str);
+            form = form.text("reference", json_str);
         }
     }
 
-    if let Some(ref value) = self.visibility {
+    if let Some(ref value) = self.source_language {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("visibility", json_str);
+            form = form.text("source_language", json_str);
         }
     }
 
     if let Some(ref value) = self.model_id {
         if let Ok(json_str) = serde_json::to_string(value) {
             form = form.text("model_id", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.keyterms {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("keyterms", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.webhook_ids {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("webhook_ids", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.target_language {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("target_language", json_str);
         }
     }
 
@@ -71,57 +104,75 @@ impl CreateRequest7 {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct CreateRequest7Builder {
-    name: Option<String>,
-    primary_genre: Option<String>,
-    files: Option<Vec<Vec<u8>>>,
-    tags: Option<Vec<String>>,
-    visibility: Option<FinetunesCreateRequestVisibility>,
-    model_id: Option<FinetunesCreateRequestModelId>,
+    file: Option<Vec<u8>>,
+    source_url: Option<String>,
+    reference: Option<String>,
+    source_language: Option<String>,
+    model_id: Option<ProjectCreateRequestModelId>,
+    keyterms: Option<Vec<String>>,
+    webhook_ids: Option<Vec<String>>,
+    target_language: Option<String>,
+    transcript: Option<Vec<u8>>,
 }
 
 impl CreateRequest7Builder {
-    pub fn name(mut self, value: impl Into<String>) -> Self {
-        self.name = Some(value.into());
+    pub fn file(mut self, value: Vec<u8>) -> Self {
+        self.file = Some(value);
         self
     }
 
-    pub fn primary_genre(mut self, value: impl Into<String>) -> Self {
-        self.primary_genre = Some(value.into());
+    pub fn source_url(mut self, value: impl Into<String>) -> Self {
+        self.source_url = Some(value.into());
         self
     }
 
-    pub fn files(mut self, value: Vec<Vec<u8>>) -> Self {
-        self.files = Some(value);
+    pub fn reference(mut self, value: impl Into<String>) -> Self {
+        self.reference = Some(value.into());
         self
     }
 
-    pub fn tags(mut self, value: Vec<String>) -> Self {
-        self.tags = Some(value);
+    pub fn source_language(mut self, value: impl Into<String>) -> Self {
+        self.source_language = Some(value.into());
         self
     }
 
-    pub fn visibility(mut self, value: FinetunesCreateRequestVisibility) -> Self {
-        self.visibility = Some(value);
-        self
-    }
-
-    pub fn model_id(mut self, value: FinetunesCreateRequestModelId) -> Self {
+    pub fn model_id(mut self, value: ProjectCreateRequestModelId) -> Self {
         self.model_id = Some(value);
         self
     }
 
+    pub fn keyterms(mut self, value: Vec<String>) -> Self {
+        self.keyterms = Some(value);
+        self
+    }
+
+    pub fn webhook_ids(mut self, value: Vec<String>) -> Self {
+        self.webhook_ids = Some(value);
+        self
+    }
+
+    pub fn target_language(mut self, value: impl Into<String>) -> Self {
+        self.target_language = Some(value.into());
+        self
+    }
+
+    pub fn transcript(mut self, value: Vec<u8>) -> Self {
+        self.transcript = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`CreateRequest7`].
-    /// This method will fail if any of the following fields are not set:
-    /// - [`name`](CreateRequest7Builder::name)
-    /// - [`primary_genre`](CreateRequest7Builder::primary_genre)
     pub fn build(self) -> Result<CreateRequest7, BuildError> {
         Ok(CreateRequest7 {
-            name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
-            primary_genre: self.primary_genre.ok_or_else(|| BuildError::missing_field("primary_genre"))?,
-            files: self.files,
-            tags: self.tags,
-            visibility: self.visibility,
+            file: self.file,
+            source_url: self.source_url,
+            reference: self.reference,
+            source_language: self.source_language,
             model_id: self.model_id,
+            keyterms: self.keyterms,
+            webhook_ids: self.webhook_ids,
+            target_language: self.target_language,
+            transcript: self.transcript,
         })
     }
 }

@@ -2,10 +2,10 @@
 name = "fern-cli-sdk"
 version = "1.0.0"
 edition = "2021"
-description = "CLI generator — dynamic command surface from OpenAPI and GraphQL schemas"
+description = "CLI for the ElevenLabs API Documentation"
 license = "Apache-2.0"
-repository = "https://github.com/fern-api/cli-sdk"
-homepage = "https://github.com/fern-api/cli-sdk"
+repository = "https://github.com/elevenlabs/cli"
+homepage = "https://github.com/elevenlabs/cli"
 authors = ["Fern <hey@buildwithfern.com>"]
 keywords = ["cli", "openapi", "graphql", "fern", "codegen"]
 categories = ["command-line-utilities", "web-programming"]

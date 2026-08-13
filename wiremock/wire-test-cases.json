@@ -3018,6 +3018,117 @@
       }
     },
     {
+      "id": "list_10",
+      "method": "GET",
+      "path": "/v1/assets",
+      "params": {
+        "page_size": 1,
+        "cursor": "cursor",
+        "search": "search"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "search",
+          "value": "search"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"assets\": [\n    {\n      \"asset_id\": \"5xM2KqOnZyce22SPZ9d4\",\n      \"name\": \"podcast-intro.mp3\",\n      \"mime_type\": \"audio/mpeg\",\n      \"created_at_unix\": 1721520000,\n      \"content_url\": \"https://.../a1b2c3d4/content?...\"\n    }\n  ],\n  \"next_cursor\": \"eyJvZmZzZXQiOjEwfQ\",\n  \"has_more\": true\n}"
+      }
+    },
+    {
+      "id": "create_9",
+      "method": "POST",
+      "path": "/v1/assets",
+      "params": {},
+      "body": {
+        "name": "name"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "multipartFields": [
+        {
+          "wireName": "asset",
+          "isFile": true,
+          "isOptional": false
+        },
+        {
+          "wireName": "name",
+          "isFile": false,
+          "isOptional": false
+        }
+      ],
+      "response": {
+        "status": 200,
+        "body": "{\n  \"asset_id\": \"5xM2KqOnZyce22SPZ9d4\",\n  \"name\": \"podcast-intro.mp3\",\n  \"mime_type\": \"audio/mpeg\",\n  \"created_at_unix\": 1721520000,\n  \"content_url\": \"https://.../a1b2c3d4/content?...\"\n}"
+      }
+    },
+    {
+      "id": "get_9",
+      "method": "GET",
+      "path": "/v1/assets/{asset_id}",
+      "params": {
+        "asset_id": "5xM2KqOnZyce22SPZ9d4"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"asset_id\": \"5xM2KqOnZyce22SPZ9d4\",\n  \"name\": \"podcast-intro.mp3\",\n  \"mime_type\": \"audio/mpeg\",\n  \"created_at_unix\": 1721520000,\n  \"content_url\": \"https://.../a1b2c3d4/content?...\"\n}"
+      }
+    },
+    {
+      "id": "delete_8",
+      "method": "DELETE",
+      "path": "/v1/assets/{asset_id}",
+      "params": {
+        "asset_id": "5xM2KqOnZyce22SPZ9d4"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "\"\""
+      }
+    },
+    {
       "id": "get_signed_url",
       "method": "GET",
       "path": "/v1/convai/conversation/get-signed-url",
@@ -3100,7 +3211,7 @@
       }
     },
     {
-      "id": "list_10",
+      "id": "list_11",
       "method": "GET",
       "path": "/v1/convai/conversations",
       "params": {
@@ -3305,7 +3416,7 @@
       }
     },
     {
-      "id": "get_9",
+      "id": "get_10",
       "method": "GET",
       "path": "/v1/convai/conversations/{conversation_id}",
       "params": {
@@ -3332,7 +3443,7 @@
       }
     },
     {
-      "id": "delete_8",
+      "id": "delete_9",
       "method": "DELETE",
       "path": "/v1/convai/conversations/{conversation_id}",
       "params": {
@@ -3514,7 +3625,7 @@
       }
     },
     {
-      "id": "get_10",
+      "id": "get_11",
       "method": "GET",
       "path": "/v1/convai/agents/summaries",
       "params": {
@@ -3537,7 +3648,7 @@
       }
     },
     {
-      "id": "get_11",
+      "id": "get_12",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/widget",
       "params": {
@@ -3564,7 +3675,7 @@
       }
     },
     {
-      "id": "get_12",
+      "id": "get_13",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/link",
       "params": {
@@ -3606,7 +3717,7 @@
       }
     },
     {
-      "id": "list_11",
+      "id": "list_12",
       "method": "GET",
       "path": "/v1/convai/knowledge-base",
       "params": {
@@ -3746,7 +3857,7 @@
       }
     },
     {
-      "id": "create_9",
+      "id": "create_10",
       "method": "POST",
       "path": "/v1/convai/agent-testing/create",
       "params": {},
@@ -3791,7 +3902,7 @@
       }
     },
     {
-      "id": "get_13",
+      "id": "get_14",
       "method": "GET",
       "path": "/v1/convai/agent-testing/{test_id}",
       "params": {
@@ -3836,7 +3947,7 @@
       }
     },
     {
-      "id": "delete_9",
+      "id": "delete_10",
       "method": "DELETE",
       "path": "/v1/convai/agent-testing/{test_id}",
       "params": {
@@ -3881,7 +3992,7 @@
       }
     },
     {
-      "id": "list_12",
+      "id": "list_13",
       "method": "GET",
       "path": "/v1/convai/agent-testing",
       "params": {
@@ -3940,7 +4051,7 @@
       }
     },
     {
-      "id": "list_13",
+      "id": "list_14",
       "method": "GET",
       "path": "/v1/convai/users",
       "params": {
@@ -4006,7 +4117,7 @@
       }
     },
     {
-      "id": "list_14",
+      "id": "list_15",
       "method": "GET",
       "path": "/v1/convai/phone-numbers",
       "params": {
@@ -4042,7 +4153,7 @@
       }
     },
     {
-      "id": "create_10",
+      "id": "create_11",
       "method": "POST",
       "path": "/v1/convai/phone-numbers",
       "params": {},
@@ -4067,7 +4178,7 @@
       }
     },
     {
-      "id": "get_14",
+      "id": "get_15",
       "method": "GET",
       "path": "/v1/convai/phone-numbers/{phone_number_id}",
       "params": {
@@ -4088,7 +4199,7 @@
       }
     },
     {
-      "id": "delete_10",
+      "id": "delete_11",
       "method": "DELETE",
       "path": "/v1/convai/phone-numbers/{phone_number_id}",
       "params": {
@@ -4185,7 +4296,7 @@
       }
     },
     {
-      "id": "list_15",
+      "id": "list_16",
       "method": "GET",
       "path": "/v1/convai/llm/list",
       "params": {},
@@ -4204,7 +4315,7 @@
       }
     },
     {
-      "id": "list_16",
+      "id": "list_17",
       "method": "GET",
       "path": "/v1/convai/tools",
       "params": {
@@ -4263,7 +4374,7 @@
       }
     },
     {
-      "id": "create_11",
+      "id": "create_12",
       "method": "POST",
       "path": "/v1/convai/tools",
       "params": {},
@@ -4289,7 +4400,7 @@
       }
     },
     {
-      "id": "get_15",
+      "id": "get_16",
       "method": "GET",
       "path": "/v1/convai/tools/{tool_id}",
       "params": {
@@ -4316,7 +4427,7 @@
       }
     },
     {
-      "id": "delete_11",
+      "id": "delete_12",
       "method": "DELETE",
       "path": "/v1/convai/tools/{tool_id}",
       "params": {
@@ -4403,7 +4514,7 @@
       }
     },
     {
-      "id": "get_16",
+      "id": "get_17",
       "method": "GET",
       "path": "/v1/convai/settings",
       "params": {},
@@ -4441,7 +4552,7 @@
       }
     },
     {
-      "id": "list_17",
+      "id": "list_18",
       "method": "GET",
       "path": "/v1/convai/secrets",
       "params": {
@@ -4482,7 +4593,7 @@
       }
     },
     {
-      "id": "create_12",
+      "id": "create_13",
       "method": "POST",
       "path": "/v1/convai/secrets",
       "params": {},
@@ -4505,7 +4616,7 @@
       }
     },
     {
-      "id": "get_17",
+      "id": "get_18",
       "method": "GET",
       "path": "/v1/convai/secrets/{secret_id}",
       "params": {
@@ -4526,7 +4637,7 @@
       }
     },
     {
-      "id": "delete_12",
+      "id": "delete_13",
       "method": "DELETE",
       "path": "/v1/convai/secrets/{secret_id}",
       "params": {
@@ -4605,7 +4716,7 @@
       }
     },
     {
-      "id": "create_13",
+      "id": "create_14",
       "method": "POST",
       "path": "/v1/convai/batch-calling/submit",
       "params": {},
@@ -4630,7 +4741,7 @@
       }
     },
     {
-      "id": "list_18",
+      "id": "list_19",
       "method": "GET",
       "path": "/v1/convai/batch-calling/workspace",
       "params": {
@@ -4666,7 +4777,7 @@
       }
     },
     {
-      "id": "get_18",
+      "id": "get_19",
       "method": "GET",
       "path": "/v1/convai/batch-calling/{batch_id}",
       "params": {
@@ -4687,7 +4798,7 @@
       }
     },
     {
-      "id": "delete_13",
+      "id": "delete_14",
       "method": "DELETE",
       "path": "/v1/convai/batch-calling/{batch_id}",
       "params": {
@@ -4794,7 +4905,7 @@
       }
     },
     {
-      "id": "list_19",
+      "id": "list_20",
       "method": "GET",
       "path": "/v1/convai/mcp-servers",
       "params": {},
@@ -4813,7 +4924,7 @@
       }
     },
     {
-      "id": "create_14",
+      "id": "create_15",
       "method": "POST",
       "path": "/v1/convai/mcp-servers",
       "params": {},
@@ -4837,7 +4948,7 @@
       }
     },
     {
-      "id": "get_19",
+      "id": "get_20",
       "method": "GET",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}",
       "params": {
@@ -4858,7 +4969,7 @@
       }
     },
     {
-      "id": "delete_14",
+      "id": "delete_15",
       "method": "DELETE",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}",
       "params": {
@@ -4900,7 +5011,7 @@
       }
     },
     {
-      "id": "get_20",
+      "id": "get_21",
       "method": "GET",
       "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
       "params": {
@@ -4921,7 +5032,7 @@
       }
     },
     {
-      "id": "delete_15",
+      "id": "delete_16",
       "method": "DELETE",
       "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
       "params": {
@@ -4963,7 +5074,7 @@
       }
     },
     {
-      "id": "list_20",
+      "id": "list_21",
       "method": "GET",
       "path": "/v1/convai/whatsapp-accounts",
       "params": {
@@ -4989,7 +5100,7 @@
       }
     },
     {
-      "id": "list_21",
+      "id": "list_22",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches",
       "params": {
@@ -5026,7 +5137,7 @@
       }
     },
     {
-      "id": "create_15",
+      "id": "create_16",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/branches",
       "params": {
@@ -5051,7 +5162,7 @@
       }
     },
     {
-      "id": "get_21",
+      "id": "get_22",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}",
       "params": {
@@ -5200,7 +5311,7 @@
       }
     },
     {
-      "id": "get_22",
+      "id": "get_23",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/versions/{version_id}",
       "params": {
@@ -5222,7 +5333,7 @@
       }
     },
     {
-      "id": "create_16",
+      "id": "create_17",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/deployments",
       "params": {
@@ -5255,7 +5366,7 @@
       }
     },
     {
-      "id": "create_17",
+      "id": "create_18",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/drafts",
       "params": {
@@ -5411,7 +5522,7 @@
       }
     },
     {
-      "id": "delete_16",
+      "id": "delete_17",
       "method": "DELETE",
       "path": "/v1/convai/agents/{agent_id}/drafts",
       "params": {
@@ -5438,7 +5549,7 @@
       }
     },
     {
-      "id": "list_22",
+      "id": "list_23",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures",
       "params": {
@@ -5460,7 +5571,7 @@
       }
     },
     {
-      "id": "create_18",
+      "id": "create_19",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures",
       "params": {
@@ -5504,7 +5615,7 @@
       }
     },
     {
-      "id": "get_23",
+      "id": "get_24",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}",
       "params": {
@@ -5577,7 +5688,7 @@
       }
     },
     {
-      "id": "get_24",
+      "id": "get_25",
       "method": "GET",
       "path": "/v1/convai/analytics/live-count",
       "params": {
@@ -5603,7 +5714,7 @@
       }
     },
     {
-      "id": "get_25",
+      "id": "get_26",
       "method": "GET",
       "path": "/v1/convai/conversations/{conversation_id}/audio",
       "params": {
@@ -5624,7 +5735,7 @@
       }
     },
     {
-      "id": "create_19",
+      "id": "create_20",
       "method": "POST",
       "path": "/v1/convai/conversations/{conversation_id}/feedback",
       "params": {
@@ -5889,7 +6000,7 @@
       }
     },
     {
-      "id": "list_23",
+      "id": "list_24",
       "method": "GET",
       "path": "/v1/convai/tags",
       "params": {
@@ -5920,7 +6031,7 @@
       }
     },
     {
-      "id": "create_20",
+      "id": "create_21",
       "method": "POST",
       "path": "/v1/convai/tags",
       "params": {},
@@ -5941,7 +6052,7 @@
       }
     },
     {
-      "id": "get_26",
+      "id": "get_27",
       "method": "GET",
       "path": "/v1/convai/tags/{tag_id}",
       "params": {
@@ -5962,7 +6073,7 @@
       }
     },
     {
-      "id": "delete_17",
+      "id": "delete_18",
       "method": "DELETE",
       "path": "/v1/convai/tags/{tag_id}",
       "params": {
@@ -6004,7 +6115,7 @@
       }
     },
     {
-      "id": "create_21",
+      "id": "create_22",
       "method": "POST",
       "path": "/v1/convai/conversations/{conversation_id}/files",
       "params": {
@@ -6032,7 +6143,7 @@
       }
     },
     {
-      "id": "delete_18",
+      "id": "delete_19",
       "method": "DELETE",
       "path": "/v1/convai/conversations/{conversation_id}/files/{file_id}",
       "params": {
@@ -6054,7 +6165,7 @@
       }
     },
     {
-      "id": "get_27",
+      "id": "get_28",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/topics",
       "params": {
@@ -6130,7 +6241,7 @@
       }
     },
     {
-      "id": "get_28",
+      "id": "get_29",
       "method": "GET",
       "path": "/v1/convai/settings/dashboard",
       "params": {},
@@ -6267,7 +6378,7 @@
       }
     },
     {
-      "id": "get_29",
+      "id": "get_30",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/{documentation_id}",
       "params": {
@@ -6294,7 +6405,7 @@
       }
     },
     {
-      "id": "delete_19",
+      "id": "delete_20",
       "method": "DELETE",
       "path": "/v1/convai/knowledge-base/{documentation_id}",
       "params": {
@@ -6531,7 +6642,7 @@
       }
     },
     {
-      "id": "list_24",
+      "id": "list_25",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/crawl",
       "params": {
@@ -6565,7 +6676,7 @@
       }
     },
     {
-      "id": "create_22",
+      "id": "create_23",
       "method": "POST",
       "path": "/v1/convai/knowledge-base/crawl",
       "params": {},
@@ -6586,7 +6697,7 @@
       }
     },
     {
-      "id": "get_30",
+      "id": "get_31",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/crawl/{crawl_job_id}",
       "params": {
@@ -6700,7 +6811,7 @@
       }
     },
     {
-      "id": "get_31",
+      "id": "get_32",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/summaries",
       "params": {
@@ -6724,7 +6835,7 @@
       }
     },
     {
-      "id": "get_32",
+      "id": "get_33",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/{documentation_id}/chunk/{chunk_id}",
       "params": {
@@ -6752,7 +6863,7 @@
       }
     },
     {
-      "id": "list_25",
+      "id": "list_26",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/{documentation_id}/chunks",
       "params": {
@@ -6789,7 +6900,7 @@
       }
     },
     {
-      "id": "list_26",
+      "id": "list_27",
       "method": "GET",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tools",
       "params": {
@@ -6839,7 +6950,7 @@
       }
     },
     {
-      "id": "create_23",
+      "id": "create_24",
       "method": "POST",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals",
       "params": {
@@ -6863,7 +6974,7 @@
       }
     },
     {
-      "id": "delete_20",
+      "id": "delete_21",
       "method": "DELETE",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals/{tool_name}",
       "params": {
@@ -6885,7 +6996,7 @@
       }
     },
     {
-      "id": "create_24",
+      "id": "create_25",
       "method": "POST",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs",
       "params": {
@@ -6914,7 +7025,7 @@
       }
     },
     {
-      "id": "get_33",
+      "id": "get_34",
       "method": "GET",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
       "params": {
@@ -6936,7 +7047,7 @@
       }
     },
     {
-      "id": "delete_21",
+      "id": "delete_22",
       "method": "DELETE",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
       "params": {
@@ -6986,7 +7097,7 @@
       }
     },
     {
-      "id": "get_34",
+      "id": "get_35",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft",
       "params": {
@@ -7009,7 +7120,7 @@
       }
     },
     {
-      "id": "delete_22",
+      "id": "delete_23",
       "method": "DELETE",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft",
       "params": {
@@ -7059,7 +7170,7 @@
       }
     },
     {
-      "id": "create_25",
+      "id": "create_26",
       "method": "POST",
       "path": "/v1/convai/agent-testing/folders",
       "params": {},
@@ -7080,7 +7191,7 @@
       }
     },
     {
-      "id": "get_35",
+      "id": "get_36",
       "method": "GET",
       "path": "/v1/convai/agent-testing/folders/{folder_id}",
       "params": {
@@ -7101,7 +7212,7 @@
       }
     },
     {
-      "id": "delete_23",
+      "id": "delete_24",
       "method": "DELETE",
       "path": "/v1/convai/agent-testing/folders/{folder_id}",
       "params": {
@@ -7151,7 +7262,7 @@
       }
     },
     {
-      "id": "list_27",
+      "id": "list_28",
       "method": "GET",
       "path": "/v1/convai/test-invocations",
       "params": {
@@ -7187,7 +7298,7 @@
       }
     },
     {
-      "id": "get_36",
+      "id": "get_37",
       "method": "GET",
       "path": "/v1/convai/test-invocations/{test_invocation_id}",
       "params": {
@@ -7234,7 +7345,7 @@
       }
     },
     {
-      "id": "get_37",
+      "id": "get_38",
       "method": "GET",
       "path": "/v1/convai/tools/{tool_id}/executions",
       "params": {
@@ -7291,7 +7402,7 @@
       }
     },
     {
-      "id": "create_26",
+      "id": "create_27",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/avatar",
       "params": {
@@ -7319,7 +7430,7 @@
       }
     },
     {
-      "id": "list_28",
+      "id": "list_29",
       "method": "GET",
       "path": "/v1/dubbing/project",
       "params": {
@@ -7345,7 +7456,7 @@
       }
     },
     {
-      "id": "create_27",
+      "id": "create_28",
       "method": "POST",
       "path": "/v1/dubbing/project",
       "params": {},
@@ -7415,7 +7526,7 @@
       }
     },
     {
-      "id": "get_38",
+      "id": "get_39",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}",
       "params": {
@@ -7436,7 +7547,7 @@
       }
     },
     {
-      "id": "delete_24",
+      "id": "delete_25",
       "method": "DELETE",
       "path": "/v1/dubbing/project/{project_id}",
       "params": {
@@ -7457,7 +7568,7 @@
       }
     },
     {
-      "id": "get_39",
+      "id": "get_40",
       "method": "GET",
       "path": "/v1/dubbing/resource/{dubbing_id}",
       "params": {
@@ -7611,7 +7722,7 @@
       }
     },
     {
-      "id": "get_40",
+      "id": "get_41",
       "method": "GET",
       "path": "/v1/dubbing/{dubbing_id}/audio/{language_code}",
       "params": {
@@ -7661,7 +7772,7 @@
       }
     },
     {
-      "id": "get_41",
+      "id": "get_42",
       "method": "GET",
       "path": "/v1/dubbing/{dubbing_id}/transcripts/{language_code}/format/{format_type}",
       "params": {
@@ -7684,7 +7795,7 @@
       }
     },
     {
-      "id": "list_29",
+      "id": "list_30",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/language",
       "params": {
@@ -7711,7 +7822,7 @@
       }
     },
     {
-      "id": "create_28",
+      "id": "create_29",
       "method": "POST",
       "path": "/v1/dubbing/project/{project_id}/language",
       "params": {
@@ -7734,7 +7845,7 @@
       }
     },
     {
-      "id": "get_42",
+      "id": "get_43",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/language/{language_id}",
       "params": {
@@ -7756,7 +7867,7 @@
       }
     },
     {
-      "id": "delete_25",
+      "id": "delete_26",
       "method": "DELETE",
       "path": "/v1/dubbing/project/{project_id}/language/{language_id}",
       "params": {
@@ -7778,7 +7889,7 @@
       }
     },
     {
-      "id": "get_43",
+      "id": "get_44",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/transcript",
       "params": {
@@ -7901,7 +8012,7 @@
       }
     },
     {
-      "id": "get_44",
+      "id": "get_45",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/language/{language_id}/transcript",
       "params": {
@@ -8050,7 +8161,7 @@
       }
     },
     {
-      "id": "delete_26",
+      "id": "delete_27",
       "method": "DELETE",
       "path": "/v1/dubbing/resource/{dubbing_id}/segment/{segment_id}",
       "params": {
@@ -8094,7 +8205,7 @@
       }
     },
     {
-      "id": "create_29",
+      "id": "create_30",
       "method": "POST",
       "path": "/v1/dubbing/resource/{dubbing_id}/speaker",
       "params": {
@@ -8137,7 +8248,7 @@
       }
     },
     {
-      "id": "create_30",
+      "id": "create_31",
       "method": "POST",
       "path": "/v1/dubbing/resource/{dubbing_id}/speaker/{speaker_id}/segment",
       "params": {
@@ -8162,7 +8273,260 @@
       }
     },
     {
-      "id": "create_31",
+      "id": "list_31",
+      "method": "GET",
+      "path": "/v1/flows/video",
+      "params": {
+        "cursor": "cursor",
+        "page_size": 1,
+        "status": "pending",
+        "model_id": "model_id"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "status",
+          "value": "pending"
+        },
+        {
+          "name": "model_id",
+          "value": "model_id"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"generations\": [\n    {\n      \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n      \"content_url\": \"https://storage.googleapis.com/generations/JWr5N6X9ZTqf8jD2LmQb\",\n      \"content_mime_type\": \"video/mp4\",\n      \"status\": \"completed\"\n    },\n    {\n      \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n      \"status\": \"generating\"\n    }\n  ],\n  \"next_cursor\": \"MjAyNi0wNy0xN1QxMjowMDowMHxLeDJtUDdZNFdWcmc5a0UzTm5SYw\",\n  \"has_more\": true\n}"
+      }
+    },
+    {
+      "id": "create_32",
+      "method": "POST",
+      "path": "/v1/flows/video",
+      "params": {},
+      "body": {
+        "prompt": "A corgi rides a tiny surfboard across a sunlit wave at golden hour, cinematic",
+        "model_id": "bytedance-seedance-v2"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n  \"status\": \"pending\"\n}"
+      }
+    },
+    {
+      "id": "get_46",
+      "method": "GET",
+      "path": "/v1/flows/video/{generation_id}",
+      "params": {
+        "generation_id": "generation_id"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n  \"content_url\": \"https://storage.googleapis.com/generations/JWr5N6X9ZTqf8jD2LmQb\",\n  \"content_mime_type\": \"video/mp4\",\n  \"status\": \"completed\"\n}"
+      }
+    },
+    {
+      "id": "list_32",
+      "method": "GET",
+      "path": "/v1/flows/image",
+      "params": {
+        "cursor": "cursor",
+        "page_size": 1,
+        "status": "pending",
+        "model_id": "model_id"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "status",
+          "value": "pending"
+        },
+        {
+          "name": "model_id",
+          "value": "model_id"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"generations\": [\n    {\n      \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n      \"content_url\": \"https://storage.googleapis.com/generations/JWr5N6X9ZTqf8jD2LmQb\",\n      \"content_mime_type\": \"video/mp4\",\n      \"status\": \"completed\"\n    },\n    {\n      \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n      \"status\": \"generating\"\n    }\n  ],\n  \"next_cursor\": \"MjAyNi0wNy0xN1QxMjowMDowMHxLeDJtUDdZNFdWcmc5a0UzTm5SYw\",\n  \"has_more\": true\n}"
+      }
+    },
+    {
+      "id": "create_33",
+      "method": "POST",
+      "path": "/v1/flows/image",
+      "params": {},
+      "body": {
+        "prompt": "A corgi in a tiny lifeguard chair on a sunlit beach at golden hour, photorealistic",
+        "model_id": "bytedance-seedream-5-lite"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n  \"status\": \"pending\"\n}"
+      }
+    },
+    {
+      "id": "get_47",
+      "method": "GET",
+      "path": "/v1/flows/image/{generation_id}",
+      "params": {
+        "generation_id": "generation_id"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n  \"content_url\": \"https://storage.googleapis.com/generations/JWr5N6X9ZTqf8jD2LmQb\",\n  \"content_mime_type\": \"video/mp4\",\n  \"status\": \"completed\"\n}"
+      }
+    },
+    {
+      "id": "list_33",
+      "method": "GET",
+      "path": "/v1/flows/text-to-speech",
+      "params": {
+        "cursor": "cursor",
+        "page_size": 1,
+        "status": "pending",
+        "model_id": "model_id"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "status",
+          "value": "pending"
+        },
+        {
+          "name": "model_id",
+          "value": "model_id"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"generations\": [\n    {\n      \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n      \"content_url\": \"https://storage.googleapis.com/generations/JWr5N6X9ZTqf8jD2LmQb\",\n      \"content_mime_type\": \"video/mp4\",\n      \"status\": \"completed\"\n    },\n    {\n      \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n      \"status\": \"generating\"\n    }\n  ],\n  \"next_cursor\": \"MjAyNi0wNy0xN1QxMjowMDowMHxLeDJtUDdZNFdWcmc5a0UzTm5SYw\",\n  \"has_more\": true\n}"
+      }
+    },
+    {
+      "id": "create_34",
+      "method": "POST",
+      "path": "/v1/flows/text-to-speech",
+      "params": {},
+      "body": {
+        "text": "The first move is what sets everything in motion.",
+        "voice": "JBFqnCBsd6RMkjVDRZzb",
+        "model_id": "eleven_flash_v2_5"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n  \"status\": \"pending\"\n}"
+      }
+    },
+    {
+      "id": "get_48",
+      "method": "GET",
+      "path": "/v1/flows/text-to-speech/{generation_id}",
+      "params": {
+        "generation_id": "generation_id"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 200,
+        "body": "{\n  \"id\": \"JWr5N6X9ZTqf8jD2LmQb\",\n  \"content_url\": \"https://storage.googleapis.com/generations/JWr5N6X9ZTqf8jD2LmQb\",\n  \"content_mime_type\": \"video/mp4\",\n  \"status\": \"completed\"\n}"
+      }
+    },
+    {
+      "id": "create_35",
       "method": "POST",
       "path": "/v1/music/plan",
       "params": {},
@@ -8183,7 +8547,7 @@
       }
     },
     {
-      "id": "list_30",
+      "id": "list_34",
       "method": "GET",
       "path": "/v1/music/finetunes",
       "params": {
@@ -8234,7 +8598,7 @@
       }
     },
     {
-      "id": "create_32",
+      "id": "create_36",
       "method": "POST",
       "path": "/v1/music/finetunes",
       "params": {},
@@ -8288,7 +8652,7 @@
       }
     },
     {
-      "id": "get_45",
+      "id": "get_49",
       "method": "GET",
       "path": "/v1/music/finetunes/{finetune_id}",
       "params": {
@@ -8309,7 +8673,7 @@
       }
     },
     {
-      "id": "delete_27",
+      "id": "delete_28",
       "method": "DELETE",
       "path": "/v1/music/finetunes/{finetune_id}",
       "params": {
@@ -8351,7 +8715,7 @@
       }
     },
     {
-      "id": "list_31",
+      "id": "list_35",
       "method": "GET",
       "path": "/v1/productions/orders",
       "params": {
@@ -8395,7 +8759,7 @@
       }
     },
     {
-      "id": "create_33",
+      "id": "create_37",
       "method": "POST",
       "path": "/v1/productions/orders",
       "params": {},
@@ -8416,7 +8780,7 @@
       }
     },
     {
-      "id": "get_46",
+      "id": "get_50",
       "method": "GET",
       "path": "/v1/productions/orders/{order_id}",
       "params": {
@@ -8533,7 +8897,7 @@
       }
     },
     {
-      "id": "get_47",
+      "id": "get_51",
       "method": "GET",
       "path": "/v1/productions/orders/{order_id}/media/{media_id}",
       "params": {
@@ -8615,7 +8979,7 @@
       }
     },
     {
-      "id": "list_32",
+      "id": "list_36",
       "method": "GET",
       "path": "/v1/productions/orders/{order_id}/deliverables",
       "params": {
@@ -8636,7 +9000,7 @@
       }
     },
     {
-      "id": "list_33",
+      "id": "list_37",
       "method": "GET",
       "path": "/v1/productions/orders/languages/{order_item_kind}",
       "params": {
@@ -8744,7 +9108,7 @@
       }
     },
     {
-      "id": "list_34",
+      "id": "list_38",
       "method": "GET",
       "path": "/v1/service-accounts/{service_account_user_id}/api-keys",
       "params": {
@@ -8765,7 +9129,7 @@
       }
     },
     {
-      "id": "create_34",
+      "id": "create_38",
       "method": "POST",
       "path": "/v1/service-accounts/{service_account_user_id}/api-keys",
       "params": {
@@ -8789,7 +9153,7 @@
       }
     },
     {
-      "id": "delete_28",
+      "id": "delete_29",
       "method": "DELETE",
       "path": "/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}",
       "params": {
@@ -8833,7 +9197,7 @@
       }
     },
     {
-      "id": "get_48",
+      "id": "get_52",
       "method": "GET",
       "path": "/v1/speech-to-text/transcripts/{transcription_id}",
       "params": {
@@ -8854,7 +9218,7 @@
       }
     },
     {
-      "id": "delete_29",
+      "id": "delete_30",
       "method": "DELETE",
       "path": "/v1/speech-to-text/transcripts/{transcription_id}",
       "params": {
@@ -8875,7 +9239,7 @@
       }
     },
     {
-      "id": "list_35",
+      "id": "list_39",
       "method": "GET",
       "path": "/v1/studio/projects",
       "params": {},
@@ -8894,7 +9258,7 @@
       }
     },
     {
-      "id": "create_35",
+      "id": "create_39",
       "method": "POST",
       "path": "/v1/studio/projects",
       "params": {},
@@ -9062,7 +9426,7 @@
       }
     },
     {
-      "id": "get_49",
+      "id": "get_53",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}",
       "params": {
@@ -9114,7 +9478,7 @@
       }
     },
     {
-      "id": "delete_30",
+      "id": "delete_31",
       "method": "DELETE",
       "path": "/v1/studio/projects/{project_id}",
       "params": {
@@ -9177,7 +9541,7 @@
       }
     },
     {
-      "id": "create_36",
+      "id": "create_40",
       "method": "POST",
       "path": "/v1/studio/projects/{project_id}/pronunciation-dictionaries",
       "params": {
@@ -9251,7 +9615,7 @@
       }
     },
     {
-      "id": "list_36",
+      "id": "list_40",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/snapshots",
       "params": {
@@ -9272,7 +9636,7 @@
       }
     },
     {
-      "id": "get_50",
+      "id": "get_54",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}",
       "params": {
@@ -9338,7 +9702,7 @@
       }
     },
     {
-      "id": "list_37",
+      "id": "list_41",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters",
       "params": {
@@ -9359,7 +9723,7 @@
       }
     },
     {
-      "id": "create_37",
+      "id": "create_41",
       "method": "POST",
       "path": "/v1/studio/projects/{project_id}/chapters",
       "params": {
@@ -9382,7 +9746,7 @@
       }
     },
     {
-      "id": "get_51",
+      "id": "get_55",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
       "params": {
@@ -9426,7 +9790,7 @@
       }
     },
     {
-      "id": "delete_31",
+      "id": "delete_32",
       "method": "DELETE",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
       "params": {
@@ -9470,7 +9834,7 @@
       }
     },
     {
-      "id": "list_38",
+      "id": "list_42",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots",
       "params": {
@@ -9492,7 +9856,7 @@
       }
     },
     {
-      "id": "get_52",
+      "id": "get_56",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots/{chapter_snapshot_id}",
       "params": {
@@ -9559,7 +9923,7 @@
       }
     },
     {
-      "id": "create_38",
+      "id": "create_42",
       "method": "POST",
       "path": "/v1/single-use-token/{token_type}",
       "params": {
@@ -9580,7 +9944,7 @@
       }
     },
     {
-      "id": "get_53",
+      "id": "get_57",
       "method": "GET",
       "path": "/v1/user/subscription",
       "params": {},
@@ -9618,7 +9982,7 @@
       }
     },
     {
-      "id": "get_54",
+      "id": "get_58",
       "method": "GET",
       "path": "/v1/voices/{voice_id}/settings",
       "params": {
@@ -9666,7 +10030,7 @@
       }
     },
     {
-      "id": "get_55",
+      "id": "get_59",
       "method": "GET",
       "path": "/v1/voices/accents",
       "params": {
@@ -9697,7 +10061,7 @@
       }
     },
     {
-      "id": "create_39",
+      "id": "create_43",
       "method": "POST",
       "path": "/v1/voices/add",
       "params": {},
@@ -9745,7 +10109,7 @@
       }
     },
     {
-      "id": "create_40",
+      "id": "create_44",
       "method": "POST",
       "path": "/v1/voices/pvc",
       "params": {},
@@ -9809,7 +10173,7 @@
       }
     },
     {
-      "id": "create_41",
+      "id": "create_45",
       "method": "POST",
       "path": "/v1/voices/pvc/{voice_id}/samples",
       "params": {
@@ -9864,7 +10228,7 @@
       }
     },
     {
-      "id": "delete_32",
+      "id": "delete_33",
       "method": "DELETE",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}",
       "params": {
@@ -9919,7 +10283,7 @@
       }
     },
     {
-      "id": "get_56",
+      "id": "get_60",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/audio",
       "params": {
@@ -9947,7 +10311,7 @@
       }
     },
     {
-      "id": "get_57",
+      "id": "get_61",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform",
       "params": {
@@ -9969,7 +10333,7 @@
       }
     },
     {
-      "id": "get_58",
+      "id": "get_62",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers",
       "params": {
@@ -10013,7 +10377,7 @@
       }
     },
     {
-      "id": "get_59",
+      "id": "get_63",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers/{speaker_id}/audio",
       "params": {
@@ -10036,7 +10400,7 @@
       }
     },
     {
-      "id": "get_60",
+      "id": "get_64",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/captcha",
       "params": {
@@ -10085,7 +10449,7 @@
       }
     },
     {
-      "id": "get_61",
+      "id": "get_65",
       "method": "GET",
       "path": "/v1/voices/{voice_id}/samples/{sample_id}/audio",
       "params": {
@@ -10107,7 +10471,7 @@
       }
     },
     {
-      "id": "list_39",
+      "id": "list_43",
       "method": "GET",
       "path": "/v1/workspace/audit-logs",
       "params": {
@@ -10163,7 +10527,7 @@
       }
     },
     {
-      "id": "list_40",
+      "id": "list_44",
       "method": "GET",
       "path": "/v1/workspace/auth-connections",
       "params": {},
@@ -10182,7 +10546,7 @@
       }
     },
     {
-      "id": "create_42",
+      "id": "create_46",
       "method": "POST",
       "path": "/v1/workspace/auth-connections",
       "params": {},
@@ -10208,7 +10572,7 @@
       }
     },
     {
-      "id": "delete_33",
+      "id": "delete_34",
       "method": "DELETE",
       "path": "/v1/workspace/auth-connections/{auth_connection_id}",
       "params": {
@@ -10252,7 +10616,7 @@
       }
     },
     {
-      "id": "list_41",
+      "id": "list_45",
       "method": "GET",
       "path": "/v1/workspace/groups",
       "params": {},
@@ -10297,7 +10661,7 @@
       }
     },
     {
-      "id": "create_43",
+      "id": "create_47",
       "method": "POST",
       "path": "/v1/workspace/invites/add",
       "params": {},
@@ -10341,7 +10705,7 @@
       }
     },
     {
-      "id": "delete_34",
+      "id": "delete_35",
       "method": "DELETE",
       "path": "/v1/workspace/invites",
       "params": {},
@@ -10362,7 +10726,7 @@
       }
     },
     {
-      "id": "list_42",
+      "id": "list_46",
       "method": "GET",
       "path": "/v1/workspace/members",
       "params": {},
@@ -10402,7 +10766,7 @@
       }
     },
     {
-      "id": "get_62",
+      "id": "get_66",
       "method": "GET",
       "path": "/v1/workspace/resources/{resource_id}",
       "params": {
@@ -10498,7 +10862,7 @@
       }
     },
     {
-      "id": "get_63",
+      "id": "get_67",
       "method": "POST",
       "path": "/v1/workspace/analytics/requests",
       "params": {},
@@ -13677,6 +14041,121 @@
       "expectError": true
     },
     {
+      "id": "list_10_error",
+      "method": "GET",
+      "path": "/v1/assets",
+      "params": {
+        "page_size": 1,
+        "cursor": "cursor",
+        "search": "search"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "search",
+          "value": "search"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "create_9_error",
+      "method": "POST",
+      "path": "/v1/assets",
+      "params": {},
+      "body": {
+        "name": "name"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "multipartFields": [
+        {
+          "wireName": "asset",
+          "isFile": true,
+          "isOptional": false
+        },
+        {
+          "wireName": "name",
+          "isFile": false,
+          "isOptional": false
+        }
+      ],
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "get_9_error",
+      "method": "GET",
+      "path": "/v1/assets/{asset_id}",
+      "params": {
+        "asset_id": "5xM2KqOnZyce22SPZ9d4"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "delete_8_error",
+      "method": "DELETE",
+      "path": "/v1/assets/{asset_id}",
+      "params": {
+        "asset_id": "5xM2KqOnZyce22SPZ9d4"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
       "id": "get_signed_url_error",
       "method": "GET",
       "path": "/v1/convai/conversation/get-signed-url",
@@ -13761,7 +14240,7 @@
       "expectError": true
     },
     {
-      "id": "list_10_error",
+      "id": "list_11_error",
       "method": "GET",
       "path": "/v1/convai/conversations",
       "params": {
@@ -13968,7 +14447,7 @@
       "expectError": true
     },
     {
-      "id": "get_9_error",
+      "id": "get_10_error",
       "method": "GET",
       "path": "/v1/convai/conversations/{conversation_id}",
       "params": {
@@ -13996,7 +14475,7 @@
       "expectError": true
     },
     {
-      "id": "delete_8_error",
+      "id": "delete_9_error",
       "method": "DELETE",
       "path": "/v1/convai/conversations/{conversation_id}",
       "params": {
@@ -14185,7 +14664,7 @@
       "expectError": true
     },
     {
-      "id": "get_10_error",
+      "id": "get_11_error",
       "method": "GET",
       "path": "/v1/convai/agents/summaries",
       "params": {
@@ -14209,7 +14688,7 @@
       "expectError": true
     },
     {
-      "id": "get_11_error",
+      "id": "get_12_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/widget",
       "params": {
@@ -14237,7 +14716,7 @@
       "expectError": true
     },
     {
-      "id": "get_12_error",
+      "id": "get_13_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/link",
       "params": {
@@ -14281,7 +14760,7 @@
       "expectError": true
     },
     {
-      "id": "list_11_error",
+      "id": "list_12_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base",
       "params": {
@@ -14424,7 +14903,7 @@
       "expectError": true
     },
     {
-      "id": "create_9_error",
+      "id": "create_10_error",
       "method": "POST",
       "path": "/v1/convai/agent-testing/create",
       "params": {},
@@ -14471,7 +14950,7 @@
       "expectError": true
     },
     {
-      "id": "get_13_error",
+      "id": "get_14_error",
       "method": "GET",
       "path": "/v1/convai/agent-testing/{test_id}",
       "params": {
@@ -14518,7 +14997,7 @@
       "expectError": true
     },
     {
-      "id": "delete_9_error",
+      "id": "delete_10_error",
       "method": "DELETE",
       "path": "/v1/convai/agent-testing/{test_id}",
       "params": {
@@ -14565,7 +15044,7 @@
       "expectError": true
     },
     {
-      "id": "list_12_error",
+      "id": "list_13_error",
       "method": "GET",
       "path": "/v1/convai/agent-testing",
       "params": {
@@ -14625,7 +15104,7 @@
       "expectError": true
     },
     {
-      "id": "list_13_error",
+      "id": "list_14_error",
       "method": "GET",
       "path": "/v1/convai/users",
       "params": {
@@ -14692,7 +15171,7 @@
       "expectError": true
     },
     {
-      "id": "list_14_error",
+      "id": "list_15_error",
       "method": "GET",
       "path": "/v1/convai/phone-numbers",
       "params": {
@@ -14729,7 +15208,7 @@
       "expectError": true
     },
     {
-      "id": "create_10_error",
+      "id": "create_11_error",
       "method": "POST",
       "path": "/v1/convai/phone-numbers",
       "params": {},
@@ -14755,7 +15234,7 @@
       "expectError": true
     },
     {
-      "id": "get_14_error",
+      "id": "get_15_error",
       "method": "GET",
       "path": "/v1/convai/phone-numbers/{phone_number_id}",
       "params": {
@@ -14777,7 +15256,7 @@
       "expectError": true
     },
     {
-      "id": "delete_10_error",
+      "id": "delete_11_error",
       "method": "DELETE",
       "path": "/v1/convai/phone-numbers/{phone_number_id}",
       "params": {
@@ -14878,7 +15357,7 @@
       "expectError": true
     },
     {
-      "id": "list_15_error",
+      "id": "list_16_error",
       "method": "GET",
       "path": "/v1/convai/llm/list",
       "params": {},
@@ -14898,7 +15377,7 @@
       "expectError": true
     },
     {
-      "id": "list_16_error",
+      "id": "list_17_error",
       "method": "GET",
       "path": "/v1/convai/tools",
       "params": {
@@ -14958,7 +15437,7 @@
       "expectError": true
     },
     {
-      "id": "create_11_error",
+      "id": "create_12_error",
       "method": "POST",
       "path": "/v1/convai/tools",
       "params": {},
@@ -14985,7 +15464,7 @@
       "expectError": true
     },
     {
-      "id": "get_15_error",
+      "id": "get_16_error",
       "method": "GET",
       "path": "/v1/convai/tools/{tool_id}",
       "params": {
@@ -15013,7 +15492,7 @@
       "expectError": true
     },
     {
-      "id": "delete_11_error",
+      "id": "delete_12_error",
       "method": "DELETE",
       "path": "/v1/convai/tools/{tool_id}",
       "params": {
@@ -15103,7 +15582,7 @@
       "expectError": true
     },
     {
-      "id": "get_16_error",
+      "id": "get_17_error",
       "method": "GET",
       "path": "/v1/convai/settings",
       "params": {},
@@ -15143,7 +15622,7 @@
       "expectError": true
     },
     {
-      "id": "list_17_error",
+      "id": "list_18_error",
       "method": "GET",
       "path": "/v1/convai/secrets",
       "params": {
@@ -15185,7 +15664,7 @@
       "expectError": true
     },
     {
-      "id": "create_12_error",
+      "id": "create_13_error",
       "method": "POST",
       "path": "/v1/convai/secrets",
       "params": {},
@@ -15209,7 +15688,7 @@
       "expectError": true
     },
     {
-      "id": "get_17_error",
+      "id": "get_18_error",
       "method": "GET",
       "path": "/v1/convai/secrets/{secret_id}",
       "params": {
@@ -15231,7 +15710,7 @@
       "expectError": true
     },
     {
-      "id": "delete_12_error",
+      "id": "delete_13_error",
       "method": "DELETE",
       "path": "/v1/convai/secrets/{secret_id}",
       "params": {
@@ -15313,7 +15792,7 @@
       "expectError": true
     },
     {
-      "id": "create_13_error",
+      "id": "create_14_error",
       "method": "POST",
       "path": "/v1/convai/batch-calling/submit",
       "params": {},
@@ -15339,7 +15818,7 @@
       "expectError": true
     },
     {
-      "id": "list_18_error",
+      "id": "list_19_error",
       "method": "GET",
       "path": "/v1/convai/batch-calling/workspace",
       "params": {
@@ -15376,7 +15855,7 @@
       "expectError": true
     },
     {
-      "id": "get_18_error",
+      "id": "get_19_error",
       "method": "GET",
       "path": "/v1/convai/batch-calling/{batch_id}",
       "params": {
@@ -15398,7 +15877,7 @@
       "expectError": true
     },
     {
-      "id": "delete_13_error",
+      "id": "delete_14_error",
       "method": "DELETE",
       "path": "/v1/convai/batch-calling/{batch_id}",
       "params": {
@@ -15510,7 +15989,7 @@
       "expectError": true
     },
     {
-      "id": "list_19_error",
+      "id": "list_20_error",
       "method": "GET",
       "path": "/v1/convai/mcp-servers",
       "params": {},
@@ -15530,7 +16009,7 @@
       "expectError": true
     },
     {
-      "id": "create_14_error",
+      "id": "create_15_error",
       "method": "POST",
       "path": "/v1/convai/mcp-servers",
       "params": {},
@@ -15555,7 +16034,7 @@
       "expectError": true
     },
     {
-      "id": "get_19_error",
+      "id": "get_20_error",
       "method": "GET",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}",
       "params": {
@@ -15577,7 +16056,7 @@
       "expectError": true
     },
     {
-      "id": "delete_14_error",
+      "id": "delete_15_error",
       "method": "DELETE",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}",
       "params": {
@@ -15621,7 +16100,7 @@
       "expectError": true
     },
     {
-      "id": "get_20_error",
+      "id": "get_21_error",
       "method": "GET",
       "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
       "params": {
@@ -15643,7 +16122,7 @@
       "expectError": true
     },
     {
-      "id": "delete_15_error",
+      "id": "delete_16_error",
       "method": "DELETE",
       "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
       "params": {
@@ -15687,7 +16166,7 @@
       "expectError": true
     },
     {
-      "id": "list_20_error",
+      "id": "list_21_error",
       "method": "GET",
       "path": "/v1/convai/whatsapp-accounts",
       "params": {
@@ -15714,7 +16193,7 @@
       "expectError": true
     },
     {
-      "id": "list_21_error",
+      "id": "list_22_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches",
       "params": {
@@ -15752,7 +16231,7 @@
       "expectError": true
     },
     {
-      "id": "create_15_error",
+      "id": "create_16_error",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/branches",
       "params": {
@@ -15778,7 +16257,7 @@
       "expectError": true
     },
     {
-      "id": "get_21_error",
+      "id": "get_22_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}",
       "params": {
@@ -15933,7 +16412,7 @@
       "expectError": true
     },
     {
-      "id": "get_22_error",
+      "id": "get_23_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/versions/{version_id}",
       "params": {
@@ -15956,7 +16435,7 @@
       "expectError": true
     },
     {
-      "id": "create_16_error",
+      "id": "create_17_error",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/deployments",
       "params": {
@@ -15990,7 +16469,7 @@
       "expectError": true
     },
     {
-      "id": "create_17_error",
+      "id": "create_18_error",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/drafts",
       "params": {
@@ -16147,7 +16626,7 @@
       "expectError": true
     },
     {
-      "id": "delete_16_error",
+      "id": "delete_17_error",
       "method": "DELETE",
       "path": "/v1/convai/agents/{agent_id}/drafts",
       "params": {
@@ -16175,7 +16654,7 @@
       "expectError": true
     },
     {
-      "id": "list_22_error",
+      "id": "list_23_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures",
       "params": {
@@ -16198,7 +16677,7 @@
       "expectError": true
     },
     {
-      "id": "create_18_error",
+      "id": "create_19_error",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures",
       "params": {
@@ -16244,7 +16723,7 @@
       "expectError": true
     },
     {
-      "id": "get_23_error",
+      "id": "get_24_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}",
       "params": {
@@ -16320,7 +16799,7 @@
       "expectError": true
     },
     {
-      "id": "get_24_error",
+      "id": "get_25_error",
       "method": "GET",
       "path": "/v1/convai/analytics/live-count",
       "params": {
@@ -16347,7 +16826,7 @@
       "expectError": true
     },
     {
-      "id": "get_25_error",
+      "id": "get_26_error",
       "method": "GET",
       "path": "/v1/convai/conversations/{conversation_id}/audio",
       "params": {
@@ -16369,7 +16848,7 @@
       "expectError": true
     },
     {
-      "id": "create_19_error",
+      "id": "create_20_error",
       "method": "POST",
       "path": "/v1/convai/conversations/{conversation_id}/feedback",
       "params": {
@@ -16639,7 +17118,7 @@
       "expectError": true
     },
     {
-      "id": "list_23_error",
+      "id": "list_24_error",
       "method": "GET",
       "path": "/v1/convai/tags",
       "params": {
@@ -16671,7 +17150,7 @@
       "expectError": true
     },
     {
-      "id": "create_20_error",
+      "id": "create_21_error",
       "method": "POST",
       "path": "/v1/convai/tags",
       "params": {},
@@ -16693,7 +17172,7 @@
       "expectError": true
     },
     {
-      "id": "get_26_error",
+      "id": "get_27_error",
       "method": "GET",
       "path": "/v1/convai/tags/{tag_id}",
       "params": {
@@ -16715,7 +17194,7 @@
       "expectError": true
     },
     {
-      "id": "delete_17_error",
+      "id": "delete_18_error",
       "method": "DELETE",
       "path": "/v1/convai/tags/{tag_id}",
       "params": {
@@ -16759,7 +17238,7 @@
       "expectError": true
     },
     {
-      "id": "create_21_error",
+      "id": "create_22_error",
       "method": "POST",
       "path": "/v1/convai/conversations/{conversation_id}/files",
       "params": {
@@ -16788,7 +17267,7 @@
       "expectError": true
     },
     {
-      "id": "delete_18_error",
+      "id": "delete_19_error",
       "method": "DELETE",
       "path": "/v1/convai/conversations/{conversation_id}/files/{file_id}",
       "params": {
@@ -16811,7 +17290,7 @@
       "expectError": true
     },
     {
-      "id": "get_27_error",
+      "id": "get_28_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/topics",
       "params": {
@@ -16890,7 +17369,7 @@
       "expectError": true
     },
     {
-      "id": "get_28_error",
+      "id": "get_29_error",
       "method": "GET",
       "path": "/v1/convai/settings/dashboard",
       "params": {},
@@ -17033,7 +17512,7 @@
       "expectError": true
     },
     {
-      "id": "get_29_error",
+      "id": "get_30_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/{documentation_id}",
       "params": {
@@ -17061,7 +17540,7 @@
       "expectError": true
     },
     {
-      "id": "delete_19_error",
+      "id": "delete_20_error",
       "method": "DELETE",
       "path": "/v1/convai/knowledge-base/{documentation_id}",
       "params": {
@@ -17307,7 +17786,7 @@
       "expectError": true
     },
     {
-      "id": "list_24_error",
+      "id": "list_25_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/crawl",
       "params": {
@@ -17342,7 +17821,7 @@
       "expectError": true
     },
     {
-      "id": "create_22_error",
+      "id": "create_23_error",
       "method": "POST",
       "path": "/v1/convai/knowledge-base/crawl",
       "params": {},
@@ -17364,7 +17843,7 @@
       "expectError": true
     },
     {
-      "id": "get_30_error",
+      "id": "get_31_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/crawl/{crawl_job_id}",
       "params": {
@@ -17483,7 +17962,7 @@
       "expectError": true
     },
     {
-      "id": "get_31_error",
+      "id": "get_32_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/summaries",
       "params": {
@@ -17508,7 +17987,7 @@
       "expectError": true
     },
     {
-      "id": "get_32_error",
+      "id": "get_33_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/{documentation_id}/chunk/{chunk_id}",
       "params": {
@@ -17537,7 +18016,7 @@
       "expectError": true
     },
     {
-      "id": "list_25_error",
+      "id": "list_26_error",
       "method": "GET",
       "path": "/v1/convai/knowledge-base/{documentation_id}/chunks",
       "params": {
@@ -17575,7 +18054,7 @@
       "expectError": true
     },
     {
-      "id": "list_26_error",
+      "id": "list_27_error",
       "method": "GET",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tools",
       "params": {
@@ -17627,7 +18106,7 @@
       "expectError": true
     },
     {
-      "id": "create_23_error",
+      "id": "create_24_error",
       "method": "POST",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals",
       "params": {
@@ -17652,7 +18131,7 @@
       "expectError": true
     },
     {
-      "id": "delete_20_error",
+      "id": "delete_21_error",
       "method": "DELETE",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals/{tool_name}",
       "params": {
@@ -17675,7 +18154,7 @@
       "expectError": true
     },
     {
-      "id": "create_24_error",
+      "id": "create_25_error",
       "method": "POST",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs",
       "params": {
@@ -17705,7 +18184,7 @@
       "expectError": true
     },
     {
-      "id": "get_33_error",
+      "id": "get_34_error",
       "method": "GET",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
       "params": {
@@ -17728,7 +18207,7 @@
       "expectError": true
     },
     {
-      "id": "delete_21_error",
+      "id": "delete_22_error",
       "method": "DELETE",
       "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
       "params": {
@@ -17780,7 +18259,7 @@
       "expectError": true
     },
     {
-      "id": "get_34_error",
+      "id": "get_35_error",
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft",
       "params": {
@@ -17804,7 +18283,7 @@
       "expectError": true
     },
     {
-      "id": "delete_22_error",
+      "id": "delete_23_error",
       "method": "DELETE",
       "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}/draft",
       "params": {
@@ -17856,7 +18335,7 @@
       "expectError": true
     },
     {
-      "id": "create_25_error",
+      "id": "create_26_error",
       "method": "POST",
       "path": "/v1/convai/agent-testing/folders",
       "params": {},
@@ -17878,7 +18357,7 @@
       "expectError": true
     },
     {
-      "id": "get_35_error",
+      "id": "get_36_error",
       "method": "GET",
       "path": "/v1/convai/agent-testing/folders/{folder_id}",
       "params": {
@@ -17900,7 +18379,7 @@
       "expectError": true
     },
     {
-      "id": "delete_23_error",
+      "id": "delete_24_error",
       "method": "DELETE",
       "path": "/v1/convai/agent-testing/folders/{folder_id}",
       "params": {
@@ -17952,7 +18431,7 @@
       "expectError": true
     },
     {
-      "id": "list_27_error",
+      "id": "list_28_error",
       "method": "GET",
       "path": "/v1/convai/test-invocations",
       "params": {
@@ -17989,7 +18468,7 @@
       "expectError": true
     },
     {
-      "id": "get_36_error",
+      "id": "get_37_error",
       "method": "GET",
       "path": "/v1/convai/test-invocations/{test_invocation_id}",
       "params": {
@@ -18038,7 +18517,7 @@
       "expectError": true
     },
     {
-      "id": "get_37_error",
+      "id": "get_38_error",
       "method": "GET",
       "path": "/v1/convai/tools/{tool_id}/executions",
       "params": {
@@ -18096,7 +18575,7 @@
       "expectError": true
     },
     {
-      "id": "create_26_error",
+      "id": "create_27_error",
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/avatar",
       "params": {
@@ -18125,7 +18604,7 @@
       "expectError": true
     },
     {
-      "id": "list_28_error",
+      "id": "list_29_error",
       "method": "GET",
       "path": "/v1/dubbing/project",
       "params": {
@@ -18152,7 +18631,7 @@
       "expectError": true
     },
     {
-      "id": "create_27_error",
+      "id": "create_28_error",
       "method": "POST",
       "path": "/v1/dubbing/project",
       "params": {},
@@ -18223,7 +18702,7 @@
       "expectError": true
     },
     {
-      "id": "get_38_error",
+      "id": "get_39_error",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}",
       "params": {
@@ -18245,7 +18724,7 @@
       "expectError": true
     },
     {
-      "id": "delete_24_error",
+      "id": "delete_25_error",
       "method": "DELETE",
       "path": "/v1/dubbing/project/{project_id}",
       "params": {
@@ -18267,7 +18746,7 @@
       "expectError": true
     },
     {
-      "id": "get_39_error",
+      "id": "get_40_error",
       "method": "GET",
       "path": "/v1/dubbing/resource/{dubbing_id}",
       "params": {
@@ -18427,7 +18906,7 @@
       "expectError": true
     },
     {
-      "id": "get_40_error",
+      "id": "get_41_error",
       "method": "GET",
       "path": "/v1/dubbing/{dubbing_id}/audio/{language_code}",
       "params": {
@@ -18479,7 +18958,7 @@
       "expectError": true
     },
     {
-      "id": "get_41_error",
+      "id": "get_42_error",
       "method": "GET",
       "path": "/v1/dubbing/{dubbing_id}/transcripts/{language_code}/format/{format_type}",
       "params": {
@@ -18503,7 +18982,7 @@
       "expectError": true
     },
     {
-      "id": "list_29_error",
+      "id": "list_30_error",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/language",
       "params": {
@@ -18531,7 +19010,7 @@
       "expectError": true
     },
     {
-      "id": "create_28_error",
+      "id": "create_29_error",
       "method": "POST",
       "path": "/v1/dubbing/project/{project_id}/language",
       "params": {
@@ -18555,7 +19034,7 @@
       "expectError": true
     },
     {
-      "id": "get_42_error",
+      "id": "get_43_error",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/language/{language_id}",
       "params": {
@@ -18578,7 +19057,7 @@
       "expectError": true
     },
     {
-      "id": "delete_25_error",
+      "id": "delete_26_error",
       "method": "DELETE",
       "path": "/v1/dubbing/project/{project_id}/language/{language_id}",
       "params": {
@@ -18601,7 +19080,7 @@
       "expectError": true
     },
     {
-      "id": "get_43_error",
+      "id": "get_44_error",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/transcript",
       "params": {
@@ -18729,7 +19208,7 @@
       "expectError": true
     },
     {
-      "id": "get_44_error",
+      "id": "get_45_error",
       "method": "GET",
       "path": "/v1/dubbing/project/{project_id}/language/{language_id}/transcript",
       "params": {
@@ -18884,7 +19363,7 @@
       "expectError": true
     },
     {
-      "id": "delete_26_error",
+      "id": "delete_27_error",
       "method": "DELETE",
       "path": "/v1/dubbing/resource/{dubbing_id}/segment/{segment_id}",
       "params": {
@@ -18930,7 +19409,7 @@
       "expectError": true
     },
     {
-      "id": "create_29_error",
+      "id": "create_30_error",
       "method": "POST",
       "path": "/v1/dubbing/resource/{dubbing_id}/speaker",
       "params": {
@@ -18975,7 +19454,7 @@
       "expectError": true
     },
     {
-      "id": "create_30_error",
+      "id": "create_31_error",
       "method": "POST",
       "path": "/v1/dubbing/resource/{dubbing_id}/speaker/{speaker_id}/segment",
       "params": {
@@ -19001,7 +19480,269 @@
       "expectError": true
     },
     {
-      "id": "create_31_error",
+      "id": "list_31_error",
+      "method": "GET",
+      "path": "/v1/flows/video",
+      "params": {
+        "cursor": "cursor",
+        "page_size": 1,
+        "status": "pending",
+        "model_id": "model_id"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "status",
+          "value": "pending"
+        },
+        {
+          "name": "model_id",
+          "value": "model_id"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "create_32_error",
+      "method": "POST",
+      "path": "/v1/flows/video",
+      "params": {},
+      "body": {
+        "prompt": "A corgi rides a tiny surfboard across a sunlit wave at golden hour, cinematic",
+        "model_id": "bytedance-seedance-v2"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "get_46_error",
+      "method": "GET",
+      "path": "/v1/flows/video/{generation_id}",
+      "params": {
+        "generation_id": "generation_id"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "list_32_error",
+      "method": "GET",
+      "path": "/v1/flows/image",
+      "params": {
+        "cursor": "cursor",
+        "page_size": 1,
+        "status": "pending",
+        "model_id": "model_id"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "status",
+          "value": "pending"
+        },
+        {
+          "name": "model_id",
+          "value": "model_id"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "create_33_error",
+      "method": "POST",
+      "path": "/v1/flows/image",
+      "params": {},
+      "body": {
+        "prompt": "A corgi in a tiny lifeguard chair on a sunlit beach at golden hour, photorealistic",
+        "model_id": "bytedance-seedream-5-lite"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "get_47_error",
+      "method": "GET",
+      "path": "/v1/flows/image/{generation_id}",
+      "params": {
+        "generation_id": "generation_id"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "list_33_error",
+      "method": "GET",
+      "path": "/v1/flows/text-to-speech",
+      "params": {
+        "cursor": "cursor",
+        "page_size": 1,
+        "status": "pending",
+        "model_id": "model_id"
+      },
+      "body": null,
+      "queryMatchers": [
+        {
+          "name": "cursor",
+          "value": "cursor"
+        },
+        {
+          "name": "page_size",
+          "value": "1"
+        },
+        {
+          "name": "status",
+          "value": "pending"
+        },
+        {
+          "name": "model_id",
+          "value": "model_id"
+        }
+      ],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "create_34_error",
+      "method": "POST",
+      "path": "/v1/flows/text-to-speech",
+      "params": {},
+      "body": {
+        "text": "The first move is what sets everything in motion.",
+        "voice": "JBFqnCBsd6RMkjVDRZzb",
+        "model_id": "eleven_flash_v2_5"
+      },
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "get_48_error",
+      "method": "GET",
+      "path": "/v1/flows/text-to-speech/{generation_id}",
+      "params": {
+        "generation_id": "generation_id"
+      },
+      "body": null,
+      "queryMatchers": [],
+      "headerMatchers": [
+        {
+          "name": "Authorization",
+          "matches": "Bearer .+"
+        }
+      ],
+      "requiresAuth": true,
+      "response": {
+        "status": 422,
+        "body": "{\"error\":{\"code\":422,\"message\":\"wire-test forced error response\"}}"
+      },
+      "expectError": true
+    },
+    {
+      "id": "create_35_error",
       "method": "POST",
       "path": "/v1/music/plan",
       "params": {},
@@ -19023,7 +19764,7 @@
       "expectError": true
     },
     {
-      "id": "list_30_error",
+      "id": "list_34_error",
       "method": "GET",
       "path": "/v1/music/finetunes",
       "params": {
@@ -19075,7 +19816,7 @@
       "expectError": true
     },
     {
-      "id": "create_32_error",
+      "id": "create_36_error",
       "method": "POST",
       "path": "/v1/music/finetunes",
       "params": {},
@@ -19130,7 +19871,7 @@
       "expectError": true
     },
     {
-      "id": "get_45_error",
+      "id": "get_49_error",
       "method": "GET",
       "path": "/v1/music/finetunes/{finetune_id}",
       "params": {
@@ -19152,7 +19893,7 @@
       "expectError": true
     },
     {
-      "id": "delete_27_error",
+      "id": "delete_28_error",
       "method": "DELETE",
       "path": "/v1/music/finetunes/{finetune_id}",
       "params": {
@@ -19196,7 +19937,7 @@
       "expectError": true
     },
     {
-      "id": "list_31_error",
+      "id": "list_35_error",
       "method": "GET",
       "path": "/v1/productions/orders",
       "params": {
@@ -19241,7 +19982,7 @@
       "expectError": true
     },
     {
-      "id": "create_33_error",
+      "id": "create_37_error",
       "method": "POST",
       "path": "/v1/productions/orders",
       "params": {},
@@ -19263,7 +20004,7 @@
       "expectError": true
     },
     {
-      "id": "get_46_error",
+      "id": "get_50_error",
       "method": "GET",
       "path": "/v1/productions/orders/{order_id}",
       "params": {
@@ -19384,7 +20125,7 @@
       "expectError": true
     },
     {
-      "id": "get_47_error",
+      "id": "get_51_error",
       "method": "GET",
       "path": "/v1/productions/orders/{order_id}/media/{media_id}",
       "params": {
@@ -19469,7 +20210,7 @@
       "expectError": true
     },
     {
-      "id": "list_32_error",
+      "id": "list_36_error",
       "method": "GET",
       "path": "/v1/productions/orders/{order_id}/deliverables",
       "params": {
@@ -19491,7 +20232,7 @@
       "expectError": true
     },
     {
-      "id": "list_33_error",
+      "id": "list_37_error",
       "method": "GET",
       "path": "/v1/productions/orders/languages/{order_item_kind}",
       "params": {
@@ -19603,7 +20344,7 @@
       "expectError": true
     },
     {
-      "id": "list_34_error",
+      "id": "list_38_error",
       "method": "GET",
       "path": "/v1/service-accounts/{service_account_user_id}/api-keys",
       "params": {
@@ -19625,7 +20366,7 @@
       "expectError": true
     },
     {
-      "id": "create_34_error",
+      "id": "create_38_error",
       "method": "POST",
       "path": "/v1/service-accounts/{service_account_user_id}/api-keys",
       "params": {
@@ -19650,7 +20391,7 @@
       "expectError": true
     },
     {
-      "id": "delete_28_error",
+      "id": "delete_29_error",
       "method": "DELETE",
       "path": "/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}",
       "params": {
@@ -19696,7 +20437,7 @@
       "expectError": true
     },
     {
-      "id": "get_48_error",
+      "id": "get_52_error",
       "method": "GET",
       "path": "/v1/speech-to-text/transcripts/{transcription_id}",
       "params": {
@@ -19718,7 +20459,7 @@
       "expectError": true
     },
     {
-      "id": "delete_29_error",
+      "id": "delete_30_error",
       "method": "DELETE",
       "path": "/v1/speech-to-text/transcripts/{transcription_id}",
       "params": {
@@ -19740,7 +20481,7 @@
       "expectError": true
     },
     {
-      "id": "list_35_error",
+      "id": "list_39_error",
       "method": "GET",
       "path": "/v1/studio/projects",
       "params": {},
@@ -19760,7 +20501,7 @@
       "expectError": true
     },
     {
-      "id": "create_35_error",
+      "id": "create_39_error",
       "method": "POST",
       "path": "/v1/studio/projects",
       "params": {},
@@ -19929,7 +20670,7 @@
       "expectError": true
     },
     {
-      "id": "get_49_error",
+      "id": "get_53_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}",
       "params": {
@@ -19983,7 +20724,7 @@
       "expectError": true
     },
     {
-      "id": "delete_30_error",
+      "id": "delete_31_error",
       "method": "DELETE",
       "path": "/v1/studio/projects/{project_id}",
       "params": {
@@ -20049,7 +20790,7 @@
       "expectError": true
     },
     {
-      "id": "create_36_error",
+      "id": "create_40_error",
       "method": "POST",
       "path": "/v1/studio/projects/{project_id}/pronunciation-dictionaries",
       "params": {
@@ -20125,7 +20866,7 @@
       "expectError": true
     },
     {
-      "id": "list_36_error",
+      "id": "list_40_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/snapshots",
       "params": {
@@ -20147,7 +20888,7 @@
       "expectError": true
     },
     {
-      "id": "get_50_error",
+      "id": "get_54_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}",
       "params": {
@@ -20216,7 +20957,7 @@
       "expectError": true
     },
     {
-      "id": "list_37_error",
+      "id": "list_41_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters",
       "params": {
@@ -20238,7 +20979,7 @@
       "expectError": true
     },
     {
-      "id": "create_37_error",
+      "id": "create_41_error",
       "method": "POST",
       "path": "/v1/studio/projects/{project_id}/chapters",
       "params": {
@@ -20262,7 +21003,7 @@
       "expectError": true
     },
     {
-      "id": "get_51_error",
+      "id": "get_55_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
       "params": {
@@ -20308,7 +21049,7 @@
       "expectError": true
     },
     {
-      "id": "delete_31_error",
+      "id": "delete_32_error",
       "method": "DELETE",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
       "params": {
@@ -20354,7 +21095,7 @@
       "expectError": true
     },
     {
-      "id": "list_38_error",
+      "id": "list_42_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots",
       "params": {
@@ -20377,7 +21118,7 @@
       "expectError": true
     },
     {
-      "id": "get_52_error",
+      "id": "get_56_error",
       "method": "GET",
       "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots/{chapter_snapshot_id}",
       "params": {
@@ -20447,7 +21188,7 @@
       "expectError": true
     },
     {
-      "id": "create_38_error",
+      "id": "create_42_error",
       "method": "POST",
       "path": "/v1/single-use-token/{token_type}",
       "params": {
@@ -20469,7 +21210,7 @@
       "expectError": true
     },
     {
-      "id": "get_53_error",
+      "id": "get_57_error",
       "method": "GET",
       "path": "/v1/user/subscription",
       "params": {},
@@ -20509,7 +21250,7 @@
       "expectError": true
     },
     {
-      "id": "get_54_error",
+      "id": "get_58_error",
       "method": "GET",
       "path": "/v1/voices/{voice_id}/settings",
       "params": {
@@ -20559,7 +21300,7 @@
       "expectError": true
     },
     {
-      "id": "get_55_error",
+      "id": "get_59_error",
       "method": "GET",
       "path": "/v1/voices/accents",
       "params": {
@@ -20591,7 +21332,7 @@
       "expectError": true
     },
     {
-      "id": "create_39_error",
+      "id": "create_43_error",
       "method": "POST",
       "path": "/v1/voices/add",
       "params": {},
@@ -20640,7 +21381,7 @@
       "expectError": true
     },
     {
-      "id": "create_40_error",
+      "id": "create_44_error",
       "method": "POST",
       "path": "/v1/voices/pvc",
       "params": {},
@@ -20707,7 +21448,7 @@
       "expectError": true
     },
     {
-      "id": "create_41_error",
+      "id": "create_45_error",
       "method": "POST",
       "path": "/v1/voices/pvc/{voice_id}/samples",
       "params": {
@@ -20764,7 +21505,7 @@
       "expectError": true
     },
     {
-      "id": "delete_32_error",
+      "id": "delete_33_error",
       "method": "DELETE",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}",
       "params": {
@@ -20821,7 +21562,7 @@
       "expectError": true
     },
     {
-      "id": "get_56_error",
+      "id": "get_60_error",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/audio",
       "params": {
@@ -20850,7 +21591,7 @@
       "expectError": true
     },
     {
-      "id": "get_57_error",
+      "id": "get_61_error",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform",
       "params": {
@@ -20873,7 +21614,7 @@
       "expectError": true
     },
     {
-      "id": "get_58_error",
+      "id": "get_62_error",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers",
       "params": {
@@ -20919,7 +21660,7 @@
       "expectError": true
     },
     {
-      "id": "get_59_error",
+      "id": "get_63_error",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers/{speaker_id}/audio",
       "params": {
@@ -20943,7 +21684,7 @@
       "expectError": true
     },
     {
-      "id": "get_60_error",
+      "id": "get_64_error",
       "method": "GET",
       "path": "/v1/voices/pvc/{voice_id}/captcha",
       "params": {
@@ -20994,7 +21735,7 @@
       "expectError": true
     },
     {
-      "id": "get_61_error",
+      "id": "get_65_error",
       "method": "GET",
       "path": "/v1/voices/{voice_id}/samples/{sample_id}/audio",
       "params": {
@@ -21017,7 +21758,7 @@
       "expectError": true
     },
     {
-      "id": "list_39_error",
+      "id": "list_43_error",
       "method": "GET",
       "path": "/v1/workspace/audit-logs",
       "params": {
@@ -21074,7 +21815,7 @@
       "expectError": true
     },
     {
-      "id": "list_40_error",
+      "id": "list_44_error",
       "method": "GET",
       "path": "/v1/workspace/auth-connections",
       "params": {},
@@ -21094,7 +21835,7 @@
       "expectError": true
     },
     {
-      "id": "create_42_error",
+      "id": "create_46_error",
       "method": "POST",
       "path": "/v1/workspace/auth-connections",
       "params": {},
@@ -21121,7 +21862,7 @@
       "expectError": true
     },
     {
-      "id": "delete_33_error",
+      "id": "delete_34_error",
       "method": "DELETE",
       "path": "/v1/workspace/auth-connections/{auth_connection_id}",
       "params": {
@@ -21167,7 +21908,7 @@
       "expectError": true
     },
     {
-      "id": "list_41_error",
+      "id": "list_45_error",
       "method": "GET",
       "path": "/v1/workspace/groups",
       "params": {},
@@ -21214,7 +21955,7 @@
       "expectError": true
     },
     {
-      "id": "create_43_error",
+      "id": "create_47_error",
       "method": "POST",
       "path": "/v1/workspace/invites/add",
       "params": {},
@@ -21260,7 +22001,7 @@
       "expectError": true
     },
     {
-      "id": "delete_34_error",
+      "id": "delete_35_error",
       "method": "DELETE",
       "path": "/v1/workspace/invites",
       "params": {},
@@ -21282,7 +22023,7 @@
       "expectError": true
     },
     {
-      "id": "list_42_error",
+      "id": "list_46_error",
       "method": "GET",
       "path": "/v1/workspace/members",
       "params": {},
@@ -21324,7 +22065,7 @@
       "expectError": true
     },
     {
-      "id": "get_62_error",
+      "id": "get_66_error",
       "method": "GET",
       "path": "/v1/workspace/resources/{resource_id}",
       "params": {
@@ -21424,7 +22165,7 @@
       "expectError": true
     },
     {
-      "id": "get_63_error",
+      "id": "get_67_error",
       "method": "POST",
       "path": "/v1/workspace/analytics/requests",
       "params": {},
@@ -22121,7 +22862,7 @@
       "omitOptionalFiles": true
     },
     {
-      "id": "create_27_optfileomitted",
+      "id": "create_28_optfileomitted",
       "method": "POST",
       "path": "/v1/dubbing/project",
       "params": {},
@@ -22192,7 +22933,7 @@
       "omitOptionalFiles": true
     },
     {
-      "id": "create_32_optfileomitted",
+      "id": "create_36_optfileomitted",
       "method": "POST",
       "path": "/v1/music/finetunes",
       "params": {},
@@ -22298,7 +23039,7 @@
       "omitOptionalFiles": true
     },
     {
-      "id": "create_35_optfileomitted",
+      "id": "create_39_optfileomitted",
       "method": "POST",
       "path": "/v1/studio/projects",
       "params": {},
