@@ -5,8 +5,8 @@
 //!
 //! ## Type Categories
 //!
-//! - **Request/Response Types**: 894 types for API operations
-//! - **Model Types**: 1039 types for data representation
+//! - **Request/Response Types**: 897 types for API operations
+//! - **Model Types**: 1043 types for data representation
 
 pub mod history_history_list_request_sort_direction;
 pub mod history_history_list_request_source;
@@ -215,6 +215,7 @@ pub mod agent_metadata_db_model;
 pub mod agent_metadata_response_model;
 pub mod agent_platform_settings_request_model;
 pub mod agent_platform_settings_response_model;
+pub mod agent_queueing_config;
 pub mod agent_simulated_chat_test_response_model;
 pub mod agent_sort_by;
 pub mod agent_successful_response_example;
@@ -498,6 +499,8 @@ pub mod conversation_sentiment_analysis;
 pub mod conversation_signed_url_response_model;
 pub mod conversation_simulation_specification;
 pub mod conversation_source;
+pub mod conversation_summary_message_model_role;
+pub mod conversation_summary_message_model;
 pub mod conversation_summary_response_model_status;
 pub mod conversation_summary_response_model;
 pub mod conversation_tts_usage_model;
@@ -765,6 +768,8 @@ pub mod get_conv_ai_dashboard_settings_response_model;
 pub mod get_conv_ai_settings_response_model;
 pub mod get_conversation_response_model_status;
 pub mod get_conversation_response_model;
+pub mod get_conversation_summary_response_model_status;
+pub mod get_conversation_summary_response_model;
 pub mod get_conversation_tags_page_response_model;
 pub mod get_conversation_users_page_response_model;
 pub mod get_conversations_page_response_model;
@@ -1359,6 +1364,7 @@ pub mod topic_discovery_settings;
 pub mod topic_evaluation_criteria_aggregate;
 pub mod topic_metrics_aggregate;
 pub mod topic_sentiment_aggregate;
+pub mod topic_sort_by;
 pub mod transcription_order_item_request;
 pub mod transfer_branch_info_defaulting_to_main;
 pub mod transfer_branch_info_traffic_split;
@@ -1889,6 +1895,7 @@ pub mod get_webrtc_token_query_request;
 pub mod agents_conversations_list_query_request;
 pub mod resolve_query_request;
 pub mod agents_conversations_get_query_request;
+pub mod get_summary_query_request;
 pub mod agents_conversations_get_sip_messages_query_request;
 pub mod agents_summaries_get_query_request;
 pub mod agents_widget_get_query_request;
@@ -2149,6 +2156,7 @@ pub use agent_metadata_db_model::AgentMetadataDbModel;
 pub use agent_metadata_response_model::AgentMetadataResponseModel;
 pub use agent_platform_settings_request_model::AgentPlatformSettingsRequestModel;
 pub use agent_platform_settings_response_model::AgentPlatformSettingsResponseModel;
+pub use agent_queueing_config::AgentQueueingConfig;
 pub use agent_simulated_chat_test_response_model::AgentSimulatedChatTestResponseModel;
 pub use agent_sort_by::AgentSortBy;
 pub use agent_successful_response_example::AgentSuccessfulResponseExample;
@@ -2432,6 +2440,8 @@ pub use conversation_sentiment_analysis::ConversationSentimentAnalysis;
 pub use conversation_signed_url_response_model::ConversationSignedUrlResponseModel;
 pub use conversation_simulation_specification::ConversationSimulationSpecification;
 pub use conversation_source::ConversationSource;
+pub use conversation_summary_message_model_role::ConversationSummaryMessageModelRole;
+pub use conversation_summary_message_model::ConversationSummaryMessageModel;
 pub use conversation_summary_response_model_status::ConversationSummaryResponseModelStatus;
 pub use conversation_summary_response_model::ConversationSummaryResponseModel;
 pub use conversation_tts_usage_model::ConversationTtsUsageModel;
@@ -2699,6 +2709,8 @@ pub use get_conv_ai_dashboard_settings_response_model::GetConvAiDashboardSetting
 pub use get_conv_ai_settings_response_model::GetConvAiSettingsResponseModel;
 pub use get_conversation_response_model_status::GetConversationResponseModelStatus;
 pub use get_conversation_response_model::GetConversationResponseModel;
+pub use get_conversation_summary_response_model_status::GetConversationSummaryResponseModelStatus;
+pub use get_conversation_summary_response_model::GetConversationSummaryResponseModel;
 pub use get_conversation_tags_page_response_model::GetConversationTagsPageResponseModel;
 pub use get_conversation_users_page_response_model::GetConversationUsersPageResponseModel;
 pub use get_conversations_page_response_model::GetConversationsPageResponseModel;
@@ -3293,6 +3305,7 @@ pub use topic_discovery_settings::TopicDiscoverySettings;
 pub use topic_evaluation_criteria_aggregate::TopicEvaluationCriteriaAggregate;
 pub use topic_metrics_aggregate::TopicMetricsAggregate;
 pub use topic_sentiment_aggregate::TopicSentimentAggregate;
+pub use topic_sort_by::TopicSortBy;
 pub use transcription_order_item_request::TranscriptionOrderItemRequest;
 pub use transfer_branch_info_defaulting_to_main::TransferBranchInfoDefaultingToMain;
 pub use transfer_branch_info_traffic_split::TransferBranchInfoTrafficSplit;
@@ -3823,6 +3836,7 @@ pub use get_webrtc_token_query_request::GetWebrtcTokenQueryRequest;
 pub use agents_conversations_list_query_request::AgentsConversationsListQueryRequest;
 pub use resolve_query_request::ResolveQueryRequest;
 pub use agents_conversations_get_query_request::AgentsConversationsGetQueryRequest;
+pub use get_summary_query_request::GetSummaryQueryRequest;
 pub use agents_conversations_get_sip_messages_query_request::AgentsConversationsGetSipMessagesQueryRequest;
 pub use agents_summaries_get_query_request::AgentsSummariesGetQueryRequest;
 pub use agents_widget_get_query_request::AgentsWidgetGetQueryRequest;

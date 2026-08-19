@@ -18,6 +18,7 @@ impl LiveCountClient {
     /// # Arguments
     ///
     /// * `agent_id` - The id of an agent to restrict the analytics to.
+    /// * `agent_ids` - Restrict analytics to the union of the given agents. Takes precedence over `agent_id` when both are supplied.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -42,7 +43,7 @@ impl LiveCountClient {
     ///         .get(
     ///             &AgentsAnalyticsLiveCountGetQueryRequest {
     ///                 agent_id: Some("agent_id".to_string()),
-    ///                 ..Default::default()
+    ///                 agent_ids: vec![Some("agent_ids".to_string())],
     ///             },
     ///             None,
     ///         )
@@ -61,6 +62,7 @@ impl LiveCountClient {
                 None,
                 QueryBuilder::new()
                     .string("agent_id", request.agent_id.clone())
+                    .string_array("agent_ids", request.agent_ids.clone())
                     .build(),
                 options,
             )

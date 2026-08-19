@@ -23,3 +23,6 @@ elevenlabs-types/.gitignore
 
 # Hand-written live E2E smoke test (tests/wire_test.rs next to it is generated).
 tests/e2e_smoke.rs
+.fern/replay.lock
+.fern/replay.yml
+.gitattributes

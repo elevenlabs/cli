@@ -461,6 +461,56 @@ impl VoicesClient {
             .await
     }
 
+    /// Returns a list of shared voices similar to the provided audio sample. If neither similarity_threshold nor top_k is provided, we will apply default values.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .voices
+    ///         .find_similar_voices(
+    ///             &FindSimilarVoicesRequest {
+    ///                 audio_file: b"test file content".to_vec(),
+    ///                 similarity_threshold: None,
+    ///                 top_k: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn find_similar_voices(
+        &self,
+        request: &FindSimilarVoicesRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<GetLibraryVoicesResponse, ApiError> {
+        self.http_client
+            .execute_multipart_request(
+                Method::POST,
+                "v1/similar-voices",
+                request.clone().to_multipart(),
+                None,
+                options,
+            )
+            .await
+    }
+
     /// Retrieves a list of shared voices.
     ///
     /// # Arguments
@@ -563,56 +613,6 @@ impl VoicesClient {
                     .serialize("sort", request.sort.clone())
                     .int("page", request.page.clone())
                     .build(),
-                options,
-            )
-            .await
-    }
-
-    /// Returns a list of shared voices similar to the provided audio sample. If neither similarity_threshold nor top_k is provided, we will apply default values.
-    ///
-    /// # Arguments
-    ///
-    /// * `options` - Additional request options such as headers, timeout, etc.
-    ///
-    /// # Returns
-    ///
-    /// JSON response from the API
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use elevenlabs_sdk::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let config = ClientConfig {
-    ///         ..Default::default()
-    ///     };
-    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client
-    ///         .voices
-    ///         .find_similar_voices(
-    ///             &FindSimilarVoicesRequest {
-    ///                 audio_file: b"test file content".to_vec(),
-    ///                 similarity_threshold: None,
-    ///                 top_k: None,
-    ///             },
-    ///             None,
-    ///         )
-    ///         .await;
-    /// }
-    /// ```
-    pub async fn find_similar_voices(
-        &self,
-        request: &FindSimilarVoicesRequest,
-        options: Option<RequestOptions>,
-    ) -> Result<GetLibraryVoicesResponse, ApiError> {
-        self.http_client
-            .execute_multipart_request(
-                Method::POST,
-                "v1/similar-voices",
-                request.clone().to_multipart(),
-                None,
                 options,
             )
             .await

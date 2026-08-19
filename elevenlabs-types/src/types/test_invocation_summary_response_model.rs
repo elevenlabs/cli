@@ -28,7 +28,7 @@ pub struct TestInvocationSummaryResponseModel {
     /// Number of test runs that are pending
     #[serde(default)]
     pub pending_count: i64,
-    /// Title of the test invocation - either the single test name or count of tests
+    /// Title of the test invocation - the folder name for folder runs, otherwise the single test name or count of tests
     #[serde(default)]
     pub title: String,
     /// The access information of the test invocation

@@ -331,6 +331,7 @@ Get the live count of the ongoing conversations.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--agent-id` | `string` | No | The id of an agent to restrict the analytics to. |
+| `--agent-ids` | `string` | No | Restrict analytics to the union of the given agents. Takes precedence over `agent_id` when both are supplied. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -575,6 +576,18 @@ Get SIP messages associated with a conversation's phone call
 | `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
 | `--page-size` | `integer` | No |  |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations get-summary`
+
+Get a lightweight summary of a conversation: its title, the generated transcript summary, whether the call was successful, and — only when the conversation is short — the plain chat messages. Tool calls, tool results, and contextual updates are omitted so the response stays small. Use this instead of the full conversation endpoint when you only need the gist (e.g. an agent reading many conversations); use GET /v1/convai/conversations/{conversation_id} when you need the full transcript with tool calls and contextual updates.
+
+`GET /v1/convai/conversations/{conversation_id}/summary`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--max-messages` | `integer` | No | Maximum number of chat message turns to include inline. When the conversation has more than this, the messages are omitted and messages_omitted is set. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents conversations get-webrtc-token`
@@ -892,8 +905,12 @@ Returns the latest topic discovery run results for a given agent.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | ID of the agent |
+| `--page-size` | `string` | No | Number of top-level topic groups to return. |
+| `--sort-by` | `TopicSortBy` | No | Topic table column to sort by. |
+| `--sort-direction` | `SortDirection` | No | Direction to sort topics. |
 | `--from-unix-secs` | `string` | No | Start of the window to view topics for. When set with to_unix_secs, per-day topics in the range are aggregated together. |
 | `--to-unix-secs` | `string` | No | End of the window to view topics for. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---

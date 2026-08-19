@@ -4,15 +4,15 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BuiltInToolsWorkflowOverrideOutput {
+    /// The transfer to agent tool
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transfer_to_agent: Option<SystemToolConfigOutput>,
     /// The end call tool
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_call: Option<SystemToolConfigOutput>,
     /// The language detection tool
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_detection: Option<SystemToolConfigOutput>,
-    /// The transfer to agent tool
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transfer_to_agent: Option<SystemToolConfigOutput>,
     /// The transfer to number tool
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transfer_to_number: Option<SystemToolConfigOutput>,
@@ -36,9 +36,9 @@ impl BuiltInToolsWorkflowOverrideOutput {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct BuiltInToolsWorkflowOverrideOutputBuilder {
+    transfer_to_agent: Option<SystemToolConfigOutput>,
     end_call: Option<SystemToolConfigOutput>,
     language_detection: Option<SystemToolConfigOutput>,
-    transfer_to_agent: Option<SystemToolConfigOutput>,
     transfer_to_number: Option<SystemToolConfigOutput>,
     skip_turn: Option<SystemToolConfigOutput>,
     play_keypad_touch_tone: Option<SystemToolConfigOutput>,
@@ -46,6 +46,11 @@ pub struct BuiltInToolsWorkflowOverrideOutputBuilder {
 }
 
 impl BuiltInToolsWorkflowOverrideOutputBuilder {
+    pub fn transfer_to_agent(mut self, value: SystemToolConfigOutput) -> Self {
+        self.transfer_to_agent = Some(value);
+        self
+    }
+
     pub fn end_call(mut self, value: SystemToolConfigOutput) -> Self {
         self.end_call = Some(value);
         self
@@ -53,11 +58,6 @@ impl BuiltInToolsWorkflowOverrideOutputBuilder {
 
     pub fn language_detection(mut self, value: SystemToolConfigOutput) -> Self {
         self.language_detection = Some(value);
-        self
-    }
-
-    pub fn transfer_to_agent(mut self, value: SystemToolConfigOutput) -> Self {
-        self.transfer_to_agent = Some(value);
         self
     }
 
@@ -84,9 +84,9 @@ impl BuiltInToolsWorkflowOverrideOutputBuilder {
     /// Consumes the builder and constructs a [`BuiltInToolsWorkflowOverrideOutput`].
     pub fn build(self) -> Result<BuiltInToolsWorkflowOverrideOutput, BuildError> {
         Ok(BuiltInToolsWorkflowOverrideOutput {
+            transfer_to_agent: self.transfer_to_agent,
             end_call: self.end_call,
             language_detection: self.language_detection,
-            transfer_to_agent: self.transfer_to_agent,
             transfer_to_number: self.transfer_to_number,
             skip_turn: self.skip_turn,
             play_keypad_touch_tone: self.play_keypad_touch_tone,

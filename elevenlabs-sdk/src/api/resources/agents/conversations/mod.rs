@@ -521,6 +521,62 @@ impl ConversationsClient {
             .await
     }
 
+    /// Get a lightweight summary of a conversation: its title, the generated transcript summary, whether the call was successful, and — only when the conversation is short — the plain chat messages. Tool calls, tool results, and contextual updates are omitted so the response stays small. Use this instead of the full conversation endpoint when you only need the gist (e.g. an agent reading many conversations); use GET /v1/convai/conversations/{conversation_id} when you need the full transcript with tool calls and contextual updates.
+    ///
+    /// # Arguments
+    ///
+    /// * `conversation_id` - The id of the conversation you're taking the action on.
+    /// * `max_messages` - Maximum number of chat message turns to include inline. When the conversation has more than this, the messages are omitted and messages_omitted is set.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .get_summary(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &GetSummaryQueryRequest {
+    ///                 max_messages: Some(1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn get_summary(
+        &self,
+        conversation_id: &str,
+        request: &GetSummaryQueryRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<GetConversationSummaryResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::GET,
+                &format!("v1/convai/conversations/{}/summary", conversation_id),
+                None,
+                QueryBuilder::new()
+                    .int("max_messages", request.max_messages.clone())
+                    .build(),
+                options,
+            )
+            .await
+    }
+
     /// Get SIP messages associated with a conversation's phone call
     ///
     /// # Arguments
