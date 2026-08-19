@@ -8,6 +8,9 @@ pub struct AgentsAnalyticsLiveCountGetQueryRequest {
     /// The id of an agent to restrict the analytics to.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
+    /// Restrict analytics to the union of the given agents. Takes precedence over `agent_id` when both are supplied.
+    #[serde(default)]
+    pub agent_ids: Vec<Option<String>>,
 }
 
 impl AgentsAnalyticsLiveCountGetQueryRequest {
@@ -20,6 +23,7 @@ impl AgentsAnalyticsLiveCountGetQueryRequest {
 #[non_exhaustive]
 pub struct AgentsAnalyticsLiveCountGetQueryRequestBuilder {
     agent_id: Option<String>,
+    agent_ids: Option<Vec<Option<String>>>,
 }
 
 impl AgentsAnalyticsLiveCountGetQueryRequestBuilder {
@@ -28,10 +32,18 @@ impl AgentsAnalyticsLiveCountGetQueryRequestBuilder {
         self
     }
 
+    pub fn agent_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.agent_ids = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentsAnalyticsLiveCountGetQueryRequest`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`agent_ids`](AgentsAnalyticsLiveCountGetQueryRequestBuilder::agent_ids)
     pub fn build(self) -> Result<AgentsAnalyticsLiveCountGetQueryRequest, BuildError> {
         Ok(AgentsAnalyticsLiveCountGetQueryRequest {
             agent_id: self.agent_id,
+            agent_ids: self.agent_ids.ok_or_else(|| BuildError::missing_field("agent_ids"))?,
         })
     }
 }

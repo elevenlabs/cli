@@ -317,22 +317,82 @@ jobs:
 
           gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
 
+  preflight-distribution:
+    runs-on: "ubuntu-22.04"
+    # `release.yml` also runs `dist plan` on pull_request, where secrets are
+    # unavailable to forks. Without this gate every contributor's PR would
+    # fail on a secret they cannot be given. Mirrors how `plan` derives its
+    # own `publishing` output.
+    if: ${{ !github.event.pull_request }}
+    steps:
+      - name: Verify the Homebrew tap / Scoop bucket App credentials
+        env:
+          APP_ID: ${{ secrets.PUBLISH_APP_ID }}
+          PRIVATE_KEY: ${{ secrets.PUBLISH_APP_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          # Normalized through `:-` before anything reads them. `set -u` aborts
+          # on an *unset* variable, and this job exists to explain a missing
+          # secret — dying with "APP_ID: unbound variable" instead of the
+          # message below would defeat the whole point.
+          APP_ID="${APP_ID:-}"
+          PRIVATE_KEY="${PRIVATE_KEY:-}"
+
+          status=0
+
+          if [ -z "${APP_ID}" ]; then
+            echo "::error title=Missing secret::secrets.PUBLISH_APP_ID is empty. Add it under Settings > Secrets and variables > Actions > Secrets. An Actions *variable* of the same name is not readable as secrets.PUBLISH_APP_ID. The value is the App ID (or Client ID) shown on your GitHub App's settings page."
+            status=1
+          fi
+
+          if [ -z "${PRIVATE_KEY}" ]; then
+            echo "::error title=Missing secret::secrets.PUBLISH_APP_PRIVATE_KEY is empty. Add it as an Actions secret containing the entire contents of the .pem file you downloaded when generating the App's private key."
+            status=1
+          else
+            case "${PRIVATE_KEY}" in
+              *"BEGIN"*"PRIVATE KEY"*) ;;
+              *)
+                echo "::error title=Malformed private key::secrets.PUBLISH_APP_PRIVATE_KEY does not contain a PEM header. Paste the whole .pem file, including its BEGIN and END lines."
+                status=1
+                ;;
+            esac
+            if [ "$(printf '%s\n' "${PRIVATE_KEY}" | wc -l | tr -d ' ')" -lt 3 ]; then
+              echo "::error title=Malformed private key::secrets.PUBLISH_APP_PRIVATE_KEY is a single line. The PEM must keep its line breaks - re-paste it from the file without collapsing it. This is the most common cause of 'secretOrPrivateKey must be an asymmetric key'."
+              status=1
+            fi
+          fi
+
+          if [ "${status}" -eq 0 ]; then
+            echo "Homebrew tap / Scoop bucket App credentials are present and well-formed."
+          fi
+          exit "${status}"
+
   publish-homebrew-formula:
     needs:
       - plan
       - host
+      - preflight-distribution
     runs-on: "ubuntu-22.04"
     env:
-      GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       PLAN: ${{ needs.plan.outputs.val }}
       GITHUB_USER: "github-actions[bot]"
       GITHUB_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
     if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
     steps:
+      - name: Mint a tap token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.PUBLISH_APP_ID }}
+          private-key: ${{ secrets.PUBLISH_APP_PRIVATE_KEY }}
+          owner: elevenlabs
+          repositories: homebrew-tap
       - uses: actions/checkout@v6
         with:
           repository: "elevenlabs/homebrew-tap"
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           # Credentials must persist — the final step pushes the formula back.
           persist-credentials: true
           # So we have access to the formula
@@ -353,6 +413,8 @@ jobs:
       # This is extra complex because you can make your Formula name not match your app name
       # so we need to find the formula file based on the app name
       - name: Commit formula files
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config --global user.name "${GITHUB_USER}"
           git config --global user.email "${GITHUB_EMAIL}"
@@ -394,6 +456,7 @@ jobs:
     needs:
       - plan
       - host
+      - preflight-distribution
     runs-on: "ubuntu-22.04"
     # The same expression cargo-dist uses for its own publish jobs. A Scoop
     # bucket has no prerelease channel — a manifest simply *is* the version
@@ -466,11 +529,20 @@ jobs:
             echo "autoupdate-url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG_TEMPLATE}/${ASSET_NAME}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Mint a bucket token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.PUBLISH_APP_ID }}
+          private-key: ${{ secrets.PUBLISH_APP_PRIVATE_KEY }}
+          owner: elevenlabs
+          repositories: scoop-bucket
+
       - name: Check out the Scoop bucket
         uses: actions/checkout@v6
         with:
           repository: "elevenlabs/scoop-bucket"
-          token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           path: scoop-bucket
           # Credentials must persist — the next step pushes the manifest back.
           persist-credentials: true

@@ -1176,13 +1176,13 @@ async fn wire_share() {
 }
 
 #[tokio::test]
-async fn wire_get_shared() {
-    run_case("get_shared").await;
+async fn wire_find_similar_voices() {
+    run_case("find_similar_voices").await;
 }
 
 #[tokio::test]
-async fn wire_find_similar_voices() {
-    run_case("find_similar_voices").await;
+async fn wire_get_shared() {
+    run_case("get_shared").await;
 }
 
 #[tokio::test]
@@ -1498,6 +1498,11 @@ async fn wire_get_10() {
 #[tokio::test]
 async fn wire_delete_9() {
     run_case("delete_9").await;
+}
+
+#[tokio::test]
+async fn wire_get_summary() {
+    run_case("get_summary").await;
 }
 
 #[tokio::test]
@@ -3026,13 +3031,13 @@ async fn wire_share_error() {
 }
 
 #[tokio::test]
-async fn wire_get_shared_error() {
-    run_case("get_shared_error").await;
+async fn wire_find_similar_voices_error() {
+    run_case("find_similar_voices_error").await;
 }
 
 #[tokio::test]
-async fn wire_find_similar_voices_error() {
-    run_case("find_similar_voices_error").await;
+async fn wire_get_shared_error() {
+    run_case("get_shared_error").await;
 }
 
 #[tokio::test]
@@ -3348,6 +3353,11 @@ async fn wire_get_10_error() {
 #[tokio::test]
 async fn wire_delete_9_error() {
     run_case("delete_9_error").await;
+}
+
+#[tokio::test]
+async fn wire_get_summary_error() {
+    run_case("get_summary_error").await;
 }
 
 #[tokio::test]
