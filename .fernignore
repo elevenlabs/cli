@@ -26,3 +26,6 @@ tests/e2e_smoke.rs
 .fern/replay.lock
 .fern/replay.yml
 .gitattributes
+
+# Hand-written manual verification walkthrough for the agents-as-code workflow.
+scripts/
