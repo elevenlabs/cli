@@ -4,56 +4,52 @@ use super::*;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum OrderRequestState {
-    Open,
-    Submitted,
-    Paid,
-    Accepted,
-    Rejected,
+pub enum GetConversationSummaryResponseModelStatus {
+    Initiated,
+    InProgress,
+    Processing,
     Done,
+    Failed,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
     __Unknown(String),
 }
-impl Serialize for OrderRequestState {
+impl Serialize for GetConversationSummaryResponseModelStatus {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::Open => serializer.serialize_str("open"),
-            Self::Submitted => serializer.serialize_str("submitted"),
-            Self::Paid => serializer.serialize_str("paid"),
-            Self::Accepted => serializer.serialize_str("accepted"),
-            Self::Rejected => serializer.serialize_str("rejected"),
+            Self::Initiated => serializer.serialize_str("initiated"),
+            Self::InProgress => serializer.serialize_str("in-progress"),
+            Self::Processing => serializer.serialize_str("processing"),
             Self::Done => serializer.serialize_str("done"),
+            Self::Failed => serializer.serialize_str("failed"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
 }
 
-impl<'de> Deserialize<'de> for OrderRequestState {
+impl<'de> Deserialize<'de> for GetConversationSummaryResponseModelStatus {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
-            "open" => Ok(Self::Open),
-            "submitted" => Ok(Self::Submitted),
-            "paid" => Ok(Self::Paid),
-            "accepted" => Ok(Self::Accepted),
-            "rejected" => Ok(Self::Rejected),
+            "initiated" => Ok(Self::Initiated),
+            "in-progress" => Ok(Self::InProgress),
+            "processing" => Ok(Self::Processing),
             "done" => Ok(Self::Done),
+            "failed" => Ok(Self::Failed),
             _ => Ok(Self::__Unknown(value)),
         }
     }
 }
 
-impl fmt::Display for OrderRequestState {
+impl fmt::Display for GetConversationSummaryResponseModelStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Open => write!(f, "open"),
-            Self::Submitted => write!(f, "submitted"),
-            Self::Paid => write!(f, "paid"),
-            Self::Accepted => write!(f, "accepted"),
-            Self::Rejected => write!(f, "rejected"),
+            Self::Initiated => write!(f, "initiated"),
+            Self::InProgress => write!(f, "in-progress"),
+            Self::Processing => write!(f, "processing"),
             Self::Done => write!(f, "done"),
+            Self::Failed => write!(f, "failed"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

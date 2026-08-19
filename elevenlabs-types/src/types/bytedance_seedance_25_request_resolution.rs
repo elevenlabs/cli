@@ -8,6 +8,7 @@ use super::*;
 pub enum BytedanceSeedance25RequestResolution {
     FourHundredEightyP,
     SevenHundredTwentyP,
+    OneThousandEightyP,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -18,6 +19,7 @@ impl Serialize for BytedanceSeedance25RequestResolution {
         match self {
             Self::FourHundredEightyP => serializer.serialize_str("480p"),
             Self::SevenHundredTwentyP => serializer.serialize_str("720p"),
+            Self::OneThousandEightyP => serializer.serialize_str("1080p"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -29,6 +31,7 @@ impl<'de> Deserialize<'de> for BytedanceSeedance25RequestResolution {
         match value.as_str() {
             "480p" => Ok(Self::FourHundredEightyP),
             "720p" => Ok(Self::SevenHundredTwentyP),
+            "1080p" => Ok(Self::OneThousandEightyP),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -39,6 +42,7 @@ impl fmt::Display for BytedanceSeedance25RequestResolution {
         match self {
             Self::FourHundredEightyP => write!(f, "480p"),
             Self::SevenHundredTwentyP => write!(f, "720p"),
+            Self::OneThousandEightyP => write!(f, "1080p"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

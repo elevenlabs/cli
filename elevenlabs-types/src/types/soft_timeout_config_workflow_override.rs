@@ -27,6 +27,9 @@ pub struct SoftTimeoutConfigWorkflowOverride {
     /// Custom prompt for generating the soft timeout filler message when use_llm_generated_message is enabled. Recent conversation context is provided as a separate user message. If not set, the default prompt will be used. Supports dynamic variables (e.g., {{system__time}}, {{custom_variable}}).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_generated_message_prompt_override: Option<String>,
+    /// When true, soft timeout fillers are suppressed until the conversation has at least one real user message. Prevents fillers during the agent's opening turn (e.g. workflow generate-immediately / tool calls before the user speaks).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disable_until_first_user_message: Option<bool>,
 }
 
 impl SoftTimeoutConfigWorkflowOverride {
@@ -45,6 +48,7 @@ pub struct SoftTimeoutConfigWorkflowOverrideBuilder {
     randomize_fillers: Option<bool>,
     max_soft_timeouts_per_generation: Option<i64>,
     llm_generated_message_prompt_override: Option<String>,
+    disable_until_first_user_message: Option<bool>,
 }
 
 impl SoftTimeoutConfigWorkflowOverrideBuilder {
@@ -83,6 +87,11 @@ impl SoftTimeoutConfigWorkflowOverrideBuilder {
         self
     }
 
+    pub fn disable_until_first_user_message(mut self, value: bool) -> Self {
+        self.disable_until_first_user_message = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`SoftTimeoutConfigWorkflowOverride`].
     pub fn build(self) -> Result<SoftTimeoutConfigWorkflowOverride, BuildError> {
         Ok(SoftTimeoutConfigWorkflowOverride {
@@ -93,6 +102,7 @@ impl SoftTimeoutConfigWorkflowOverrideBuilder {
             randomize_fillers: self.randomize_fillers,
             max_soft_timeouts_per_generation: self.max_soft_timeouts_per_generation,
             llm_generated_message_prompt_override: self.llm_generated_message_prompt_override,
+            disable_until_first_user_message: self.disable_until_first_user_message,
         })
     }
 }
