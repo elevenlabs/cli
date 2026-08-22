@@ -6,6 +6,7 @@ import { setApiKey, loadConfig } from '../../shared/config.js';
 import { getApiBaseUrl } from '../../shared/elevenlabs-api.js';
 import { listAgentsApi } from '../../shared/elevenlabs-api.js';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import { formatApiKeyValidationError } from '../api-key-validation.js';
 
 export function createLoginCommand(): Command {
   return new Command('login')
@@ -52,14 +53,7 @@ export function createLoginCommand(): Command {
             await listAgentsApi(testClient, 1);
             console.log('API key verified successfully');
           } catch (error: unknown) {
-            const err = error as { statusCode?: number; message?: string; code?: string };
-            if (err?.statusCode === 401 || err?.message?.includes('401')) {
-              console.error('Invalid API key');
-            } else if (err?.code === 'ENOTFOUND' || err?.code === 'ETIMEDOUT' || err?.message?.includes('network')) {
-              console.error('Network error: Unable to connect to ElevenLabs API');
-            } else {
-              console.error('Error verifying API key:', err?.message || error);
-            }
+            console.error(formatApiKeyValidationError(error));
             process.exit(1);
           }
 
