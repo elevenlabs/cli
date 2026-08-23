@@ -221,21 +221,31 @@ fn init_index_file<T: serde::Serialize>(
     Ok(())
 }
 
+/// The next-steps text printed after `init`.
+///
+/// A const rather than a series of `println!`s so a test can assert every
+/// command in it is one the CLI actually accepts. Two of these used to fail:
+/// a tool name with a space is rejected by the API's
+/// `^[a-zA-Z0-9_-]{1,64}$` pattern, and `agents test` takes an agent, not a
+/// display name in quotes. Copying them from here is the first thing a new
+/// user does, so they have to work verbatim.
+const NEXT_STEPS: &str = "\nProject initialized successfully!\n\
+     Next steps:\n\
+     1. Set your ElevenLabs API key: export ELEVENLABS_API_KEY=xi-...\n\
+     \u{20}\u{20} (or copy .env.example to .env and put it there)\n\
+     2. Create an agent: elevenlabs agents add my-agent --template default\n\
+     3. Create tools: elevenlabs tools add my-webhook --type webhook\n\
+     4. Create tests: elevenlabs tests add my-test --template basic-llm\n\
+     5. Push to ElevenLabs: elevenlabs agents push && elevenlabs tools push && elevenlabs tests push\n\
+     6. Run tests: elevenlabs agents test my-agent\n\
+     \u{20}\u{20} (first add {\"test_id\": \"<id from tests.json>\"} to the agent config's\n\
+     \u{20}\u{20}  platform_settings.testing.attached_tests, then push again)\n\
+     \nBranch workflow (CI/CD):\n\
+     \u{20} Pull all branches: elevenlabs agents pull --all --all-branches\n\
+     \u{20} Push all (main + branches): elevenlabs agents push";
+
 fn print_next_steps() {
-    println!("\nProject initialized successfully!");
-    println!("Next steps:");
-    println!("1. Set your ElevenLabs API key: export ELEVENLABS_API_KEY=xi-...");
-    println!("   (or copy .env.example to .env and put it there)");
-    println!("2. Create an agent: elevenlabs agents add \"My Agent\" --template default");
-    println!("3. Create tools: elevenlabs tools add \"My Webhook\" --type webhook");
-    println!("4. Create tests: elevenlabs tests add \"My Test\" --template basic-llm");
-    println!(
-        "5. Push to ElevenLabs: elevenlabs agents push && elevenlabs tools push && elevenlabs tests push"
-    );
-    println!("6. Run tests: elevenlabs agents test \"My Agent\"");
-    println!("\nBranch workflow (CI/CD):");
-    println!("  Pull all branches: elevenlabs agents pull --all --all-branches");
-    println!("  Push all (main + branches): elevenlabs agents push");
+    println!("{NEXT_STEPS}");
 }
 
 /// Build a closure that maps an [`std::io::Error`] into a [`CliError`]
@@ -432,19 +442,29 @@ fn handle_widget(args: WidgetArgs, _ctx: &AppContext) -> Result<(), CliError> {
 
 #[derive(clap::Args)]
 struct TestArgs {
-    /// The agent ID whose attached tests to run.
+    /// The agent ID or name whose attached tests to run.
     agent: String,
 }
 
 fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
     let config = require_agents()?;
+    // ID first so existing scripts keep resolving identically, then fall back
+    // to the display name in the config file. `init`'s next-steps tell users
+    // to pass the name they just created, and an agent ID is not something
+    // anyone has to hand at that point.
     let agent = config
         .agents
         .iter()
         .find(|a| a.id.as_deref() == Some(args.agent.as_str()))
+        .or_else(|| {
+            config
+                .agents
+                .iter()
+                .find(|a| agent_display_name(&a.config) == args.agent)
+        })
         .ok_or_else(|| {
             CliError::Validation(format!(
-                "Agent with ID '{}' not found in configuration",
+                "No agent with ID or name '{}' in agents.json",
                 args.agent
             ))
         })?;
@@ -488,7 +508,14 @@ fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
     );
     println!();
 
-    let invocation = api::run_tests_on_agent(ctx, &args.agent, &test_ids, None)?;
+    // Send the resolved id, not `args.agent` — that may be a display name now
+    // that this command accepts either, and the API only knows ids.
+    let agent_id = agent.id.as_deref().ok_or_else(|| {
+        CliError::Validation(format!(
+            "Agent '{agent_name}' has no id in agents.json. Run 'elevenlabs agents push' first."
+        ))
+    })?;
+    let invocation = api::run_tests_on_agent(ctx, agent_id, &test_ids, None)?;
     let invocation_id = invocation
         .get("id")
         .and_then(Value::as_str)
@@ -1165,6 +1192,43 @@ fn build_pulled_config(name: &str, live: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every command in the next-steps must be one a new user can paste and
+    /// run. A tester copied these and hit a 422 on the tool name and a
+    /// validation error on `agents test`.
+    ///
+    /// This asserts the shape of what we print, not the API's rules — the
+    /// server owns those and they can change without us. Names here are
+    /// plain single tokens, which is the safe subset for every resource.
+    #[test]
+    fn next_steps_only_prints_runnable_commands() {
+        // A quoted argument means a name with a space. Nothing here needs one,
+        // and it is what the tool endpoint rejected. Only the command lines
+        // are checked — the parenthetical notes legitimately show JSON.
+        for line in NEXT_STEPS.lines().filter(|l| l.contains("elevenlabs ")) {
+            assert!(
+                !line.contains('"'),
+                "command must not quote arguments (a name with a space): {line}"
+            );
+        }
+        // `agents test` resolves an id or a name from agents.json, so the
+        // example has to be the agent created two steps earlier.
+        assert!(
+            NEXT_STEPS.contains("elevenlabs agents add my-agent"),
+            "step 2 must create the agent that step 6 refers to"
+        );
+        assert!(
+            NEXT_STEPS.contains("elevenlabs agents test my-agent"),
+            "step 6 must reference the agent created in step 2"
+        );
+        // `agents test` reads platform_settings.testing.test_ids, and nothing
+        // in the CLI writes it — `tests add` does not attach. Without saying
+        // so, step 6 always errors for anyone who followed steps 1-5.
+        assert!(
+            NEXT_STEPS.contains("attached_tests"),
+            "step 6 must state that a test has to be attached to the agent first"
+        );
+    }
 
     #[test]
     fn gitignore_covers_env_but_never_the_config_dirs() {
