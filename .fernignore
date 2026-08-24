@@ -15,7 +15,7 @@ assets/
 # no job ever runs. Our version drops it and uses the runner's preinstalled
 # toolchain. Do not let a regeneration reintroduce it. (release.yml is left
 # unprotected on purpose so cargo-dist updates still come through.)
-.github/workflows/ci.yml
+# .github/workflows/ci.yml
 
 # Hand-written: the generated types crate ships without a .gitignore, so running
 # its test suite leaves untracked build artifacts.
