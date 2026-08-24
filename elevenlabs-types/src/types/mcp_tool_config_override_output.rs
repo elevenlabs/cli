@@ -1,0 +1,148 @@
+pub use crate::prelude::*;
+#[allow(unused_imports)]
+use super::*;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct McpToolConfigOverrideOutput {
+    /// The name of the MCP tool
+    #[serde(default)]
+    pub tool_name: String,
+    /// DEPRECATED: use `pre_tool_speech` instead. If set, overrides the server's force_pre_tool_speech setting for this tool.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub force_pre_tool_speech: Option<bool>,
+    /// If set, overrides the server's pre_tool_speech setting for this tool.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pre_tool_speech: Option<PreToolSpeechMode>,
+    /// DEPRECATED: use `interruption_mode` instead. If set, overrides the server's disable_interruptions setting for this tool.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disable_interruptions: Option<bool>,
+    /// If set, overrides the server's interruption_mode setting for this tool.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interruption_mode: Option<ToolInterruptionMode>,
+    /// Overrides the server's tool_call_sound setting for this tool. A sound name plays that sound; 'off' overrides to no sound (silence); null means do not override (inherit the server default).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_sound: Option<McpToolConfigOverrideOutputToolCallSound>,
+    /// If set, overrides the server's tool_call_sound_behavior setting for this tool
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_sound_behavior: Option<ToolCallSoundBehavior>,
+    /// If set, overrides the server's execution_mode setting for this tool
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_mode: Option<ToolExecutionMode>,
+    /// If set, overrides the server's response timeout for this MCP tool (seconds).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_timeout_secs: Option<i64>,
+    /// Dynamic variable assignments for this MCP tool
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assignments: Option<Vec<DynamicVariableAssignment>>,
+    /// Mapping of json path to input override configuration
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_overrides: Option<HashMap<String, Option<McpToolConfigOverrideOutputInputOverridesValue>>>,
+    /// Mock responses with optional parameter conditions. Evaluated top-to-bottom; first match wins.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_mocks: Option<Vec<ToolResponseMockConfigOutput>>,
+}
+
+impl McpToolConfigOverrideOutput {
+    pub fn builder() -> McpToolConfigOverrideOutputBuilder {
+        <McpToolConfigOverrideOutputBuilder as Default>::default()
+    }
+}
+
+#[derive(Clone, PartialEq, Default, Debug)]
+#[non_exhaustive]
+pub struct McpToolConfigOverrideOutputBuilder {
+    tool_name: Option<String>,
+    force_pre_tool_speech: Option<bool>,
+    pre_tool_speech: Option<PreToolSpeechMode>,
+    disable_interruptions: Option<bool>,
+    interruption_mode: Option<ToolInterruptionMode>,
+    tool_call_sound: Option<McpToolConfigOverrideOutputToolCallSound>,
+    tool_call_sound_behavior: Option<ToolCallSoundBehavior>,
+    execution_mode: Option<ToolExecutionMode>,
+    response_timeout_secs: Option<i64>,
+    assignments: Option<Vec<DynamicVariableAssignment>>,
+    input_overrides: Option<HashMap<String, Option<McpToolConfigOverrideOutputInputOverridesValue>>>,
+    response_mocks: Option<Vec<ToolResponseMockConfigOutput>>,
+}
+
+impl McpToolConfigOverrideOutputBuilder {
+    pub fn tool_name(mut self, value: impl Into<String>) -> Self {
+        self.tool_name = Some(value.into());
+        self
+    }
+
+    pub fn force_pre_tool_speech(mut self, value: bool) -> Self {
+        self.force_pre_tool_speech = Some(value);
+        self
+    }
+
+    pub fn pre_tool_speech(mut self, value: PreToolSpeechMode) -> Self {
+        self.pre_tool_speech = Some(value);
+        self
+    }
+
+    pub fn disable_interruptions(mut self, value: bool) -> Self {
+        self.disable_interruptions = Some(value);
+        self
+    }
+
+    pub fn interruption_mode(mut self, value: ToolInterruptionMode) -> Self {
+        self.interruption_mode = Some(value);
+        self
+    }
+
+    pub fn tool_call_sound(mut self, value: McpToolConfigOverrideOutputToolCallSound) -> Self {
+        self.tool_call_sound = Some(value);
+        self
+    }
+
+    pub fn tool_call_sound_behavior(mut self, value: ToolCallSoundBehavior) -> Self {
+        self.tool_call_sound_behavior = Some(value);
+        self
+    }
+
+    pub fn execution_mode(mut self, value: ToolExecutionMode) -> Self {
+        self.execution_mode = Some(value);
+        self
+    }
+
+    pub fn response_timeout_secs(mut self, value: i64) -> Self {
+        self.response_timeout_secs = Some(value);
+        self
+    }
+
+    pub fn assignments(mut self, value: Vec<DynamicVariableAssignment>) -> Self {
+        self.assignments = Some(value);
+        self
+    }
+
+    pub fn input_overrides(mut self, value: HashMap<String, Option<McpToolConfigOverrideOutputInputOverridesValue>>) -> Self {
+        self.input_overrides = Some(value);
+        self
+    }
+
+    pub fn response_mocks(mut self, value: Vec<ToolResponseMockConfigOutput>) -> Self {
+        self.response_mocks = Some(value);
+        self
+    }
+
+    /// Consumes the builder and constructs a [`McpToolConfigOverrideOutput`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`tool_name`](McpToolConfigOverrideOutputBuilder::tool_name)
+    pub fn build(self) -> Result<McpToolConfigOverrideOutput, BuildError> {
+        Ok(McpToolConfigOverrideOutput {
+            tool_name: self.tool_name.ok_or_else(|| BuildError::missing_field("tool_name"))?,
+            force_pre_tool_speech: self.force_pre_tool_speech,
+            pre_tool_speech: self.pre_tool_speech,
+            disable_interruptions: self.disable_interruptions,
+            interruption_mode: self.interruption_mode,
+            tool_call_sound: self.tool_call_sound,
+            tool_call_sound_behavior: self.tool_call_sound_behavior,
+            execution_mode: self.execution_mode,
+            response_timeout_secs: self.response_timeout_secs,
+            assignments: self.assignments,
+            input_overrides: self.input_overrides,
+            response_mocks: self.response_mocks,
+        })
+    }
+}

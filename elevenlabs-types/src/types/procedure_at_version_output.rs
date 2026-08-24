@@ -1,0 +1,149 @@
+pub use crate::prelude::*;
+#[allow(unused_imports)]
+use super::*;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ProcedureAtVersionOutput {
+    /// Procedure ID
+    #[serde(default)]
+    pub procedure_id: String,
+    /// Procedure name
+    #[serde(default)]
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<ProcedureType>,
+    /// When the agent should use this procedure. Empty string means this is a sub-procedure that should only start when another procedure references it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trigger: Option<String>,
+    /// Tool IDs referenced in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_tool_ids: Option<Vec<String>>,
+    /// Knowledge base IDs referenced in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_kb_ids: Option<Vec<String>>,
+    /// Procedure IDs referenced in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_procedure_ids: Option<Vec<String>>,
+    /// Dynamic variable names used in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_dynamic_variables: Option<Vec<String>>,
+    /// Procedure content
+    #[serde(default)]
+    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guardrails: Option<Vec<CustomGuardrailConfig>>,
+    /// Agent ID of the procedure
+    #[serde(default)]
+    pub agent_id: String,
+    /// Version ID of a version of the procedure. None for a procedure never versioned.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
+}
+
+impl ProcedureAtVersionOutput {
+    pub fn builder() -> ProcedureAtVersionOutputBuilder {
+        <ProcedureAtVersionOutputBuilder as Default>::default()
+    }
+}
+
+#[derive(Clone, PartialEq, Default, Debug)]
+#[non_exhaustive]
+pub struct ProcedureAtVersionOutputBuilder {
+    procedure_id: Option<String>,
+    name: Option<String>,
+    r#type: Option<ProcedureType>,
+    trigger: Option<String>,
+    referenced_tool_ids: Option<Vec<String>>,
+    referenced_kb_ids: Option<Vec<String>>,
+    referenced_procedure_ids: Option<Vec<String>>,
+    referenced_dynamic_variables: Option<Vec<String>>,
+    content: Option<String>,
+    guardrails: Option<Vec<CustomGuardrailConfig>>,
+    agent_id: Option<String>,
+    version_id: Option<String>,
+}
+
+impl ProcedureAtVersionOutputBuilder {
+    pub fn procedure_id(mut self, value: impl Into<String>) -> Self {
+        self.procedure_id = Some(value.into());
+        self
+    }
+
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
+        self
+    }
+
+    pub fn r#type(mut self, value: ProcedureType) -> Self {
+        self.r#type = Some(value);
+        self
+    }
+
+    pub fn trigger(mut self, value: impl Into<String>) -> Self {
+        self.trigger = Some(value.into());
+        self
+    }
+
+    pub fn referenced_tool_ids(mut self, value: Vec<String>) -> Self {
+        self.referenced_tool_ids = Some(value);
+        self
+    }
+
+    pub fn referenced_kb_ids(mut self, value: Vec<String>) -> Self {
+        self.referenced_kb_ids = Some(value);
+        self
+    }
+
+    pub fn referenced_procedure_ids(mut self, value: Vec<String>) -> Self {
+        self.referenced_procedure_ids = Some(value);
+        self
+    }
+
+    pub fn referenced_dynamic_variables(mut self, value: Vec<String>) -> Self {
+        self.referenced_dynamic_variables = Some(value);
+        self
+    }
+
+    pub fn content(mut self, value: impl Into<String>) -> Self {
+        self.content = Some(value.into());
+        self
+    }
+
+    pub fn guardrails(mut self, value: Vec<CustomGuardrailConfig>) -> Self {
+        self.guardrails = Some(value);
+        self
+    }
+
+    pub fn agent_id(mut self, value: impl Into<String>) -> Self {
+        self.agent_id = Some(value.into());
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
+    /// Consumes the builder and constructs a [`ProcedureAtVersionOutput`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`procedure_id`](ProcedureAtVersionOutputBuilder::procedure_id)
+    /// - [`name`](ProcedureAtVersionOutputBuilder::name)
+    /// - [`content`](ProcedureAtVersionOutputBuilder::content)
+    /// - [`agent_id`](ProcedureAtVersionOutputBuilder::agent_id)
+    pub fn build(self) -> Result<ProcedureAtVersionOutput, BuildError> {
+        Ok(ProcedureAtVersionOutput {
+            procedure_id: self.procedure_id.ok_or_else(|| BuildError::missing_field("procedure_id"))?,
+            name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
+            r#type: self.r#type,
+            trigger: self.trigger,
+            referenced_tool_ids: self.referenced_tool_ids,
+            referenced_kb_ids: self.referenced_kb_ids,
+            referenced_procedure_ids: self.referenced_procedure_ids,
+            referenced_dynamic_variables: self.referenced_dynamic_variables,
+            content: self.content.ok_or_else(|| BuildError::missing_field("content"))?,
+            guardrails: self.guardrails,
+            agent_id: self.agent_id.ok_or_else(|| BuildError::missing_field("agent_id"))?,
+            version_id: self.version_id,
+        })
+    }
+}

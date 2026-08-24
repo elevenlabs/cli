@@ -1,509 +1,329 @@
-# ElevenLabs CLI - Agents as Code
+# ElevenLabs CLI — Agents as Code
 
 ![hero](./assets/Cover.png)
 
-# ElevenLabs CLI
+Command-line interface for the [ElevenLabs platform](https://elevenlabs.io/docs/agents-platform/overview).
 
-Build multimodal agents with the [ElevenLabs platform](https://elevenlabs.io/docs/agents-platform/overview).
+The CLI does two things:
 
-Manage ElevenLabs with local configuration files. This tool is an experimental exploration of treating agents as code, with features like templates and automatic pushing.
+- **Full API access** — every ElevenLabs API endpoint is available as a subcommand (`elevenlabs <resource> <method>`).
+- **Agents as Code** — manage Conversational AI agents from local configuration files, with templates, branches, and push/pull sync.
 
-## Features
+## Table of contents
 
-- **Agent Configuration**: Full ElevenLabs agent schema support
-- **Templates**: Pre-built templates for common use cases
-- **Smart Updates**: Hash-based change detection
-- **Import/Export**: Fetch existing agents and tools from workspace
-- **Tool Management**: Import and manage tools from ElevenLabs workspace
-- **Branch Support**: Pull/push specific agent branches, CI/CD-friendly multi-branch workflows
-- **Widget Generation**: HTML widget snippets
-- **Secure Storage**: OS keychain integration with secure file fallback
+- [Installation](#installation)
+- [Authentication](#authentication)
+- [Quick start](#quick-start)
+- [Agents as Code](#agents-as-code)
+- [Data residency](#data-residency)
+- [UI components](#ui-components)
+- [Usage](#usage)
+- [Documentation](#documentation)
+- [Advanced](#advanced)
+  - [Common flags](#common-flags)
+  - [Environment variables](#environment-variables)
+  - [Output formats](#output-formats)
+  - [Shell completion](#shell-completion)
+- [Development](#development)
 
 ## Installation
 
-```bash
-# Global installation
-pnpm install -g @elevenlabs/cli
-# OR
-npm install -g @elevenlabs/cli
-
-# One-time usage
-pnpm dlx @elevenlabs/cli agents init
-# OR
-npx @elevenlabs/cli agents init
-```
-
-## Setup
-
-### Authentication
-
-Login with your ElevenLabs API key (stored securely across all platforms):
+### Shell (macOS / Linux)
 
 ```bash
-elevenlabs auth login
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.sh | sh
 ```
 
-Or set environment variable:
+### PowerShell (Windows)
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.ps1 | iex"
+```
+
+### Build from source
+
+Install the [Rust toolchain](https://rustup.rs/), then:
 
 ```bash
-export ELEVENLABS_API_KEY="your_api_key_here"
+git clone https://github.com/elevenlabs/cli.git
+cd cli
+cargo build --release
 ```
 
-> **Note**: For now, your API key must be unrestricted to work with the CLI, as ElevenLabs-restricted keys are not available yet.
-
-### Check Status
+The binary lands at `./target/release/elevenlabs`. To run it as `elevenlabs`
+from anywhere, install it with cargo, which copies it into `~/.cargo/bin`:
 
 ```bash
-elevenlabs auth whoami
+cargo install --path .
 ```
 
-### Set Residency Location
+## Authentication
 
-Configure the API residency for isolated regions:
+Every request is authenticated with an [ElevenLabs API key](https://elevenlabs.io/app/settings/api-keys), sent as the `xi-api-key` header. Set it in the environment:
 
 ```bash
-# Set to EU residency (uses api.eu.elevenlabs.io)
-elevenlabs auth residency eu-residency
-
-# Set to India residency (uses api.in.elevenlabs.io)
-elevenlabs auth residency in-residency
-
-# Set to US/Global (uses api.elevenlabs.io or api.us.elevenlabs.io)
-elevenlabs auth residency global  # or 'us'
+export ELEVENLABS_API_KEY=xi-...
 ```
 
-### Logout
+A `.env` file in the working directory is loaded automatically, so putting `ELEVENLABS_API_KEY=xi-...` there works too — handy for keeping a key scoped to one project.
+
+For a one-off call, pass it per command instead:
 
 ```bash
-elevenlabs auth logout
+elevenlabs user get --xi-api-key xi-...
 ```
 
-## Quick Start
+## Quick start
+
+List available commands:
 
 ```bash
-# 1. Initialize project
-elevenlabs agents init
-
-# Or override existing configuration
-elevenlabs agents init --override
-
-# 2. Login with API key
-elevenlabs auth login
-
-# 3. Create agent with template
-elevenlabs agents add "Support Bot" --template customer-service
-
-# 4. Edit configuration (agent_configs/support_bot.json)
-
-# 5. Sync to ElevenLabs
-elevenlabs agents push
+elevenlabs --help
 ```
 
-## Directory Structure
+Call an API endpoint:
+
+```bash
+elevenlabs <resource> <method>
+```
+
+Run `elevenlabs <resource> --help` to see available methods for a resource.
+
+## Agents as Code
+
+Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live as JSON on disk and sync to ElevenLabs. Pulled configs are stored as raw wire JSON and pushed back verbatim, so they round-trip losslessly.
+
+### Project structure
 
 ```
 your_project/
-├── agents.json              # Central configuration (includes branch mappings)
-├── tools.json               # Tool configurations
-├── tests.json               # Test configurations
-├── agent_configs/           # Agent configuration files
-│   ├── My-Agent.json        # Main branch config
-│   └── My-Agent.staging.json # Branch config (auto-created by --all-branches)
-├── tool_configs/            # Tool configurations
-└── test_configs/            # Test configurations
+├── agents.json         # Agent registry: ids + branch mappings → config paths
+├── tools.json          # Tool registry
+├── tests.json          # Test registry
+├── agent_configs/      # Agent configuration files
+├── tool_configs/       # Tool configuration files
+└── test_configs/       # Test configuration files
 ```
 
-## Commands
-
-### Initialize Project
-
-The `elevenlabs agents init` command sets up the project structure for managing ElevenLabs agents:
+### Commands
 
 ```bash
-elevenlabs agents init                    # Initialize in current directory
-elevenlabs agents init ./my-project       # Initialize in specific directory
-elevenlabs agents init --override         # Override existing files and recreate from scratch
+# Scaffold a new project (pass a path, or --override to reset an existing one)
+elevenlabs agents init [path] [--override]
+
+# Create an agent from a template (or an existing file), upload it, and register it
+elevenlabs agents add <name> [--template <template>] [--output-path <path>]
+elevenlabs agents add [name] --from-file <path>
+
+# Show the status of locally-configured agents
+elevenlabs agents status
+
+# Sync configs with ElevenLabs (push force-overrides main + registered branches)
+elevenlabs agents push [--agent <agent_id>] [--branch <name|id>] [--version-description <text>] [--dry-run]
+elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--dry-run]
+
+# List available agent templates, or print one's full configuration
+elevenlabs agents templates list
+elevenlabs agents templates show <template>
+
+# Print an embeddable HTML widget snippet for an agent
+elevenlabs agents widget embed <agent_id>
+
+# Run the tests attached to an agent (polls to completion; exits non-zero on failure)
+elevenlabs agents test <agent_id>
 ```
 
-**Default behavior**: When you run `elevenlabs agents init`, it will:
-- Create missing files and directories
-- Skip existing files (shown as "skipped" in output)
-- Preserve your existing configuration
+### Two surfaces in one namespace
 
-**Override mode** (`--override`): When you need to reset your project:
-- Overwrites all configuration files
-- Recreates directory structure from scratch
-- **Warning**: This will delete all existing configurations in `agent_configs/`, `tool_configs/`, and `test_configs/`
+`elevenlabs agents` holds two kinds of command, and it helps to know which you're using:
 
-Use `--override` when:
-- You want to start fresh with a clean configuration
-- Your configuration has become inconsistent
-- You're setting up a new environment and want to ensure clean state
+| | Workflow commands | API commands |
+|---|---|---|
+| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
+| **Operates on** | Your local project files, syncing them with ElevenLabs | The API directly — one command, one request |
+| **Arguments** | Positional, e.g. `agents test <agent_id>` | Flags, e.g. `agents get --agent-id <id>` |
+| **Output** | Progress text | The API response (`--format json\|table\|yaml\|csv`) |
 
-### Core Commands
+The API commands own the primitive names, so the workflow only adds verbs the API doesn't have. Two consequences worth knowing:
+
+- **Listing** — `agents list` is the API's list of agents in your workspace. For what's configured *locally*, use `agents status`.
+- **Deleting** — `agents delete --agent-id <id>` deletes remotely (API command). It does **not** remove the local config file or its `agents.json` entry; delete those yourself.
+
+> **Migrating from v0 (`@elevenlabs/cli`):** v0's `agents list` showed local config and `agents delete <id>` took a positional and cleaned up locally. In v1 both names belong to the API surface — use `agents status` for the local view, and `--agent-id` for delete. v0's `agents widget <id>` is now `agents widget embed <id>`, since `agents widget` is an API subgroup.
+
+### Tools
+
+Manage the webhook and client tools your agents reference. Tools are tracked in `tools.json` with configs under `tool_configs/`.
 
 ```bash
+# Create a webhook or client tool, upload it, and register it in tools.json
+elevenlabs tools add <name> [--type webhook|client] [--config-path <path>]
 
-# Authentication
-elevenlabs auth login
-elevenlabs auth logout
-elevenlabs auth whoami
+# Sync tool configs with ElevenLabs
+elevenlabs tools push [--tool <tool_id>] [--dry-run]
+elevenlabs tools pull [--tool <tool_id>] [--output-dir tool_configs] [--update] [--all] [--dry-run]
 
-# Create agent from template
-elevenlabs agents add "Agent Name" [--template customer-service] [--output-path path]
-
-# Create agent from existing config file
-elevenlabs agents add [name] --from-file existing-config.json [--output-path path]
-
-# Create webhook tool
-elevenlabs tools add-webhook "Tool Name" [--config-path path]
-
-# Create client tool
-elevenlabs tools add-client "Tool Name" [--config-path path]
-
-# Push changes (main + all registered branches)
-elevenlabs agents push [--agent <agent_id>] [--dry-run]
-
-# Push to a specific branch
-elevenlabs agents push --agent <agent_id> --branch <branch_name_or_id>
-
-# List branches for an agent
-elevenlabs agents branches list --agent <agent_id> [--include-archived]
-
-# Sync tools
-elevenlabs tools push [--tool "Tool Name"] [--dry-run]
-
-# Sync tests
-elevenlabs tests push [--dry-run] [--config-dir test_configs]
-
-# Check status
-elevenlabs agents status [--agent "Agent Name"]
-
-# Pull agents from ElevenLabs
-elevenlabs agents pull [--search "term"] [--update] [--dry-run]
-
-# Pull from a specific branch
-elevenlabs agents pull --agent <agent_id> --branch <branch_name_or_id>
-
-# Pull all branches for each agent (stores as separate config files)
-elevenlabs agents pull --all --all-branches
-
-# Pull tools from ElevenLabs
-elevenlabs tools pull [--search "term"] [--tool "tool-name"] [--dry-run] [--output-dir tool_configs]
-
-# Import tests from ElevenLabs
-elevenlabs tests pull [--output-dir test_configs] [--dry-run]
-
-# Create and run test
-elevenlabs tests add "Test Name" [--template basic-llm]
-
-# Run tests
-elevenlabs agents test "Agent Name"
-
-# Generate widget HTML (includes server-location for isolated regions)
-elevenlabs agents widget "Agent Name"
-
-# List agents
-elevenlabs agents list
-
-# Delete agent (removes locally and from ElevenLabs)
-elevenlabs agents delete <agent_id>
-
-# Delete tool locally and from ElevenLabs
+# Delete a tool locally and in ElevenLabs
 elevenlabs tools delete <tool_id>
-
-# Delete all tools
 elevenlabs tools delete --all
-
-# Delete test locally and from ElevenLabs
-elevenlabs tests delete <test_id>
-
-# Delete all tests
-elevenlabs tests delete --all
-
-# Add componenents from [ui.elevenlabs.io](https://ui.elevenlabs.io)
-elevenlabs components add "Component Name"
 ```
+
+### Tests
+
+Manage agent tests, tracked in `tests.json` with configs under `test_configs/`. Attach them to an agent's `platform_settings.testing.attached_tests` and run them with `elevenlabs agents test <agent_id>`.
+
+```bash
+# Create a test from a template, upload it, and register it in tests.json
+elevenlabs tests add <name> [--template basic-llm|tool|conversation-flow|customer-service]
+elevenlabs tests templates list
+
+# Sync test configs with ElevenLabs
+elevenlabs tests push [--test <test_id>] [--config-dir test_configs] [--dry-run]
+elevenlabs tests pull [--test <test_id>] [--output-dir test_configs] [--update] [--all] [--dry-run]
+
+# Delete a test locally and in ElevenLabs
+elevenlabs tests delete <test_id>
+elevenlabs tests delete --all
+```
+
+`tests push` also **auto-discovers** untracked configs: it scans `--config-dir` recursively for `.json` files that look like tests (a `chat_history` array or a `success_condition` string) and registers them in `tests.json` before pushing, so you can drop a config in and push without editing the index by hand.
 
 ### Templates
 
-```bash
-# List available templates
-elevenlabs agents templates list
+Pre-built starting configurations for `agents add`, listed by `elevenlabs agents templates list` (inspect one with `agents templates show <template>`):
 
-# Show template details
-elevenlabs agents templates show customer-service
-```
+| Template | Description |
+|----------|-------------|
+| `default` | Complete configuration with all available fields and sensible defaults |
+| `minimal` | Minimal configuration with only essential fields |
+| `voice-only` | Optimized for voice-only conversations |
+| `text-only` | Optimized for text-only conversations |
+| `customer-service` | Pre-configured for customer service scenarios |
+| `assistant` | General purpose AI assistant configuration |
 
-## Available Templates
+## Data residency
 
-### `default`
-
-Complete configuration with all available fields and sensible defaults. Includes full voice and text support, widget customization, evaluation criteria, and platform settings. Best for production deployments requiring comprehensive configuration.
-
-### `minimal`
-
-Minimal configuration with only essential fields. Contains basic agent prompt, language settings, TTS configuration, and conversation settings. Perfect for quick prototyping and simple use cases.
-
-### `voice-only`
-
-Optimized for voice-only conversations. Disables text input and focuses on voice interaction features. Includes advanced voice settings, turn management, and audio processing optimizations.
-
-### `text-only`
-
-Optimized for text-only conversations. Disables voice features and focuses on text-based interactions.
-
-### `customer-service`
-
-Pre-configured for customer service scenarios. Features professional, empathetic prompts with consistent responses (low temperature). Includes extended conversation duration (30 minutes), evaluation criteria for service quality, and customer-service tags.
-
-### `assistant`
-
-General purpose AI assistant configuration. Balanced creativity settings with helpful, knowledgeable prompts. Supports both voice and text interactions for versatile use cases like Q&A, explanations, and analysis tasks.
-
-## Configuration Example
-
-```json
-{
-  "name": "Support Bot",
-  "conversation_config": {
-    "agent": {
-      "prompt": {
-        "prompt": "You are a helpful customer service representative.",
-        "llm": "gemini-2.5-flash",
-        "temperature": 0.1
-      },
-      "language": "en"
-    },
-    "tts": {
-      "model_id": "eleven_turbo_v2",
-      "voice_id": "cjVigY5qzO86Huf0OWal"
-    }
-  },
-  "tags": ["customer-service"]
-}
-```
-
-## Common Workflows
-
-**New Project:**
+Select the region your requests are routed to. The setting is stored in `~/.elevenlabs/config.json` and applies to **every** command:
 
 ```bash
-elevenlabs agents init
-elevenlabs auth login
-elevenlabs agents add "My Agent" --template assistant
-elevenlabs agents push
+elevenlabs residency                 # show the current region and its base URL
+elevenlabs residency eu-residency    # switch region
 ```
 
-**Import Existing from ElevenLabs:**
+| Region | Base URL |
+|--------|----------|
+| `global` (default) | `https://api.elevenlabs.io` |
+| `us` | `https://api.us.elevenlabs.io` |
+| `eu-residency` | `https://api.eu.residency.elevenlabs.io` |
+| `in-residency` | `https://api.in.residency.elevenlabs.io` |
+| `sg-residency` | `https://api.sg.residency.elevenlabs.io` |
+
+`--base-url` and `ELEVENLABS_BASE_URL` take precedence when you need a one-off override. The region also sets the `server-location` attribute emitted by `agents widget`.
+
+## UI components
+
+Install [ElevenLabs UI](https://ui.elevenlabs.io) components into your project (delegates to `shadcn`, so Node.js/npm is required):
 
 ```bash
-elevenlabs agents init
-elevenlabs auth login
-elevenlabs agents pull
-elevenlabs agents push
+elevenlabs components add                    # all components
+elevenlabs components add conversation-bar
 ```
 
-**Update Local Agents with Remote Changes:**
+## Usage
+
+Every API resource appears as a subcommand (e.g. `elevenlabs <resource> <method>`). Run `elevenlabs <resource> --help` to see available methods.
+
+Provide request parameters as flags or as JSON:
 
 ```bash
-# By default, 'agents pull' skips agents that already exist locally
-# Use --update to override local configurations with remote changes
-elevenlabs agents pull --update
+elevenlabs <resource> <method> --json '{"key": "value"}'
 ```
 
-Use `--update` when:
-- You've made changes to an agent in the browser or via the API
-- You want to sync remote changes to your local configuration
-- Your local agent configuration is out of sync with ElevenLabs
+## Documentation
 
-**Create Agent from Local Config File:**
+See [reference.md](./reference.md) for the full command reference.
+
+## Advanced
+
+### Common flags
+
+These flags are available on every operation:
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Validate the request locally and print the HTTP request without sending it |
+| `--json <JSON\|->` | Supply a request body as JSON (or `-` to read stdin) |
+| `--params <JSON>` | Merge extra parameters as JSON (overrides individual flags) |
+| `--format <json\|table\|yaml\|csv>` | Output format (default `json`) |
+| `--output <PATH>` | Write binary responses to a file |
+| `--base-url <URL>` | Override the API base URL |
+| `--page-all` | Auto-paginate and stream results as NDJSON |
+| `--page-limit <N>` | Max pages to fetch when auto-paginating (default `10`) |
+| `-q, --quiet` | Suppress stdout output on success (errors still go to stderr) |
+
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `ELEVENLABS_BASE_URL` | Override the API base URL |
+| `ELEVENLABS_CA_BUNDLE` | Path to PEM file with extra trust roots (or `SSL_CERT_FILE`) |
+| `ELEVENLABS_INSECURE=1` | Skip TLS verification (debugging only) |
+| `ELEVENLABS_PROXY` | HTTP(S) proxy URL |
+| `ELEVENLABS_TIMEOUT_SECS` | Total request timeout in seconds |
+
+Standard environment variables (`HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` / `SSL_CERT_FILE`) are also honored.
+
+### Output formats
+
+Use the global `--format` flag to control output. Supported values: `json` (default), `table`, `yaml`, `csv`.
 
 ```bash
-# You have an existing agent config file (e.g., my-template.json)
-# Import it and register it with ElevenLabs
-elevenlabs agents init
-elevenlabs auth login
-elevenlabs agents add --from-file my-template.json
-# This will:
-# - Upload the agent to ElevenLabs
-# - Get an agent ID
-# - Register it in agents.json
-# - Save a copy to agent_configs/
+# Pipe JSON output through jq
+elevenlabs <resource> <method> --format json | jq
+
+# Machine-readable catalog of every operation
+elevenlabs --help --format json | jq 'length'
 ```
 
-**Import and Use Tools:**
+### Shell completion
+
+Generate shell completion scripts:
 
 ```bash
-elevenlabs agents init
-elevenlabs auth login
-elevenlabs tools pull
-# Edit tool configs in tool_configs/
-# Tools will have 'env' field - modify if needed
-# Reference tools in your agent configurations
-elevenlabs agents push
+elevenlabs completion <bash|zsh|fish|powershell>
 ```
 
-**Delete Agent:**
-
-```bash
-# List agents to find the agent ID
-elevenlabs agents list
-
-# Delete agent by ID (removes locally and from ElevenLabs)
-elevenlabs agents delete agent_123456789
-```
-
-## Branch Workflows
-
-Agent branches let you manage different configurations (e.g., staging vs production) alongside the main agent. Branch configs are stored as separate files in `agent_configs/` and tracked in `agents.json`, making them git-friendly and CI/CD-ready.
-
-**Work with branches locally:**
-
-```bash
-# List branches for an agent
-elevenlabs agents branches list --agent <agent_id>
-
-# Pull a specific branch config
-elevenlabs agents pull --agent <agent_id> --branch staging
-
-# Push to a specific branch
-elevenlabs agents push --agent <agent_id> --branch staging
-```
-
-**CI/CD pipeline (sync all branches):**
-
-```bash
-elevenlabs agents pull --all --all-branches --update --no-ui
-# Make config changes...
-elevenlabs agents push --no-ui
-# Push auto-pushes main + all registered branch configs
-```
-
-Branch configs in `agents.json`:
-
-```json
-{
-  "agents": [{
-    "config": "agent_configs/My-Agent.json",
-    "id": "agent_123",
-    "branches": {
-      "staging": {
-        "config": "agent_configs/My-Agent.staging.json",
-        "branch_id": "agtbrch_xxx",
-        "version_id": "ver_xxx"
-      }
-    }
-  }]
-}
-```
-
-The `--branch` flag accepts both human-readable names (`staging`) and branch IDs (`agtbrch_xxx`).
-
-## Workflow Examples
-
-```bash
-# List all agents
-elevenlabs agents list
-
-# Push all agents (main + branches)
-elevenlabs agents push
-
-# Pull agents (skips existing local agents)
-elevenlabs agents pull
-
-# Pull and update agents (overrides local with remote)
-elevenlabs agents pull --update
-```
-
-## Troubleshooting
-
-**Authentication Issues:**
-
-```bash
-# Check login status
-elevenlabs auth whoami
-
-# Login again
-elevenlabs auth login
-
-# Or use environment variable
-export ELEVENLABS_API_KEY="your_api_key_here"
-```
-
-**Agent Not Found:**
-
-- Check: `elevenlabs agents list`
-- Verify: `elevenlabs agents status`
-
-**Push Issues:**
-
-- Preview: `elevenlabs agents push --dry-run`
-- Check: `elevenlabs agents status`
-
-**Reset Project:**
-
-```bash
-elevenlabs agents init --override
-elevenlabs auth login
-elevenlabs agents push
-```
 
 ## Development
 
+The CLI is generated by [Fern](https://buildwithfern.com) from the ElevenLabs OpenAPI spec, with the agents-as-code workflow layered on top as hand-written commands in `cli/elevenlabs/workflow/`. Those files, along with this README and `.github/workflows/ci.yml`, are listed in `.fernignore` so regeneration can't overwrite them.
+
+### Tests
+
 ```bash
-# Install dependencies
-pnpm install
-
-# Build
-pnpm run build
-
-# Test
-pnpm test
-
-# Lint
-pnpm run lint
+cargo test                                              # framework + workflow + wire tests
+cargo test --manifest-path elevenlabs-sdk/Cargo.toml    # generated SDK crate
+cargo test --manifest-path elevenlabs-types/Cargo.toml  # generated types crate
 ```
 
-## Testing
+The generated crates are path dependencies rather than workspace members, so a plain `cargo test` skips them — hence the separate invocations (CI runs all three).
 
-### Unit Tests
+| Suite | What it covers |
+|-------|----------------|
+| `cargo test --test wire_test` | Generated wire tests: each stands up an in-process mock server, drives one endpoint through the CLI, and asserts the request and rendered response. No network. |
+| `cargo test --bin elevenlabs` | Unit tests for the hand-written workflow (config round-tripping, templates, pull planning, residency, …) |
+| `cargo test --test e2e_smoke` | Live end-to-end smoke test — **opt-in**, see below |
+
+### Live end-to-end smoke test
+
+`tests/e2e_smoke.rs` runs the full workflow against a real account: `init` → `add` → `push` → `pull` → `delete`, asserting that a config survives a push/pull round-trip byte-for-byte.
+
+> ⚠️ **It creates and deletes agents. Use a dedicated, empty test account — never a production one.**
+
+It's opt-in and skips unless `ELEVENLABS_E2E_API_KEY` is set. That variable is deliberately *not* `ELEVENLABS_API_KEY`, so a shell with your normal credentials exported can't accidentally mutate a live workspace:
+
 ```bash
-npm test
+ELEVENLABS_E2E_API_KEY=xi-... cargo test --test e2e_smoke -- --nocapture
 ```
 
-### E2E Tests
-
-**CRITICAL**: E2E tests require a **dedicated, empty test account**. 
-
-**DO NOT use your production account!** E2E tests will create, modify, and **delete agents** during testing. Any existing agents could be permanently lost.
-
-**Setup:**
-
-1. Create a new ElevenLabs account (separate from production)
-2. Verify the account is completely empty (no deployed agents)
-3. Generate an API key for this test account
-4. Copy `.env.example` to `.env` and add the test account API key
-5. Run: `npm run test:e2e`
-
-**Quick safety check before running tests:**
-```bash
-npm run dev -- auth whoami --no-ui  # Verify you're using test account
-npm run dev -- agents list --no-ui  # Should be empty or only test agents
-```
-
-## Security
-
-The ElevenLabs CLI stores your API key securely with multiple fallback options:
-
-- **Environment Variable**: `ELEVENLABS_API_KEY` takes highest priority for CI/CD
-- **OS Keychain**: Uses native credential store (keytar) when available
-- **Secure File**: Falls back to `~/.elevenlabs/api_key` with restricted permissions (600)
-
-Configuration files are stored in `~/.elevenlabs/` with secure directory permissions (700 on Unix-like systems).
-
-## Support
-
-- Use `elevenlabs --help` or `elevenlabs <command> --help`
-- Check GitHub issues
-- Create new issue with problem details
+It cleans up the agent it creates, including on failure; if deletion fails it prints the id to remove by hand.
