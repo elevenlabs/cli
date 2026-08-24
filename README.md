@@ -28,16 +28,29 @@ The CLI does two things:
 
 ## Installation
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew install elevenlabs/tap/elevenlabs
+```
+
+### Scoop (Windows)
+
+```powershell
+scoop bucket add elevenlabs https://github.com/elevenlabs/scoop-bucket
+scoop install elevenlabs
+```
+
 ### Shell (macOS / Linux)
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-cli-installer.sh | sh
 ```
 
 ### PowerShell (Windows)
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-installer.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/elevenlabs/cli/releases/latest/download/elevenlabs-cli-installer.ps1 | iex"
 ```
 
 ### Build from source
