@@ -2,11 +2,11 @@
 name = "elevenlabs-cli"
 version = "1.0.0"
 edition = "2021"
-description = "CLI for the ElevenLabs API Documentation"
-license = "Apache-2.0"
+description = "CLI for the ElevenLabs API"
+license = "MIT"
 repository = "https://github.com/elevenlabs/cli"
 homepage = "https://github.com/elevenlabs/cli"
-authors = ["Fern <hey@buildwithfern.com>"]
+authors = ["ElevenLabs <developers@elevenlabs.io>"]
 keywords = ["cli", "openapi", "graphql", "fern", "codegen"]
 categories = ["command-line-utilities", "web-programming"]
 
