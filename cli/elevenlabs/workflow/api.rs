@@ -114,10 +114,19 @@ fn raw_request(
         request_options(),
     ))?;
     if raw.status_code >= 400 {
+        let message = api_error_message(&raw.body);
         return Err(CliError::Api {
             code: raw.status_code,
-            message: api_error_message(&raw.body),
+            message,
             reason: format!("http_{}", raw.status_code),
+            // The body goes in `details` rather than being folded into
+            // `message`: anything `api_error_message` could not summarise still
+            // belongs in the JSON envelope, and stringifying it into the
+            // message would nest an escaped JSON document inside a JSON field.
+            details: Some(raw.body),
+            // No advice to add — the framework supplies its own for the cases
+            // where it has some (credential source on a 401, for instance).
+            help: None,
         });
     }
     Ok(raw.body)

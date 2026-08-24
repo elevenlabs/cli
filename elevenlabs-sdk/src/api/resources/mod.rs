@@ -5,16 +5,16 @@
 //! - **History**
 //! - **TextToSoundEffects**
 //! - **AudioIsolation**
-//! - **Samples**
+//! - **Access to your samples.**
 //! - **TextToSpeech**
 //! - **TextToDialogue**
 //! - **SpeechToSpeech**
 //! - **TextToVoice**
 //! - **User**
 //! - **Voices**
-//! - **Studio**
-//! - **dubbing**
-//! - **Models**
+//! - **Access, create and convert Studio Projects programmatically.**
+//! - **Dub audio and video content into other languages while preserving the original speaker's voice.**
+//! - **Access the different models of the platform.**
 //! - **AudioNative**
 //! - **Usage**
 //! - **PronunciationDictionaries**
