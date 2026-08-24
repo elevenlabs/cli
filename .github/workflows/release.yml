@@ -576,8 +576,9 @@ jobs:
           mkdir -p scoop-bucket/bucket
           jq -n \
             --arg version "${VERSION}" \
-            --arg description 'CLI for the ElevenLabs API Documentation' \
+            --arg description 'CLI for the ElevenLabs API' \
             --arg homepage 'https://github.com/elevenlabs/cli' \
+            --arg license 'MIT' \
             --arg url "${URL}" \
             --arg hash "${HASH}" \
             --arg bin 'elevenlabs.exe' \
@@ -587,6 +588,7 @@ jobs:
               version: $version,
               description: $description,
               homepage: $homepage,
+              license: $license,
               architecture: { "64bit": { url: $url, hash: $hash, bin: $bin } },
               autoupdate: { architecture: { "64bit": { url: $autoupdate } } },
               checkver: { github: $checkver }
