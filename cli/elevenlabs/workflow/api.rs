@@ -43,6 +43,64 @@ fn advance_cursor(resp: &Value, seen: &mut std::collections::HashSet<String>) ->
     Some(next.to_string())
 }
 
+/// Tag the outgoing `User-Agent` with the command that is running, for the
+/// lifetime of one CLI invocation.
+///
+/// Why the User-Agent and not a header: `RequestOptions.additional_headers`
+/// never reaches the wire. `HttpClient::send_request` only calls
+/// `apply_custom_headers` on its non-executor branch, and this CLI always uses
+/// the executor — which is also why the `X-Source` below is silently dropped.
+/// The `User-Agent` is the one identifier that does arrive, and `HttpConfig`
+/// reads its suffix env var at client-build time, so setting it here is picked
+/// up by every request the command makes.
+///
+/// The tag is **always a static string** chosen by the caller. It must never be
+/// derived from argv: positional tokens carry user data (`agents test my-agent`
+/// would put the agent's name in the User-Agent and from there into request
+/// logs).
+///
+/// Appends rather than replaces, so a consumer's own `ELEVENLABS_VIA` survives.
+/// Restores the previous value on drop, so one command cannot leak its tag into
+/// another (`agents push` shells out to nothing today, but `--dry-run` paths and
+/// tests share a process).
+pub struct CommandScope {
+    key: String,
+    previous: Option<String>,
+}
+
+/// Env var the framework reads for the User-Agent suffix. The segment tracks
+/// the configured flag name (`userAgentSuffixFlag: via` → `_VIA`), so a rename
+/// upstream does not silently detach this.
+fn suffix_env_key() -> String {
+    format!(
+        "ELEVENLABS{}",
+        fern_cli_sdk::user_agent::suffix_env_segment()
+    )
+}
+
+pub fn command_scope(command: &'static str) -> CommandScope {
+    let key = suffix_env_key();
+    let previous = std::env::var(&key).ok();
+    let tag = format!("cmd/{command}");
+    let combined = match previous.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(existing) => format!("{existing} {tag}"),
+        None => tag,
+    };
+    // Single-threaded: one command is dispatched per process, and the request
+    // futures run on a current-thread runtime via `sdk::block_on`.
+    std::env::set_var(&key, combined);
+    CommandScope { key, previous }
+}
+
+impl Drop for CommandScope {
+    fn drop(&mut self) {
+        match &self.previous {
+            Some(v) => std::env::set_var(&self.key, v),
+            None => std::env::remove_var(&self.key),
+        }
+    }
+}
+
 /// `X-Source` tag v0 attached to every request.
 const X_SOURCE: &str = "agents-cli";
 
@@ -514,6 +572,73 @@ pub fn get_test_invocation(ctx: &AppContext, invocation_id: &str) -> Result<Valu
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // `command_scope` mutates process-wide env, so these must not interleave.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn with_env<T>(body: impl FnOnce(&str) -> T) -> T {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let key = suffix_env_key();
+        let saved = std::env::var(&key).ok();
+        std::env::remove_var(&key);
+        let out = body(&key);
+        match saved {
+            Some(v) => std::env::set_var(&key, v),
+            None => std::env::remove_var(&key),
+        }
+        out
+    }
+
+    #[test]
+    fn scope_tags_the_user_agent_suffix_and_restores_on_drop() {
+        with_env(|key| {
+            {
+                let _scope = command_scope("agents.push");
+                assert_eq!(std::env::var(key).as_deref(), Ok("cmd/agents.push"));
+            }
+            // Restored to absent, so one command cannot leak its tag into the next.
+            assert!(std::env::var(key).is_err());
+        });
+    }
+
+    #[test]
+    fn scope_appends_rather_than_clobbering_a_consumer_token() {
+        with_env(|key| {
+            std::env::set_var(key, "partner-app/3.1");
+            {
+                let _scope = command_scope("tools.pull");
+                assert_eq!(
+                    std::env::var(key).as_deref(),
+                    Ok("partner-app/3.1 cmd/tools.pull")
+                );
+            }
+            assert_eq!(std::env::var(key).as_deref(), Ok("partner-app/3.1"));
+        });
+    }
+
+    #[test]
+    fn scope_ignores_a_blank_existing_value() {
+        with_env(|key| {
+            std::env::set_var(key, "   ");
+            let _scope = command_scope("tests.add");
+            assert_eq!(std::env::var(key).as_deref(), Ok("cmd/tests.add"));
+        });
+    }
+
+    #[test]
+    fn suffix_env_key_tracks_the_configured_flag_name() {
+        // Guards against the flag being renamed upstream (userAgentSuffixFlag)
+        // without this following it — the tag would silently stop being read.
+        let key = suffix_env_key();
+        assert!(key.starts_with("ELEVENLABS"), "unexpected key: {key}");
+        assert_eq!(
+            key,
+            format!(
+                "ELEVENLABS{}",
+                fern_cli_sdk::user_agent::suffix_env_segment()
+            )
+        );
+    }
 
     #[test]
     fn api_error_message_handles_every_shape_the_api_returns() {
