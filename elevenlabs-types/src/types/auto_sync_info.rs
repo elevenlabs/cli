@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct AutoSyncInfo {
-    /// Maximum number of days between automatic syncs
+    /// Minimum frequency (in days) at which the document is refreshed. The actual interval may be shorter, never longer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum_frequency_days: Option<i64>,
     /// Whether to remove the document if the URL becomes unavailable

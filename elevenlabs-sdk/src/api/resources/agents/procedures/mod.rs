@@ -23,6 +23,7 @@ impl ProceduresClient {
     ///
     /// * `agent_id` - Agent ID to get the procedure draft from
     /// * `branch_id` - Branch ID to get the procedure draft from
+    /// * `agent_version_id` - The agent version ID to retrieve the procedure for.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -46,6 +47,10 @@ impl ProceduresClient {
     ///         .list(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtbranch_0901k4aafjxxfxt93gd841r7tv5t".to_string(),
+    ///             &AgentsProceduresListQueryRequest {
+    ///                 agent_version_id: Some("agent_version_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
     ///             None,
     ///         )
     ///         .await;
@@ -55,6 +60,7 @@ impl ProceduresClient {
         &self,
         agent_id: &str,
         branch_id: &str,
+        request: &AgentsProceduresListQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<ListProceduresResponseModel, ApiError> {
         self.http_client
@@ -65,7 +71,9 @@ impl ProceduresClient {
                     agent_id, branch_id
                 ),
                 None,
-                None,
+                QueryBuilder::new()
+                    .string("agent_version_id", request.agent_version_id.clone())
+                    .build(),
                 options,
             )
             .await
@@ -191,6 +199,7 @@ impl ProceduresClient {
     /// * `branch_id` - Branch ID to get the procedure draft from
     /// * `procedure_id` - The procedure ID
     /// * `version_id` - The version ID to retrieve. If omitted, returns the version at branch HEAD.
+    /// * `agent_version_id` - The agent version ID to retrieve the procedure for.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -217,6 +226,7 @@ impl ProceduresClient {
     ///             &"agtprc_6qbpwdq8n01bxhk44bgjy6f10ck3".to_string(),
     ///             &AgentsProceduresGetQueryRequest {
     ///                 version_id: Some("version_id".to_string()),
+    ///                 agent_version_id: Some("agent_version_id".to_string()),
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -242,13 +252,14 @@ impl ProceduresClient {
                 None,
                 QueryBuilder::new()
                     .string("version_id", request.version_id.clone())
+                    .string("agent_version_id", request.agent_version_id.clone())
                     .build(),
                 options,
             )
             .await
     }
 
-    /// Remove a procedure from the agent's draft working set.
+    /// Remove a procedure from the agent's draft working set. Removing a folder cascades to its entire subtree, rejected if any procedure outside the subtree hands off into it.
     ///
     /// # Arguments
     ///

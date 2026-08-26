@@ -48,6 +48,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents tests invocations`](#elevenlabs-agents-tests-invocations)
 - [`elevenlabs agents tools`](#elevenlabs-agents-tools)
 - [`elevenlabs agents tools executions`](#elevenlabs-agents-tools-executions)
+- [`elevenlabs agents triage-tickets`](#elevenlabs-agents-triage-tickets)
 - [`elevenlabs agents twilio`](#elevenlabs-agents-twilio)
 - [`elevenlabs agents users`](#elevenlabs-agents-users)
 - [`elevenlabs agents versions`](#elevenlabs-agents-versions)
@@ -563,6 +564,7 @@ Get a signed url to start a conversation with an agent with an agent that requir
 | `--include-conversation-id` | `boolean` | No | Whether to include a conversation_id with the response. If included, the conversation_signature cannot be used again. |
 | `--branch-id` | `string` | No | The ID of the branch to use |
 | `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
+| `--debug-events-request` | `boolean` | No | Whether to enable debug events. Only available for users with editor access to the agent. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents conversations get-sip-messages`
@@ -602,6 +604,7 @@ Get a WebRTC session token for real-time communication.
 | `--participant-name` | `string` | No | Optional custom participant name. If not provided, user ID will be used |
 | `--branch-id` | `string` | No | The ID of the branch to use |
 | `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
+| `--debug-events-request` | `boolean` | No | Whether to enable debug events. Only available for users with editor access to the agent. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents conversations list`
@@ -616,6 +619,7 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
 | `--visited-agent-ids` | `string` | No | Filter conversations where any of these agents participated. Can not exceed 50 values. |
 | `--visited-agent-branch-ids` | `string` | No | Filter conversations where any of these agent branches participated. Can not exceed 50 values. |
+| `--triggered-procedure-ids` | `string` | No | Filter conversations where any of these procedures were triggered. Can not exceed 50 values. |
 | `--call-successful` | `string` | No | The result of the success evaluation |
 | `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
 | `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
@@ -632,6 +636,7 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
 | `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
 | `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
+| `--include-invalid-tool-calls` | `boolean` | No | Also match tool calls that never ran. |
 | `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
 | `--page-size` | `integer` | No | How many conversations to return at maximum. Can not exceed 100, defaults to 30. |
 | `--summary-mode` | `exclude | include` | No | Whether to include transcript summaries in the response. |
@@ -649,6 +654,7 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
 | `--guardrail-types` | `string` | No | Filter to conversations where a guardrail of any of these types triggered (metadata.triggered_guardrails.guardrail_type). Repeat param to match any of several. |
 | `--custom-guardrail-names` | `string` | No | Filter to conversations where a custom guardrail with any of these names triggered (metadata.triggered_guardrails.guardrail_name). Only custom guardrails carry a name. Repeat param to match any of several. |
+| `--sort-direction` | `SortDirection` | No | The direction to sort conversations by call start time. Defaults to descending (newest first). |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents conversations resolve`
@@ -778,6 +784,7 @@ Search through conversation transcript messages by full-text and fuzzy search
 | `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
 | `--visited-agent-ids` | `string` | No | Filter conversations where any of these agents participated. Can not exceed 50 values. |
 | `--visited-agent-branch-ids` | `string` | No | Filter conversations where any of these agent branches participated. Can not exceed 50 values. |
+| `--triggered-procedure-ids` | `string` | No | Filter conversations where any of these procedures were triggered. Can not exceed 50 values. |
 | `--call-successful` | `string` | No | The result of the success evaluation |
 | `--call-start-before-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations up to this start date. |
 | `--call-start-after-unix` | `string` | No | Unix timestamp (in seconds) to filter conversations after to this start date. |
@@ -792,6 +799,7 @@ Search through conversation transcript messages by full-text and fuzzy search
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
 | `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
 | `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
+| `--include-invalid-tool-calls` | `boolean` | No | Also match tool calls that never ran. |
 | `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
 | `--exclude-statuses` | `string` | No | Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views. |
 | `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
@@ -906,10 +914,11 @@ Returns the latest topic discovery run results for a given agent.
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | ID of the agent |
 | `--page-size` | `string` | No | Number of top-level topic groups to return. |
-| `--sort-by` | `TopicSortBy` | No | Topic table column to sort by. |
+| `--sort-by` | `TopicSortBy` | No | Column to rank topics by. Use conversations for volume, sentiment with sort_direction=asc for the most negative topics, and frustration with sort_direction=desc for the most frustrated ones. Topics with no score are always ranked last. |
 | `--sort-direction` | `SortDirection` | No | Direction to sort topics. |
-| `--from-unix-secs` | `string` | No | Start of the window to view topics for. When set with to_unix_secs, per-day topics in the range are aggregated together. |
+| `--from-unix-secs` | `string` | No | Start of the window to view topics for. When set with to_unix_secs, the completed daily topic-discovery runs in the range are aggregated together, so the window scopes the metrics as well as the topic set. Floored to the start of its UTC day because runs cover whole UTC days; aggregated_run_count reports how many runs were summed. Omit both bounds to get the single latest run. |
 | `--to-unix-secs` | `string` | No | End of the window to view topics for. |
+| `--include-evaluation-criteria` | `boolean` | No | Include the per-criteria evaluation breakdown on each topic's metrics. Pass false to drop it: it dominates the payload and the weighted success_rate is returned either way. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
@@ -1699,6 +1708,7 @@ Retrieve a procedure at a specific version or the current branch HEAD.
 | `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
 | `--procedure-id` | `string` | Yes | The procedure ID |
 | `--version-id` | `string` | No | The version ID to retrieve. If omitted, returns the version at branch HEAD. |
+| `--agent-version-id` | `string` | No | The agent version ID to retrieve the procedure for. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents procedures list`
@@ -1711,11 +1721,12 @@ List the agent's procedures on a branch with their procedure_id, version_id, nam
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | Agent ID to get the procedure draft from |
 | `--branch-id` | `string` | Yes | Branch ID to get the procedure draft from |
+| `--agent-version-id` | `string` | No | The agent version ID to retrieve the procedure for. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents procedures remove`
 
-Remove a procedure from the agent's draft working set.
+Remove a procedure from the agent's draft working set. Removing a folder cascades to its entire subtree, rejected if any procedure outside the subtree hands off into it.
 
 `DELETE /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/{procedure_id}`
 
@@ -2184,6 +2195,122 @@ Get paginated list of tool executions for a specific tool.
 | `--start-time` | `string` | No | Filter executions from this Unix timestamp (inclusive). |
 | `--end-time` | `string` | No | Filter executions until this Unix timestamp (inclusive). |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents triage-tickets`
+
+#### `elevenlabs agents triage-tickets add-comment`
+
+Append a comment discussing how to resolve the ticket. Requires viewer access to the ticket's agent.
+
+`POST /v1/convai/triage-tickets/{agentqa_ticket_id}/comments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agentqa-ticket-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents triage-tickets add-turn-comment`
+
+Append a turn-level comment to a ticket. Requires viewer access to the ticket's agent.
+
+`POST /v1/convai/triage-tickets/{agentqa_ticket_id}/turn-comments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agentqa-ticket-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents triage-tickets create`
+
+Raise a ticket about an agent's performance on a conversation, for triage with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
+
+`POST /v1/convai/triage-tickets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents triage-tickets create-manual`
+
+Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). The comment is shown as the ticket title. Requires viewer access to the agent.
+
+`POST /v1/convai/agents/{agent_id}/triage-tickets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents triage-tickets delete`
+
+Delete an agent conversation ticket. Restricted to the ticket creator or a workspace admin.
+
+`DELETE /v1/convai/triage-tickets/{agentqa_ticket_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agentqa-ticket-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents triage-tickets get`
+
+Get an agent conversation ticket by ID.
+
+`GET /v1/convai/triage-tickets/{agentqa_ticket_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agentqa-ticket-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents triage-tickets list`
+
+List an agent's conversation triage tickets, ordered by most recently created first. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
+
+`GET /v1/convai/agents/{agent_id}/triage-tickets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes |  |
+| `--page-size` | `integer` | No | How many agent conversation tickets to return. Can not exceed 100. |
+| `--conversation-id` | `string` | No | Filter tickets by conversation id. |
+| `--status` | `string` | No | Filter tickets by status. |
+| `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
+| `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
+| `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
+| `--issue-type` | `string` | No | Filter clusters by issue type. |
+| `--label` | `string` | No | Filter tickets by an exact label. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents triage-tickets list-assignable-users`
+
+All non-service-account workspace members, each flagged with whether they currently have at least viewer access to the agent. Members without access are included (not filtered out) so the UI can offer them as an assignee and prompt to grant access first.
+
+`GET /v1/convai/agents/{agent_id}/triage-tickets/assignable-users`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents triage-tickets update`
+
+Update a ticket's comment, status, and/or assignee. Requires editor access to the ticket's agent.
+
+`PATCH /v1/convai/triage-tickets/{agentqa_ticket_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agentqa-ticket-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
 ---
 
@@ -3434,7 +3561,7 @@ List music finetunes accessible to you (your own, workspace-shared, and ElevenLa
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--cursor` | `string` | No | Used for fetching the next page. Cursor is returned in the response. |
-| `--page-size` | `integer` | No | How many finetunes to return. Max 100, default 50. |
+| `--page-size` | `integer` | No | How many finetunes to return. Max 150, default 50. |
 | `--visibility` | `string` | No | Filter by visibility. 'private' returns private finetunes; 'workspace' returns workspace-shared finetunes; 'public' returns public finetunes, which are currently ElevenLabs curated finetunes. Omit to return all accessible finetunes. |
 | `--created-by` | `string` | No | Filter by creator. 'self' returns finetunes you created; 'workspace' returns finetunes created by workspace teammates; 'elevenlabs' returns ElevenLabs curated finetunes. Omit to return finetunes from all creators. |
 | `--sort` | `created_at | name` | No | Sort by field (created_at or name) |

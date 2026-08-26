@@ -15,6 +15,9 @@ pub struct GetToolCallUnitTestResponseModel {
     /// Simulate the test as if the conversation originated from this channel.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation_initiation_source: Option<ConversationInitiationSource>,
+    /// The environment to resolve environment-specific variable values against when running this test (URL, headers, auth connections). If not provided, defaults to 'production'. For simulation tests, simulation_environment takes precedence when set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment: Option<String>,
     /// How to evaluate the agent's tool call (if any). If empty, the tool call is not evaluated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_parameters: Option<UnitTestToolCallEvaluationModelOutput>,
@@ -40,6 +43,7 @@ pub struct GetToolCallUnitTestResponseModelBuilder {
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
     chat_history: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
     conversation_initiation_source: Option<ConversationInitiationSource>,
+    environment: Option<String>,
     tool_call_parameters: Option<UnitTestToolCallEvaluationModelOutput>,
     check_any_tool_matches: Option<bool>,
     id: Option<String>,
@@ -64,6 +68,11 @@ impl GetToolCallUnitTestResponseModelBuilder {
 
     pub fn conversation_initiation_source(mut self, value: ConversationInitiationSource) -> Self {
         self.conversation_initiation_source = Some(value);
+        self
+    }
+
+    pub fn environment(mut self, value: impl Into<String>) -> Self {
+        self.environment = Some(value.into());
         self
     }
 
@@ -97,6 +106,7 @@ impl GetToolCallUnitTestResponseModelBuilder {
             dynamic_variables: self.dynamic_variables,
             chat_history: self.chat_history,
             conversation_initiation_source: self.conversation_initiation_source,
+            environment: self.environment,
             tool_call_parameters: self.tool_call_parameters,
             check_any_tool_matches: self.check_any_tool_matches,
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,

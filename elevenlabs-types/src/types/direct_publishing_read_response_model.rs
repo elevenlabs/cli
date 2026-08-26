@@ -110,6 +110,8 @@ pub struct DirectPublishingReadResponseModel {
     pub can_use_assistant: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_voice_changer_on: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub restricted_to_user_email_domains: Option<Vec<String>>,
 }
 
 impl DirectPublishingReadResponseModel {
@@ -173,6 +175,7 @@ pub struct DirectPublishingReadResponseModelBuilder {
     voice_id: Option<String>,
     can_use_assistant: Option<bool>,
     is_voice_changer_on: Option<bool>,
+    restricted_to_user_email_domains: Option<Vec<String>>,
 }
 
 impl DirectPublishingReadResponseModelBuilder {
@@ -436,6 +439,11 @@ impl DirectPublishingReadResponseModelBuilder {
         self
     }
 
+    pub fn restricted_to_user_email_domains(mut self, value: Vec<String>) -> Self {
+        self.restricted_to_user_email_domains = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`DirectPublishingReadResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`read_id`](DirectPublishingReadResponseModelBuilder::read_id)
@@ -498,6 +506,7 @@ impl DirectPublishingReadResponseModelBuilder {
             voice_id: self.voice_id,
             can_use_assistant: self.can_use_assistant,
             is_voice_changer_on: self.is_voice_changer_on,
+            restricted_to_user_email_domains: self.restricted_to_user_email_domains,
         })
     }
 }

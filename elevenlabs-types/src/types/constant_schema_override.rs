@@ -2,10 +2,11 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ConstantSchemaOverride {
     /// The constant value to use
-    pub constant_value: ConstantSchemaOverrideConstantValue,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub constant_value: Option<ConstantSchemaOverrideConstantValue>,
 }
 
 impl ConstantSchemaOverride {
@@ -27,11 +28,9 @@ impl ConstantSchemaOverrideBuilder {
     }
 
     /// Consumes the builder and constructs a [`ConstantSchemaOverride`].
-    /// This method will fail if any of the following fields are not set:
-    /// - [`constant_value`](ConstantSchemaOverrideBuilder::constant_value)
     pub fn build(self) -> Result<ConstantSchemaOverride, BuildError> {
         Ok(ConstantSchemaOverride {
-            constant_value: self.constant_value.ok_or_else(|| BuildError::missing_field("constant_value"))?,
+            constant_value: self.constant_value,
         })
     }
 }

@@ -22,6 +22,8 @@ pub mod tests;
 pub use tests::TestsClient;
 pub mod users;
 pub use users::UsersClient;
+pub mod triage_tickets;
+pub use triage_tickets::TriageTicketsClient;
 pub mod phone_numbers;
 pub use phone_numbers::PhoneNumbersClient;
 pub mod llm_usage;
@@ -70,6 +72,7 @@ pub struct AgentsClient {
     pub knowledge_base: KnowledgeBaseClient,
     pub tests: TestsClient,
     pub users: UsersClient,
+    pub triage_tickets: TriageTicketsClient,
     pub phone_numbers: PhoneNumbersClient,
     pub llm_usage: LlmUsageClient,
     pub llm: LlmClient,
@@ -104,6 +107,7 @@ impl AgentsClient {
             knowledge_base: KnowledgeBaseClient::new(config.clone())?,
             tests: TestsClient::new(config.clone())?,
             users: UsersClient::new(config.clone())?,
+            triage_tickets: TriageTicketsClient::new(config.clone())?,
             phone_numbers: PhoneNumbersClient::new(config.clone())?,
             llm_usage: LlmUsageClient::new(config.clone())?,
             llm: LlmClient::new(config.clone())?,

@@ -8,7 +8,7 @@ pub struct MusicFinetunesListQueryRequest {
     /// Used for fetching the next page. Cursor is returned in the response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
-    /// How many finetunes to return. Max 100, default 50.
+    /// How many finetunes to return. Max 150, default 50.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
     /// Filter by visibility. 'private' returns private finetunes; 'workspace' returns workspace-shared finetunes; 'public' returns public finetunes, which are currently ElevenLabs curated finetunes. Omit to return all accessible finetunes.

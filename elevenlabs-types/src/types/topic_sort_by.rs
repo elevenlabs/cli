@@ -8,6 +8,7 @@ pub enum TopicSortBy {
     Conversations,
     Sentiment,
     SuccessRate,
+    Frustration,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -19,6 +20,7 @@ impl Serialize for TopicSortBy {
             Self::Conversations => serializer.serialize_str("conversations"),
             Self::Sentiment => serializer.serialize_str("sentiment"),
             Self::SuccessRate => serializer.serialize_str("success_rate"),
+            Self::Frustration => serializer.serialize_str("frustration"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -31,6 +33,7 @@ impl<'de> Deserialize<'de> for TopicSortBy {
             "conversations" => Ok(Self::Conversations),
             "sentiment" => Ok(Self::Sentiment),
             "success_rate" => Ok(Self::SuccessRate),
+            "frustration" => Ok(Self::Frustration),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -42,6 +45,7 @@ impl fmt::Display for TopicSortBy {
             Self::Conversations => write!(f, "conversations"),
             Self::Sentiment => write!(f, "sentiment"),
             Self::SuccessRate => write!(f, "success_rate"),
+            Self::Frustration => write!(f, "frustration"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

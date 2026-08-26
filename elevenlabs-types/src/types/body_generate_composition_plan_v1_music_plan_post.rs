@@ -15,7 +15,7 @@ pub struct BodyGenerateCompositionPlanV1MusicPlanPost {
     pub source_composition_plan: Option<BodyGenerateCompositionPlanV1MusicPlanPostSourceCompositionPlan>,
     /// The model to use for the generation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<BodyGenerateCompositionPlanV1MusicPlanPostModelId>,
+    pub model_id: Option<MusicModelId>,
 }
 
 impl BodyGenerateCompositionPlanV1MusicPlanPost {
@@ -30,7 +30,7 @@ pub struct BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
     prompt: Option<String>,
     music_length_ms: Option<i64>,
     source_composition_plan: Option<BodyGenerateCompositionPlanV1MusicPlanPostSourceCompositionPlan>,
-    model_id: Option<BodyGenerateCompositionPlanV1MusicPlanPostModelId>,
+    model_id: Option<MusicModelId>,
 }
 
 impl BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
@@ -49,7 +49,7 @@ impl BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
         self
     }
 
-    pub fn model_id(mut self, value: BodyGenerateCompositionPlanV1MusicPlanPostModelId) -> Self {
+    pub fn model_id(mut self, value: MusicModelId) -> Self {
         self.model_id = Some(value);
         self
     }

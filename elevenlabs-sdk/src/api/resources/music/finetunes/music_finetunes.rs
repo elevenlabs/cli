@@ -18,7 +18,7 @@ impl FinetunesClient {
     /// # Arguments
     ///
     /// * `cursor` - Used for fetching the next page. Cursor is returned in the response.
-    /// * `page_size` - How many finetunes to return. Max 100, default 50.
+    /// * `page_size` - How many finetunes to return. Max 150, default 50.
     /// * `visibility` - Filter by visibility. 'private' returns private finetunes; 'workspace' returns workspace-shared finetunes; 'public' returns public finetunes, which are currently ElevenLabs curated finetunes. Omit to return all accessible finetunes.
     /// * `created_by` - Filter by creator. 'self' returns finetunes you created; 'workspace' returns finetunes created by workspace teammates; 'elevenlabs' returns ElevenLabs curated finetunes. Omit to return finetunes from all creators.
     /// * `sort` - Sort by field (created_at or name)

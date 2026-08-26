@@ -8,6 +8,7 @@ use super::*;
 pub enum PendingSubscriptionSwitchResponseModelNextTier {
     Free,
     Starter,
+    Go,
     Creator,
     Pro,
     GrowingBusiness,
@@ -26,6 +27,7 @@ impl Serialize for PendingSubscriptionSwitchResponseModelNextTier {
         match self {
             Self::Free => serializer.serialize_str("free"),
             Self::Starter => serializer.serialize_str("starter"),
+            Self::Go => serializer.serialize_str("go"),
             Self::Creator => serializer.serialize_str("creator"),
             Self::Pro => serializer.serialize_str("pro"),
             Self::GrowingBusiness => serializer.serialize_str("growing_business"),
@@ -45,6 +47,7 @@ impl<'de> Deserialize<'de> for PendingSubscriptionSwitchResponseModelNextTier {
         match value.as_str() {
             "free" => Ok(Self::Free),
             "starter" => Ok(Self::Starter),
+            "go" => Ok(Self::Go),
             "creator" => Ok(Self::Creator),
             "pro" => Ok(Self::Pro),
             "growing_business" => Ok(Self::GrowingBusiness),
@@ -63,6 +66,7 @@ impl fmt::Display for PendingSubscriptionSwitchResponseModelNextTier {
         match self {
             Self::Free => write!(f, "free"),
             Self::Starter => write!(f, "starter"),
+            Self::Go => write!(f, "go"),
             Self::Creator => write!(f, "creator"),
             Self::Pro => write!(f, "pro"),
             Self::GrowingBusiness => write!(f, "growing_business"),

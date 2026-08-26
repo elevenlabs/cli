@@ -471,85 +471,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
-name = "elevenlabs-cli"
-version = "1.0.1"
-dependencies = [
- "anyhow",
- "base64",
- "bytes",
- "chrono",
- "clap",
- "clap_complete",
- "clap_mangen",
- "dotenvy",
- "elevenlabs_sdk",
- "form_urlencoded",
- "futures-util",
- "hmac",
- "httpdate",
- "jmespath",
- "keyring",
- "libc",
- "num-bigint",
- "ordered-float",
- "percent-encoding",
- "pin-project",
- "rand 0.8.6",
- "reqwest",
- "reqwest-sse",
- "secrecy",
- "serde",
- "serde_json",
- "serde_json_path",
- "serde_qs",
- "serde_yaml",
- "serial_test",
- "sha2",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "unicode-normalization",
- "webbrowser",
- "wiremock",
-]
-
-[[package]]
-name = "elevenlabs_sdk"
-version = "0.1.0"
-dependencies = [
- "base64",
- "bytes",
- "chrono",
- "elevenlabs_types",
- "futures",
- "pin-project",
- "reqwest",
- "reqwest-sse",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
-]
-
-[[package]]
-name = "elevenlabs_types"
-version = "0.0.0"
-dependencies = [
- "base64",
- "chrono",
- "num-bigint",
- "ordered-float",
- "reqwest",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -570,6 +491,54 @@ name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
+
+[[package]]
+name = "elevenlabs-cli"
+version = "1.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "bytes",
+ "chrono",
+ "clap_complete",
+ "clap_mangen",
+ "clap",
+ "dotenvy",
+ "elevenlabs_sdk",
+ "form_urlencoded",
+ "futures-util",
+ "hmac",
+ "httpdate",
+ "jmespath",
+ "keyring",
+ "libc",
+ "num-bigint",
+ "ordered-float",
+ "percent-encoding",
+ "pin-project",
+ "rand 0.8.6",
+ "reqwest-sse",
+ "reqwest",
+ "secrecy",
+ "serde_json_path",
+ "serde_json",
+ "serde_qs",
+ "serde_yaml",
+ "serde",
+ "serial_test",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio-tungstenite",
+ "tokio-util",
+ "tokio",
+ "tracing-appender",
+ "tracing-subscriber",
+ "tracing",
+ "unicode-normalization",
+ "webbrowser",
+ "wiremock",
+]
 
 [[package]]
 name = "find-msvc-tools"
@@ -3295,3 +3264,34 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
+
+[[package]]
+name = "elevenlabs_types"
+version = "0.0.0"
+dependencies = [
+ "base64",
+ "chrono",
+ "num-bigint",
+ "ordered-float",
+ "reqwest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "elevenlabs_sdk"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "bytes",
+ "chrono",
+ "elevenlabs_types",
+ "futures",
+ "pin-project",
+ "reqwest",
+ "reqwest-sse",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+]

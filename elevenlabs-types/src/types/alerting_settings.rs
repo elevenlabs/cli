@@ -18,9 +18,9 @@ pub struct AlertingSettings {
     /// How many minutes an alert can stay inactive before it is auto-resolved. Unset values fall through to the next layer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_resolve_after_inactive_minutes: Option<i64>,
-    /// Delivery channels for alert lifecycle notifications. Stacked and deduped by webhook_id with other layers.
+    /// Delivery channels for alert lifecycle notifications. Stacked and deduped by ``webhook_id`` / ``connection_id`` with other layers.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub notifiers: Option<Vec<AlertingWebhookNotifier>>,
+    pub notifiers: Option<Vec<AlertingSettingsNotifiersItem>>,
 }
 
 impl AlertingSettings {
@@ -34,7 +34,7 @@ impl AlertingSettings {
 pub struct AlertingSettingsBuilder {
     monitor_configs: Option<HashMap<String, AlertingMonitorConfig>>,
     auto_resolve_after_inactive_minutes: Option<i64>,
-    notifiers: Option<Vec<AlertingWebhookNotifier>>,
+    notifiers: Option<Vec<AlertingSettingsNotifiersItem>>,
 }
 
 impl AlertingSettingsBuilder {
@@ -48,7 +48,7 @@ impl AlertingSettingsBuilder {
         self
     }
 
-    pub fn notifiers(mut self, value: Vec<AlertingWebhookNotifier>) -> Self {
+    pub fn notifiers(mut self, value: Vec<AlertingSettingsNotifiersItem>) -> Self {
         self.notifiers = Some(value);
         self
     }

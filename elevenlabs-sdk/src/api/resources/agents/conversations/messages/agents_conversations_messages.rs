@@ -21,6 +21,7 @@ impl MessagesClient {
     /// * `agent_id` - Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
     /// * `visited_agent_ids` - Filter conversations where any of these agents participated. Can not exceed 50 values.
     /// * `visited_agent_branch_ids` - Filter conversations where any of these agent branches participated. Can not exceed 50 values.
+    /// * `triggered_procedure_ids` - Filter conversations where any of these procedures were triggered. Can not exceed 50 values.
     /// * `call_successful` - The result of the success evaluation
     /// * `call_start_before_unix` - Unix timestamp (in seconds) to filter conversations up to this start date.
     /// * `call_start_after_unix` - Unix timestamp (in seconds) to filter conversations after to this start date.
@@ -35,6 +36,7 @@ impl MessagesClient {
     /// * `tool_names` - Filter conversations by tool names used during the call.
     /// * `tool_names_successful` - Filter conversations by tool names that had successful calls.
     /// * `tool_names_errored` - Filter conversations by tool names that had errored calls.
+    /// * `include_invalid_tool_calls` - Also match tool calls that never ran.
     /// * `main_languages` - Filter conversations by detected main language (language code).
     /// * `exclude_statuses` - Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views.
     /// * `termination_reasons` - Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several.
@@ -73,7 +75,8 @@ impl MessagesClient {
     ///                 agent_id: Some("agent_id".to_string()),
     ///                 visited_agent_ids: vec![Some("visited_agent_ids".to_string())],
     ///                 visited_agent_branch_ids: vec![Some("visited_agent_branch_ids".to_string())],
-    ///                 call_successful: Some(EvaluationSuccessResult::Success),
+    ///                 triggered_procedure_ids: vec![Some("triggered_procedure_ids".to_string())],
+    ///                 call_successful: Some(EvaluationResultFilter::Success),
     ///                 call_start_before_unix: Some(1),
     ///                 call_start_after_unix: Some(1),
     ///                 call_duration_min_secs: Some(1),
@@ -87,6 +90,7 @@ impl MessagesClient {
     ///                 tool_names: vec![Some("tool_names".to_string())],
     ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
     ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
+    ///                 include_invalid_tool_calls: Some(true),
     ///                 main_languages: vec![Some("main_languages".to_string())],
     ///                 exclude_statuses: vec![Some(
     ///                     MessagesTextSearchRequestExcludeStatusesItem::Initiated,
@@ -126,6 +130,10 @@ impl MessagesClient {
                         "visited_agent_branch_ids",
                         request.visited_agent_branch_ids.clone(),
                     )
+                    .string_array(
+                        "triggered_procedure_ids",
+                        request.triggered_procedure_ids.clone(),
+                    )
                     .serialize("call_successful", request.call_successful.clone())
                     .int(
                         "call_start_before_unix",
@@ -158,6 +166,10 @@ impl MessagesClient {
                         request.tool_names_successful.clone(),
                     )
                     .string_array("tool_names_errored", request.tool_names_errored.clone())
+                    .bool(
+                        "include_invalid_tool_calls",
+                        request.include_invalid_tool_calls.clone(),
+                    )
                     .string_array("main_languages", request.main_languages.clone())
                     .serialize_array("exclude_statuses", request.exclude_statuses.clone())
                     .string_array("termination_reasons", request.termination_reasons.clone())

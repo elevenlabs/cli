@@ -17,6 +17,9 @@ pub struct GetSignedUrlQueryRequest {
     /// The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
+    /// Whether to enable debug events. Only available for users with editor access to the agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debug_events_request: Option<bool>,
 }
 
 impl GetSignedUrlQueryRequest {
@@ -32,6 +35,7 @@ pub struct GetSignedUrlQueryRequestBuilder {
     include_conversation_id: Option<bool>,
     branch_id: Option<String>,
     environment: Option<String>,
+    debug_events_request: Option<bool>,
 }
 
 impl GetSignedUrlQueryRequestBuilder {
@@ -55,6 +59,11 @@ impl GetSignedUrlQueryRequestBuilder {
         self
     }
 
+    pub fn debug_events_request(mut self, value: bool) -> Self {
+        self.debug_events_request = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`GetSignedUrlQueryRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`agent_id`](GetSignedUrlQueryRequestBuilder::agent_id)
@@ -64,6 +73,7 @@ impl GetSignedUrlQueryRequestBuilder {
             include_conversation_id: self.include_conversation_id,
             branch_id: self.branch_id,
             environment: self.environment,
+            debug_events_request: self.debug_events_request,
         })
     }
 }

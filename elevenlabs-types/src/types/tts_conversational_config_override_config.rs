@@ -10,6 +10,9 @@ pub struct TtsConversationalConfigOverrideConfig {
     /// Whether to allow overriding the voice_id field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voice_id: Option<bool>,
+    /// Whether to allow overriding the supported_voices field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported_voices: Option<bool>,
     /// Whether to allow overriding the stability field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stability: Option<bool>,
@@ -35,6 +38,7 @@ impl TtsConversationalConfigOverrideConfig {
 pub struct TtsConversationalConfigOverrideConfigBuilder {
     model_id: Option<bool>,
     voice_id: Option<bool>,
+    supported_voices: Option<bool>,
     stability: Option<bool>,
     speed: Option<bool>,
     similarity_boost: Option<bool>,
@@ -49,6 +53,11 @@ impl TtsConversationalConfigOverrideConfigBuilder {
 
     pub fn voice_id(mut self, value: bool) -> Self {
         self.voice_id = Some(value);
+        self
+    }
+
+    pub fn supported_voices(mut self, value: bool) -> Self {
+        self.supported_voices = Some(value);
         self
     }
 
@@ -77,6 +86,7 @@ impl TtsConversationalConfigOverrideConfigBuilder {
         Ok(TtsConversationalConfigOverrideConfig {
             model_id: self.model_id,
             voice_id: self.voice_id,
+            supported_voices: self.supported_voices,
             stability: self.stability,
             speed: self.speed,
             similarity_boost: self.similarity_boost,

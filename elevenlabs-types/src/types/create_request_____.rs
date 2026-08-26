@@ -15,7 +15,7 @@ pub struct CreateRequest8 {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub visibility: Option<FinetunesCreateRequestVisibility>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<FinetunesCreateRequestModelId>,
+    pub model_id: Option<MusicModelId>,
 }
 impl CreateRequest8 {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
@@ -76,7 +76,7 @@ pub struct CreateRequest8Builder {
     files: Option<Vec<Vec<u8>>>,
     tags: Option<Vec<String>>,
     visibility: Option<FinetunesCreateRequestVisibility>,
-    model_id: Option<FinetunesCreateRequestModelId>,
+    model_id: Option<MusicModelId>,
 }
 
 impl CreateRequest8Builder {
@@ -105,7 +105,7 @@ impl CreateRequest8Builder {
         self
     }
 
-    pub fn model_id(mut self, value: FinetunesCreateRequestModelId) -> Self {
+    pub fn model_id(mut self, value: MusicModelId) -> Self {
         self.model_id = Some(value);
         self
     }

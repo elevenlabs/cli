@@ -209,6 +209,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
                 invocations: elevenlabs_sdk::api::resources::agents::tests::InvocationsClient { http_client: http_client.clone() },
             },
             users: elevenlabs_sdk::api::resources::agents::UsersClient { http_client: http_client.clone() },
+            triage_tickets: elevenlabs_sdk::api::resources::agents::TriageTicketsClient { http_client: http_client.clone() },
             phone_numbers: elevenlabs_sdk::api::resources::agents::PhoneNumbersClient { http_client: http_client.clone() },
             llm_usage: elevenlabs_sdk::api::resources::agents::LlmUsageClient { http_client: http_client.clone() },
             llm: elevenlabs_sdk::api::resources::agents::LlmClient { http_client: http_client.clone() },
