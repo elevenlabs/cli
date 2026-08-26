@@ -12,7 +12,7 @@ pub struct AlertingSettingsResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_resolve_after_inactive_minutes: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub notifiers: Option<Vec<AlertingWebhookNotifierResponse>>,
+    pub notifiers: Option<Vec<AlertingSettingsResponseNotifiersItem>>,
 }
 
 impl AlertingSettingsResponse {
@@ -26,7 +26,7 @@ impl AlertingSettingsResponse {
 pub struct AlertingSettingsResponseBuilder {
     monitor_configs: Option<HashMap<String, AlertingMonitorConfig>>,
     auto_resolve_after_inactive_minutes: Option<i64>,
-    notifiers: Option<Vec<AlertingWebhookNotifierResponse>>,
+    notifiers: Option<Vec<AlertingSettingsResponseNotifiersItem>>,
 }
 
 impl AlertingSettingsResponseBuilder {
@@ -40,7 +40,7 @@ impl AlertingSettingsResponseBuilder {
         self
     }
 
-    pub fn notifiers(mut self, value: Vec<AlertingWebhookNotifierResponse>) -> Self {
+    pub fn notifiers(mut self, value: Vec<AlertingSettingsResponseNotifiersItem>) -> Self {
         self.notifiers = Some(value);
         self
     }

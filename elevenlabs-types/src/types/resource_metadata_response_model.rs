@@ -18,7 +18,7 @@ pub struct ResourceMetadataResponseModel {
     /// The access level for anonymous users. If None, the resource is not shared publicly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub anonymous_access_level_override: Option<ResourceMetadataResponseModelAnonymousAccessLevelOverride>,
-    /// A mapping of roles to group IDs. When the resource is shared with a user, the group id is the user's id.
+    /// A mapping of grant slots to group IDs. Keys are the preset access roles plus workspace custom-role ids ('role_...'). When the resource is shared with a user, the group id is the user's id.
     #[serde(default)]
     pub role_to_group_ids: HashMap<String, Vec<String>>,
     /// List of options for sharing the resource further in the workspace. These are users who don't have access to the resource yet.

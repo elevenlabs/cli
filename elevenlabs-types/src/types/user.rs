@@ -12,9 +12,6 @@ pub struct User {
     /// Whether the user is new. This field is deprecated and will be removed in the future. Use 'created_at' instead.
     #[serde(default)]
     pub is_new_user: bool,
-    /// The API key of the user.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub xi_api_key: Option<String>,
     /// This field is deprecated and will be removed in a future major version. Instead use subscription.trust_on_invoice_creation.
     #[serde(default)]
     pub can_use_delayed_payment_methods: bool,
@@ -61,7 +58,6 @@ pub struct UserBuilder {
     user_id: Option<String>,
     subscription: Option<SubscriptionResponse>,
     is_new_user: Option<bool>,
-    xi_api_key: Option<String>,
     can_use_delayed_payment_methods: Option<bool>,
     is_onboarding_completed: Option<bool>,
     is_onboarding_checklist_completed: Option<bool>,
@@ -88,11 +84,6 @@ impl UserBuilder {
 
     pub fn is_new_user(mut self, value: bool) -> Self {
         self.is_new_user = Some(value);
-        self
-    }
-
-    pub fn xi_api_key(mut self, value: impl Into<String>) -> Self {
-        self.xi_api_key = Some(value.into());
         self
     }
 
@@ -166,7 +157,6 @@ impl UserBuilder {
             user_id: self.user_id.ok_or_else(|| BuildError::missing_field("user_id"))?,
             subscription: self.subscription.ok_or_else(|| BuildError::missing_field("subscription"))?,
             is_new_user: self.is_new_user.ok_or_else(|| BuildError::missing_field("is_new_user"))?,
-            xi_api_key: self.xi_api_key,
             can_use_delayed_payment_methods: self.can_use_delayed_payment_methods.ok_or_else(|| BuildError::missing_field("can_use_delayed_payment_methods"))?,
             is_onboarding_completed: self.is_onboarding_completed.ok_or_else(|| BuildError::missing_field("is_onboarding_completed"))?,
             is_onboarding_checklist_completed: self.is_onboarding_checklist_completed.ok_or_else(|| BuildError::missing_field("is_onboarding_checklist_completed"))?,

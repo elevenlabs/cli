@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct AgentQueueingConfig {
     /// Hold callers in a wait queue when the agent is at its concurrency limit, instead of rejecting them immediately
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -10,6 +10,9 @@ pub struct AgentQueueingConfig {
     /// Maximum time a caller can wait in the queue before being rejected
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wait_timeout_seconds: Option<i64>,
+    /// Custom hold audio played to queued callers; when unset, callers hear the default hold tone. Set via the hold-audio upload route, not writable through agent PATCH.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hold_audio: Option<AgentHoldAudioConfig>,
 }
 
 impl AgentQueueingConfig {
@@ -23,6 +26,7 @@ impl AgentQueueingConfig {
 pub struct AgentQueueingConfigBuilder {
     enabled: Option<bool>,
     wait_timeout_seconds: Option<i64>,
+    hold_audio: Option<AgentHoldAudioConfig>,
 }
 
 impl AgentQueueingConfigBuilder {
@@ -36,11 +40,17 @@ impl AgentQueueingConfigBuilder {
         self
     }
 
+    pub fn hold_audio(mut self, value: AgentHoldAudioConfig) -> Self {
+        self.hold_audio = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentQueueingConfig`].
     pub fn build(self) -> Result<AgentQueueingConfig, BuildError> {
         Ok(AgentQueueingConfig {
             enabled: self.enabled,
             wait_timeout_seconds: self.wait_timeout_seconds,
+            hold_audio: self.hold_audio,
         })
     }
 }

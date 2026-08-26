@@ -107,6 +107,7 @@ impl CrawlJobsClient {
     ///                 parent_folder_id: None,
     ///                 enable_auto_sync: None,
     ///                 auto_remove: None,
+    ///                 minimum_frequency_days: None,
     ///             },
     ///             None,
     ///         )

@@ -11,7 +11,7 @@ pub struct VideoToMusicRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<MusicVideoToMusicRequestModelId>,
+    pub model_id: Option<MusicModelId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sign_with_c2pa: Option<bool>,
     #[serde(skip)]
@@ -70,7 +70,7 @@ pub struct VideoToMusicRequestBuilder {
     videos: Option<Vec<Vec<u8>>>,
     description: Option<String>,
     tags: Option<Vec<String>>,
-    model_id: Option<MusicVideoToMusicRequestModelId>,
+    model_id: Option<MusicModelId>,
     sign_with_c2pa: Option<bool>,
     output_format: Option<AllowedOutputFormats>,
 }
@@ -91,7 +91,7 @@ impl VideoToMusicRequestBuilder {
         self
     }
 
-    pub fn model_id(mut self, value: MusicVideoToMusicRequestModelId) -> Self {
+    pub fn model_id(mut self, value: MusicModelId) -> Self {
         self.model_id = Some(value);
         self
     }

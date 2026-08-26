@@ -16,6 +16,9 @@ pub struct ConversationInitiationClientDataConfigOutput {
     /// Whether clients may pass starting_workflow_node_id in initiation client data; if false, sending it fails conversation start.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enable_starting_workflow_node_id_from_client: Option<bool>,
+    /// Whether clients may pass procedure_ids in initiation client data to select which of the agent's procedures are available for the conversation; if false, sending it fails conversation start.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_procedure_ids_from_client: Option<bool>,
 }
 
 impl ConversationInitiationClientDataConfigOutput {
@@ -31,6 +34,7 @@ pub struct ConversationInitiationClientDataConfigOutputBuilder {
     custom_llm_extra_body: Option<bool>,
     enable_conversation_initiation_client_data_from_webhook: Option<bool>,
     enable_starting_workflow_node_id_from_client: Option<bool>,
+    enable_procedure_ids_from_client: Option<bool>,
 }
 
 impl ConversationInitiationClientDataConfigOutputBuilder {
@@ -54,6 +58,11 @@ impl ConversationInitiationClientDataConfigOutputBuilder {
         self
     }
 
+    pub fn enable_procedure_ids_from_client(mut self, value: bool) -> Self {
+        self.enable_procedure_ids_from_client = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationInitiationClientDataConfigOutput`].
     pub fn build(self) -> Result<ConversationInitiationClientDataConfigOutput, BuildError> {
         Ok(ConversationInitiationClientDataConfigOutput {
@@ -61,6 +70,7 @@ impl ConversationInitiationClientDataConfigOutputBuilder {
             custom_llm_extra_body: self.custom_llm_extra_body,
             enable_conversation_initiation_client_data_from_webhook: self.enable_conversation_initiation_client_data_from_webhook,
             enable_starting_workflow_node_id_from_client: self.enable_starting_workflow_node_id_from_client,
+            enable_procedure_ids_from_client: self.enable_procedure_ids_from_client,
         })
     }
 }

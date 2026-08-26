@@ -9,15 +9,13 @@ pub enum ReceiveTranscription {
 
         PartialTranscriptPayload(PartialTranscriptPayload),
 
-        FinalTranscript(FinalTranscript),
-
-        FinalTranscriptWithTimestamps(FinalTranscriptWithTimestamps),
-
         CommittedTranscriptPayload(CommittedTranscriptPayload),
 
         CommittedTranscriptWithTimestampsPayload(CommittedTranscriptWithTimestampsPayload),
 
         CommittedTranscriptEntitiesPayload(CommittedTranscriptEntitiesPayload),
+
+        ScribeWarning(ScribeWarning),
 
         ScribeErrorPayload(ScribeErrorPayload),
 
@@ -57,14 +55,6 @@ impl ReceiveTranscription {
         matches!(self, Self::PartialTranscriptPayload(_))
     }
 
-    pub fn is_final_transcript(&self) -> bool {
-        matches!(self, Self::FinalTranscript(_))
-    }
-
-    pub fn is_final_transcript_with_timestamps(&self) -> bool {
-        matches!(self, Self::FinalTranscriptWithTimestamps(_))
-    }
-
     pub fn is_committed_transcript_payload(&self) -> bool {
         matches!(self, Self::CommittedTranscriptPayload(_))
     }
@@ -75,6 +65,10 @@ impl ReceiveTranscription {
 
     pub fn is_committed_transcript_entities_payload(&self) -> bool {
         matches!(self, Self::CommittedTranscriptEntitiesPayload(_))
+    }
+
+    pub fn is_scribe_warning(&self) -> bool {
+        matches!(self, Self::ScribeWarning(_))
     }
 
     pub fn is_scribe_error_payload(&self) -> bool {
@@ -162,34 +156,6 @@ impl ReceiveTranscription {
                 }
     }
 
-    pub fn as_final_transcript(&self) -> Option<&FinalTranscript> {
-        match self {
-                    Self::FinalTranscript(value) => Some(value),
-                    _ => None,
-                }
-    }
-
-    pub fn into_final_transcript(self) -> Option<FinalTranscript> {
-        match self {
-                    Self::FinalTranscript(value) => Some(value),
-                    _ => None,
-                }
-    }
-
-    pub fn as_final_transcript_with_timestamps(&self) -> Option<&FinalTranscriptWithTimestamps> {
-        match self {
-                    Self::FinalTranscriptWithTimestamps(value) => Some(value),
-                    _ => None,
-                }
-    }
-
-    pub fn into_final_transcript_with_timestamps(self) -> Option<FinalTranscriptWithTimestamps> {
-        match self {
-                    Self::FinalTranscriptWithTimestamps(value) => Some(value),
-                    _ => None,
-                }
-    }
-
     pub fn as_committed_transcript_payload(&self) -> Option<&CommittedTranscriptPayload> {
         match self {
                     Self::CommittedTranscriptPayload(value) => Some(value),
@@ -228,6 +194,20 @@ impl ReceiveTranscription {
     pub fn into_committed_transcript_entities_payload(self) -> Option<CommittedTranscriptEntitiesPayload> {
         match self {
                     Self::CommittedTranscriptEntitiesPayload(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_scribe_warning(&self) -> Option<&ScribeWarning> {
+        match self {
+                    Self::ScribeWarning(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_scribe_warning(self) -> Option<ScribeWarning> {
+        match self {
+                    Self::ScribeWarning(value) => Some(value),
                     _ => None,
                 }
     }
@@ -434,11 +414,10 @@ impl fmt::Display for ReceiveTranscription {
         match self {
             Self::SessionStartedPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::PartialTranscriptPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
-            Self::FinalTranscript(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
-            Self::FinalTranscriptWithTimestamps(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptWithTimestampsPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptEntitiesPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::ScribeWarning(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeAuthErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeQuotaExceededErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),

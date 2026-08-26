@@ -22,6 +22,9 @@ pub struct UpdateAgentRequest {
     /// Description for this version when publishing changes (only applicable for versioned agents)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version_description: Option<String>,
+    /// Procedure versions to publish, keyed by procedure_id. When provided, this map replaces the procedures from the current draft or branch tip. When omitted or null, unpublished procedure edits are used if present; otherwise, the branch tip's procedures are retained. Pass an empty object to remove all procedures.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub procedures: Option<HashMap<String, Option<ProcedureVersionRef>>>,
     /// Deprecated: all agents are versioned. This parameter is ignored.
     #[serde(skip)]
     pub enable_versioning_if_not_enabled: Option<bool>,
@@ -45,6 +48,7 @@ pub struct UpdateAgentRequestBuilder {
     name: Option<String>,
     tags: Option<Vec<String>>,
     version_description: Option<String>,
+    procedures: Option<HashMap<String, Option<ProcedureVersionRef>>>,
     enable_versioning_if_not_enabled: Option<bool>,
     branch_id: Option<String>,
 }
@@ -80,6 +84,11 @@ impl UpdateAgentRequestBuilder {
         self
     }
 
+    pub fn procedures(mut self, value: HashMap<String, Option<ProcedureVersionRef>>) -> Self {
+        self.procedures = Some(value);
+        self
+    }
+
     pub fn enable_versioning_if_not_enabled(mut self, value: bool) -> Self {
         self.enable_versioning_if_not_enabled = Some(value);
         self
@@ -99,6 +108,7 @@ impl UpdateAgentRequestBuilder {
             name: self.name,
             tags: self.tags,
             version_description: self.version_description,
+            procedures: self.procedures,
             enable_versioning_if_not_enabled: self.enable_versioning_if_not_enabled,
             branch_id: self.branch_id,
         })

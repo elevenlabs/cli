@@ -2,3 +2,8 @@
 **/*.rs.bk
 .DS_Store
 *.swp
+
+# Output of `elevenlabs generate-skills`, run here while testing the command.
+/skills
+# Scratch project created by the scripts/ verification walkthrough.
+/.verify-project

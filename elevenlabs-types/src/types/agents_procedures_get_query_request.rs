@@ -8,6 +8,9 @@ pub struct AgentsProceduresGetQueryRequest {
     /// The version ID to retrieve. If omitted, returns the version at branch HEAD.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version_id: Option<String>,
+    /// The agent version ID to retrieve the procedure for.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_version_id: Option<String>,
 }
 
 impl AgentsProceduresGetQueryRequest {
@@ -20,6 +23,7 @@ impl AgentsProceduresGetQueryRequest {
 #[non_exhaustive]
 pub struct AgentsProceduresGetQueryRequestBuilder {
     version_id: Option<String>,
+    agent_version_id: Option<String>,
 }
 
 impl AgentsProceduresGetQueryRequestBuilder {
@@ -28,10 +32,16 @@ impl AgentsProceduresGetQueryRequestBuilder {
         self
     }
 
+    pub fn agent_version_id(mut self, value: impl Into<String>) -> Self {
+        self.agent_version_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentsProceduresGetQueryRequest`].
     pub fn build(self) -> Result<AgentsProceduresGetQueryRequest, BuildError> {
         Ok(AgentsProceduresGetQueryRequest {
             version_id: self.version_id,
+            agent_version_id: self.agent_version_id,
         })
     }
 }

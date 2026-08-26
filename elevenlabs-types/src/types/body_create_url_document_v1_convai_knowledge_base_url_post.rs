@@ -19,6 +19,9 @@ pub struct BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPost {
     /// Whether to automatically remove the document if the URL becomes unavailable. Only applicable when auto-sync is enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_remove: Option<bool>,
+    /// Minimum frequency (in days) at which the document is refreshed. The actual interval may be shorter, never longer. Defaults to 7, tightened to the parent folder's frequency if that is stricter. Only applicable when auto-sync is enabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum_frequency_days: Option<i64>,
 }
 
 impl BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPost {
@@ -35,6 +38,7 @@ pub struct BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPostBuilder {
     parent_folder_id: Option<String>,
     enable_auto_sync: Option<bool>,
     auto_remove: Option<bool>,
+    minimum_frequency_days: Option<i64>,
 }
 
 impl BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPostBuilder {
@@ -63,6 +67,11 @@ impl BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPostBuilder {
         self
     }
 
+    pub fn minimum_frequency_days(mut self, value: i64) -> Self {
+        self.minimum_frequency_days = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPost`].
     /// This method will fail if any of the following fields are not set:
     /// - [`url`](BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPostBuilder::url)
@@ -73,6 +82,7 @@ impl BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPostBuilder {
             parent_folder_id: self.parent_folder_id,
             enable_auto_sync: self.enable_auto_sync,
             auto_remove: self.auto_remove,
+            minimum_frequency_days: self.minimum_frequency_days,
         })
     }
 }

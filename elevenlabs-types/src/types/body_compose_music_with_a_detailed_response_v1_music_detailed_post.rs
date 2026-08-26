@@ -15,7 +15,7 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
     pub music_length_ms: Option<i64>,
     /// The model to use for the generation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<BodyComposeMusicWithADetailedResponseV1MusicDetailedPostModelId>,
+    pub model_id: Option<MusicModelId>,
     /// Random seed to initialize the music generation process. Providing the same seed with the same parameters can help achieve more consistent results, but exact reproducibility is not guaranteed and outputs may change across system updates. Cannot be used in conjunction with prompt.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<i64>,
@@ -54,7 +54,7 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
     prompt: Option<String>,
     composition_plan: Option<BodyComposeMusicWithADetailedResponseV1MusicDetailedPostCompositionPlan>,
     music_length_ms: Option<i64>,
-    model_id: Option<BodyComposeMusicWithADetailedResponseV1MusicDetailedPostModelId>,
+    model_id: Option<MusicModelId>,
     seed: Option<i64>,
     force_instrumental: Option<bool>,
     finetune_id: Option<String>,
@@ -81,7 +81,7 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
         self
     }
 
-    pub fn model_id(mut self, value: BodyComposeMusicWithADetailedResponseV1MusicDetailedPostModelId) -> Self {
+    pub fn model_id(mut self, value: MusicModelId) -> Self {
         self.model_id = Some(value);
         self
     }

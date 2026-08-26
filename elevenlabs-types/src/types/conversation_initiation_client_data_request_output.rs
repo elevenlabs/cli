@@ -22,6 +22,9 @@ pub struct ConversationInitiationClientDataRequestOutput {
     /// If set, start the workflow at this node id instead of the default entry
     #[serde(skip_serializing_if = "Option::is_none")]
     pub starting_workflow_node_id: Option<String>,
+    /// If set, only these procedures are available to the starting agent. Each ID must be attached to that agent; unknown IDs fail conversation start. An empty list disables all of that agent's procedures. Not applied after an agent transfer. Requires enable_procedure_ids_from_client.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub procedure_ids: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic_variables: Option<HashMap<String, serde_json::Value>>,
 }
@@ -42,6 +45,7 @@ pub struct ConversationInitiationClientDataRequestOutputBuilder {
     branch_id: Option<String>,
     environment: Option<String>,
     starting_workflow_node_id: Option<String>,
+    procedure_ids: Option<Vec<String>>,
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
 }
 
@@ -81,6 +85,11 @@ impl ConversationInitiationClientDataRequestOutputBuilder {
         self
     }
 
+    pub fn procedure_ids(mut self, value: Vec<String>) -> Self {
+        self.procedure_ids = Some(value);
+        self
+    }
+
     pub fn dynamic_variables(mut self, value: HashMap<String, serde_json::Value>) -> Self {
         self.dynamic_variables = Some(value);
         self
@@ -96,6 +105,7 @@ impl ConversationInitiationClientDataRequestOutputBuilder {
             branch_id: self.branch_id,
             environment: self.environment,
             starting_workflow_node_id: self.starting_workflow_node_id,
+            procedure_ids: self.procedure_ids,
             dynamic_variables: self.dynamic_variables,
         })
     }

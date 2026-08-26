@@ -15,6 +15,9 @@ pub struct GetResponseUnitTestResponseModel {
     /// Simulate the test as if the conversation originated from this channel.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation_initiation_source: Option<ConversationInitiationSource>,
+    /// The environment to resolve environment-specific variable values against when running this test (URL, headers, auth connections). If not provided, defaults to 'production'. For simulation tests, simulation_environment takes precedence when set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment: Option<String>,
     /// A prompt that evaluates whether the agent's response is successful. Should return True or False.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub success_condition: Option<String>,
@@ -43,6 +46,7 @@ pub struct GetResponseUnitTestResponseModelBuilder {
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
     chat_history: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
     conversation_initiation_source: Option<ConversationInitiationSource>,
+    environment: Option<String>,
     success_condition: Option<String>,
     success_examples: Option<Vec<AgentSuccessfulResponseExample>>,
     failure_examples: Option<Vec<AgentFailureResponseExample>>,
@@ -68,6 +72,11 @@ impl GetResponseUnitTestResponseModelBuilder {
 
     pub fn conversation_initiation_source(mut self, value: ConversationInitiationSource) -> Self {
         self.conversation_initiation_source = Some(value);
+        self
+    }
+
+    pub fn environment(mut self, value: impl Into<String>) -> Self {
+        self.environment = Some(value.into());
         self
     }
 
@@ -106,6 +115,7 @@ impl GetResponseUnitTestResponseModelBuilder {
             dynamic_variables: self.dynamic_variables,
             chat_history: self.chat_history,
             conversation_initiation_source: self.conversation_initiation_source,
+            environment: self.environment,
             success_condition: self.success_condition,
             success_examples: self.success_examples,
             failure_examples: self.failure_examples,

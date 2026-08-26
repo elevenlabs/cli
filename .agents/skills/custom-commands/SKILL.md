@@ -162,6 +162,7 @@ with the following sub-clients:
 | `client.folders` | `elevenlabs_sdk::api::FoldersClient` | folders operations |
 | `client.invocations` | `elevenlabs_sdk::api::InvocationsClient` | invocations operations |
 | `client.users` | `elevenlabs_sdk::api::UsersClient` | users operations |
+| `client.triage_tickets` | `elevenlabs_sdk::api::TriageTicketsClient` | triage_tickets operations |
 | `client.phone_numbers` | `elevenlabs_sdk::api::PhoneNumbersClient` | phone_numbers operations |
 | `client.llm_usage` | `elevenlabs_sdk::api::LlmUsageClient` | llm_usage operations |
 | `client.llm` | `elevenlabs_sdk::api::LlmClient` | llm operations |

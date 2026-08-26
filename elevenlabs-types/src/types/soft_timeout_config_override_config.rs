@@ -7,6 +7,9 @@ pub struct SoftTimeoutConfigOverrideConfig {
     /// Whether to allow overriding the message field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<bool>,
+    /// Whether to allow overriding the additional_soft_timeout_messages field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_soft_timeout_messages: Option<bool>,
 }
 
 impl SoftTimeoutConfigOverrideConfig {
@@ -19,6 +22,7 @@ impl SoftTimeoutConfigOverrideConfig {
 #[non_exhaustive]
 pub struct SoftTimeoutConfigOverrideConfigBuilder {
     message: Option<bool>,
+    additional_soft_timeout_messages: Option<bool>,
 }
 
 impl SoftTimeoutConfigOverrideConfigBuilder {
@@ -27,10 +31,16 @@ impl SoftTimeoutConfigOverrideConfigBuilder {
         self
     }
 
+    pub fn additional_soft_timeout_messages(mut self, value: bool) -> Self {
+        self.additional_soft_timeout_messages = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`SoftTimeoutConfigOverrideConfig`].
     pub fn build(self) -> Result<SoftTimeoutConfigOverrideConfig, BuildError> {
         Ok(SoftTimeoutConfigOverrideConfig {
             message: self.message,
+            additional_soft_timeout_messages: self.additional_soft_timeout_messages,
         })
     }
 }

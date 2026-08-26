@@ -10,6 +10,9 @@ pub struct GetAgentTopicsResponseModel {
     pub window_start_unix_secs: i64,
     #[serde(default)]
     pub window_end_unix_secs: i64,
+    /// Number of daily topic-discovery runs the returned metrics were summed over.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aggregated_run_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,6 +31,7 @@ pub struct GetAgentTopicsResponseModelBuilder {
     topics: Option<Vec<AgentTopicResponseModel>>,
     window_start_unix_secs: Option<i64>,
     window_end_unix_secs: Option<i64>,
+    aggregated_run_count: Option<i64>,
     has_more: Option<bool>,
     next_cursor: Option<String>,
 }
@@ -45,6 +49,11 @@ impl GetAgentTopicsResponseModelBuilder {
 
     pub fn window_end_unix_secs(mut self, value: i64) -> Self {
         self.window_end_unix_secs = Some(value);
+        self
+    }
+
+    pub fn aggregated_run_count(mut self, value: i64) -> Self {
+        self.aggregated_run_count = Some(value);
         self
     }
 
@@ -68,6 +77,7 @@ impl GetAgentTopicsResponseModelBuilder {
             topics: self.topics.ok_or_else(|| BuildError::missing_field("topics"))?,
             window_start_unix_secs: self.window_start_unix_secs.ok_or_else(|| BuildError::missing_field("window_start_unix_secs"))?,
             window_end_unix_secs: self.window_end_unix_secs.ok_or_else(|| BuildError::missing_field("window_end_unix_secs"))?,
+            aggregated_run_count: self.aggregated_run_count,
             has_more: self.has_more,
             next_cursor: self.next_cursor,
         })

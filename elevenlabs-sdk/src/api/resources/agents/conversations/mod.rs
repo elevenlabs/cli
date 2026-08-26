@@ -49,6 +49,7 @@ impl ConversationsClient {
     /// * `include_conversation_id` - Whether to include a conversation_id with the response. If included, the conversation_signature cannot be used again.
     /// * `branch_id` - The ID of the branch to use
     /// * `environment` - The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'.
+    /// * `debug_events_request` - Whether to enable debug events. Only available for users with editor access to the agent.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -75,6 +76,7 @@ impl ConversationsClient {
     ///                 include_conversation_id: Some(true),
     ///                 branch_id: Some("branch_id".to_string()),
     ///                 environment: Some("environment".to_string()),
+    ///                 debug_events_request: Some(true),
     ///             },
     ///             None,
     ///         )
@@ -99,6 +101,7 @@ impl ConversationsClient {
                     )
                     .string("branch_id", request.branch_id.clone())
                     .string("environment", request.environment.clone())
+                    .bool("debug_events_request", request.debug_events_request.clone())
                     .build(),
                 options,
             )
@@ -113,6 +116,7 @@ impl ConversationsClient {
     /// * `participant_name` - Optional custom participant name. If not provided, user ID will be used
     /// * `branch_id` - The ID of the branch to use
     /// * `environment` - The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'.
+    /// * `debug_events_request` - Whether to enable debug events. Only available for users with editor access to the agent.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -139,6 +143,7 @@ impl ConversationsClient {
     ///                 participant_name: Some("participant_name".to_string()),
     ///                 branch_id: Some("branch_id".to_string()),
     ///                 environment: Some("environment".to_string()),
+    ///                 debug_events_request: Some(true),
     ///             },
     ///             None,
     ///         )
@@ -160,6 +165,7 @@ impl ConversationsClient {
                     .string("participant_name", request.participant_name.clone())
                     .string("branch_id", request.branch_id.clone())
                     .string("environment", request.environment.clone())
+                    .bool("debug_events_request", request.debug_events_request.clone())
                     .build(),
                 options,
             )
@@ -174,6 +180,7 @@ impl ConversationsClient {
     /// * `agent_id` - Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
     /// * `visited_agent_ids` - Filter conversations where any of these agents participated. Can not exceed 50 values.
     /// * `visited_agent_branch_ids` - Filter conversations where any of these agent branches participated. Can not exceed 50 values.
+    /// * `triggered_procedure_ids` - Filter conversations where any of these procedures were triggered. Can not exceed 50 values.
     /// * `call_successful` - The result of the success evaluation
     /// * `call_start_before_unix` - Unix timestamp (in seconds) to filter conversations up to this start date.
     /// * `call_start_after_unix` - Unix timestamp (in seconds) to filter conversations after to this start date.
@@ -190,6 +197,7 @@ impl ConversationsClient {
     /// * `tool_names` - Filter conversations by tool names used during the call.
     /// * `tool_names_successful` - Filter conversations by tool names that had successful calls.
     /// * `tool_names_errored` - Filter conversations by tool names that had errored calls.
+    /// * `include_invalid_tool_calls` - Also match tool calls that never ran.
     /// * `main_languages` - Filter conversations by detected main language (language code).
     /// * `page_size` - How many conversations to return at maximum. Can not exceed 100, defaults to 30.
     /// * `summary_mode` - Whether to include transcript summaries in the response.
@@ -205,6 +213,7 @@ impl ConversationsClient {
     /// * `termination_reasons` - Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several.
     /// * `guardrail_types` - Filter to conversations where a guardrail of any of these types triggered (metadata.triggered_guardrails.guardrail_type). Repeat param to match any of several.
     /// * `custom_guardrail_names` - Filter to conversations where a custom guardrail with any of these names triggered (metadata.triggered_guardrails.guardrail_name). Only custom guardrails carry a name. Repeat param to match any of several.
+    /// * `sort_direction` - The direction to sort conversations by call start time. Defaults to descending (newest first).
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -231,7 +240,8 @@ impl ConversationsClient {
     ///                 agent_id: Some("agent_id".to_string()),
     ///                 visited_agent_ids: vec![Some("visited_agent_ids".to_string())],
     ///                 visited_agent_branch_ids: vec![Some("visited_agent_branch_ids".to_string())],
-    ///                 call_successful: Some(EvaluationSuccessResult::Success),
+    ///                 triggered_procedure_ids: vec![Some("triggered_procedure_ids".to_string())],
+    ///                 call_successful: Some(EvaluationResultFilter::Success),
     ///                 call_start_before_unix: Some(1),
     ///                 call_start_after_unix: Some(1),
     ///                 call_duration_min_secs: Some(1),
@@ -247,6 +257,7 @@ impl ConversationsClient {
     ///                 tool_names: vec![Some("tool_names".to_string())],
     ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
     ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
+    ///                 include_invalid_tool_calls: Some(true),
     ///                 main_languages: vec![Some("main_languages".to_string())],
     ///                 page_size: Some(1),
     ///                 summary_mode: Some(ConversationsListRequestSummaryMode::Exclude),
@@ -266,6 +277,7 @@ impl ConversationsClient {
     ///                 termination_reasons: vec![Some("termination_reasons".to_string())],
     ///                 guardrail_types: vec![Some(GuardrailType::Custom)],
     ///                 custom_guardrail_names: vec![Some("custom_guardrail_names".to_string())],
+    ///                 sort_direction: Some(SortDirection::Asc),
     ///             },
     ///             None,
     ///         )
@@ -289,6 +301,10 @@ impl ConversationsClient {
                     .string_array(
                         "visited_agent_branch_ids",
                         request.visited_agent_branch_ids.clone(),
+                    )
+                    .string_array(
+                        "triggered_procedure_ids",
+                        request.triggered_procedure_ids.clone(),
                     )
                     .serialize("call_successful", request.call_successful.clone())
                     .int(
@@ -327,6 +343,10 @@ impl ConversationsClient {
                         request.tool_names_successful.clone(),
                     )
                     .string_array("tool_names_errored", request.tool_names_errored.clone())
+                    .bool(
+                        "include_invalid_tool_calls",
+                        request.include_invalid_tool_calls.clone(),
+                    )
                     .string_array("main_languages", request.main_languages.clone())
                     .int("page_size", request.page_size.clone())
                     .serialize("summary_mode", request.summary_mode.clone())
@@ -359,6 +379,7 @@ impl ConversationsClient {
                         "custom_guardrail_names",
                         request.custom_guardrail_names.clone(),
                     )
+                    .serialize("sort_direction", request.sort_direction.clone())
                     .build(),
                 options,
             )

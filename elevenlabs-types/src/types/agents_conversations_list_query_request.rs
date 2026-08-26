@@ -17,9 +17,12 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter conversations where any of these agent branches participated. Can not exceed 50 values.
     #[serde(default)]
     pub visited_agent_branch_ids: Vec<Option<String>>,
+    /// Filter conversations where any of these procedures were triggered. Can not exceed 50 values.
+    #[serde(default)]
+    pub triggered_procedure_ids: Vec<Option<String>>,
     /// The result of the success evaluation
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub call_successful: Option<EvaluationSuccessResult>,
+    pub call_successful: Option<EvaluationResultFilter>,
     /// Unix timestamp (in seconds) to filter conversations up to this start date.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_start_before_unix: Option<i64>,
@@ -65,6 +68,9 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter conversations by tool names that had errored calls.
     #[serde(default)]
     pub tool_names_errored: Vec<Option<String>>,
+    /// Also match tool calls that never ran.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_invalid_tool_calls: Option<bool>,
     /// Filter conversations by detected main language (language code).
     #[serde(default)]
     pub main_languages: Vec<Option<String>>,
@@ -114,6 +120,9 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter to conversations where a custom guardrail with any of these names triggered (metadata.triggered_guardrails.guardrail_name). Only custom guardrails carry a name. Repeat param to match any of several.
     #[serde(default)]
     pub custom_guardrail_names: Vec<Option<String>>,
+    /// The direction to sort conversations by call start time. Defaults to descending (newest first).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_direction: Option<SortDirection>,
 }
 
 impl AgentsConversationsListQueryRequest {
@@ -129,7 +138,8 @@ pub struct AgentsConversationsListQueryRequestBuilder {
     agent_id: Option<String>,
     visited_agent_ids: Option<Vec<Option<String>>>,
     visited_agent_branch_ids: Option<Vec<Option<String>>>,
-    call_successful: Option<EvaluationSuccessResult>,
+    triggered_procedure_ids: Option<Vec<Option<String>>>,
+    call_successful: Option<EvaluationResultFilter>,
     call_start_before_unix: Option<i64>,
     call_start_after_unix: Option<i64>,
     call_duration_min_secs: Option<i64>,
@@ -145,6 +155,7 @@ pub struct AgentsConversationsListQueryRequestBuilder {
     tool_names: Option<Vec<Option<String>>>,
     tool_names_successful: Option<Vec<Option<String>>>,
     tool_names_errored: Option<Vec<Option<String>>>,
+    include_invalid_tool_calls: Option<bool>,
     main_languages: Option<Vec<Option<String>>>,
     page_size: Option<i64>,
     summary_mode: Option<ConversationsListRequestSummaryMode>,
@@ -162,6 +173,7 @@ pub struct AgentsConversationsListQueryRequestBuilder {
     termination_reasons: Option<Vec<Option<String>>>,
     guardrail_types: Option<Vec<Option<GuardrailType>>>,
     custom_guardrail_names: Option<Vec<Option<String>>>,
+    sort_direction: Option<SortDirection>,
 }
 
 impl AgentsConversationsListQueryRequestBuilder {
@@ -185,7 +197,12 @@ impl AgentsConversationsListQueryRequestBuilder {
         self
     }
 
-    pub fn call_successful(mut self, value: EvaluationSuccessResult) -> Self {
+    pub fn triggered_procedure_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.triggered_procedure_ids = Some(value);
+        self
+    }
+
+    pub fn call_successful(mut self, value: EvaluationResultFilter) -> Self {
         self.call_successful = Some(value);
         self
     }
@@ -262,6 +279,11 @@ impl AgentsConversationsListQueryRequestBuilder {
 
     pub fn tool_names_errored(mut self, value: Vec<Option<String>>) -> Self {
         self.tool_names_errored = Some(value);
+        self
+    }
+
+    pub fn include_invalid_tool_calls(mut self, value: bool) -> Self {
+        self.include_invalid_tool_calls = Some(value);
         self
     }
 
@@ -350,10 +372,16 @@ impl AgentsConversationsListQueryRequestBuilder {
         self
     }
 
+    pub fn sort_direction(mut self, value: SortDirection) -> Self {
+        self.sort_direction = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentsConversationsListQueryRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`visited_agent_ids`](AgentsConversationsListQueryRequestBuilder::visited_agent_ids)
     /// - [`visited_agent_branch_ids`](AgentsConversationsListQueryRequestBuilder::visited_agent_branch_ids)
+    /// - [`triggered_procedure_ids`](AgentsConversationsListQueryRequestBuilder::triggered_procedure_ids)
     /// - [`evaluation_params`](AgentsConversationsListQueryRequestBuilder::evaluation_params)
     /// - [`data_collection_params`](AgentsConversationsListQueryRequestBuilder::data_collection_params)
     /// - [`data_collection_ids`](AgentsConversationsListQueryRequestBuilder::data_collection_ids)
@@ -374,6 +402,7 @@ impl AgentsConversationsListQueryRequestBuilder {
             agent_id: self.agent_id,
             visited_agent_ids: self.visited_agent_ids.ok_or_else(|| BuildError::missing_field("visited_agent_ids"))?,
             visited_agent_branch_ids: self.visited_agent_branch_ids.ok_or_else(|| BuildError::missing_field("visited_agent_branch_ids"))?,
+            triggered_procedure_ids: self.triggered_procedure_ids.ok_or_else(|| BuildError::missing_field("triggered_procedure_ids"))?,
             call_successful: self.call_successful,
             call_start_before_unix: self.call_start_before_unix,
             call_start_after_unix: self.call_start_after_unix,
@@ -390,6 +419,7 @@ impl AgentsConversationsListQueryRequestBuilder {
             tool_names: self.tool_names.ok_or_else(|| BuildError::missing_field("tool_names"))?,
             tool_names_successful: self.tool_names_successful.ok_or_else(|| BuildError::missing_field("tool_names_successful"))?,
             tool_names_errored: self.tool_names_errored.ok_or_else(|| BuildError::missing_field("tool_names_errored"))?,
+            include_invalid_tool_calls: self.include_invalid_tool_calls,
             main_languages: self.main_languages.ok_or_else(|| BuildError::missing_field("main_languages"))?,
             page_size: self.page_size,
             summary_mode: self.summary_mode,
@@ -407,6 +437,7 @@ impl AgentsConversationsListQueryRequestBuilder {
             termination_reasons: self.termination_reasons.ok_or_else(|| BuildError::missing_field("termination_reasons"))?,
             guardrail_types: self.guardrail_types.ok_or_else(|| BuildError::missing_field("guardrail_types"))?,
             custom_guardrail_names: self.custom_guardrail_names.ok_or_else(|| BuildError::missing_field("custom_guardrail_names"))?,
+            sort_direction: self.sort_direction,
         })
     }
 }

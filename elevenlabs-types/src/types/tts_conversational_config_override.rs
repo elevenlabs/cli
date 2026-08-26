@@ -10,6 +10,9 @@ pub struct TtsConversationalConfigOverride {
     /// The voice ID to use for TTS
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voice_id: Option<String>,
+    /// Additional supported voices for the agent
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported_voices: Option<Vec<SupportedVoice>>,
     /// The stability of generated speech
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
@@ -41,6 +44,7 @@ impl TtsConversationalConfigOverride {
 pub struct TtsConversationalConfigOverrideBuilder {
     model_id: Option<TtsConversationalModel>,
     voice_id: Option<String>,
+    supported_voices: Option<Vec<SupportedVoice>>,
     stability: Option<f64>,
     speed: Option<f64>,
     similarity_boost: Option<f64>,
@@ -55,6 +59,11 @@ impl TtsConversationalConfigOverrideBuilder {
 
     pub fn voice_id(mut self, value: impl Into<String>) -> Self {
         self.voice_id = Some(value.into());
+        self
+    }
+
+    pub fn supported_voices(mut self, value: Vec<SupportedVoice>) -> Self {
+        self.supported_voices = Some(value);
         self
     }
 
@@ -83,6 +92,7 @@ impl TtsConversationalConfigOverrideBuilder {
         Ok(TtsConversationalConfigOverride {
             model_id: self.model_id,
             voice_id: self.voice_id,
+            supported_voices: self.supported_voices,
             stability: self.stability,
             speed: self.speed,
             similarity_boost: self.similarity_boost,

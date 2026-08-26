@@ -8,7 +8,7 @@ pub struct UploadRequest {
     #[serde(with = "crate::core::base64_bytes")]
     pub file: Vec<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub extract_composition_plan: Option<String>,
+    pub extract_composition_plan: Option<MusicUploadRequestExtractCompositionPlan>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub with_timestamps: Option<bool>,
 }
@@ -49,7 +49,7 @@ impl UploadRequest {
 #[non_exhaustive]
 pub struct UploadRequestBuilder {
     file: Option<Vec<u8>>,
-    extract_composition_plan: Option<String>,
+    extract_composition_plan: Option<MusicUploadRequestExtractCompositionPlan>,
     with_timestamps: Option<bool>,
 }
 
@@ -59,8 +59,8 @@ impl UploadRequestBuilder {
         self
     }
 
-    pub fn extract_composition_plan(mut self, value: impl Into<String>) -> Self {
-        self.extract_composition_plan = Some(value.into());
+    pub fn extract_composition_plan(mut self, value: MusicUploadRequestExtractCompositionPlan) -> Self {
+        self.extract_composition_plan = Some(value);
         self
     }
 

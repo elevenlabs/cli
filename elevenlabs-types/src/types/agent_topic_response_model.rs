@@ -26,6 +26,11 @@ pub struct AgentTopicResponseModel {
     pub y2d: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metrics: Option<TopicMetricsAggregate>,
+    /// Success rate across the topic's evaluation criteria, weighted by scored conversations. Returned regardless of include_evaluation_criteria.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub success_rate: Option<f64>,
 }
 
 impl AgentTopicResponseModel {
@@ -45,6 +50,7 @@ pub struct AgentTopicResponseModelBuilder {
     x2d: Option<f64>,
     y2d: Option<f64>,
     metrics: Option<TopicMetricsAggregate>,
+    success_rate: Option<f64>,
 }
 
 impl AgentTopicResponseModelBuilder {
@@ -88,6 +94,11 @@ impl AgentTopicResponseModelBuilder {
         self
     }
 
+    pub fn success_rate(mut self, value: f64) -> Self {
+        self.success_rate = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentTopicResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`topic_id`](AgentTopicResponseModelBuilder::topic_id)
@@ -104,6 +115,7 @@ impl AgentTopicResponseModelBuilder {
             x2d: self.x2d,
             y2d: self.y2d,
             metrics: self.metrics,
+            success_rate: self.success_rate,
         })
     }
 }

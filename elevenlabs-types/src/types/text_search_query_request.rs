@@ -17,9 +17,12 @@ pub struct TextSearchQueryRequest {
     /// Filter conversations where any of these agent branches participated. Can not exceed 50 values.
     #[serde(default)]
     pub visited_agent_branch_ids: Vec<Option<String>>,
+    /// Filter conversations where any of these procedures were triggered. Can not exceed 50 values.
+    #[serde(default)]
+    pub triggered_procedure_ids: Vec<Option<String>>,
     /// The result of the success evaluation
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub call_successful: Option<EvaluationSuccessResult>,
+    pub call_successful: Option<EvaluationResultFilter>,
     /// Unix timestamp (in seconds) to filter conversations up to this start date.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_start_before_unix: Option<i64>,
@@ -59,6 +62,9 @@ pub struct TextSearchQueryRequest {
     /// Filter conversations by tool names that had errored calls.
     #[serde(default)]
     pub tool_names_errored: Vec<Option<String>>,
+    /// Also match tool calls that never ran.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_invalid_tool_calls: Option<bool>,
     /// Filter conversations by detected main language (language code).
     #[serde(default)]
     pub main_languages: Vec<Option<String>>,
@@ -111,7 +117,8 @@ pub struct TextSearchQueryRequestBuilder {
     agent_id: Option<String>,
     visited_agent_ids: Option<Vec<Option<String>>>,
     visited_agent_branch_ids: Option<Vec<Option<String>>>,
-    call_successful: Option<EvaluationSuccessResult>,
+    triggered_procedure_ids: Option<Vec<Option<String>>>,
+    call_successful: Option<EvaluationResultFilter>,
     call_start_before_unix: Option<i64>,
     call_start_after_unix: Option<i64>,
     call_duration_min_secs: Option<i64>,
@@ -125,6 +132,7 @@ pub struct TextSearchQueryRequestBuilder {
     tool_names: Option<Vec<Option<String>>>,
     tool_names_successful: Option<Vec<Option<String>>>,
     tool_names_errored: Option<Vec<Option<String>>>,
+    include_invalid_tool_calls: Option<bool>,
     main_languages: Option<Vec<Option<String>>>,
     exclude_statuses: Option<Vec<Option<MessagesTextSearchRequestExcludeStatusesItem>>>,
     termination_reasons: Option<Vec<Option<String>>>,
@@ -161,7 +169,12 @@ impl TextSearchQueryRequestBuilder {
         self
     }
 
-    pub fn call_successful(mut self, value: EvaluationSuccessResult) -> Self {
+    pub fn triggered_procedure_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.triggered_procedure_ids = Some(value);
+        self
+    }
+
+    pub fn call_successful(mut self, value: EvaluationResultFilter) -> Self {
         self.call_successful = Some(value);
         self
     }
@@ -228,6 +241,11 @@ impl TextSearchQueryRequestBuilder {
 
     pub fn tool_names_errored(mut self, value: Vec<Option<String>>) -> Self {
         self.tool_names_errored = Some(value);
+        self
+    }
+
+    pub fn include_invalid_tool_calls(mut self, value: bool) -> Self {
+        self.include_invalid_tool_calls = Some(value);
         self
     }
 
@@ -301,6 +319,7 @@ impl TextSearchQueryRequestBuilder {
     /// - [`text_query`](TextSearchQueryRequestBuilder::text_query)
     /// - [`visited_agent_ids`](TextSearchQueryRequestBuilder::visited_agent_ids)
     /// - [`visited_agent_branch_ids`](TextSearchQueryRequestBuilder::visited_agent_branch_ids)
+    /// - [`triggered_procedure_ids`](TextSearchQueryRequestBuilder::triggered_procedure_ids)
     /// - [`evaluation_params`](TextSearchQueryRequestBuilder::evaluation_params)
     /// - [`data_collection_params`](TextSearchQueryRequestBuilder::data_collection_params)
     /// - [`tool_names`](TextSearchQueryRequestBuilder::tool_names)
@@ -316,6 +335,7 @@ impl TextSearchQueryRequestBuilder {
             agent_id: self.agent_id,
             visited_agent_ids: self.visited_agent_ids.ok_or_else(|| BuildError::missing_field("visited_agent_ids"))?,
             visited_agent_branch_ids: self.visited_agent_branch_ids.ok_or_else(|| BuildError::missing_field("visited_agent_branch_ids"))?,
+            triggered_procedure_ids: self.triggered_procedure_ids.ok_or_else(|| BuildError::missing_field("triggered_procedure_ids"))?,
             call_successful: self.call_successful,
             call_start_before_unix: self.call_start_before_unix,
             call_start_after_unix: self.call_start_after_unix,
@@ -330,6 +350,7 @@ impl TextSearchQueryRequestBuilder {
             tool_names: self.tool_names.ok_or_else(|| BuildError::missing_field("tool_names"))?,
             tool_names_successful: self.tool_names_successful.ok_or_else(|| BuildError::missing_field("tool_names_successful"))?,
             tool_names_errored: self.tool_names_errored.ok_or_else(|| BuildError::missing_field("tool_names_errored"))?,
+            include_invalid_tool_calls: self.include_invalid_tool_calls,
             main_languages: self.main_languages.ok_or_else(|| BuildError::missing_field("main_languages"))?,
             exclude_statuses: self.exclude_statuses.ok_or_else(|| BuildError::missing_field("exclude_statuses"))?,
             termination_reasons: self.termination_reasons.ok_or_else(|| BuildError::missing_field("termination_reasons"))?,

@@ -15,6 +15,9 @@ pub struct GetSimulationTestResponseModel {
     /// Simulate the test as if the conversation originated from this channel.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation_initiation_source: Option<ConversationInitiationSource>,
+    /// The environment to resolve environment-specific variable values against when running this test (URL, headers, auth connections). If not provided, defaults to 'production'. For simulation tests, simulation_environment takes precedence when set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment: Option<String>,
     /// Deprecated legacy single success criterion. Use success_conditions instead. At least one of success_condition or success_conditions is required.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub success_condition: Option<String>,
@@ -61,6 +64,7 @@ pub struct GetSimulationTestResponseModelBuilder {
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
     chat_history: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
     conversation_initiation_source: Option<ConversationInitiationSource>,
+    environment: Option<String>,
     success_condition: Option<String>,
     success_conditions: Option<Vec<String>>,
     simulation_scenario: Option<String>,
@@ -92,6 +96,11 @@ impl GetSimulationTestResponseModelBuilder {
 
     pub fn conversation_initiation_source(mut self, value: ConversationInitiationSource) -> Self {
         self.conversation_initiation_source = Some(value);
+        self
+    }
+
+    pub fn environment(mut self, value: impl Into<String>) -> Self {
+        self.environment = Some(value.into());
         self
     }
 
@@ -160,6 +169,7 @@ impl GetSimulationTestResponseModelBuilder {
             dynamic_variables: self.dynamic_variables,
             chat_history: self.chat_history,
             conversation_initiation_source: self.conversation_initiation_source,
+            environment: self.environment,
             success_condition: self.success_condition,
             success_conditions: self.success_conditions,
             simulation_scenario: self.simulation_scenario,
