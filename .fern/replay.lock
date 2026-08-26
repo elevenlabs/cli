@@ -3655,7 +3655,7 @@ patches:
         version = "1.0.21"
         source = "registry+https://github.com/rust-lang/crates.io-index"
         checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
-    status: unresolved
+    status: resolving
   - id: patch-590ac6e0
     content_hash: sha256:247b23e870f69c0adb95a26d84ce34ccb25626e15e0b209c365878ed00e819cb
     original_commit: 590ac6e0a089f122b3e713d0f9258eb84d406998
@@ -7301,7 +7301,7 @@ patches:
         wiremock = "0.6"
         tokio = { version = "1", features = ["full"] }
     user_owned: true
-    status: unresolved
+    status: resolving
   - id: patch-3324bcc8
     content_hash: sha256:5b706a9be215c490d56de74d7e44ac7051685d909e2e9cbdd5ff378df54bc43c
     original_commit: 3324bcc8a81566c3164c58a1f4b2b626ac9f8906
@@ -10911,7 +10911,7 @@ patches:
         features = ["rustls"]
         tap = "elevenlabs/homebrew-tap"
         formula = "elevenlabs"
-    status: unresolved
+    status: resolving
   - id: patch-147b7f4d
     content_hash: sha256:f79b52481c6d725f7c78222e1f2798ecee15af99c3d7cbf8bb8be6787f6d81eb
     original_commit: 147b7f4d11aa0995a351d7aa87926bfeb32c15d8
@@ -14400,4 +14400,4 @@ patches:
         tempfile = "3"
         wiremock = "0.6"
         tokio = { version = "1", features = ["full"] }
-    status: unresolved
+    status: resolving
