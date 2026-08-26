@@ -117,6 +117,7 @@ struct AddArgs {
 }
 
 fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tools.add");
     let config = match args.tool_type.as_str() {
         "webhook" => default_webhook_tool(&args.name),
         "client" => default_client_tool(&args.name),
@@ -189,6 +190,7 @@ struct DeleteArgs {
 }
 
 fn handle_delete(args: DeleteArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tools.delete");
     let mut registry = require_tools()?;
 
     if args.all {
@@ -302,6 +304,7 @@ fn push_command() -> clap::Command {
 }
 
 fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tools.push");
     let tool_filter = opt_string(matches, "tool");
     let dry_run = dry_run_flag(matches);
 
@@ -428,6 +431,7 @@ fn pull_command() -> clap::Command {
 }
 
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tools.pull");
     let tool_filter = opt_string(matches, "tool");
     let output_dir =
         opt_string(matches, "output-dir").unwrap_or_else(|| "tool_configs".to_string());

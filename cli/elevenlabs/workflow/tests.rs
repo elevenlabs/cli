@@ -277,6 +277,7 @@ struct AddArgs {
 }
 
 fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tests.add");
     let config = test_template_by_name(&args.name, &args.template)?;
 
     let mut registry = if Path::new(project::TESTS_FILE).exists() {
@@ -337,6 +338,7 @@ struct DeleteArgs {
 }
 
 fn handle_delete(args: DeleteArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tests.delete");
     let mut registry = require_tests()?;
 
     if args.all {
@@ -443,6 +445,7 @@ fn push_command() -> clap::Command {
 }
 
 fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tests.push");
     let test_filter = opt_string(matches, "test");
     let config_dir =
         opt_string(matches, "config-dir").unwrap_or_else(|| "test_configs".to_string());
@@ -588,6 +591,7 @@ fn pull_command() -> clap::Command {
 }
 
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("tests.pull");
     let test_filter = opt_string(matches, "test");
     let output_dir =
         opt_string(matches, "output-dir").unwrap_or_else(|| "test_configs".to_string());

@@ -116,6 +116,7 @@ const GITIGNORE_BODY: &str =
     "# Credentials — never commit these. Use .env.example as the tracked template.\n.env\n";
 
 fn handle_init(args: InitArgs, _ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.init");
     let root = PathBuf::from(&args.path);
     let abs = std::env::current_dir()
         .map(|cwd| cwd.join(&root))
@@ -275,6 +276,7 @@ struct AddArgs {
 }
 
 fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.add");
     if args.from_file.is_some() && args.template.is_some() {
         return Err(CliError::Validation(
             "Cannot use both --from-file and --template options together".to_string(),
@@ -363,6 +365,7 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
 struct NoArgs {}
 
 fn handle_status(_args: NoArgs, _ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.status");
     let config = require_agents()?;
     if config.agents.is_empty() {
         println!("No agents configured");
@@ -406,6 +409,7 @@ struct WidgetArgs {
 }
 
 fn handle_widget(args: WidgetArgs, _ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.widget");
     let config = require_agents()?;
     let agent = config
         .agents
@@ -447,6 +451,7 @@ struct TestArgs {
 }
 
 fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.test");
     let config = require_agents()?;
     // ID first so existing scripts keep resolving identically, then fall back
     // to the display name in the config file. `init`'s next-steps tell users
@@ -606,6 +611,7 @@ fn push_command() -> clap::Command {
 }
 
 fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.push");
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
     let version_description = opt_string(matches, "version-description");
@@ -835,6 +841,7 @@ fn pull_command() -> clap::Command {
 }
 
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let _scope = api::command_scope("agents.pull");
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
     let all_branches = matches.get_flag("all-branches");
