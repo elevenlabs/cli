@@ -324,6 +324,26 @@ jobs:
           fi
           install -m 0755 "${BIN}" "${PKG_DIR}/${BINARY_NAME}"
 
+          # npm always ships README and LICENSE regardless of `files`, so
+          # placing them is enough. Without them the package page renders
+          # empty and npm reports the package as unlicensed.
+          LICENSE_SRC=$(find extract -type f -name LICENSE -print -quit)
+          if [[ -n "${LICENSE_SRC}" ]]; then
+            install -m 0644 "${LICENSE_SRC}" "${PKG_DIR}/LICENSE"
+          fi
+
+          # Deliberately not the repository README: this package is not one
+          # users install directly, so it gets a note saying so.
+          cat > "${PKG_DIR}/README.md" <<README
+          # ${PLATFORM_PKG}
+
+          Platform-specific binary for [\`@elevenlabs/cli\`](https://www.npmjs.com/package/@elevenlabs/cli)
+          on ${SUFFIX}.
+
+          Do not install this directly — install \`@elevenlabs/cli\`, which selects
+          the right platform package for you.
+          README
+
           cat > "${PKG_DIR}/package.json" <<PKGJSON
           {
             "name": "${PLATFORM_PKG}",
@@ -416,6 +436,11 @@ jobs:
             "files": ["bin/"]
           }
           PKGJSON
+
+          # The page users actually land on, so it gets the repository README
+          # from the tagged commit. npm ships both regardless of `files`.
+          cp README.md "${PKG_DIR}/README.md"
+          cp LICENSE "${PKG_DIR}/LICENSE"
 
           # Write launcher script
           mkdir -p "${PKG_DIR}/bin"
