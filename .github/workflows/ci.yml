@@ -3,6 +3,7 @@ name: ci
 on:
   push:
     branches: [next, main]
+    tags: ["v*"]
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -20,6 +21,26 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-check-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-check-
+
       - name: Check
         run: cargo check
 
@@ -28,6 +49,26 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
+
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-compile-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-compile-
 
       - name: Compile
         run: cargo build
@@ -38,6 +79,14 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
       # A regeneration that adds a dependency without refreshing Cargo.lock
       # leaves it unresolvable, which silently disables `cargo audit`. Fail here
       # instead: `--locked` proves the committed lockfile still describes the
@@ -45,8 +94,18 @@ jobs:
       - name: Verify Cargo.lock is complete
         run: cargo metadata --locked --format-version 1 > /dev/null
 
+      - name: Cache cargo-audit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        shell: bash
+        run: |
+          if ! command -v cargo-audit > /dev/null 2>&1; then
+            cargo install cargo-audit --locked
+          fi
 
       # Fails on advisories only. Warnings (unmaintained, yanked) are left
       # non-blocking on purpose: the dependency graph comes from the generator,
@@ -60,14 +119,378 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-test-
+
       - name: Test
         run: cargo test
-
-      # elevenlabs-sdk and elevenlabs-types are path dependencies, not members
-      # of the cargo workspace, so `cargo test` above skips them. Run their
-      # suites explicitly so the generated serialization tests are covered.
-      - name: Test generated SDK crate
+      - name: Test elevenlabs-types
+        run: cargo test --manifest-path elevenlabs-types/Cargo.toml
+      - name: Test elevenlabs-sdk
         run: cargo test --manifest-path elevenlabs-sdk/Cargo.toml
 
-      - name: Test generated types crate
-        run: cargo test --manifest-path elevenlabs-types/Cargo.toml
+  # The npm packages take their version from the release tag, while the
+  # binary reports the version in Cargo.toml. Publishing when they disagree
+  # ships a package whose --version names a release that isn't on the
+  # registry, so refuse to publish instead (cargo-dist hard-fails on the
+  # same mismatch for the GitHub Release).
+  version:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Check tag matches crate version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r --arg manifest "${PWD}/Cargo.toml" \
+              '.packages[] | select(.manifest_path == $manifest) | .version')
+
+          if [[ -z "${CRATE_VERSION}" ]]; then
+            echo "::error::Could not determine the crate version from cargo metadata (no package matched ${PWD}/Cargo.toml)."
+            exit 1
+          fi
+
+          if [[ "${TAG_VERSION}" != "${CRATE_VERSION}" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} publishes version ${TAG_VERSION}, but Cargo.toml is ${CRATE_VERSION}."
+            echo "::error::The binary would report ${CRATE_VERSION} from --version while the npm packages say ${TAG_VERSION}."
+            echo "::error::Set the generator's output version to ${TAG_VERSION} and regenerate, or tag v${CRATE_VERSION} instead."
+            exit 1
+          fi
+          echo "Tag and crate version agree: ${TAG_VERSION}"
+
+  # release.yml (cargo-dist) builds and attests the binaries for this tag, and
+  # the npm packages repackage those rather than compiling their own. Both
+  # workflows fire on the same tag push, so wait for the archives to land.
+  await-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Wait for the release archives
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REQUIRED=(
+            elevenlabs-cli-x86_64-unknown-linux-musl.tar.gz
+            elevenlabs-cli-aarch64-unknown-linux-musl.tar.gz
+            elevenlabs-cli-x86_64-apple-darwin.tar.gz
+            elevenlabs-cli-aarch64-apple-darwin.tar.gz
+            elevenlabs-cli-x86_64-pc-windows-msvc.zip
+          )
+
+          DEADLINE=$(( $(date +%s) + 45 * 60 ))
+          while :; do
+            ASSETS=$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+              --json assets --jq '.assets[].name' 2>/dev/null || true)
+
+            MISSING=()
+            for a in "${REQUIRED[@]}"; do
+              grep -qxF "${a}" <<< "${ASSETS}" || MISSING+=("${a}")
+            done
+
+            if [[ ${#MISSING[@]} -eq 0 ]]; then
+              echo "All ${#REQUIRED[@]} archives are present on ${GITHUB_REF_NAME}."
+              exit 0
+            fi
+
+            if [[ $(date +%s) -ge ${DEADLINE} ]]; then
+              echo "::error::Timed out waiting for the release archives on ${GITHUB_REF_NAME}."
+              echo "::error::Still missing: ${MISSING[*]}"
+              echo "::error::Check the 'release' workflow for this tag — npm publishing repackages its output."
+              exit 1
+            fi
+
+            echo "Waiting on ${#MISSING[@]} archive(s); retrying in 30s."
+            sleep 30
+          done
+
+  publish:
+    needs: [audit, check, compile, test, version, await-release]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    strategy:
+      # Don't cancel sibling matrix jobs on first failure — a transient
+      # failure on one platform would otherwise leave npm in a partial
+      # state (some platform packages published, others not, launcher
+      # never published), with no clean re-run since the already-
+      # published versions reject re-publish.
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: x64
+            rust-target: x86_64-unknown-linux-musl
+          - os: linux
+            arch: arm64
+            rust-target: aarch64-unknown-linux-musl
+          - os: darwin
+            arch: x64
+            rust-target: x86_64-apple-darwin
+          - os: darwin
+            arch: arm64
+            rust-target: aarch64-apple-darwin
+          - os: win32
+            arch: x64
+            rust-target: x86_64-pc-windows-msvc
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/Krypton"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Package and publish npm platform package
+        shell: bash
+        env:
+          PLATFORM_OS: ${{ matrix.os }}
+          PLATFORM_ARCH: ${{ matrix.arch }}
+          RUST_TARGET: ${{ matrix.rust-target }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          SUFFIX="${PLATFORM_OS}-${PLATFORM_ARCH}"
+          PLATFORM_PKG="@elevenlabs/cli-${SUFFIX}"
+          PKG_DIR="npm-pkg/${PLATFORM_PKG}"
+          mkdir -p "${PKG_DIR}"
+
+          if [[ "${PLATFORM_OS}" == "win32" ]]; then
+            ARCHIVE="elevenlabs-cli-${RUST_TARGET}.zip"
+            BINARY_NAME="elevenlabs.exe"
+          else
+            ARCHIVE="elevenlabs-cli-${RUST_TARGET}.tar.gz"
+            BINARY_NAME="elevenlabs"
+          fi
+
+          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "${ARCHIVE}" --dir dl
+
+          # Fail closed unless the archive is provably the one this repo's
+          # release workflow built, since we are republishing it under our name.
+          gh attestation verify "dl/${ARCHIVE}" --repo "${GITHUB_REPOSITORY}"
+
+          # tar.gz wraps its contents in elevenlabs-cli-<target>/ while the zip
+          # holds them at the root, so locate the binary instead of assuming.
+          mkdir -p extract
+          case "${ARCHIVE}" in
+            *.zip)    unzip -q "dl/${ARCHIVE}" -d extract ;;
+            *.tar.gz) tar -xzf "dl/${ARCHIVE}" -C extract ;;
+          esac
+
+          BIN=$(find extract -type f -name "${BINARY_NAME}" -print -quit)
+          if [[ -z "${BIN}" ]]; then
+            echo "::error::${BINARY_NAME} not found in ${ARCHIVE}."
+            exit 1
+          fi
+          install -m 0755 "${BIN}" "${PKG_DIR}/${BINARY_NAME}"
+
+          cat > "${PKG_DIR}/package.json" <<PKGJSON
+          {
+            "name": "${PLATFORM_PKG}",
+            "version": "${VERSION}",
+            "description": "Platform-specific binary for elevenlabs (${SUFFIX})",
+            "license": "MIT",
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/elevenlabs/cli"
+            },
+            "os": ["${PLATFORM_OS}"],
+            "cpu": ["${PLATFORM_ARCH}"],
+            "main": "${BINARY_NAME}",
+            "files": ["${BINARY_NAME}"]
+          }
+          PKGJSON
+
+          cd "${PKG_DIR}"
+          # Pre-release detection — require the semver "-" separator so a
+          # release tag like v1.0.0 for a package whose version string
+          # happens to contain "alpha"/"beta" as a substring isn't
+          # mis-tagged on npm.
+          if [[ "${VERSION}" == *-alpha* ]]; then
+            npm publish --access public --tag alpha
+          elif [[ "${VERSION}" == *-beta* ]]; then
+            npm publish --access public --tag beta
+          else
+            PKG_NAME=$(node -p "require('./package.json').name")
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            CURRENT_LATEST=$(npm view "${PKG_NAME}" dist-tags.latest 2>/dev/null || echo "0.0.0")
+            if npx -y semver@7.8.1 "${PKG_VERSION}" -r "<${CURRENT_LATEST}" > /dev/null 2>&1; then
+              echo "Publishing ${PKG_VERSION} with --tag backport (current latest is ${CURRENT_LATEST})"
+              npm publish --access public --tag backport
+            else
+              npm publish --access public
+            fi
+          fi
+
+  publish-launcher:
+    needs: [publish]
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/Krypton"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish launcher package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG_DIR="npm-pkg/launcher"
+          mkdir -p "${PKG_DIR}"
+
+          BINARY_NAME="elevenlabs"
+
+          # Build optionalDependencies map
+          OPTIONAL_DEPS=""
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-linux-x64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-linux-arm64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-darwin-x64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-darwin-arm64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-win32-x64\": \"${VERSION}\""
+
+          cat > "${PKG_DIR}/package.json" <<PKGJSON
+          {
+            "name": "@elevenlabs/cli",
+            "version": "${VERSION}",
+            "description": "CLI for elevenlabs",
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/elevenlabs/cli"
+            },
+            "bin": {
+              "elevenlabs": "bin/cli.js"
+            },
+            "optionalDependencies": {
+              ${OPTIONAL_DEPS}
+            },
+            "files": ["bin/"]
+          }
+          PKGJSON
+
+          # Write launcher script
+          mkdir -p "${PKG_DIR}/bin"
+          cat > "${PKG_DIR}/bin/cli.js" <<'LAUNCHER'
+          #!/usr/bin/env node
+          "use strict";
+          const { execFileSync } = require("child_process");
+          const path = require("path");
+          const os = require("os");
+
+          const PLATFORMS = {
+            "linux-x64": "@elevenlabs/cli-linux-x64",
+            "linux-arm64": "@elevenlabs/cli-linux-arm64",
+            "darwin-x64": "@elevenlabs/cli-darwin-x64",
+            "darwin-arm64": "@elevenlabs/cli-darwin-arm64",
+            "win32-x64": "@elevenlabs/cli-win32-x64",
+          };
+
+          const platformKey = os.platform() + "-" + os.arch();
+          const pkg = PLATFORMS[platformKey];
+          if (!pkg) {
+            console.error("Unsupported platform: " + platformKey);
+            process.exit(1);
+          }
+
+          const binName = os.platform() === "win32" ? "elevenlabs.exe" : "elevenlabs";
+
+          let binPath;
+          try {
+            binPath = path.join(require.resolve(pkg + "/package.json"), "..", binName);
+          } catch (e) {
+            console.error(
+              "The platform package " + pkg + " is not installed.\n" +
+              "It ships the elevenlabs binary for " + platformKey + " and is an\n" +
+              "optional dependency, so an install run with --no-optional or\n" +
+              "--omit=optional will skip it. Reinstall without those flags:\n" +
+              "  npm install -g @elevenlabs/cli"
+            );
+            process.exit(1);
+          }
+
+          try {
+            execFileSync(binPath, process.argv.slice(2), { stdio: "inherit" });
+          } catch (e) {
+            // status is null when a signal killed the child, so exiting on it
+            // would report success for an interrupted run.
+            if (e && typeof e === "object" && e.signal) {
+              process.exit(128 + (os.constants.signals[e.signal] || 0));
+            }
+            if (e && typeof e === "object" && typeof e.status === "number") {
+              process.exit(e.status);
+            }
+            console.error(e && e.message ? e.message : String(e));
+            process.exit(1);
+          }
+          LAUNCHER
+
+          cd "${PKG_DIR}"
+          # Pre-release detection — require the semver "-" separator so a
+          # release tag like v1.0.0 for a package whose version string
+          # happens to contain "alpha"/"beta" as a substring isn't
+          # mis-tagged on npm.
+          if [[ "${VERSION}" == *-alpha* ]]; then
+            npm publish --access public --tag alpha
+          elif [[ "${VERSION}" == *-beta* ]]; then
+            npm publish --access public --tag beta
+          else
+            PKG_NAME=$(node -p "require('./package.json').name")
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            CURRENT_LATEST=$(npm view "${PKG_NAME}" dist-tags.latest 2>/dev/null || echo "0.0.0")
+            if npx -y semver@7.8.1 "${PKG_VERSION}" -r "<${CURRENT_LATEST}" > /dev/null 2>&1; then
+              echo "Publishing ${PKG_VERSION} with --tag backport (current latest is ${CURRENT_LATEST})"
+              npm publish --access public --tag backport
+            else
+              npm publish --access public
+            fi
+          fi
+
