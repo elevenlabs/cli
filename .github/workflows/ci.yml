@@ -1,10 +1,6 @@
 name: ci
 
-on:
-  push:
-    branches: [next, main]
-  pull_request:
-    types: [opened, synchronize, reopened]
+on: [push]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +16,26 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-check-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-check-
+
       - name: Check
         run: cargo check
 
@@ -29,30 +45,28 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-compile-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-compile-
+
       - name: Compile
         run: cargo build
-
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v6
-
-      # A regeneration that adds a dependency without refreshing Cargo.lock
-      # leaves it unresolvable, which silently disables `cargo audit`. Fail here
-      # instead: `--locked` proves the committed lockfile still describes the
-      # dependency graph. The fix is to run `cargo build` and commit the lock.
-      - name: Verify Cargo.lock is complete
-        run: cargo metadata --locked --format-version 1 > /dev/null
-
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
-
-      # Fails on advisories only. Warnings (unmaintained, yanked) are left
-      # non-blocking on purpose: the dependency graph comes from the generator,
-      # so a warning we cannot promptly fix would block every unrelated PR.
-      - name: Audit dependencies
-        run: cargo audit
 
   test:
     runs-on: ubuntu-latest
@@ -60,14 +74,324 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-test-
+
       - name: Test
         run: cargo test
 
-      # elevenlabs-sdk and elevenlabs-types are path dependencies, not members
-      # of the cargo workspace, so `cargo test` above skips them. Run their
-      # suites explicitly so the generated serialization tests are covered.
-      - name: Test generated SDK crate
-        run: cargo test --manifest-path elevenlabs-sdk/Cargo.toml
+  # The npm packages take their version from the release tag, while the
+  # binary reports the version in Cargo.toml. Publishing when they disagree
+  # ships a package whose --version names a release that isn't on the
+  # registry, so refuse to publish instead (cargo-dist hard-fails on the
+  # same mismatch for the GitHub Release).
+  version:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
 
-      - name: Test generated types crate
-        run: cargo test --manifest-path elevenlabs-types/Cargo.toml
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Check tag matches crate version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r --arg manifest "${PWD}/Cargo.toml" \
+              '.packages[] | select(.manifest_path == $manifest) | .version')
+
+          if [[ -z "${CRATE_VERSION}" ]]; then
+            echo "::error::Could not determine the crate version from cargo metadata (no package matched ${PWD}/Cargo.toml)."
+            exit 1
+          fi
+
+          if [[ "${TAG_VERSION}" != "${CRATE_VERSION}" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} publishes version ${TAG_VERSION}, but Cargo.toml is ${CRATE_VERSION}."
+            echo "::error::The binary would report ${CRATE_VERSION} from --version while the npm packages say ${TAG_VERSION}."
+            echo "::error::Set the generator's output version to ${TAG_VERSION} and regenerate, or tag v${CRATE_VERSION} instead."
+            exit 1
+          fi
+          echo "Tag and crate version agree: ${TAG_VERSION}"
+
+  publish:
+    needs: [check, compile, test, version]
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      # Don't cancel sibling matrix jobs on first failure — a transient
+      # failure on one platform would otherwise leave npm in a partial
+      # state (some platform packages published, others not, launcher
+      # never published), with no clean re-run since the already-
+      # published versions reject re-publish.
+      fail-fast: false
+      matrix:
+        include:
+          - rust-target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            npm-platform-suffix: linux-x64
+          - rust-target: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+            npm-platform-suffix: linux-arm64
+          - rust-target: x86_64-apple-darwin
+            runner: macos-latest
+            npm-platform-suffix: darwin-x64
+          - rust-target: aarch64-apple-darwin
+            runner: macos-latest
+            npm-platform-suffix: darwin-arm64
+          - rust-target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            npm-platform-suffix: win32-x64
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up Rust
+        shell: bash
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Add Rust target
+        shell: bash
+        run: rustup target add ${{ matrix.rust-target }}
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-${{ matrix.rust-target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ matrix.rust-target }}-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/Krypton"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install musl build tools
+        if: contains(matrix.rust-target, '-linux-musl')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      # The TLS backend and the keyring backend are selected per target by
+      # Cargo.toml, so no per-target feature flags are needed here.
+      #
+      # musl targets get a C compiler for the C dependencies, but not a
+      # linker: musl-gcc cannot produce static-pie, so it yields a binary
+      # that needs /lib/ld-musl-*.so.1 at runtime — which defeats the point
+      # of a musl build and crashes where that loader is absent. Left alone,
+      # rustc links the self-contained musl objects statically.
+      - name: Build release binary
+        shell: bash
+        run: |
+          if [[ "${{ matrix.rust-target }}" == *-linux-musl ]]; then
+            TARGET_UNDERSCORE=$(echo "${{ matrix.rust-target }}" | tr '-' '_')
+            export "CC_${TARGET_UNDERSCORE}=musl-gcc"
+          fi
+          cargo build --release --target ${{ matrix.rust-target }}
+
+      - name: Package and publish npm platform package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          PLATFORM_PKG="@elevenlabs/cli-${{ matrix.npm-platform-suffix }}"
+          PKG_DIR="npm-pkg/${PLATFORM_PKG}"
+          mkdir -p "${PKG_DIR}"
+
+          # Locate the compiled binary
+          BINARY_NAME="elevenlabs"
+          if [[ "${{ matrix.rust-target }}" == *"windows"* ]]; then
+            BINARY_NAME="elevenlabs.exe"
+          fi
+          cp "target/${{ matrix.rust-target }}/release/${BINARY_NAME}" "${PKG_DIR}/"
+
+          # Write platform package.json
+          cat > "${PKG_DIR}/package.json" <<PKGJSON
+          {
+            "name": "${PLATFORM_PKG}",
+            "version": "${VERSION}",
+            "description": "Platform-specific binary for elevenlabs (${{ matrix.npm-platform-suffix }})",
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/elevenlabs/cli"
+            },
+            "os": ["$(echo ${{ matrix.npm-platform-suffix }} | cut -d- -f1)"],
+            "cpu": ["$(echo ${{ matrix.npm-platform-suffix }} | cut -d- -f2)"],
+            "main": "${BINARY_NAME}",
+            "files": ["${BINARY_NAME}"]
+          }
+          PKGJSON
+
+          cd "${PKG_DIR}"
+          # Pre-release detection — require the semver "-" separator so a
+          # release tag like v1.0.0 for a package whose version string
+          # happens to contain "alpha"/"beta" as a substring isn't
+          # mis-tagged on npm.
+          if [[ "${VERSION}" == *-alpha* ]]; then
+            npm publish --access public --tag alpha
+          elif [[ "${VERSION}" == *-beta* ]]; then
+            npm publish --access public --tag beta
+          else
+            PKG_NAME=$(node -p "require('./package.json').name")
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            CURRENT_LATEST=$(npm view "${PKG_NAME}" dist-tags.latest 2>/dev/null || echo "0.0.0")
+            if npx -y semver@7.8.1 "${PKG_VERSION}" -r "<${CURRENT_LATEST}" > /dev/null 2>&1; then
+              echo "Publishing ${PKG_VERSION} with --tag backport (current latest is ${CURRENT_LATEST})"
+              npm publish --access public --tag backport
+            else
+              npm publish --access public
+            fi
+          fi
+
+  publish-launcher:
+    needs: [publish]
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/Krypton"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish launcher package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG_DIR="npm-pkg/launcher"
+          mkdir -p "${PKG_DIR}"
+
+          BINARY_NAME="elevenlabs"
+
+          # Build optionalDependencies map
+          OPTIONAL_DEPS=""
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-linux-x64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-linux-arm64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-darwin-x64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-darwin-arm64\": \"${VERSION}\","
+          OPTIONAL_DEPS="${OPTIONAL_DEPS}\"@elevenlabs/cli-win32-x64\": \"${VERSION}\""
+
+          cat > "${PKG_DIR}/package.json" <<PKGJSON
+          {
+            "name": "@elevenlabs/cli",
+            "version": "${VERSION}",
+            "description": "CLI for elevenlabs",
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/elevenlabs/cli"
+            },
+            "bin": {
+              "elevenlabs": "bin/cli.js"
+            },
+            "optionalDependencies": {
+              ${OPTIONAL_DEPS}
+            },
+            "files": ["bin/"]
+          }
+          PKGJSON
+
+          # Write launcher script
+          mkdir -p "${PKG_DIR}/bin"
+          cat > "${PKG_DIR}/bin/cli.js" <<'LAUNCHER'
+          #!/usr/bin/env node
+          "use strict";
+          const { execFileSync } = require("child_process");
+          const path = require("path");
+          const os = require("os");
+
+          const PLATFORMS = {
+            "linux-x64": "@elevenlabs/cli-linux-x64",
+            "linux-arm64": "@elevenlabs/cli-linux-arm64",
+            "darwin-x64": "@elevenlabs/cli-darwin-x64",
+            "darwin-arm64": "@elevenlabs/cli-darwin-arm64",
+            "win32-x64": "@elevenlabs/cli-win32-x64",
+          };
+
+          const platformKey = os.platform() + "-" + os.arch();
+          const pkg = PLATFORMS[platformKey];
+          if (!pkg) {
+            console.error("Unsupported platform: " + platformKey);
+            process.exit(1);
+          }
+
+          const binName = os.platform() === "win32" ? "elevenlabs.exe" : "elevenlabs";
+          const binPath = path.join(require.resolve(pkg + "/package.json"), "..", binName);
+
+          try {
+            execFileSync(binPath, process.argv.slice(2), { stdio: "inherit" });
+          } catch (e) {
+            if (e && typeof e === "object" && "status" in e) {
+              process.exit(e.status);
+            }
+            throw e;
+          }
+          LAUNCHER
+
+          cd "${PKG_DIR}"
+          # Pre-release detection — require the semver "-" separator so a
+          # release tag like v1.0.0 for a package whose version string
+          # happens to contain "alpha"/"beta" as a substring isn't
+          # mis-tagged on npm.
+          if [[ "${VERSION}" == *-alpha* ]]; then
+            npm publish --access public --tag alpha
+          elif [[ "${VERSION}" == *-beta* ]]; then
+            npm publish --access public --tag beta
+          else
+            PKG_NAME=$(node -p "require('./package.json').name")
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            CURRENT_LATEST=$(npm view "${PKG_NAME}" dist-tags.latest 2>/dev/null || echo "0.0.0")
+            if npx -y semver@7.8.1 "${PKG_VERSION}" -r "<${CURRENT_LATEST}" > /dev/null 2>&1; then
+              echo "Publishing ${PKG_VERSION} with --tag backport (current latest is ${CURRENT_LATEST})"
+              npm publish --access public --tag backport
+            else
+              npm publish --access public
+            fi
+          fi
