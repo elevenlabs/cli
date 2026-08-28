@@ -41,6 +41,16 @@ scoop bucket add elevenlabs https://github.com/elevenlabs/scoop-bucket
 scoop install elevenlabs
 ```
 
+### npm (macOS / Linux / Windows)
+
+```bash
+npm install -g @elevenlabs/cli
+```
+
+Installs the same binary through a thin launcher, picking the right build for
+your platform. Use `npx @elevenlabs/cli <command>` to run it once without
+installing it globally.
+
 ### Shell (macOS / Linux)
 
 ```bash
