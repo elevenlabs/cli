@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct DubbingBulkTargetSegmentUpdateRequest {
-    /// Map of segment id to the translation edit to apply to that segment.
+    /// Map of segment ID to the translation edit to apply to that segment. At least one entry and at most 500.
     #[serde(default)]
     pub segments: HashMap<String, DubbingTargetSegmentUpdateRequest>,
 }

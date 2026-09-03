@@ -282,6 +282,7 @@ impl MusicClient {
     ///                 file: b"test file content".to_vec(),
     ///                 extract_composition_plan: None,
     ///                 with_timestamps: None,
+    ///                 with_waveform_visual: None,
     ///             },
     ///             None,
     ///         )
