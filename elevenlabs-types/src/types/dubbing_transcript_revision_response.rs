@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// The new revision after a source edit that returns no segment (e.g. a delete).
+/// The new revision after a source edit that returns no segment, such as a delete.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct DubbingTranscriptRevisionResponse {
     /// The project's source-transcript revision after this edit.

@@ -5,16 +5,16 @@ use super::*;
 /// Query parameters for list
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct DubbingProjectListQueryRequest {
-    /// Pagination cursor from a previous response's next_cursor.
+    /// Pass the `next_cursor` from a previous response to fetch the page after it. Omit for the first page.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
-    /// Number of projects per page (max 100).
+    /// Number of projects per page. Clamped to between 1 and 100 rather than rejected, so a larger value returns a full page.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
-    /// Filter to projects in this status (preparing, ready, failed).
+    /// Filter to projects in this status: `queued`, `preparing`, `ready`, or `failed`. Omit to return every status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    /// Sort by creation time (default 'DESCENDING').
+    /// Sort by creation time; newest first by default.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_direction: Option<ProjectListRequestSortDirection>,
 }

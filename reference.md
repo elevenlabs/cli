@@ -238,6 +238,7 @@ Returns a list of your agents and their metadata.
 | `--archived` | `string` | No | Filter agents by archived status |
 | `--show-only-owned-agents` | `boolean` | No | If set to true, the endpoint will omit any agents that were shared with you by someone else and include only the ones you own. Deprecated: use created_by_user_id instead. |
 | `--created-by-user-id` | `string` | No | Filter agents by creator user ID. When set, only agents created by this user are returned. Takes precedence over show_only_owned_agents. Use '@me' to refer to the authenticated user. |
+| `--tags` | `string` | No | Filter agents by tag. Repeat the parameter to match any of several tags. |
 | `--sort-direction` | `SortDirection` | No | The direction to sort the results |
 | `--sort-by` | `string` | No | The field to sort the results by |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
@@ -2300,6 +2301,20 @@ All non-service-account workspace members, each flagged with whether they curren
 | `--agent-id` | `string` | Yes |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
+#### `elevenlabs agents triage-tickets list-for-workspace`
+
+List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller); for a single agent's tickets, use the per-agent endpoint instead. Tickets for agents the caller cannot access are omitted.
+
+`GET /v1/convai/triage-tickets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | How many agent conversation tickets to return. Can not exceed 100. |
+| `--status` | `string` | No | Filter tickets by status. |
+| `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
 #### `elevenlabs agents triage-tickets update`
 
 Update a ticket's comment, status, and/or assignee. Requires editor access to the ticket's agent.
@@ -2712,7 +2727,11 @@ Returns dub as a streamed MP3 or MP4 file. If this dub has been edited using Dub
 
 #### `elevenlabs dubbing project create`
 
-Create a dubbing project from an uploaded file or a source URL.
+Create a dubbing project from an uploaded file (`file`) or a source URL (`source_url`).
+
+Returns as soon as the project record exists, before the source has been fetched: the project starts `queued` and reaches `ready` once its source has been transcribed. Creating a project does not dub anything — add a language target to it for each language you want, or pass `target_language` to queue the first one here.
+
+Preparation can take minutes on a long source, so we recommend passing `webhook_ids` to be notified when the project turns `ready` or `failed`, rather than polling for it.
 
 `POST /v1/dubbing/project`
 
@@ -2723,7 +2742,7 @@ Create a dubbing project from an uploaded file or a source URL.
 
 #### `elevenlabs dubbing project delete`
 
-Delete a project and its language targets.
+Delete a project, every language target under it, and their stored media and outputs. This cannot be undone, and a dub already running is still billed.
 
 `DELETE /v1/dubbing/project/{project_id}`
 
@@ -2734,7 +2753,7 @@ Delete a project and its language targets.
 
 #### `elevenlabs dubbing project get`
 
-Full project detail, including its language target ids.
+Full project detail, including the IDs of every language target under it. To follow a project to `ready`, we recommend a `webhook_ids` subscription rather than polling this endpoint.
 
 `GET /v1/dubbing/project/{project_id}`
 
@@ -2745,16 +2764,16 @@ Full project detail, including its language target ids.
 
 #### `elevenlabs dubbing project list`
 
-List the workspace's dubbing projects (cursor-paginated).
+List the dubbing projects in your workspace that you can access, newest first, cursor-paginated. Listed projects carry no `language_ids`; fetch a project, or list its language targets, to see them.
 
 `GET /v1/dubbing/project`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
-| `--cursor` | `string` | No | Pagination cursor from a previous response's next_cursor. |
-| `--page-size` | `integer` | No | Number of projects per page (max 100). |
-| `--status` | `string` | No | Filter to projects in this status (preparing, ready, failed). |
-| `--sort-direction` | `ASCENDING | DESCENDING` | No | Sort by creation time (default 'DESCENDING'). |
+| `--cursor` | `string` | No | Pass the `next_cursor` from a previous response to fetch the page after it. Omit for the first page. |
+| `--page-size` | `integer` | No | Number of projects per page. Clamped to between 1 and 100 rather than rejected, so a larger value returns a full page. |
+| `--status` | `string` | No | Filter to projects in this status: `queued`, `preparing`, `ready`, or `failed`. Omit to return every status. |
+| `--sort-direction` | `ASCENDING | DESCENDING` | No | Sort by creation time; newest first by default. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -2763,7 +2782,11 @@ List the workspace's dubbing projects (cursor-paginated).
 
 #### `elevenlabs dubbing project language create`
 
-Queue a language target for a project (starts once the project is ready).
+Add a language to dub a project into, and queue the dub.
+
+This is the call that produces dubbed audio, and it is billed per generation. The target is created `queued` and starts as soon as the project is `ready`, so it can be added at any point after the project is created. It inherits the project's dubbing model and cannot pick another.
+
+A project created with `webhook_ids` sends a `dubbing_language_completed` event carrying the output download URLs, so we recommend subscribing rather than polling this target to completion.
 
 `POST /v1/dubbing/project/{project_id}/language`
 
@@ -2775,7 +2798,7 @@ Queue a language target for a project (starts once the project is ready).
 
 #### `elevenlabs dubbing project language delete`
 
-Delete a language target.
+Delete a language target and its outputs, leaving the project and its other languages intact. This cannot be undone, and a dub already running is still billed.
 
 `DELETE /v1/dubbing/project/{project_id}/language/{language_id}`
 
@@ -2787,7 +2810,7 @@ Delete a language target.
 
 #### `elevenlabs dubbing project language get`
 
-Full language-target detail.
+Full language-target detail. Once the target reports `completed`, `outputs` carries the signed download URLs. To learn when that happens, we recommend the project's `webhook_ids` subscription rather than polling this endpoint; fetch here when a delivered URL has expired, or to reconcile after an edit.
 
 `GET /v1/dubbing/project/{project_id}/language/{language_id}`
 
@@ -2799,16 +2822,16 @@ Full language-target detail.
 
 #### `elevenlabs dubbing project language list`
 
-List a project's language targets (cursor-paginated).
+List a project's language targets, cursor-paginated, each with signed output URLs once it has produced an output.
 
 `GET /v1/dubbing/project/{project_id}/language`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--project-id` | `string` | Yes | Identifier of the parent dubbing project. |
-| `--cursor` | `string` | No | Pagination cursor from a previous response's next_cursor. |
-| `--page-size` | `integer` | No | Number of language targets per page (max 100). |
-| `--status` | `string` | No | Filter to targets in this status (queued, processing, completed, stale, failed). |
+| `--cursor` | `string` | No | Pass the `next_cursor` from a previous response to fetch the page after it. Omit for the first page. |
+| `--page-size` | `integer` | No | Number of language targets per page. Clamped to between 1 and 100 rather than rejected, so a larger value returns a full page. |
+| `--status` | `string` | No | Filter to targets in this status: `queued`, `processing`, `completed`, `stale`, or `failed`. Omit to return every status. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -2817,7 +2840,7 @@ List a project's language targets (cursor-paginated).
 
 #### `elevenlabs dubbing project language transcript get`
 
-A language target's transcript: source segments with their translations.
+A language target's transcript: source segments with their translations. Available once the target has produced an output. Returns a conflict while the target is still on its first dub, since it has no translations to return yet.
 
 `GET /v1/dubbing/project/{project_id}/language/{language_id}/transcript`
 
@@ -2829,7 +2852,7 @@ A language target's transcript: source segments with their translations.
 
 #### `elevenlabs dubbing project language transcript regenerate`
 
-Enterprise only. Re-dub a target from its edited transcript, re-synthesizing only the edited regions (charged like a generation). Conflicts when the target has no edits to apply -- nothing is dispatched and nothing is charged.
+Enterprise only. Re-dub a target from its edited transcript, re-synthesizing only the edited regions (charged like a generation, less the free-regeneration allowance). Accepted asynchronously: the target returns to `processing` and sends a `dubbing_language_completed` event to the project's `webhook_ids` when the re-dub lands, carrying the new output URLs. Returns a conflict when the target has no edits to apply — nothing is dispatched and nothing is charged.
 
 `POST /v1/dubbing/project/{project_id}/language/{language_id}/transcript/regenerate`
 
@@ -2841,7 +2864,7 @@ Enterprise only. Re-dub a target from its edited transcript, re-synthesizing onl
 
 #### `elevenlabs dubbing project language transcript update-segment`
 
-Enterprise only. Edit a segment's translation for a language target.
+Enterprise only. Edit a segment's translation for a language target. Omitted fields are left unchanged; an explicit null clears the field. Bumps the target's `revision` and marks it `stale` if it had already completed. The source transcript and the project's other languages are untouched, and no audio changes until you regenerate the target.
 
 `PATCH /v1/dubbing/project/{project_id}/language/{language_id}/transcript/segment/{segment_id}`
 
@@ -2855,7 +2878,7 @@ Enterprise only. Edit a segment's translation for a language target.
 
 #### `elevenlabs dubbing project language transcript update-segments`
 
-Enterprise only. Edit several segments' translations for a language target in one atomic request.
+Enterprise only. Edit several segments' translations for a language target in one atomic request: every edit applies or none does. Bumps the target's `revision` and marks it `stale` if it had already completed. The source transcript and the project's other languages are untouched, and no audio changes until you regenerate the target.
 
 `PATCH /v1/dubbing/project/{project_id}/language/{language_id}/transcript/segments`
 
@@ -2872,7 +2895,7 @@ Enterprise only. Edit several segments' translations for a language target in on
 
 #### `elevenlabs dubbing project transcript create-segment`
 
-Enterprise only. Add a new source segment to the transcript.
+Enterprise only. Add a new source segment to the transcript. Its span must lie within the source media, last between 0.1 and 25 seconds, and not overlap another segment by the same speaker. Bumps the project's `revision`, discards the affected translations in every language target, and marks any target that had already completed `stale`. No audio changes until you regenerate a target.
 
 `POST /v1/dubbing/project/{project_id}/transcript/segment`
 
@@ -2884,7 +2907,7 @@ Enterprise only. Add a new source segment to the transcript.
 
 #### `elevenlabs dubbing project transcript delete-segment`
 
-Enterprise only. Remove a source segment from the transcript.
+Enterprise only. Remove a source segment from the transcript so it is no longer dubbed. Bumps the project's `revision`, discards the affected translations in every language target, and marks any target that had already completed `stale`. No audio changes until you regenerate a target.
 
 `DELETE /v1/dubbing/project/{project_id}/transcript/segment/{segment_id}`
 
@@ -2896,7 +2919,7 @@ Enterprise only. Remove a source segment from the transcript.
 
 #### `elevenlabs dubbing project transcript get`
 
-The project's source transcript, as editable segments.
+The project's source transcript, as editable segments. Available once the project is `ready`.
 
 `GET /v1/dubbing/project/{project_id}/transcript`
 
@@ -2907,7 +2930,7 @@ The project's source transcript, as editable segments.
 
 #### `elevenlabs dubbing project transcript update-segment`
 
-Enterprise only. Edit a source segment's text, speaker, or timing.
+Enterprise only. Edit a source segment's text, speaker, or timing. Omitted fields are left unchanged. Bumps the project's `revision`, discards the affected translations in every language target, and marks any target that had already completed `stale`. No audio changes until you regenerate a target.
 
 `PATCH /v1/dubbing/project/{project_id}/transcript/segment/{segment_id}`
 
@@ -2920,7 +2943,7 @@ Enterprise only. Edit a source segment's text, speaker, or timing.
 
 #### `elevenlabs dubbing project transcript update-segments`
 
-Enterprise only. Edit several source segments' text, speaker, or timing in one atomic request.
+Enterprise only. Edit several source segments' text, speaker, or timing in one atomic request: every edit applies or none does. Bumps the project's `revision`, discards the affected translations in every language target, and marks any target that had already completed `stale`. No audio changes until you regenerate a target.
 
 `PATCH /v1/dubbing/project/{project_id}/transcript/segments`
 

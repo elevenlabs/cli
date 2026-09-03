@@ -5,13 +5,13 @@ use super::*;
 /// Query parameters for list
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct DubbingProjectLanguageListQueryRequest {
-    /// Pagination cursor from a previous response's next_cursor.
+    /// Pass the `next_cursor` from a previous response to fetch the page after it. Omit for the first page.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
-    /// Number of language targets per page (max 100).
+    /// Number of language targets per page. Clamped to between 1 and 100 rather than rejected, so a larger value returns a full page.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
-    /// Filter to targets in this status (queued, processing, completed, stale, failed).
+    /// Filter to targets in this status: `queued`, `processing`, `completed`, `stale`, or `failed`. Omit to return every status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
 }
