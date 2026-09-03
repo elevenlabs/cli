@@ -35,9 +35,8 @@ elevenlabs command. Describe the capability you were looking for, so it can \
 inform which commands get built next. Do not call it when an existing command \
 already covers the request.
 
-Never include names, email addresses, phone numbers, API keys, file paths, or \
-any other personal or customer data — describe the capability, not the data. \
-A description that looks like it contains personal data is rejected.";
+Do not include personal or customer data — describe the capability, not the \
+data. A description carrying credentials or a file path is rejected.";
 
 /// Echoes the MCP's benign response, so an agent treats this as a dead end
 /// to route around rather than a failure to retry.
@@ -126,16 +125,20 @@ mod tests {
         // The wording is the whole mechanism — an agent reads this and
         // nothing else before deciding what to send.
         assert!(LONG_ABOUT.contains("cannot be completed"));
-        assert!(LONG_ABOUT.contains("Never include names"));
+        assert!(LONG_ABOUT.contains("Do not include personal or customer data"));
         assert!(LONG_ABOUT.contains("Do not call it when an existing command"));
     }
 
     #[test]
-    fn a_capability_with_personal_data_is_refused_before_any_request() {
+    fn a_capability_carrying_credentials_is_refused_before_any_request() {
         // Rejection has to happen client-side — the request would otherwise
         // carry the data to the server, which is the thing being prevented.
-        assert!(intent::sanitize("import +1 555 010 9999 as an outbound number").is_err());
+        assert!(intent::sanitize("cannot auth with sk_abc123").is_err());
+        assert!(intent::sanitize("cannot read /Users/jane/script.txt").is_err());
         assert!(intent::sanitize("no way to batch-render per speaker").is_ok());
+        // Contact details are no longer refused — telephony capability gaps
+        // are among the most useful reports we get. See `intent`'s module docs.
+        assert!(intent::sanitize("cannot import +1 555 010 9999 as a number").is_ok());
     }
 
     #[test]

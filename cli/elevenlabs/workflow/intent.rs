@@ -16,8 +16,15 @@
 //! into, which means the framework accepts the flag but never sends it. A
 //! second, hidden, env-only parameter carries the value that *is* sent, and
 //! the only writer of that env var is [`resolve`] — which runs before clap
-//! parses anything and refuses to write a value that looks like personal
-//! data.
+//! parses anything and refuses to write a value carrying credentials or a
+//! filesystem path.
+//!
+//! Contact details (emails, phone numbers) are *not* refused. They were
+//! originally, and it cost too many legitimate intents: telephony and
+//! support workflows are a large slice of what the CLI does, and neither is
+//! describable without the identifier. The guidance still asks agents to
+//! leave them out, and the backend's ZRM/enterprise content gate still
+//! withholds free text wholesale for the workspaces that need that.
 //!
 //! Dropping is deliberately silent-ish: a rejected intent warns on stderr
 //! and the command proceeds normally. Telemetry must never be able to fail
@@ -73,8 +80,6 @@ pub enum DropReason {
     Empty,
     TooLong,
     ControlChars,
-    Email,
-    Phone,
     Secret,
     Path,
     UrlCredentials,
@@ -90,12 +95,6 @@ impl DropReason {
                 "it is longer than 500 characters — describe the goal in one sentence"
             }
             DropReason::ControlChars => "it contains line breaks or control characters",
-            DropReason::Email => {
-                "it looks like it contains an email address — describe the goal, not the data"
-            }
-            DropReason::Phone => {
-                "it looks like it contains a phone number — describe the goal, not the data"
-            }
             DropReason::Secret => {
                 "it looks like it contains an API key or token — never include credentials"
             }
@@ -122,6 +121,10 @@ impl std::fmt::Display for DropReason {
 /// Pure: no env, no I/O. The same checks run again server-side — a client
 /// -side filter is a nudge, not a boundary — but doing it here means the
 /// data never leaves the machine and the agent gets told why.
+///
+/// Scope is deliberately narrow: credentials, filesystem paths, and shape
+/// (length, control characters). Contact details are not refused — see the
+/// module docs.
 pub fn sanitize(raw: &str) -> Result<String, DropReason> {
     let text = raw.trim();
     if text.is_empty() {
@@ -133,9 +136,6 @@ pub fn sanitize(raw: &str) -> Result<String, DropReason> {
     if text.chars().any(char::is_control) {
         return Err(DropReason::ControlChars);
     }
-    if contains_email(text) {
-        return Err(DropReason::Email);
-    }
     if contains_url_credentials(text) {
         return Err(DropReason::UrlCredentials);
     }
@@ -144,9 +144,6 @@ pub fn sanitize(raw: &str) -> Result<String, DropReason> {
     }
     if contains_absolute_path(text) {
         return Err(DropReason::Path);
-    }
-    if contains_phone(text) {
-        return Err(DropReason::Phone);
     }
     Ok(text.to_string())
 }
@@ -160,25 +157,6 @@ pub fn encode_header(clean: &str) -> Result<String, DropReason> {
         return Err(DropReason::TooLong);
     }
     Ok(encoded)
-}
-
-/// `local@domain.tld` inside any whitespace-delimited token.
-fn contains_email(text: &str) -> bool {
-    text.split_whitespace().any(|token| {
-        // Strip punctuation an agent would naturally write around it.
-        let token = token.trim_matches(|c: char| matches!(c, '(' | ')' | '<' | '>' | ',' | ';' | '"' | '\''));
-        let Some((local, domain)) = token.split_once('@') else {
-            return false;
-        };
-        if local.is_empty() || !local.chars().any(|c| c.is_ascii_alphanumeric()) {
-            return false;
-        }
-        let domain = domain.trim_end_matches('.');
-        let Some((host, tld)) = domain.rsplit_once('.') else {
-            return false;
-        };
-        !host.is_empty() && tld.len() >= 2 && tld.chars().all(|c| c.is_ascii_alphabetic())
-    })
 }
 
 /// `scheme://user:pass@host`.
@@ -251,67 +229,6 @@ fn contains_absolute_path(text: &str) -> bool {
             // case where the letter starts the string.
             && (i < 2 || !bytes[i - 2].is_ascii_alphanumeric())
     })
-}
-
-/// Phone-shaped digit runs. Three narrow rules rather than one broad one,
-/// because the false positives worth avoiding are dates and version
-/// numbers, which agents write constantly.
-fn contains_phone(text: &str) -> bool {
-    let chars: Vec<char> = text.chars().collect();
-
-    // (a) E.164: `+` then at least 10 digits, ignoring spaces/dashes/parens.
-    for (i, c) in chars.iter().enumerate() {
-        if *c != '+' {
-            continue;
-        }
-        let mut digits = 0usize;
-        for c in &chars[i + 1..] {
-            if c.is_ascii_digit() {
-                digits += 1;
-            } else if matches!(c, ' ' | '-' | '(' | ')' | '.') {
-                continue;
-            } else {
-                break;
-            }
-        }
-        if digits >= 10 {
-            return true;
-        }
-    }
-
-    // (b) A bare run of 9+ digits. Long enough that dates and ports do not
-    //     reach it; anything that does is an identifier we would rather not
-    //     collect.
-    let mut run = 0usize;
-    for c in &chars {
-        if c.is_ascii_digit() {
-            run += 1;
-            if run >= 9 {
-                return true;
-            }
-        } else {
-            run = 0;
-        }
-    }
-
-    // (c) Separated shapes like `555-010-9999` or `(555) 010 9999`: 10+
-    //     digits joined only by phone separators. `:` and `/` break the run,
-    //     which is what keeps `2026-08-25 14:30` and `25/08/2026` out.
-    let mut digits = 0usize;
-    for c in &chars {
-        if c.is_ascii_digit() {
-            digits += 1;
-            if digits >= 10 {
-                return true;
-            }
-        } else if matches!(c, ' ' | '-' | '(' | ')' | '.') {
-            continue;
-        } else {
-            digits = 0;
-        }
-    }
-
-    false
 }
 
 // ── Resolution ──────────────────────────────────────────────────────
@@ -394,9 +311,9 @@ pub fn resolved_encoded() -> Option<String> {
 // ── Registration ────────────────────────────────────────────────────
 
 const INTENT_HELP: &str = "Optional. Why are you running this command? Briefly describe the \
-     user's goal in one sentence (max 500 characters). Never include names, email addresses, \
-     phone numbers, API keys, file paths, or any other personal or customer data — describe \
-     the goal, not the data. Values that look like personal data are dropped with a warning.";
+     user's goal in one sentence (max 500 characters). Do not include personal or customer \
+     data — describe the goal, not the data. Values carrying credentials or file paths are \
+     dropped with a warning.";
 
 /// Register the intent parameters and resolve the value.
 ///
@@ -518,24 +435,30 @@ mod tests {
     }
 
     #[test]
-    fn rejects_email_addresses() {
-        assert_eq!(
-            sanitize("send the render to jane.doe@example.com"),
-            Err(DropReason::Email)
-        );
-        assert_eq!(sanitize("cc (bob@corp.co.uk)"), Err(DropReason::Email));
-        // A bare @mention is not an address.
-        assert!(sanitize("ask @support about the quota").is_ok());
+    fn contact_details_are_no_longer_dropped() {
+        // Email and phone detection was deliberately removed: it cost real
+        // intents (support workflows and telephony agents are a large slice
+        // of what the CLI is used for, and both are unusable to describe
+        // without the identifier). The instructions still ask agents not to
+        // include them, and the backend's ZRM/enterprise content gate still
+        // applies — enforcement is what relaxed, not the guidance.
+        assert!(sanitize("send the render to jane.doe@example.com").is_ok());
+        assert!(sanitize("assign +1 555 010 9999 to the outbound agent").is_ok());
+        assert!(sanitize("dial 555-010-9999 next").is_ok());
+        assert!(sanitize("import 07700900123 as a Twilio number").is_ok());
     }
 
     #[test]
-    fn rejects_phone_numbers() {
+    fn credentials_and_paths_are_still_dropped() {
+        // Relaxing contact details must not quietly relax the rest.
         assert_eq!(
-            sanitize("assign +1 555 010 9999 to the outbound agent"),
-            Err(DropReason::Phone)
+            sanitize("call +1 555 010 9999 using sk_abc123"),
+            Err(DropReason::Secret)
         );
-        assert_eq!(sanitize("dial 555-010-9999 next"), Err(DropReason::Phone));
-        assert_eq!(sanitize("number 07700900123 please"), Err(DropReason::Phone));
+        assert_eq!(
+            sanitize("mail jane@example.com the file at /Users/jane/a.json"),
+            Err(DropReason::Path)
+        );
     }
 
     #[test]
@@ -663,7 +586,7 @@ mod tests {
     #[test]
     fn a_rejected_value_exports_nothing() {
         with_env(|| {
-            assert_eq!(resolve_with(Some("call +1 555 010 9999".to_string())), None);
+            assert_eq!(resolve_with(Some("auth with sk_abc123".to_string())), None);
             assert!(
                 std::env::var(CHECKED_ENV).is_err(),
                 "a dropped intent must not reach the wire"

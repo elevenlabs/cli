@@ -323,17 +323,21 @@ elevenlabs feedback missing-capability \
   "no way to batch-render a script to separate files per speaker"
 ```
 
-#### Never put personal data in either field
+#### Keep personal data out of both fields
 
-Describe the *goal*, not the data. No names, email addresses, phone numbers, API
-keys, absolute file paths, or customer content. Resource ids (`agent_01jz…`) and
-project-relative paths are fine.
+Describe the *goal*, not the data. Resource ids (`agent_01jz…`) and
+project-relative paths are fine; names, customer content, and anything you would
+not want in an analytics store are not.
 
-The CLI enforces this rather than trusting it. A value longer than 500
-characters, or one that looks like it contains personal data, is dropped before
-the request is built — `--intent` warns on stderr and the command proceeds
-normally, while `feedback` fails so you can rewrite it. Free text is also
-withheld server-side for zero-retention and enterprise workspaces.
+Two of those are enforced rather than trusted. A value longer than 500
+characters, or one carrying credentials or an absolute file path, is dropped
+before the request is built — `--intent` warns on stderr and the command
+proceeds normally, while `feedback` fails so you can rewrite it. The rest is
+guidance: contact details are deliberately not filtered, because telephony and
+support capability gaps cannot be described without them.
+
+Free text is withheld entirely server-side for zero-retention and enterprise
+workspaces, which is the boundary that actually holds.
 
 ### Output formats
 
