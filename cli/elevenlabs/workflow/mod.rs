@@ -16,6 +16,8 @@ use fern_cli_sdk::app::CliApp;
 mod agents;
 mod api;
 mod components;
+mod feedback;
+mod intent;
 mod project;
 mod residency;
 mod settings;
@@ -27,10 +29,15 @@ mod verify;
 
 /// Register every custom command group on the CLI app builder.
 pub fn register(app: CliApp) -> CliApp {
+    // First: `intent::register` resolves the agent-supplied intent from argv
+    // and the environment, which has to happen before `CliApp::run` parses
+    // anything (see that module's docs).
+    let app = intent::register(app);
     let app = agents::register(app);
     let app = templates::register(app);
     let app = tools::register(app);
     let app = tests::register(app);
     let app = residency::register(app);
+    let app = feedback::register(app);
     components::register(app)
 }

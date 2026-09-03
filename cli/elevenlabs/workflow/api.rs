@@ -108,6 +108,14 @@ fn request_options() -> Option<RequestOptions> {
     let mut opts = RequestOptions::new();
     opts.additional_headers
         .insert("X-Source".to_string(), X_SOURCE.to_string());
+    // The generated `<resource> <method>` commands get this header from the
+    // framework's global-parameter injection; hand-written commands go
+    // through the SDK executor instead, which that injection does not
+    // reach, so add it here. Already sanitised and percent-encoded.
+    if let Some(encoded) = super::intent::resolved_encoded() {
+        opts.additional_headers
+            .insert(super::intent::INTENT_HEADER.to_string(), encoded);
+    }
     Some(opts)
 }
 
@@ -156,7 +164,7 @@ fn api_error_message(body: &Value) -> String {
 /// a 401 surfaced as "No agents found in your ElevenLabs workspace" with exit
 /// code 0 — a wrong answer reported as success. `execute_request_raw` hands
 /// back the status alongside the body, so we can judge it here.
-fn raw_request(
+pub(super) fn raw_request(
     ctx: &AppContext,
     method: Method,
     path: &str,

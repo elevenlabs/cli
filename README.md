@@ -22,6 +22,7 @@ The CLI does two things:
 - [Advanced](#advanced)
   - [Common flags](#common-flags)
   - [Environment variables](#environment-variables)
+  - [Telling us what you are doing](#telling-us-what-you-are-doing)
   - [Output formats](#output-formats)
   - [Shell completion](#shell-completion)
 - [Development](#development)
@@ -283,6 +284,7 @@ These flags are available on every operation:
 | `--page-all` | Auto-paginate and stream results as NDJSON |
 | `--page-limit <N>` | Max pages to fetch when auto-paginating (default `10`) |
 | `-q, --quiet` | Suppress stdout output on success (errors still go to stderr) |
+| `--intent <TEXT>` | Optional one-sentence description of what you are trying to do (see [Telling us what you are doing](#telling-us-what-you-are-doing)) |
 
 ### Environment variables
 
@@ -293,8 +295,45 @@ These flags are available on every operation:
 | `ELEVENLABS_INSECURE=1` | Skip TLS verification (debugging only) |
 | `ELEVENLABS_PROXY` | HTTP(S) proxy URL |
 | `ELEVENLABS_TIMEOUT_SECS` | Total request timeout in seconds |
+| `ELEVENLABS_AGENT_INTENT` | Default value for `--intent`, applied to every command |
 
 Standard environment variables (`HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` / `SSL_CERT_FILE`) are also honored.
+
+### Telling us what you are doing
+
+Most `elevenlabs` traffic comes from AI agents. Two optional inputs let an agent
+say what it is doing and what it could not do, which is what tells us which
+commands to build next. Both are opt-in; the CLI behaves identically without them.
+
+**`--intent`** — why this command is running. Sent as an `X-Agent-Intent`
+request header.
+
+```bash
+elevenlabs voices search --intent "pick a narrator voice for an audiobook"
+
+# Or set it once for a whole task, so every command inherits it:
+export ELEVENLABS_AGENT_INTENT="migrate the support bot to eleven_turbo_v2"
+```
+
+**`elevenlabs feedback missing-capability`** — you needed something the CLI does
+not do. There is no request to attach that to, so it gets its own command:
+
+```bash
+elevenlabs feedback missing-capability \
+  "no way to batch-render a script to separate files per speaker"
+```
+
+#### Never put personal data in either field
+
+Describe the *goal*, not the data. No names, email addresses, phone numbers, API
+keys, absolute file paths, or customer content. Resource ids (`agent_01jz…`) and
+project-relative paths are fine.
+
+The CLI enforces this rather than trusting it. A value longer than 500
+characters, or one that looks like it contains personal data, is dropped before
+the request is built — `--intent` warns on stderr and the command proceeds
+normally, while `feedback` fails so you can rewrite it. Free text is also
+withheld server-side for zero-retention and enterprise workspaces.
 
 ### Output formats
 
