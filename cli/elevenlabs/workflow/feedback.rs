@@ -20,11 +20,15 @@ use serde_json::{json, Value};
 use super::util::{downcast_ctx, dry_run_flag};
 use super::{api, intent};
 
-/// First-party endpoint for CLI feedback. Deliberately absent from the
-/// public OpenAPI spec — it is reached through [`api::raw_request`] and is
-/// not an API we want the SDKs to generate clients for. Relative, matching
-/// the generated SDK's convention.
-const FEEDBACK_PATH: &str = "v1/cli/feedback";
+/// First-party endpoint for CLI feedback. Sits under the existing
+/// `/v1/feedback` root resource, and names the client rather than the
+/// resource on purpose: it is absent from the public OpenAPI spec, reached
+/// only through [`api::raw_request`], and no SDK generates against it, so
+/// naming the one caller is worth more than resource purity. The `kind`
+/// field in the body discriminates report types within it.
+///
+/// Relative, matching the generated SDK's convention.
+const FEEDBACK_PATH: &str = "v1/feedback/cli";
 
 /// Mirrors the MCP's `get_more_tools` description, which is the wording
 /// that demonstrably gets agents to call it, plus the PII sentence the MCP
