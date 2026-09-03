@@ -7,30 +7,30 @@ pub struct DubbingProjectResponse {
     /// Unique identifier of the dubbing project.
     #[serde(default)]
     pub project_id: String,
-    /// Lifecycle status of the project: 'preparing'/'processing' while it transcribes, 'ready' once transcription is done, or 'failed'.
+    /// Lifecycle status of the project: `queued` before the source is picked up, `preparing` while it is transcribed, `ready` once transcription is done and language targets can start, or `failed`. A project is never reported as `processing` — that value belongs to language targets.
     pub status: DubbingProjectResponseStatus,
-    /// Optional free-form string the customer can provide to identify the project on their end.
+    /// The free-form string you supplied as `reference` when creating the project, or null if you supplied none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
     /// BCP-47 language tag of the source media (null if auto-detected).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_language: Option<String>,
-    /// Default dubbing model id applied to this project's language targets.
+    /// Dubbing model every language target of this project is dubbed with. Fixed at create time and not selectable per language.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<String>,
-    /// Source media metadata; null until the project is ready.
+    /// Source media metadata, populated once the source has been fetched and decoded (shortly after create, before the project is `ready`); null until then.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media: Option<DubbingSourceMediaInfo>,
-    /// Identifiers of the language targets created under this project.
+    /// Identifiers of the language targets under this project. Populated when a single project is fetched, and on create when `target_language` creates one. Always empty in list responses — list the project's language targets instead.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_ids: Option<Vec<String>>,
-    /// Workspace webhooks notified when this project becomes ready or fails, and when any of its languages completes or fails.
+    /// IDs of the workspace webhooks notified as this project and its languages reach `ready`, `completed`, or `failed`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webhook_ids: Option<Vec<String>>,
     /// Monotonic counter incremented whenever the source transcript is edited (segment add/edit/delete).
     #[serde(default)]
     pub revision: i64,
-    /// Why the project failed; null unless `status` is 'failed'. Also null for the few projects that failed before failure reporting was introduced.
+    /// Why the project failed; null unless `status` is `failed`. Also null for the few projects that failed before failure reporting was introduced.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<DubbingError>,
     /// Non-fatal conditions raised while preparing the source, empty when there are none. Reflects the latest preparation. Conditions raised while dubbing a particular language are reported on that language instead.

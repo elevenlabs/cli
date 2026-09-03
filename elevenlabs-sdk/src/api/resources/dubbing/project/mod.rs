@@ -21,14 +21,14 @@ impl ProjectClient {
         })
     }
 
-    /// List the workspace's dubbing projects (cursor-paginated).
+    /// List the dubbing projects in your workspace that you can access, newest first, cursor-paginated. Listed projects carry no `language_ids`; fetch a project, or list its language targets, to see them.
     ///
     /// # Arguments
     ///
-    /// * `cursor` - Pagination cursor from a previous response's next_cursor.
-    /// * `page_size` - Number of projects per page (max 100).
-    /// * `status` - Filter to projects in this status (preparing, ready, failed).
-    /// * `sort_direction` - Sort by creation time (default 'DESCENDING').
+    /// * `cursor` - Pass the `next_cursor` from a previous response to fetch the page after it. Omit for the first page.
+    /// * `page_size` - Number of projects per page. Clamped to between 1 and 100 rather than rejected, so a larger value returns a full page.
+    /// * `status` - Filter to projects in this status: `queued`, `preparing`, `ready`, or `failed`. Omit to return every status.
+    /// * `sort_direction` - Sort by creation time; newest first by default.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -80,7 +80,11 @@ impl ProjectClient {
             .await
     }
 
-    /// Create a dubbing project from an uploaded file or a source URL.
+    /// Create a dubbing project from an uploaded file (`file`) or a source URL (`source_url`).
+    ///
+    /// Returns as soon as the project record exists, before the source has been fetched: the project starts `queued` and reaches `ready` once its source has been transcribed. Creating a project does not dub anything — add a language target to it for each language you want, or pass `target_language` to queue the first one here.
+    ///
+    /// Preparation can take minutes on a long source, so we recommend passing `webhook_ids` to be notified when the project turns `ready` or `failed`, rather than polling for it.
     ///
     /// # Arguments
     ///
@@ -137,7 +141,7 @@ impl ProjectClient {
             .await
     }
 
-    /// Full project detail, including its language target ids.
+    /// Full project detail, including the IDs of every language target under it. To follow a project to `ready`, we recommend a `webhook_ids` subscription rather than polling this endpoint.
     ///
     /// # Arguments
     ///
@@ -182,7 +186,7 @@ impl ProjectClient {
             .await
     }
 
-    /// Delete a project and its language targets.
+    /// Delete a project, every language target under it, and their stored media and outputs. This cannot be undone, and a dub already running is still billed.
     ///
     /// # Arguments
     ///

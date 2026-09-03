@@ -142,6 +142,119 @@ impl TriageTicketsClient {
             .await
     }
 
+    /// List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller); for a single agent's tickets, use the per-agent endpoint instead. Tickets for agents the caller cannot access are omitted.
+    ///
+    /// # Arguments
+    ///
+    /// * `page_size` - How many agent conversation tickets to return. Can not exceed 100.
+    /// * `status` - Filter tickets by status.
+    /// * `assignee_user_id` - Filter tickets by assignee. Use 'unassigned' for tickets with no assignee.
+    /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .triage_tickets
+    ///         .list_for_workspace(
+    ///             &ListForWorkspaceQueryRequest {
+    ///                 page_size: Some(1),
+    ///                 status: Some(AgentConversationTicketStatus::Open),
+    ///                 assignee_user_id: Some("assignee_user_id".to_string()),
+    ///                 cursor: Some("cursor".to_string()),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn list_for_workspace(
+        &self,
+        request: &ListForWorkspaceQueryRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<GetAgentConversationTicketsPageResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::GET,
+                "v1/convai/triage-tickets",
+                None,
+                QueryBuilder::new()
+                    .int("page_size", request.page_size.clone())
+                    .serialize("status", request.status.clone())
+                    .string("assignee_user_id", request.assignee_user_id.clone())
+                    .string("cursor", request.cursor.clone())
+                    .build(),
+                options,
+            )
+            .await
+    }
+
+    /// Raise a ticket about an agent's performance on a conversation, for triage with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .triage_tickets
+    ///         .create(
+    ///             &CreateAgentConversationTicketRequestModel {
+    ///                 conversation_id: "conversation_id".to_string(),
+    ///                 qa_comment: None,
+    ///                 turn_comments: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn create(
+        &self,
+        request: &CreateAgentConversationTicketRequestModel,
+        options: Option<RequestOptions>,
+    ) -> Result<AgentConversationTicketResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                "v1/convai/triage-tickets",
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
     /// All non-service-account workspace members, each flagged with whether they currently have at least viewer access to the agent. Members without access are included (not filtered out) so the UI can offer them as an assignee and prompt to grant access first.
     ///
     /// # Arguments
@@ -321,57 +434,6 @@ impl TriageTicketsClient {
             .execute_request(
                 Method::PATCH,
                 &format!("v1/convai/triage-tickets/{}", agentqa_ticket_id),
-                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
-                None,
-                options,
-            )
-            .await
-    }
-
-    /// Raise a ticket about an agent's performance on a conversation, for triage with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
-    ///
-    /// # Arguments
-    ///
-    /// * `options` - Additional request options such as headers, timeout, etc.
-    ///
-    /// # Returns
-    ///
-    /// JSON response from the API
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use elevenlabs_sdk::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let config = ClientConfig {
-    ///         ..Default::default()
-    ///     };
-    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client
-    ///         .agents
-    ///         .triage_tickets
-    ///         .create(
-    ///             &CreateAgentConversationTicketRequestModel {
-    ///                 conversation_id: "conversation_id".to_string(),
-    ///                 qa_comment: None,
-    ///                 turn_comments: None,
-    ///             },
-    ///             None,
-    ///         )
-    ///         .await;
-    /// }
-    /// ```
-    pub async fn create(
-        &self,
-        request: &CreateAgentConversationTicketRequestModel,
-        options: Option<RequestOptions>,
-    ) -> Result<AgentConversationTicketResponseModel, ApiError> {
-        self.http_client
-            .execute_request(
-                Method::POST,
-                "v1/convai/triage-tickets",
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 None,
                 options,

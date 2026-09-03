@@ -47,7 +47,7 @@ impl SpeechToTextClient {
     ///                 token: Some("token".to_string()),
     ///                 enable_logging: Some(true),
     ///                 file: b"test file content".to_vec(),
-    ///                 model_id: SpeechToTextConvertRequestModelID::ScribeV2,
+    ///                 model_id: "model_id".to_string(),
     ///                 language_code: None,
     ///                 tag_audio_events: None,
     ///                 num_speakers: None,

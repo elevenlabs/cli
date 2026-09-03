@@ -4,13 +4,13 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BodyCreateDubbingLanguageTargetV1DubbingProjectProjectIdLanguagePost {
-    /// BCP-47 language tag to dub the project into (e.g. 'fr', 'es-MX'); must be a language the dubbing model supports. A region-qualified tag must be one of the supported dialects.
+    /// BCP-47 language tag to dub the project into (for example, `fr` or `es-MX`). Must be one of the [languages the project's dubbing model supports](https://elevenlabs.io/docs/help-center/product/dubbing/which-languages-are-supported-in-dubbing), and a region-qualified tag must be one of the supported dialects.
     #[serde(default)]
     pub target_language: String,
-    /// Voice settings applied to the whole language (e.g. cloning strength).
+    /// Voice settings applied to every speaker in this language. Omit to use the defaults.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voice_settings: Option<VoiceSettings>,
-    /// Enterprise only. Optional translations to use instead of machine translation. A map from each source segment's external_id (or its id, if you supplied none) to the translated text; every source segment must be covered exactly once. At most 20000 entries, totalling at most 4 MiB of text.
+    /// Enterprise only. Optional translations to use instead of machine translation. A map from each source segment's `external_id` (or its `id`, if you supplied none) to the translated text; every source segment must be covered exactly once. At most 20,000 entries, totaling at most 4 MiB of text. See [Bring your own transcript](https://elevenlabs.io/docs/eleven-api/guides/how-to/dubbing/bring-your-own-transcript).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub translations: Option<HashMap<String, Option<String>>>,
 }

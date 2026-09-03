@@ -31,6 +31,9 @@ pub struct BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost
     /// Whether to return the timestamps of the words in the generated song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub with_timestamps: Option<bool>,
+    /// Whether to return the visual waveform of the generated song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub with_waveform_visual: Option<bool>,
     /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
     #[serde(skip)]
     pub output_format: Option<MusicComposeDetailedStreamRequestOutputFormat>,
@@ -54,6 +57,7 @@ pub struct BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost
     finetune_id: Option<String>,
     store_for_inpainting: Option<bool>,
     with_timestamps: Option<bool>,
+    with_waveform_visual: Option<bool>,
     output_format: Option<MusicComposeDetailedStreamRequestOutputFormat>,
 }
 
@@ -103,6 +107,11 @@ impl BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPostBuilde
         self
     }
 
+    pub fn with_waveform_visual(mut self, value: bool) -> Self {
+        self.with_waveform_visual = Some(value);
+        self
+    }
+
     pub fn output_format(mut self, value: MusicComposeDetailedStreamRequestOutputFormat) -> Self {
         self.output_format = Some(value);
         self
@@ -120,6 +129,7 @@ impl BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPostBuilde
             finetune_id: self.finetune_id,
             store_for_inpainting: self.store_for_inpainting,
             with_timestamps: self.with_timestamps,
+            with_waveform_visual: self.with_waveform_visual,
             output_format: self.output_format,
         })
     }

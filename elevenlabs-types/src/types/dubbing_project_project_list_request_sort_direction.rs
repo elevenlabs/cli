@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// Sort by creation time (default 'DESCENDING').
+/// Sort by creation time; newest first by default.
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ProjectListRequestSortDirection {

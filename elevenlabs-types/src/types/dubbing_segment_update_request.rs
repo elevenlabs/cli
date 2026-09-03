@@ -8,7 +8,7 @@ pub struct DubbingSegmentUpdateRequest {
     /// New text for the segment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
-    /// New speaker id for the segment.
+    /// New speaker ID for the segment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speaker_id: Option<String>,
     /// New start time, in seconds.

@@ -10,6 +10,9 @@ pub struct PhoneNumberTransfer {
     pub transfer_destination: PhoneNumberTransferTransferDestination,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transfer_type: Option<TransferTypeEnum>,
+    /// When True, a ringing tone is played on the original call leg while a SIP REFER transfer completes. The tone is carried over RTP to the SIP peer executing the REFER, so disable this if the receiving system (e.g. an SBC or contact center) should not hear it. When disabled the caller hears silence until the transfer completes. SIP REFER transfers only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sip_refer_play_dialtone: Option<bool>,
     /// User-to-User Information (RFC 7433) to attach to SIP REFER transfers. Carries call context such as CRM identifiers or escalation reason across the transfer boundary.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uui: Option<UuiTransferConfig>,
@@ -34,6 +37,7 @@ pub struct PhoneNumberTransferBuilder {
     custom_sip_headers: Option<Vec<PhoneNumberTransferCustomSipHeadersItem>>,
     transfer_destination: Option<PhoneNumberTransferTransferDestination>,
     transfer_type: Option<TransferTypeEnum>,
+    sip_refer_play_dialtone: Option<bool>,
     uui: Option<UuiTransferConfig>,
     post_dial_digits: Option<PhoneNumberTransferPostDialDigits>,
     phone_number: Option<String>,
@@ -53,6 +57,11 @@ impl PhoneNumberTransferBuilder {
 
     pub fn transfer_type(mut self, value: TransferTypeEnum) -> Self {
         self.transfer_type = Some(value);
+        self
+    }
+
+    pub fn sip_refer_play_dialtone(mut self, value: bool) -> Self {
+        self.sip_refer_play_dialtone = Some(value);
         self
     }
 
@@ -85,6 +94,7 @@ impl PhoneNumberTransferBuilder {
             custom_sip_headers: self.custom_sip_headers,
             transfer_destination: self.transfer_destination.ok_or_else(|| BuildError::missing_field("transfer_destination"))?,
             transfer_type: self.transfer_type,
+            sip_refer_play_dialtone: self.sip_refer_play_dialtone,
             uui: self.uui,
             post_dial_digits: self.post_dial_digits,
             phone_number: self.phone_number,
