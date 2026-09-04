@@ -21,6 +21,7 @@ mod intent;
 mod project;
 mod residency;
 mod settings;
+mod skills;
 mod templates;
 mod tests;
 mod tools;
@@ -39,5 +40,7 @@ pub fn register(app: CliApp) -> CliApp {
     let app = tests::register(app);
     let app = residency::register(app);
     let app = feedback::register(app);
+    // Shadows the framework's built-in; see that module's docs.
+    let app = skills::register(app);
     components::register(app)
 }
