@@ -18,6 +18,7 @@ mod api;
 mod components;
 mod project;
 mod residency;
+mod say;
 mod settings;
 mod templates;
 mod tests;
@@ -32,5 +33,6 @@ pub fn register(app: CliApp) -> CliApp {
     let app = tools::register(app);
     let app = tests::register(app);
     let app = residency::register(app);
+    let app = say::register(app);
     components::register(app)
 }

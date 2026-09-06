@@ -21,8 +21,9 @@ assets/
 # its test suite leaves untracked build artifacts.
 elevenlabs-types/.gitignore
 
-# Hand-written live E2E smoke test (tests/wire_test.rs next to it is generated).
+# Hand-written tests (tests/wire_test.rs next to them is generated).
 tests/e2e_smoke.rs
+tests/say_test.rs
 .fern/replay.lock
 .fern/replay.yml
 .gitattributes
