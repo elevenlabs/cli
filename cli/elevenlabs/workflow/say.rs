@@ -32,9 +32,12 @@ use super::settings;
 /// George — the voice the co-generated SDK uses in its own doctests, so a
 /// first run with no config still produces something sensible.
 const DEFAULT_VOICE_ID: &str = "JBFqnCBsd6RMkjVDRZzb";
-/// Latency beats fidelity for a terminal one-liner. `eleven_multilingual_v2`
-/// is the quality swap: `elevenlabs say config model eleven_multilingual_v2`.
-const DEFAULT_MODEL_ID: &str = "eleven_flash_v2_5";
+/// The most expressive model, and the only family that honors audio tags
+/// (`[whispers]`, `[laughs]`) rather than reading them aloud as text. Costs
+/// roughly 0.8s more to first audio than `eleven_flash_v2_5`, which stays the
+/// swap when speed matters more than delivery:
+/// `elevenlabs say config model eleven_flash_v2_5`.
+const DEFAULT_MODEL_ID: &str = "eleven_v3";
 
 const MP3_FORMAT: &str = "mp3_44100_128";
 const WAV_FORMAT: &str = "wav_44100";

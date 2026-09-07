@@ -1,6 +1,6 @@
 ---
 name: elevenlabs-say
-description: Speak text aloud from the terminal with `elevenlabs say`. Use when asked to say/speak/read something out loud, announce or narrate a result, play text as audio, generate a quick voiceover or MP3 from text, or set a default voice/model/player for the CLI.
+description: Speak text aloud from the terminal with `elevenlabs say`. Use when asked to say/speak/read something out loud, announce or narrate a result, play text as audio, generate a quick voiceover or MP3 from text, make spoken output sound excited/whispered/emotional via v3 audio tags, or set a default voice/model/player for the CLI.
 ---
 
 # `elevenlabs say`
@@ -50,13 +50,13 @@ elevenlabs say config voice --unset                   # back to the built-in
 | Key | Config field | Built-in default |
 |---|---|---|
 | `voice` | `say.voice_id` | `JBFqnCBsd6RMkjVDRZzb` (George) |
-| `model` | `say.model_id` | `eleven_flash_v2_5` |
+| `model` | `say.model_id` | `eleven_v3` |
 | `output-format` | `say.output_format` | follows the player |
 | `player` | `say.player` | first one found on `PATH` |
 
-`eleven_flash_v2_5` is the low-latency model — the right default for a
-terminal one-liner. Switch to `eleven_multilingual_v2` when quality matters
-more than the first-audio delay.
+`eleven_v3` is the most expressive model and the only family that understands
+the audio tags below. `eleven_flash_v2_5` is the swap when latency matters
+more than delivery — roughly a second quicker to first audio.
 
 Find voice IDs with `elevenlabs voices search`, and model IDs with
 `elevenlabs models list`.
@@ -74,6 +74,37 @@ elevenlabs say "one off" \
 ```
 
 Precedence is always **flag > config file > built-in default**.
+
+## Audio tags (v3 only)
+
+`eleven_v3` reads inline square-bracket directions as stage directions rather
+than as words, which is what makes a line land as speech instead of narration:
+
+```bash
+elevenlabs say "[excited] The build passed!"
+elevenlabs say "[whispers] don't tell anyone [laughs]"
+elevenlabs say "[sarcastic] Oh, brilliant. [sighs]"
+```
+
+Three rough families:
+
+- **Delivery and emotion** — `[excited]`, `[curious]`, `[sarcastic]`,
+  `[whispers]`, `[mischievously]`, `[crying]`
+- **Non-verbal sounds** — `[laughs]`, `[laughs harder]`, `[starts laughing]`,
+  `[sighs]`, `[exhales]`, `[snorts]`
+- **Experimental** — `[strong French accent]`, `[sings]`, and effects such as
+  `[applause]` or `[gunshot]`
+
+Tags belong to the v3 family. On `eleven_flash_v2_5`, `eleven_turbo_v2_5` or
+`eleven_multilingual_v2` they are not directions — they get read out as
+literal text, so `[excited] hello` is spoken as the word "excited" followed by
+"hello".
+
+How well a tag lands depends on the voice: one whose training fights the
+direction (`[shout]` on a soft narrator) will ignore it, tags can be combined,
+and the experimental ones are worth trying before you depend on them.
+
+More information: <https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices#audio-tags>
 
 ## Saving instead of playing
 
