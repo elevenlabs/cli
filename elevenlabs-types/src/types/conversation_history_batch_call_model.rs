@@ -8,6 +8,8 @@ pub struct ConversationHistoryBatchCallModel {
     pub batch_call_id: String,
     #[serde(default)]
     pub batch_call_recipient_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub campaign: Option<BatchCallingCampaignInformation>,
 }
 
 impl ConversationHistoryBatchCallModel {
@@ -21,6 +23,7 @@ impl ConversationHistoryBatchCallModel {
 pub struct ConversationHistoryBatchCallModelBuilder {
     batch_call_id: Option<String>,
     batch_call_recipient_id: Option<String>,
+    campaign: Option<BatchCallingCampaignInformation>,
 }
 
 impl ConversationHistoryBatchCallModelBuilder {
@@ -34,6 +37,11 @@ impl ConversationHistoryBatchCallModelBuilder {
         self
     }
 
+    pub fn campaign(mut self, value: BatchCallingCampaignInformation) -> Self {
+        self.campaign = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationHistoryBatchCallModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`batch_call_id`](ConversationHistoryBatchCallModelBuilder::batch_call_id)
@@ -42,6 +50,7 @@ impl ConversationHistoryBatchCallModelBuilder {
         Ok(ConversationHistoryBatchCallModel {
             batch_call_id: self.batch_call_id.ok_or_else(|| BuildError::missing_field("batch_call_id"))?,
             batch_call_recipient_id: self.batch_call_recipient_id.ok_or_else(|| BuildError::missing_field("batch_call_recipient_id"))?,
+            campaign: self.campaign,
         })
     }
 }

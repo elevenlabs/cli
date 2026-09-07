@@ -34,6 +34,9 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
     /// Whether to return the timestamps of the words in the generated song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub with_timestamps: Option<bool>,
+    /// Whether to return the visual waveform of the generated song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub with_waveform_visual: Option<bool>,
     /// Whether to sign the generated song with C2PA. Applicable only for mp3 files.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sign_with_c2pa: Option<bool>,
@@ -61,6 +64,7 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
     respect_sections_durations: Option<bool>,
     store_for_inpainting: Option<bool>,
     with_timestamps: Option<bool>,
+    with_waveform_visual: Option<bool>,
     sign_with_c2pa: Option<bool>,
     output_format: Option<MusicComposeDetailedRequestOutputFormat>,
 }
@@ -116,6 +120,11 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
         self
     }
 
+    pub fn with_waveform_visual(mut self, value: bool) -> Self {
+        self.with_waveform_visual = Some(value);
+        self
+    }
+
     pub fn sign_with_c2pa(mut self, value: bool) -> Self {
         self.sign_with_c2pa = Some(value);
         self
@@ -139,6 +148,7 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
             respect_sections_durations: self.respect_sections_durations,
             store_for_inpainting: self.store_for_inpainting,
             with_timestamps: self.with_timestamps,
+            with_waveform_visual: self.with_waveform_visual,
             sign_with_c2pa: self.sign_with_c2pa,
             output_format: self.output_format,
         })

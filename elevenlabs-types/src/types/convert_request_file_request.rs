@@ -4,7 +4,8 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ConvertRequest3 {
-    pub model_id: SpeechToTextConvertRequestModelId,
+    #[serde(default)]
+    pub model_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(with = "crate::core::base64_bytes::option")]
@@ -240,7 +241,7 @@ impl ConvertRequest3 {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct ConvertRequest3Builder {
-    model_id: Option<SpeechToTextConvertRequestModelId>,
+    model_id: Option<String>,
     file: Option<Vec<u8>>,
     language_code: Option<String>,
     tag_audio_events: Option<bool>,
@@ -271,8 +272,8 @@ pub struct ConvertRequest3Builder {
 }
 
 impl ConvertRequest3Builder {
-    pub fn model_id(mut self, value: SpeechToTextConvertRequestModelId) -> Self {
-        self.model_id = Some(value);
+    pub fn model_id(mut self, value: impl Into<String>) -> Self {
+        self.model_id = Some(value.into());
         self
     }
 

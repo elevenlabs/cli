@@ -34,6 +34,12 @@ pub struct AgentBranchSummary {
     /// Whether a draft exists for the branch
     #[serde(skip_serializing_if = "Option::is_none")]
     pub draft_exists: Option<bool>,
+    /// Unix seconds when the caller's draft on this branch was first created, or null when they have no draft. A draft created before last_committed_at was written against a config the branch has since moved past, so it may not reflect the current one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft_created_at: Option<i64>,
+    /// Whether the caller's draft on this branch was created before the branch's last commit, meaning it was written against a config the branch has since moved past and may not reflect the current one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft_is_behind_tip: Option<bool>,
     /// Number of calls in the last 7 days
     #[serde(rename = "calls_7d")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,6 +76,8 @@ pub struct AgentBranchSummaryBuilder {
     current_live_percentage: Option<f64>,
     parent_branch_id: Option<String>,
     draft_exists: Option<bool>,
+    draft_created_at: Option<i64>,
+    draft_is_behind_tip: Option<bool>,
     calls7d: Option<i64>,
     commits_ahead: Option<i64>,
     commits_behind: Option<i64>,
@@ -137,6 +145,16 @@ impl AgentBranchSummaryBuilder {
         self
     }
 
+    pub fn draft_created_at(mut self, value: i64) -> Self {
+        self.draft_created_at = Some(value);
+        self
+    }
+
+    pub fn draft_is_behind_tip(mut self, value: bool) -> Self {
+        self.draft_is_behind_tip = Some(value);
+        self
+    }
+
     pub fn calls7d(mut self, value: i64) -> Self {
         self.calls7d = Some(value);
         self
@@ -180,6 +198,8 @@ impl AgentBranchSummaryBuilder {
             current_live_percentage: self.current_live_percentage,
             parent_branch_id: self.parent_branch_id,
             draft_exists: self.draft_exists,
+            draft_created_at: self.draft_created_at,
+            draft_is_behind_tip: self.draft_is_behind_tip,
             calls7d: self.calls7d,
             commits_ahead: self.commits_ahead,
             commits_behind: self.commits_behind,

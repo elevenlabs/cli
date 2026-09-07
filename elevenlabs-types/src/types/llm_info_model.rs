@@ -3,7 +3,7 @@ pub use crate::prelude::*;
 use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LlmInfoModelOutput {
+pub struct LlmInfoModel {
     /// The model identifier.
     pub llm: Llm,
     /// Whether this is a pinned checkpoint version of a model rather than a top-level alias.
@@ -35,15 +35,15 @@ pub struct LlmInfoModelOutput {
     pub regional_processing_surcharge: Option<RegionalProcessingSurchargeInfo>,
 }
 
-impl LlmInfoModelOutput {
-    pub fn builder() -> LlmInfoModelOutputBuilder {
-        <LlmInfoModelOutputBuilder as Default>::default()
+impl LlmInfoModel {
+    pub fn builder() -> LlmInfoModelBuilder {
+        <LlmInfoModelBuilder as Default>::default()
     }
 }
 
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
-pub struct LlmInfoModelOutputBuilder {
+pub struct LlmInfoModelBuilder {
     llm: Option<Llm>,
     is_checkpoint: Option<bool>,
     max_tokens_limit: Option<i64>,
@@ -56,7 +56,7 @@ pub struct LlmInfoModelOutputBuilder {
     regional_processing_surcharge: Option<RegionalProcessingSurchargeInfo>,
 }
 
-impl LlmInfoModelOutputBuilder {
+impl LlmInfoModelBuilder {
     pub fn llm(mut self, value: Llm) -> Self {
         self.llm = Some(value);
         self
@@ -107,17 +107,17 @@ impl LlmInfoModelOutputBuilder {
         self
     }
 
-    /// Consumes the builder and constructs a [`LlmInfoModelOutput`].
+    /// Consumes the builder and constructs a [`LlmInfoModel`].
     /// This method will fail if any of the following fields are not set:
-    /// - [`llm`](LlmInfoModelOutputBuilder::llm)
-    /// - [`is_checkpoint`](LlmInfoModelOutputBuilder::is_checkpoint)
-    /// - [`max_tokens_limit`](LlmInfoModelOutputBuilder::max_tokens_limit)
-    /// - [`max_context_limit`](LlmInfoModelOutputBuilder::max_context_limit)
-    /// - [`supports_image_input`](LlmInfoModelOutputBuilder::supports_image_input)
-    /// - [`supports_document_input`](LlmInfoModelOutputBuilder::supports_document_input)
-    /// - [`supports_parallel_tool_calls`](LlmInfoModelOutputBuilder::supports_parallel_tool_calls)
-    pub fn build(self) -> Result<LlmInfoModelOutput, BuildError> {
-        Ok(LlmInfoModelOutput {
+    /// - [`llm`](LlmInfoModelBuilder::llm)
+    /// - [`is_checkpoint`](LlmInfoModelBuilder::is_checkpoint)
+    /// - [`max_tokens_limit`](LlmInfoModelBuilder::max_tokens_limit)
+    /// - [`max_context_limit`](LlmInfoModelBuilder::max_context_limit)
+    /// - [`supports_image_input`](LlmInfoModelBuilder::supports_image_input)
+    /// - [`supports_document_input`](LlmInfoModelBuilder::supports_document_input)
+    /// - [`supports_parallel_tool_calls`](LlmInfoModelBuilder::supports_parallel_tool_calls)
+    pub fn build(self) -> Result<LlmInfoModel, BuildError> {
+        Ok(LlmInfoModel {
             llm: self.llm.ok_or_else(|| BuildError::missing_field("llm"))?,
             is_checkpoint: self.is_checkpoint.ok_or_else(|| BuildError::missing_field("is_checkpoint"))?,
             max_tokens_limit: self.max_tokens_limit.ok_or_else(|| BuildError::missing_field("max_tokens_limit"))?,

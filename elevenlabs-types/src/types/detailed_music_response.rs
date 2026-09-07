@@ -13,6 +13,9 @@ pub struct DetailedMusicResponse {
     /// The timestamps of the words in the generated song
     #[serde(skip_serializing_if = "Option::is_none")]
     pub words_timestamps: Option<Vec<WordTimestamp>>,
+    /// A low-resolution waveform of the generated song, for showing a preview of it. Holds 4 values per second of audio, from -1000 to 1000. Stereo is mixed down to a single channel. Only present if `with_waveform_visual` was True in the request body.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub waveform_visual: Option<Vec<i64>>,
 }
 
 impl DetailedMusicResponse {
@@ -27,6 +30,7 @@ pub struct DetailedMusicResponseBuilder {
     composition_plan: Option<DetailedMusicResponseCompositionPlan>,
     song_metadata: Option<SongMetadata>,
     words_timestamps: Option<Vec<WordTimestamp>>,
+    waveform_visual: Option<Vec<i64>>,
 }
 
 impl DetailedMusicResponseBuilder {
@@ -45,6 +49,11 @@ impl DetailedMusicResponseBuilder {
         self
     }
 
+    pub fn waveform_visual(mut self, value: Vec<i64>) -> Self {
+        self.waveform_visual = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`DetailedMusicResponse`].
     /// This method will fail if any of the following fields are not set:
     /// - [`composition_plan`](DetailedMusicResponseBuilder::composition_plan)
@@ -54,6 +63,7 @@ impl DetailedMusicResponseBuilder {
             composition_plan: self.composition_plan.ok_or_else(|| BuildError::missing_field("composition_plan"))?,
             song_metadata: self.song_metadata.ok_or_else(|| BuildError::missing_field("song_metadata"))?,
             words_timestamps: self.words_timestamps,
+            waveform_visual: self.waveform_visual,
         })
     }
 }

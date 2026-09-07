@@ -16,8 +16,8 @@ pub enum SystemToolConfigInputParams {
         #[serde(rename = "end_procedure")]
         #[non_exhaustive]
         EndProcedure {
-            #[serde(skip_serializing_if = "Option::is_none")]
-            procedures: Option<HashMap<String, ProcedureAtVersionInput>>,
+            #[serde(flatten)]
+            data: EndProcedureToolConfig,
         },
 
         #[serde(rename = "knowledge_base")]
@@ -48,13 +48,6 @@ pub enum SystemToolConfigInputParams {
             data: PlayDtmfToolConfig,
         },
 
-        #[serde(rename = "run_subagent")]
-        #[non_exhaustive]
-        RunSubagent {
-            #[serde(default)]
-            agents: Vec<SubAgentInput>,
-        },
-
         #[serde(rename = "skip_turn")]
         #[non_exhaustive]
         SkipTurn {
@@ -65,8 +58,8 @@ pub enum SystemToolConfigInputParams {
         #[serde(rename = "start_procedure")]
         #[non_exhaustive]
         StartProcedure {
-            #[serde(skip_serializing_if = "Option::is_none")]
-            procedures: Option<HashMap<String, ProcedureAtVersionInput>>,
+            #[serde(flatten)]
+            data: StartProcedureToolConfig,
         },
 
         #[serde(rename = "transfer_to_agent")]
@@ -104,8 +97,8 @@ impl SystemToolConfigInputParams {
         Self::EndCall { data }
     }
 
-    pub fn end_procedure() -> Self {
-        Self::EndProcedure { procedures: None }
+    pub fn end_procedure(data: EndProcedureToolConfig) -> Self {
+        Self::EndProcedure { data }
     }
 
     pub fn knowledge_base(data: KnowledgeBaseToolConfig) -> Self {
@@ -124,16 +117,12 @@ impl SystemToolConfigInputParams {
         Self::PlayKeypadTouchTone { data }
     }
 
-    pub fn run_subagent(agents: Vec<SubAgentInput>) -> Self {
-        Self::RunSubagent { agents }
-    }
-
     pub fn skip_turn(data: SkipTurnToolConfig) -> Self {
         Self::SkipTurn { data }
     }
 
-    pub fn start_procedure() -> Self {
-        Self::StartProcedure { procedures: None }
+    pub fn start_procedure(data: StartProcedureToolConfig) -> Self {
+        Self::StartProcedure { data }
     }
 
     pub fn transfer_to_agent(transfers: Vec<AgentTransferInput>) -> Self {
@@ -146,14 +135,6 @@ impl SystemToolConfigInputParams {
 
     pub fn voicemail_detection(data: VoicemailDetectionToolConfig) -> Self {
         Self::VoicemailDetection { data }
-    }
-
-    pub fn end_procedure_with_procedures(procedures: HashMap<String, ProcedureAtVersionInput>) -> Self {
-        Self::EndProcedure { procedures: Some(procedures) }
-    }
-
-    pub fn start_procedure_with_procedures(procedures: HashMap<String, ProcedureAtVersionInput>) -> Self {
-        Self::StartProcedure { procedures: Some(procedures) }
     }
 
     pub fn transfer_to_number_with_enable_client_message(transfers: Vec<PhoneNumberTransfer>, enable_client_message: bool) -> Self {

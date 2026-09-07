@@ -53,6 +53,9 @@ pub struct AgentsConversationsListQueryRequest {
     /// Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in|exists|missing. For in, pipe-delimit values.
     #[serde(default)]
     pub data_collection_params: Vec<Option<String>>,
+    /// Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
+    #[serde(default)]
+    pub dynamic_variable_params: Vec<Option<String>>,
     /// Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.
     #[serde(default)]
     pub data_collection_ids: Vec<Option<String>>,
@@ -150,6 +153,7 @@ pub struct AgentsConversationsListQueryRequestBuilder {
     user_id: Option<String>,
     evaluation_params: Option<Vec<Option<String>>>,
     data_collection_params: Option<Vec<Option<String>>>,
+    dynamic_variable_params: Option<Vec<Option<String>>>,
     data_collection_ids: Option<Vec<Option<String>>>,
     evaluation_criteria_ids: Option<Vec<Option<String>>>,
     tool_names: Option<Vec<Option<String>>>,
@@ -254,6 +258,11 @@ impl AgentsConversationsListQueryRequestBuilder {
 
     pub fn data_collection_params(mut self, value: Vec<Option<String>>) -> Self {
         self.data_collection_params = Some(value);
+        self
+    }
+
+    pub fn dynamic_variable_params(mut self, value: Vec<Option<String>>) -> Self {
+        self.dynamic_variable_params = Some(value);
         self
     }
 
@@ -384,6 +393,7 @@ impl AgentsConversationsListQueryRequestBuilder {
     /// - [`triggered_procedure_ids`](AgentsConversationsListQueryRequestBuilder::triggered_procedure_ids)
     /// - [`evaluation_params`](AgentsConversationsListQueryRequestBuilder::evaluation_params)
     /// - [`data_collection_params`](AgentsConversationsListQueryRequestBuilder::data_collection_params)
+    /// - [`dynamic_variable_params`](AgentsConversationsListQueryRequestBuilder::dynamic_variable_params)
     /// - [`data_collection_ids`](AgentsConversationsListQueryRequestBuilder::data_collection_ids)
     /// - [`evaluation_criteria_ids`](AgentsConversationsListQueryRequestBuilder::evaluation_criteria_ids)
     /// - [`tool_names`](AgentsConversationsListQueryRequestBuilder::tool_names)
@@ -414,6 +424,7 @@ impl AgentsConversationsListQueryRequestBuilder {
             user_id: self.user_id,
             evaluation_params: self.evaluation_params.ok_or_else(|| BuildError::missing_field("evaluation_params"))?,
             data_collection_params: self.data_collection_params.ok_or_else(|| BuildError::missing_field("data_collection_params"))?,
+            dynamic_variable_params: self.dynamic_variable_params.ok_or_else(|| BuildError::missing_field("dynamic_variable_params"))?,
             data_collection_ids: self.data_collection_ids.ok_or_else(|| BuildError::missing_field("data_collection_ids"))?,
             evaluation_criteria_ids: self.evaluation_criteria_ids.ok_or_else(|| BuildError::missing_field("evaluation_criteria_ids"))?,
             tool_names: self.tool_names.ok_or_else(|| BuildError::missing_field("tool_names"))?,

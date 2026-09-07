@@ -49,8 +49,12 @@ pub struct ConversationHistoryTranscriptResponseModel {
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
+    /// Deprecated: the first attachment on this turn. Use `file_inputs` to see every attachment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_input: Option<ConversationHistoryTranscriptFileInputResponseModel>,
+    /// All files attached to this turn, in the order the user attached them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_inputs: Option<Vec<ConversationHistoryTranscriptFileInputResponseModel>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contextual_update_info: Option<ContextualUpdateInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,6 +94,7 @@ pub struct ConversationHistoryTranscriptResponseModelBuilder {
     id: Option<String>,
     triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
     file_input: Option<ConversationHistoryTranscriptFileInputResponseModel>,
+    file_inputs: Option<Vec<ConversationHistoryTranscriptFileInputResponseModel>>,
     contextual_update_info: Option<ContextualUpdateInfo>,
     reasoned: Option<bool>,
 }
@@ -215,6 +220,11 @@ impl ConversationHistoryTranscriptResponseModelBuilder {
         self
     }
 
+    pub fn file_inputs(mut self, value: Vec<ConversationHistoryTranscriptFileInputResponseModel>) -> Self {
+        self.file_inputs = Some(value);
+        self
+    }
+
     pub fn contextual_update_info(mut self, value: ContextualUpdateInfo) -> Self {
         self.contextual_update_info = Some(value);
         self
@@ -255,6 +265,7 @@ impl ConversationHistoryTranscriptResponseModelBuilder {
             id: self.id,
             triggered_guardrails: self.triggered_guardrails,
             file_input: self.file_input,
+            file_inputs: self.file_inputs,
             contextual_update_info: self.contextual_update_info,
             reasoned: self.reasoned,
         })

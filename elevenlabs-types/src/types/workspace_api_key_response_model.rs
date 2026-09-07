@@ -32,6 +32,9 @@ pub struct WorkspaceApiKeyResponseModel {
     pub allowed_ips: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub third_party_disable_allowed: Option<bool>,
+    /// Per-API-key concurrency limits (TTS/dubbing/music). Enterprise-only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform_limits: Option<PlatformLimits>,
 }
 
 impl WorkspaceApiKeyResponseModel {
@@ -56,6 +59,7 @@ pub struct WorkspaceApiKeyResponseModelBuilder {
     hashed_xi_api_key: Option<String>,
     allowed_ips: Option<Vec<String>>,
     third_party_disable_allowed: Option<bool>,
+    platform_limits: Option<PlatformLimits>,
 }
 
 impl WorkspaceApiKeyResponseModelBuilder {
@@ -124,6 +128,11 @@ impl WorkspaceApiKeyResponseModelBuilder {
         self
     }
 
+    pub fn platform_limits(mut self, value: PlatformLimits) -> Self {
+        self.platform_limits = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WorkspaceApiKeyResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`name`](WorkspaceApiKeyResponseModelBuilder::name)
@@ -146,6 +155,7 @@ impl WorkspaceApiKeyResponseModelBuilder {
             hashed_xi_api_key: self.hashed_xi_api_key.ok_or_else(|| BuildError::missing_field("hashed_xi_api_key"))?,
             allowed_ips: self.allowed_ips,
             third_party_disable_allowed: self.third_party_disable_allowed,
+            platform_limits: self.platform_limits,
         })
     }
 }

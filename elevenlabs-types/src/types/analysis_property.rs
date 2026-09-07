@@ -21,7 +21,10 @@ pub struct AnalysisProperty {
     /// The name of the dynamic variable to use for this property's value. Mutually exclusive with description, is_system_provided, constant_value, and is_omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic_variable: Option<String>,
-    /// When set, the LLM provides the value but the runtime rejects any value not present in the list held by this dynamic variable. Use to let the LLM pick from a server-verified set (e.g. the IDs the current user is allowed to access). Requires description; mutually exclusive with dynamic_variable, is_system_provided, constant_value, and is_omitted.
+    /// Server-side rejection guard for an LLM-provided value: the runtime rejects any value outside the permitted set this object names, and the set is not advertised to the LLM as an enum. Only supported when the value source is `description`; combining it with dynamic_variable, is_system_provided, constant_value, or is_omitted is rejected.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_values: Option<AllowedValues>,
+    /// DEPRECATED: use `allowed_values` instead. When set, the LLM provides the value but the runtime rejects any value not present in the list held by this dynamic variable (must be a JSON array such as ["ws_alpha", "ws_beta"]). Use to let the LLM pick from a server-verified set (e.g. the IDs the current user is allowed to access). Requires description; mutually exclusive with dynamic_variable, is_system_provided, constant_value, and is_omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_values_dynamic_variable: Option<String>,
     /// A constant value to use for this property. Mutually exclusive with description, dynamic_variable, is_system_provided, and is_omitted.
@@ -30,6 +33,9 @@ pub struct AnalysisProperty {
     /// If true, this parameter will be completely omitted from the request. Only valid for optional parameters. Mutually exclusive with description, dynamic_variable, is_system_provided, and constant_value.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_omitted: Option<bool>,
+    /// The name of this data collection item.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// LLM model to use for this analysis item. If not set, uses agent's analysis_llm default.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm: Option<Llm>,
@@ -49,9 +55,11 @@ pub struct AnalysisPropertyBuilder {
     r#enum: Option<Vec<String>>,
     is_system_provided: Option<bool>,
     dynamic_variable: Option<String>,
+    allowed_values: Option<AllowedValues>,
     allowed_values_dynamic_variable: Option<String>,
     constant_value: Option<AnalysisPropertyConstantValue>,
     is_omitted: Option<bool>,
+    name: Option<String>,
     llm: Option<Llm>,
 }
 
@@ -81,6 +89,11 @@ impl AnalysisPropertyBuilder {
         self
     }
 
+    pub fn allowed_values(mut self, value: AllowedValues) -> Self {
+        self.allowed_values = Some(value);
+        self
+    }
+
     pub fn allowed_values_dynamic_variable(mut self, value: impl Into<String>) -> Self {
         self.allowed_values_dynamic_variable = Some(value.into());
         self
@@ -93,6 +106,11 @@ impl AnalysisPropertyBuilder {
 
     pub fn is_omitted(mut self, value: bool) -> Self {
         self.is_omitted = Some(value);
+        self
+    }
+
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
         self
     }
 
@@ -111,9 +129,11 @@ impl AnalysisPropertyBuilder {
             r#enum: self.r#enum,
             is_system_provided: self.is_system_provided,
             dynamic_variable: self.dynamic_variable,
+            allowed_values: self.allowed_values,
             allowed_values_dynamic_variable: self.allowed_values_dynamic_variable,
             constant_value: self.constant_value,
             is_omitted: self.is_omitted,
+            name: self.name,
             llm: self.llm,
         })
     }

@@ -29,6 +29,12 @@ assets/
 # its test suite leaves untracked build artifacts.
 elevenlabs-types/.gitignore
 
+# The root .gitignore, whose generated version omits the entries for artifacts
+# our own commands leave behind (`/skills` from `generate-skills`,
+# `/.verify-project` from scripts/). A regeneration dropped them once without
+# reporting a conflict, so protect the file rather than re-adding the lines.
+/.gitignore
+
 # Hand-written tests (tests/wire_test.rs next to them is generated).
 tests/e2e_smoke.rs
 tests/say_test.rs
