@@ -46,6 +46,12 @@ pub struct WebhookToolConfigOutput {
     /// The schema for the outgoing webhoook, including parameters and URL specification
     #[serde(default)]
     pub api_schema: WebhookToolApiSchemaConfigOutput,
+    /// Whether to resolve a redirect from the endpoint and return the final response. One redirect is followed, as a GET without the request body; nothing configured on this tool (headers, authentication, client certificate) is sent to the redirect target. Both the endpoint and the redirect target must use HTTPS. Not supported for API integration tools.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follow_redirects: Option<bool>,
+    /// Domains a redirect may point at, e.g. 'test.example.com'. Required when following redirects, and a target outside the list is refused.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follow_redirects_allowed_domains: Option<Vec<String>>,
 }
 
 impl WebhookToolConfigOutput {
@@ -71,6 +77,8 @@ pub struct WebhookToolConfigOutputBuilder {
     dynamic_variables: Option<DynamicVariablesConfig>,
     execution_mode: Option<ToolExecutionMode>,
     api_schema: Option<WebhookToolApiSchemaConfigOutput>,
+    follow_redirects: Option<bool>,
+    follow_redirects_allowed_domains: Option<Vec<String>>,
 }
 
 impl WebhookToolConfigOutputBuilder {
@@ -144,6 +152,16 @@ impl WebhookToolConfigOutputBuilder {
         self
     }
 
+    pub fn follow_redirects(mut self, value: bool) -> Self {
+        self.follow_redirects = Some(value);
+        self
+    }
+
+    pub fn follow_redirects_allowed_domains(mut self, value: Vec<String>) -> Self {
+        self.follow_redirects_allowed_domains = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WebhookToolConfigOutput`].
     /// This method will fail if any of the following fields are not set:
     /// - [`name`](WebhookToolConfigOutputBuilder::name)
@@ -165,6 +183,8 @@ impl WebhookToolConfigOutputBuilder {
             dynamic_variables: self.dynamic_variables,
             execution_mode: self.execution_mode,
             api_schema: self.api_schema.ok_or_else(|| BuildError::missing_field("api_schema"))?,
+            follow_redirects: self.follow_redirects,
+            follow_redirects_allowed_domains: self.follow_redirects_allowed_domains,
         })
     }
 }

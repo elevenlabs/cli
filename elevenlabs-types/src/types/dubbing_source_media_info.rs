@@ -8,7 +8,7 @@ pub struct DubbingSourceMediaInfo {
     /// Original filename of the uploaded source media (null for URL sources).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filename: Option<String>,
-    /// Duration of the source media in seconds.
+    /// Duration of the source media, in seconds.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
@@ -16,7 +16,7 @@ pub struct DubbingSourceMediaInfo {
     /// Whether the source media contains a video stream.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_video: Option<bool>,
-    /// MIME type of the uploaded source media.
+    /// MIME type of the uploaded source media (null for URL sources).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mime_type: Option<String>,
 }

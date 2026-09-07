@@ -20,6 +20,9 @@ pub struct AgentsListQueryRequest {
     /// Filter agents by creator user ID. When set, only agents created by this user are returned. Takes precedence over show_only_owned_agents. Use '@me' to refer to the authenticated user.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_by_user_id: Option<String>,
+    /// Filter agents by tag. Repeat the parameter to match any of several tags.
+    #[serde(default)]
+    pub tags: Vec<Option<String>>,
     /// The direction to sort the results
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_direction: Option<SortDirection>,
@@ -45,6 +48,7 @@ pub struct AgentsListQueryRequestBuilder {
     archived: Option<bool>,
     show_only_owned_agents: Option<bool>,
     created_by_user_id: Option<String>,
+    tags: Option<Vec<Option<String>>>,
     sort_direction: Option<SortDirection>,
     sort_by: Option<AgentSortBy>,
     cursor: Option<String>,
@@ -76,6 +80,11 @@ impl AgentsListQueryRequestBuilder {
         self
     }
 
+    pub fn tags(mut self, value: Vec<Option<String>>) -> Self {
+        self.tags = Some(value);
+        self
+    }
+
     pub fn sort_direction(mut self, value: SortDirection) -> Self {
         self.sort_direction = Some(value);
         self
@@ -92,6 +101,8 @@ impl AgentsListQueryRequestBuilder {
     }
 
     /// Consumes the builder and constructs a [`AgentsListQueryRequest`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`tags`](AgentsListQueryRequestBuilder::tags)
     pub fn build(self) -> Result<AgentsListQueryRequest, BuildError> {
         Ok(AgentsListQueryRequest {
             page_size: self.page_size,
@@ -99,6 +110,7 @@ impl AgentsListQueryRequestBuilder {
             archived: self.archived,
             show_only_owned_agents: self.show_only_owned_agents,
             created_by_user_id: self.created_by_user_id,
+            tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,
             sort_direction: self.sort_direction,
             sort_by: self.sort_by,
             cursor: self.cursor,

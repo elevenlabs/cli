@@ -10,7 +10,7 @@ use super::*;
 /// 
 /// Clients should never make tool use decisions based on ToolAnnotations
 /// received from untrusted servers.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct ToolAnnotations {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -26,9 +26,6 @@ pub struct ToolAnnotations {
     #[serde(rename = "openWorldHint")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_world_hint: Option<bool>,
-    /// Additional properties that are not part of the defined schema.
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl ToolAnnotations {
@@ -81,7 +78,6 @@ impl ToolAnnotationsBuilder {
             destructive_hint: self.destructive_hint,
             idempotent_hint: self.idempotent_hint,
             open_world_hint: self.open_world_hint,
-            extra: Default::default(),
         })
     }
 }

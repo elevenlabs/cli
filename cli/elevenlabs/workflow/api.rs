@@ -117,7 +117,7 @@ fn request_options() -> Option<RequestOptions> {
 /// {"message": ..., "status": ...}}`, FastAPI's `{"detail": [{"msg": ...}]}`,
 /// and bare `{"message": ..., "status": ...}`. Fall back to the whole body so
 /// an unrecognized shape is still shown rather than swallowed.
-fn api_error_message(body: &Value) -> String {
+pub fn api_error_message(body: &Value) -> String {
     let detail = body.get("detail");
     if let Some(s) = detail.and_then(Value::as_str) {
         return s.to_string();

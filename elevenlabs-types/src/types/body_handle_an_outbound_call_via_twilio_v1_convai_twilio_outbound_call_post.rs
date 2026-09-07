@@ -16,7 +16,7 @@ pub struct BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPost {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_recording_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub telephony_call_config: Option<TelephonyCallConfig>,
+    pub telephony_call_config: Option<TelephonyCallConfigInput>,
 }
 
 impl BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPost {
@@ -33,7 +33,7 @@ pub struct BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPostBuilde
     to_number: Option<String>,
     conversation_initiation_client_data: Option<ConversationInitiationClientDataRequestInput>,
     call_recording_enabled: Option<bool>,
-    telephony_call_config: Option<TelephonyCallConfig>,
+    telephony_call_config: Option<TelephonyCallConfigInput>,
 }
 
 impl BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPostBuilder {
@@ -62,7 +62,7 @@ impl BodyHandleAnOutboundCallViaTwilioV1ConvaiTwilioOutboundCallPostBuilder {
         self
     }
 
-    pub fn telephony_call_config(mut self, value: TelephonyCallConfig) -> Self {
+    pub fn telephony_call_config(mut self, value: TelephonyCallConfigInput) -> Self {
         self.telephony_call_config = Some(value);
         self
     }

@@ -1650,6 +1650,16 @@ async fn wire_create_manual() {
 }
 
 #[tokio::test]
+async fn wire_list_for_workspace() {
+    run_case("list_for_workspace").await;
+}
+
+#[tokio::test]
+async fn wire_create_11() {
+    run_case("create_11").await;
+}
+
+#[tokio::test]
 async fn wire_list_assignable_users() {
     run_case("list_assignable_users").await;
 }
@@ -1667,11 +1677,6 @@ async fn wire_delete_11() {
 #[tokio::test]
 async fn wire_update_8() {
     run_case("update_8").await;
-}
-
-#[tokio::test]
-async fn wire_create_11() {
-    run_case("create_11").await;
 }
 
 #[tokio::test]
@@ -3550,6 +3555,16 @@ async fn wire_create_manual_error() {
 }
 
 #[tokio::test]
+async fn wire_list_for_workspace_error() {
+    run_case("list_for_workspace_error").await;
+}
+
+#[tokio::test]
+async fn wire_create_11_error() {
+    run_case("create_11_error").await;
+}
+
+#[tokio::test]
 async fn wire_list_assignable_users_error() {
     run_case("list_assignable_users_error").await;
 }
@@ -3567,11 +3582,6 @@ async fn wire_delete_11_error() {
 #[tokio::test]
 async fn wire_update_8_error() {
     run_case("update_8_error").await;
-}
-
-#[tokio::test]
-async fn wire_create_11_error() {
-    run_case("create_11_error").await;
 }
 
 #[tokio::test]

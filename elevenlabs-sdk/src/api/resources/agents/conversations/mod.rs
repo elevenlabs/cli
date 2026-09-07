@@ -192,6 +192,7 @@ impl ConversationsClient {
     /// * `user_id` - Filter conversations by the user ID who initiated them.
     /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
     /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in|exists|missing. For in, pipe-delimit values.
+    /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
     /// * `data_collection_ids` - Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.
     /// * `evaluation_criteria_ids` - Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned.
     /// * `tool_names` - Filter conversations by tool names used during the call.
@@ -252,6 +253,7 @@ impl ConversationsClient {
     ///                 user_id: Some("user_id".to_string()),
     ///                 evaluation_params: vec![Some("evaluation_params".to_string())],
     ///                 data_collection_params: vec![Some("data_collection_params".to_string())],
+    ///                 dynamic_variable_params: vec![Some("dynamic_variable_params".to_string())],
     ///                 data_collection_ids: vec![Some("data_collection_ids".to_string())],
     ///                 evaluation_criteria_ids: vec![Some("evaluation_criteria_ids".to_string())],
     ///                 tool_names: vec![Some("tool_names".to_string())],
@@ -331,6 +333,10 @@ impl ConversationsClient {
                     .string_array(
                         "data_collection_params",
                         request.data_collection_params.clone(),
+                    )
+                    .string_array(
+                        "dynamic_variable_params",
+                        request.dynamic_variable_params.clone(),
                     )
                     .string_array("data_collection_ids", request.data_collection_ids.clone())
                     .string_array(

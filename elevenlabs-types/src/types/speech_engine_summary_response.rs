@@ -10,6 +10,9 @@ pub struct SpeechEngineSummaryResponse {
     /// Human-readable name for the speech engine
     #[serde(default)]
     pub name: String,
+    /// Voice ID assigned to this speech engine
+    #[serde(default)]
+    pub voice_id: String,
     /// Creation time in Unix seconds
     #[serde(default)]
     pub created_at_unix_secs: i64,
@@ -31,6 +34,7 @@ impl SpeechEngineSummaryResponse {
 pub struct SpeechEngineSummaryResponseBuilder {
     speech_engine_id: Option<String>,
     name: Option<String>,
+    voice_id: Option<String>,
     created_at_unix_secs: Option<i64>,
     tags: Option<Vec<String>>,
     access_info: Option<ResourceAccessInfo>,
@@ -44,6 +48,11 @@ impl SpeechEngineSummaryResponseBuilder {
 
     pub fn name(mut self, value: impl Into<String>) -> Self {
         self.name = Some(value.into());
+        self
+    }
+
+    pub fn voice_id(mut self, value: impl Into<String>) -> Self {
+        self.voice_id = Some(value.into());
         self
     }
 
@@ -66,6 +75,7 @@ impl SpeechEngineSummaryResponseBuilder {
     /// This method will fail if any of the following fields are not set:
     /// - [`speech_engine_id`](SpeechEngineSummaryResponseBuilder::speech_engine_id)
     /// - [`name`](SpeechEngineSummaryResponseBuilder::name)
+    /// - [`voice_id`](SpeechEngineSummaryResponseBuilder::voice_id)
     /// - [`created_at_unix_secs`](SpeechEngineSummaryResponseBuilder::created_at_unix_secs)
     /// - [`tags`](SpeechEngineSummaryResponseBuilder::tags)
     /// - [`access_info`](SpeechEngineSummaryResponseBuilder::access_info)
@@ -73,6 +83,7 @@ impl SpeechEngineSummaryResponseBuilder {
         Ok(SpeechEngineSummaryResponse {
             speech_engine_id: self.speech_engine_id.ok_or_else(|| BuildError::missing_field("speech_engine_id"))?,
             name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
+            voice_id: self.voice_id.ok_or_else(|| BuildError::missing_field("voice_id"))?,
             created_at_unix_secs: self.created_at_unix_secs.ok_or_else(|| BuildError::missing_field("created_at_unix_secs"))?,
             tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,
             access_info: self.access_info.ok_or_else(|| BuildError::missing_field("access_info"))?,

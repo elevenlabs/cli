@@ -8,11 +8,11 @@ pub struct DubbingRegenerateResponse {
     /// The segments this re-dub re-synthesizes: those with edits to apply.
     #[serde(default)]
     pub regenerated_segment_ids: Vec<String>,
-    /// Seconds of audio this re-dub covers -- the edited regions only, never the whole target. `charged_seconds` is the part of it that was billed.
+    /// Seconds of audio this re-dub covers — the edited regions only, never the whole target. `charged_seconds` is the part of it that was billed.
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers")]
     pub regenerated_seconds: f64,
-    /// Seconds actually billed, after the free-regeneration allowance. Zero when the re-dub cost nothing -- the allowance covered all of it, or the project's included generation did.
+    /// Seconds actually billed, after the free-regeneration allowance. Zero when the re-dub cost nothing — either the allowance covered all of it, or the project's included generation did.
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers")]
     pub charged_seconds: f64,

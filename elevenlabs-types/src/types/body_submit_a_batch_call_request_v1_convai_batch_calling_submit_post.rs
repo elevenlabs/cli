@@ -23,7 +23,7 @@ pub struct BodySubmitABatchCallRequestV1ConvaiBatchCallingSubmitPost {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub telephony_call_config: Option<TelephonyCallConfig>,
+    pub telephony_call_config: Option<TelephonyCallConfigInput>,
     /// Maximum number of simultaneous calls for this batch. When set, dispatch is governed by this limit rather than workspace/agent capacity percentages.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_concurrency_limit: Option<i64>,
@@ -47,7 +47,7 @@ pub struct BodySubmitABatchCallRequestV1ConvaiBatchCallingSubmitPostBuilder {
     timezone: Option<String>,
     branch_id: Option<String>,
     environment: Option<String>,
-    telephony_call_config: Option<TelephonyCallConfig>,
+    telephony_call_config: Option<TelephonyCallConfigInput>,
     target_concurrency_limit: Option<i64>,
 }
 
@@ -97,7 +97,7 @@ impl BodySubmitABatchCallRequestV1ConvaiBatchCallingSubmitPostBuilder {
         self
     }
 
-    pub fn telephony_call_config(mut self, value: TelephonyCallConfig) -> Self {
+    pub fn telephony_call_config(mut self, value: TelephonyCallConfigInput) -> Self {
         self.telephony_call_config = Some(value);
         self
     }
