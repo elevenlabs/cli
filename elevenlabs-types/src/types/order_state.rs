@@ -14,6 +14,7 @@ pub enum OrderState {
     Cancelling,
     Cancelled,
     Expired,
+    Merged,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -31,6 +32,7 @@ impl Serialize for OrderState {
             Self::Cancelling => serializer.serialize_str("cancelling"),
             Self::Cancelled => serializer.serialize_str("cancelled"),
             Self::Expired => serializer.serialize_str("expired"),
+            Self::Merged => serializer.serialize_str("merged"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -49,6 +51,7 @@ impl<'de> Deserialize<'de> for OrderState {
             "cancelling" => Ok(Self::Cancelling),
             "cancelled" => Ok(Self::Cancelled),
             "expired" => Ok(Self::Expired),
+            "merged" => Ok(Self::Merged),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -66,6 +69,7 @@ impl fmt::Display for OrderState {
             Self::Cancelling => write!(f, "cancelling"),
             Self::Cancelled => write!(f, "cancelled"),
             Self::Expired => write!(f, "expired"),
+            Self::Merged => write!(f, "merged"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

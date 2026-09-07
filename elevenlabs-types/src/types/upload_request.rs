@@ -11,6 +11,8 @@ pub struct UploadRequest {
     pub extract_composition_plan: Option<MusicUploadRequestExtractCompositionPlan>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub with_timestamps: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub with_waveform_visual: Option<bool>,
 }
 impl UploadRequest {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
@@ -35,6 +37,12 @@ impl UploadRequest {
         }
     }
 
+    if let Some(ref value) = self.with_waveform_visual {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("with_waveform_visual", json_str);
+        }
+    }
+
     form
 }
 }
@@ -51,6 +59,7 @@ pub struct UploadRequestBuilder {
     file: Option<Vec<u8>>,
     extract_composition_plan: Option<MusicUploadRequestExtractCompositionPlan>,
     with_timestamps: Option<bool>,
+    with_waveform_visual: Option<bool>,
 }
 
 impl UploadRequestBuilder {
@@ -69,6 +78,11 @@ impl UploadRequestBuilder {
         self
     }
 
+    pub fn with_waveform_visual(mut self, value: bool) -> Self {
+        self.with_waveform_visual = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`UploadRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`file`](UploadRequestBuilder::file)
@@ -77,6 +91,7 @@ impl UploadRequestBuilder {
             file: self.file.ok_or_else(|| BuildError::missing_field("file"))?,
             extract_composition_plan: self.extract_composition_plan,
             with_timestamps: self.with_timestamps,
+            with_waveform_visual: self.with_waveform_visual,
         })
     }
 }

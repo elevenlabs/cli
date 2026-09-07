@@ -7,6 +7,8 @@ pub struct DataCollectionResultCommonModel {
     #[serde(default)]
     pub data_collection_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub json_schema: Option<LiteralJsonSchemaProperty>,
@@ -24,6 +26,7 @@ impl DataCollectionResultCommonModel {
 #[non_exhaustive]
 pub struct DataCollectionResultCommonModelBuilder {
     data_collection_id: Option<String>,
+    name: Option<String>,
     value: Option<serde_json::Value>,
     json_schema: Option<LiteralJsonSchemaProperty>,
     rationale: Option<String>,
@@ -32,6 +35,11 @@ pub struct DataCollectionResultCommonModelBuilder {
 impl DataCollectionResultCommonModelBuilder {
     pub fn data_collection_id(mut self, value: impl Into<String>) -> Self {
         self.data_collection_id = Some(value.into());
+        self
+    }
+
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
         self
     }
 
@@ -57,6 +65,7 @@ impl DataCollectionResultCommonModelBuilder {
     pub fn build(self) -> Result<DataCollectionResultCommonModel, BuildError> {
         Ok(DataCollectionResultCommonModel {
             data_collection_id: self.data_collection_id.ok_or_else(|| BuildError::missing_field("data_collection_id"))?,
+            name: self.name,
             value: self.value,
             json_schema: self.json_schema,
             rationale: self.rationale.ok_or_else(|| BuildError::missing_field("rationale"))?,

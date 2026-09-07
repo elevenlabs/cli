@@ -33,6 +33,7 @@ impl MessagesClient {
     /// * `user_id` - Filter conversations by the user ID who initiated them.
     /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
     /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in|exists|missing. For in, pipe-delimit values.
+    /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
     /// * `tool_names` - Filter conversations by tool names used during the call.
     /// * `tool_names_successful` - Filter conversations by tool names that had successful calls.
     /// * `tool_names_errored` - Filter conversations by tool names that had errored calls.
@@ -87,6 +88,7 @@ impl MessagesClient {
     ///                 user_id: Some("user_id".to_string()),
     ///                 evaluation_params: vec![Some("evaluation_params".to_string())],
     ///                 data_collection_params: vec![Some("data_collection_params".to_string())],
+    ///                 dynamic_variable_params: vec![Some("dynamic_variable_params".to_string())],
     ///                 tool_names: vec![Some("tool_names".to_string())],
     ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
     ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
@@ -159,6 +161,10 @@ impl MessagesClient {
                     .string_array(
                         "data_collection_params",
                         request.data_collection_params.clone(),
+                    )
+                    .string_array(
+                        "dynamic_variable_params",
+                        request.dynamic_variable_params.clone(),
                     )
                     .string_array("tool_names", request.tool_names.clone())
                     .string_array(

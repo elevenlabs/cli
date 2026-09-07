@@ -3,27 +3,27 @@ pub use crate::prelude::*;
 use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct QueryParamsJsonSchema {
+pub struct QueryParamsJsonSchemaInput {
     #[serde(default)]
     pub properties: HashMap<String, LiteralJsonSchemaProperty>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
 }
 
-impl QueryParamsJsonSchema {
-    pub fn builder() -> QueryParamsJsonSchemaBuilder {
-        <QueryParamsJsonSchemaBuilder as Default>::default()
+impl QueryParamsJsonSchemaInput {
+    pub fn builder() -> QueryParamsJsonSchemaInputBuilder {
+        <QueryParamsJsonSchemaInputBuilder as Default>::default()
     }
 }
 
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
-pub struct QueryParamsJsonSchemaBuilder {
+pub struct QueryParamsJsonSchemaInputBuilder {
     properties: Option<HashMap<String, LiteralJsonSchemaProperty>>,
     required: Option<Vec<String>>,
 }
 
-impl QueryParamsJsonSchemaBuilder {
+impl QueryParamsJsonSchemaInputBuilder {
     pub fn properties(mut self, value: HashMap<String, LiteralJsonSchemaProperty>) -> Self {
         self.properties = Some(value);
         self
@@ -34,11 +34,11 @@ impl QueryParamsJsonSchemaBuilder {
         self
     }
 
-    /// Consumes the builder and constructs a [`QueryParamsJsonSchema`].
+    /// Consumes the builder and constructs a [`QueryParamsJsonSchemaInput`].
     /// This method will fail if any of the following fields are not set:
-    /// - [`properties`](QueryParamsJsonSchemaBuilder::properties)
-    pub fn build(self) -> Result<QueryParamsJsonSchema, BuildError> {
-        Ok(QueryParamsJsonSchema {
+    /// - [`properties`](QueryParamsJsonSchemaInputBuilder::properties)
+    pub fn build(self) -> Result<QueryParamsJsonSchemaInput, BuildError> {
+        Ok(QueryParamsJsonSchemaInput {
             properties: self.properties.ok_or_else(|| BuildError::missing_field("properties"))?,
             required: self.required,
         })

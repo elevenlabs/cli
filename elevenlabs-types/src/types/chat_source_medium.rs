@@ -6,6 +6,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ChatSourceMedium {
     Audio,
+    Dtmf,
     Text,
     Image,
     File,
@@ -18,6 +19,7 @@ impl Serialize for ChatSourceMedium {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
             Self::Audio => serializer.serialize_str("audio"),
+            Self::Dtmf => serializer.serialize_str("dtmf"),
             Self::Text => serializer.serialize_str("text"),
             Self::Image => serializer.serialize_str("image"),
             Self::File => serializer.serialize_str("file"),
@@ -31,6 +33,7 @@ impl<'de> Deserialize<'de> for ChatSourceMedium {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
             "audio" => Ok(Self::Audio),
+            "dtmf" => Ok(Self::Dtmf),
             "text" => Ok(Self::Text),
             "image" => Ok(Self::Image),
             "file" => Ok(Self::File),
@@ -43,6 +46,7 @@ impl fmt::Display for ChatSourceMedium {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Audio => write!(f, "audio"),
+            Self::Dtmf => write!(f, "dtmf"),
             Self::Text => write!(f, "text"),
             Self::Image => write!(f, "image"),
             Self::File => write!(f, "file"),

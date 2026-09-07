@@ -2,13 +2,14 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
+/// Coordinates of a clip inside a Studio project: the payload of a studio_clip reference.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct StudioClipReference {
+pub struct StudioClipLocator {
     #[serde(default)]
     pub project_id: String,
     #[serde(default)]
     pub chapter_id: String,
-    pub clip_type: StudioClipReferenceClipType,
+    pub clip_type: StudioClipLocatorClipType,
     #[serde(default)]
     pub clip_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -17,24 +18,24 @@ pub struct StudioClipReference {
     pub preview_url: Option<String>,
 }
 
-impl StudioClipReference {
-    pub fn builder() -> StudioClipReferenceBuilder {
-        <StudioClipReferenceBuilder as Default>::default()
+impl StudioClipLocator {
+    pub fn builder() -> StudioClipLocatorBuilder {
+        <StudioClipLocatorBuilder as Default>::default()
     }
 }
 
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
-pub struct StudioClipReferenceBuilder {
+pub struct StudioClipLocatorBuilder {
     project_id: Option<String>,
     chapter_id: Option<String>,
-    clip_type: Option<StudioClipReferenceClipType>,
+    clip_type: Option<StudioClipLocatorClipType>,
     clip_id: Option<String>,
     block_id: Option<String>,
     preview_url: Option<String>,
 }
 
-impl StudioClipReferenceBuilder {
+impl StudioClipLocatorBuilder {
     pub fn project_id(mut self, value: impl Into<String>) -> Self {
         self.project_id = Some(value.into());
         self
@@ -45,7 +46,7 @@ impl StudioClipReferenceBuilder {
         self
     }
 
-    pub fn clip_type(mut self, value: StudioClipReferenceClipType) -> Self {
+    pub fn clip_type(mut self, value: StudioClipLocatorClipType) -> Self {
         self.clip_type = Some(value);
         self
     }
@@ -65,14 +66,14 @@ impl StudioClipReferenceBuilder {
         self
     }
 
-    /// Consumes the builder and constructs a [`StudioClipReference`].
+    /// Consumes the builder and constructs a [`StudioClipLocator`].
     /// This method will fail if any of the following fields are not set:
-    /// - [`project_id`](StudioClipReferenceBuilder::project_id)
-    /// - [`chapter_id`](StudioClipReferenceBuilder::chapter_id)
-    /// - [`clip_type`](StudioClipReferenceBuilder::clip_type)
-    /// - [`clip_id`](StudioClipReferenceBuilder::clip_id)
-    pub fn build(self) -> Result<StudioClipReference, BuildError> {
-        Ok(StudioClipReference {
+    /// - [`project_id`](StudioClipLocatorBuilder::project_id)
+    /// - [`chapter_id`](StudioClipLocatorBuilder::chapter_id)
+    /// - [`clip_type`](StudioClipLocatorBuilder::clip_type)
+    /// - [`clip_id`](StudioClipLocatorBuilder::clip_id)
+    pub fn build(self) -> Result<StudioClipLocator, BuildError> {
+        Ok(StudioClipLocator {
             project_id: self.project_id.ok_or_else(|| BuildError::missing_field("project_id"))?,
             chapter_id: self.chapter_id.ok_or_else(|| BuildError::missing_field("chapter_id"))?,
             clip_type: self.clip_type.ok_or_else(|| BuildError::missing_field("clip_type"))?,

@@ -7,7 +7,7 @@ pub struct DubbingLanguageListResponse {
     /// The page of language targets for the project.
     #[serde(default)]
     pub languages: Vec<DubbingLanguageResponse>,
-    /// Cursor for the next page, or null when there are no more results.
+    /// Opaque cursor to pass back as `cursor` for the next page, or null when there are no more results.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
 }

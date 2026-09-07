@@ -5,7 +5,7 @@ use super::*;
 /// One segment of a source transcript.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct DubbingTranscriptSegment {
-    /// Stable identifier of the segment.
+    /// Stable identifier of the segment, used to address it in edit requests.
     #[serde(default)]
     pub id: String,
     /// The transcribed text of the segment.
@@ -22,7 +22,7 @@ pub struct DubbingTranscriptSegment {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers")]
     pub end_s: f64,
-    /// The caller-supplied external id for this segment, if one was provided.
+    /// The caller-supplied external ID for this segment, if one was provided.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
 }
