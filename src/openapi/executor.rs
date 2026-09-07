@@ -593,6 +593,15 @@ fn ancestor_object_shorthand_supplied(
     false
 }
 
+/// Reject blank strings and null; `value_to_path_string` renders null as empty.
+fn is_blank_path_value(value: &Value) -> bool {
+    match value {
+        Value::String(s) => s.trim().is_empty(),
+        Value::Null => true,
+        _ => false,
+    }
+}
+
 /// Parsed and validated inputs ready for request execution.
 #[derive(Debug)]
 struct ExecutionInput {
@@ -648,21 +657,37 @@ fn parse_and_validate_inputs(
         extra_global_params.iter().map(|gp| gp.target.as_str()).collect();
 
     for param_name in &method.parameter_order {
-        if let Some(param_def) = method.parameters.get(param_name) {
-            if param_def.required
-                && param_def.location.as_deref() == Some("path")
-                && !params.contains_key(param_name)
-                && !global_param_targets.contains(param_name.as_str())
-            {
-                let hint = missing_param_hint(param_def, param_name);
-                return Err(CliError::Validation(format!(
-                    "Required path parameter '{param_name}' is missing. {hint}"
-                )));
-            }
+        let Some(param_def) = method.parameters.get(param_name) else {
+            continue;
+        };
+        if !param_def.required || param_def.location.as_deref() != Some("path") {
+            continue;
         }
+
+        // Per-operation values override globals, even when blank.
+        let reason = match params.get(param_name) {
+            Some(value) if is_blank_path_value(value) => "empty",
+            None if !global_param_targets.contains(param_name.as_str()) => "missing",
+            _ => continue,
+        };
+
+        let hint = missing_param_hint(param_def, param_name);
+        return Err(CliError::Validation(format!(
+            "Required path parameter '{param_name}' is {reason}. {hint}"
+        )));
     }
 
     for (param_name, param_def) in &method.parameters {
+        // OpenAPI specs can omit `parameter_order`, bypassing the first loop.
+        if param_def.required
+            && param_def.location.as_deref() == Some("path")
+            && params.get(param_name).is_some_and(is_blank_path_value)
+        {
+            let hint = missing_param_hint(param_def, param_name);
+            return Err(CliError::Validation(format!(
+                "Required path parameter '{param_name}' is empty. {hint}"
+            )));
+        }
         if param_def.required
             && !params.contains_key(param_name)
             && !global_param_targets.contains(param_name.as_str())
@@ -797,6 +822,13 @@ fn parse_and_validate_inputs(
             }
             GlobalParameterLocation::Path => {
                 if !non_header_params.contains_key(&gp.target) {
+                    // Globals are injected after required-parameter validation.
+                    if gp.value.trim().is_empty() {
+                        return Err(CliError::Validation(format!(
+                            "Required global path parameter '{}' resolved to an empty value.",
+                            gp.name
+                        )));
+                    }
                     non_header_params.insert(
                         gp.target.clone(),
                         Value::String(gp.value.clone()),
@@ -6303,6 +6335,144 @@ mod tests {
                 assert!(msg.contains("--params"), "error names --params: {msg}");
             }
             other => panic!("expected Validation error, got {other:?}"),
+        }
+    }
+
+    fn path_validation_fixture(required: bool, ordered: bool) -> (RestDescription, RestMethod) {
+        let doc = RestDescription {
+            base_url: Some("https://api.example.com/".to_string()),
+            ..Default::default()
+        };
+        let method = RestMethod {
+            http_method: "GET".to_string(),
+            path: "files/{fileId}/contents".to_string(),
+            parameter_order: if ordered {
+                vec!["fileId".to_string()]
+            } else {
+                vec![]
+            },
+            parameters: std::collections::HashMap::from([(
+                "fileId".to_string(),
+                MethodParameter {
+                    location: Some("path".to_string()),
+                    required,
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+        (doc, method)
+    }
+
+    #[test]
+    fn test_required_path_values() {
+        for ordered in [false, true] {
+            let (doc, method) = path_validation_fixture(true, ordered);
+            for (params, expected) in [
+                (r#"{}"#, Err("missing")),
+                (r#"{"fileId":""}"#, Err("empty")),
+                (r#"{"fileId":" \t\n"}"#, Err("empty")),
+                (r#"{"fileId":null}"#, Err("empty")),
+                (r#"{"fileId":0}"#, Ok("0")),
+                (r#"{"fileId":"abc"}"#, Ok("abc")),
+            ] {
+                let result = parse_and_validate_inputs(
+                    &doc,
+                    &method,
+                    Some(params),
+                    None,
+                    false,
+                    None,
+                    &[],
+                    &[],
+                );
+                match expected {
+                    Ok(segment) => assert_eq!(
+                        result.unwrap().full_url,
+                        format!("https://api.example.com/files/{segment}/contents"),
+                    ),
+                    Err(reason) => match result.unwrap_err() {
+                        CliError::Validation(msg) => {
+                            assert!(msg.contains(reason), "{params}, ordered={ordered}: {msg}");
+                            assert!(msg.contains("'fileId'"), "{msg}");
+                            assert!(msg.contains("--file-id"), "{msg}");
+                            assert!(msg.contains("--params"), "{msg}");
+                        }
+                        other => panic!("expected validation error, got {other:?}"),
+                    },
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_optional_path_values_unchanged() {
+        let (doc, method) = path_validation_fixture(false, true);
+        for params in [
+            r#"{"fileId":""}"#,
+            r#"{"fileId":"   "}"#,
+            r#"{"fileId":null}"#,
+        ] {
+            parse_and_validate_inputs(&doc, &method, Some(params), None, false, None, &[], &[])
+                .expect("optional path values should retain their existing behavior");
+        }
+    }
+
+    #[test]
+    fn test_global_path_values_and_overrides() {
+        for ordered in [false, true] {
+            let (doc, method) = path_validation_fixture(true, ordered);
+            for (global_value, params, expected) in [
+                (
+                    "",
+                    None,
+                    Err("Required global path parameter 'file' resolved to an empty value"),
+                ),
+                (
+                    " \t\n",
+                    None,
+                    Err("Required global path parameter 'file' resolved to an empty value"),
+                ),
+                ("global", None, Ok("global")),
+                ("", Some(r#"{"fileId":"local"}"#), Ok("local")),
+                (
+                    "global",
+                    Some(r#"{"fileId":""}"#),
+                    Err("Required path parameter 'fileId' is empty"),
+                ),
+                (
+                    "global",
+                    Some(r#"{"fileId":null}"#),
+                    Err("Required path parameter 'fileId' is empty"),
+                ),
+            ] {
+                let globals = [crate::openapi::app::ResolvedGlobalParam {
+                    name: "file".to_string(),
+                    location: crate::openapi::discovery::GlobalParameterLocation::Path,
+                    target: "fileId".to_string(),
+                    value: global_value.to_string(),
+                }];
+                let result = parse_and_validate_inputs(
+                    &doc,
+                    &method,
+                    params,
+                    None,
+                    false,
+                    None,
+                    &[],
+                    &globals,
+                );
+                match expected {
+                    Ok(segment) => assert_eq!(
+                        result.unwrap().full_url,
+                        format!("https://api.example.com/files/{segment}/contents"),
+                    ),
+                    Err(reason) => match result.unwrap_err() {
+                        CliError::Validation(msg) => assert!(msg.contains(reason), "{msg}"),
+                        other => panic!("expected validation error, got {other:?}"),
+                    },
+                }
+            }
         }
     }
 
