@@ -14,6 +14,7 @@ The CLI does two things:
 - [Installation](#installation)
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
+- [Speaking text](#speaking-text)
 - [Agents as Code](#agents-as-code)
 - [Data residency](#data-residency)
 - [UI components](#ui-components)
@@ -111,6 +112,34 @@ elevenlabs <resource> <method>
 ```
 
 Run `elevenlabs <resource> --help` to see available methods for a resource.
+
+## Speaking text
+
+Turn text into speech and play it, without picking a file path or finding a player:
+
+```bash
+elevenlabs say "this came from the terminal"
+echo "build finished" | elevenlabs say          # or: elevenlabs say -
+```
+
+The voice, model, audio format and player default to whatever you have stored, and each can be overridden per run:
+
+```bash
+elevenlabs say config                                    # show the current defaults
+elevenlabs say config voice 21m00Tcm4TlvDq8ikWAM
+elevenlabs say config model eleven_multilingual_v2
+elevenlabs say config player mpv
+elevenlabs say config voice --unset                      # back to the built-in default
+
+elevenlabs say "one off" --voice JBFqnCBsd6RMkjVDRZzb --model eleven_flash_v2_5   # faster, no audio tags
+elevenlabs say "save it" --output out.mp3                # write a file, skip playback
+```
+
+Defaults are stored in `~/.elevenlabs/config.json` alongside [data residency](#data-residency). Out of the box `say` uses `eleven_v3` — the most expressive model, and the only family that reads [audio tags](https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices#audio-tags) like `elevenlabs say "[whispers] it worked"` as delivery rather than as words. The audio format follows the player unless `--output-format` or an `--output` filename says otherwise.
+
+Playback shells out to whichever player is on the box, preferring ones that read stdin so audio starts before the download finishes: `ffplay`, `mpv`, `afplay` (macOS), `paplay`/`aplay` (Linux), `Media.SoundPlayer` (Windows). Install [ffmpeg](https://ffmpeg.org) or [mpv](https://mpv.io) if none are present, or point `--player` at your own.
+
+> `config` is a subcommand, so speaking that exact word needs `elevenlabs say -- config`.
 
 ## Agents as Code
 
