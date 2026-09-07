@@ -5,6 +5,14 @@
 cli/elevenlabs/custom.rs
 cli/elevenlabs/workflow/
 
+# Hand-written agent skills. The real files live under
+# cli/elevenlabs/workflow/skills/ (protected above, because `generate-skills`
+# embeds them with include_str!); these are the copies an agent harness
+# actually scans. `.claude` is a symlink to `.agents`, so both are listed —
+# losing either one loses the skills for whichever path the harness uses.
+.agents/
+.claude
+
 # Hand-maintained README + assets (Fern generates a default README;
 # we own it to document the agents-as-code workflow and hero image).
 README.md

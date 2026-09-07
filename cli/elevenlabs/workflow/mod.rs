@@ -20,6 +20,7 @@ mod project;
 mod residency;
 mod say;
 mod settings;
+mod skills;
 mod templates;
 mod tests;
 mod tools;
@@ -34,5 +35,6 @@ pub fn register(app: CliApp) -> CliApp {
     let app = tests::register(app);
     let app = residency::register(app);
     let app = say::register(app);
+    let app = skills::register(app);
     components::register(app)
 }
