@@ -53,8 +53,6 @@ fn report_body(capability: &str, intent: Option<String>) -> Value {
     let mut body = json!({
         "kind": "missing_capability",
         "capability": capability,
-        "cli_version": env!("CARGO_PKG_VERSION"),
-        "command": "feedback.missing_capability",
     });
     // Plain text, not the percent-encoded header form — this is a JSON body.
     if let Some(text) = intent {
@@ -150,9 +148,9 @@ mod tests {
         let body = report_body("cannot batch-render per speaker", None);
         assert_eq!(body["kind"], "missing_capability");
         assert_eq!(body["capability"], "cannot batch-render per speaker");
-        assert_eq!(body["command"], "feedback.missing_capability");
-        assert_eq!(body["cli_version"], env!("CARGO_PKG_VERSION"));
         assert!(body.get("intent").is_none(), "absent intent must be omitted");
+        assert!(body.get("cli_version").is_none());
+        assert!(body.get("command").is_none());
     }
 
     #[test]
