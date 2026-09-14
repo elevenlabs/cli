@@ -2,13 +2,13 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// Custom hold audio played on loop to callers waiting in the queue.
+/// Custom hold audio played on loop to callers waiting in the agent's queue.
 /// 
-/// Server-written only: set via the agent hold-audio upload route and stripped
-/// from user PATCH payloads, since the runtime fetches audio_url at call time.
+/// Set by uploading a file through the agent hold-audio endpoint. Values sent in
+/// agent create or update requests are ignored.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct AgentHoldAudioConfig {
-    /// Bucket-relative path of the uploaded clip, used for deletion
+    /// Storage path of the uploaded clip
     #[serde(default)]
     pub audio_path: String,
     /// Public CDN URL of the uploaded clip

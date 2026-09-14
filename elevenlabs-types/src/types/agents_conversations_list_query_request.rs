@@ -50,7 +50,7 @@ pub struct AgentsConversationsListQueryRequest {
     /// Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
     #[serde(default)]
     pub evaluation_params: Vec<Option<String>>,
-    /// Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in|exists|missing. For in, pipe-delimit values.
+    /// Data collection filters. Repeat param. Format: id:op:value where op is one of eq|gt|gte|lt|lte|missing.
     #[serde(default)]
     pub data_collection_params: Vec<Option<String>>,
     /// Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.

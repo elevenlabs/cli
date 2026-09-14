@@ -48,6 +48,7 @@ impl ConversationsClient {
     /// * `agent_id` - Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
     /// * `include_conversation_id` - Whether to include a conversation_id with the response. If included, the conversation_signature cannot be used again.
     /// * `branch_id` - The ID of the branch to use
+    /// * `version_id` - The ID of the version to use
     /// * `environment` - The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'.
     /// * `debug_events_request` - Whether to enable debug events. Only available for users with editor access to the agent.
     /// * `options` - Additional request options such as headers, timeout, etc.
@@ -75,6 +76,7 @@ impl ConversationsClient {
     ///                 agent_id: "agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///                 include_conversation_id: Some(true),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 version_id: Some("version_id".to_string()),
     ///                 environment: Some("environment".to_string()),
     ///                 debug_events_request: Some(true),
     ///             },
@@ -100,6 +102,7 @@ impl ConversationsClient {
                         request.include_conversation_id.clone(),
                     )
                     .string("branch_id", request.branch_id.clone())
+                    .string("version_id", request.version_id.clone())
                     .string("environment", request.environment.clone())
                     .bool("debug_events_request", request.debug_events_request.clone())
                     .build(),
@@ -115,6 +118,7 @@ impl ConversationsClient {
     /// * `agent_id` - Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
     /// * `participant_name` - Optional custom participant name. If not provided, user ID will be used
     /// * `branch_id` - The ID of the branch to use
+    /// * `version_id` - The ID of the version to use
     /// * `environment` - The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'.
     /// * `debug_events_request` - Whether to enable debug events. Only available for users with editor access to the agent.
     /// * `options` - Additional request options such as headers, timeout, etc.
@@ -142,6 +146,7 @@ impl ConversationsClient {
     ///                 agent_id: "agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///                 participant_name: Some("participant_name".to_string()),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 version_id: Some("version_id".to_string()),
     ///                 environment: Some("environment".to_string()),
     ///                 debug_events_request: Some(true),
     ///             },
@@ -164,6 +169,7 @@ impl ConversationsClient {
                     .string("agent_id", request.agent_id.clone())
                     .string("participant_name", request.participant_name.clone())
                     .string("branch_id", request.branch_id.clone())
+                    .string("version_id", request.version_id.clone())
                     .string("environment", request.environment.clone())
                     .bool("debug_events_request", request.debug_events_request.clone())
                     .build(),
@@ -191,7 +197,7 @@ impl ConversationsClient {
     /// * `has_feedback_comment` - Filter conversations with user feedback comments.
     /// * `user_id` - Filter conversations by the user ID who initiated them.
     /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
-    /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in|exists|missing. For in, pipe-delimit values.
+    /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|gt|gte|lt|lte|missing.
     /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
     /// * `data_collection_ids` - Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.
     /// * `evaluation_criteria_ids` - Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned.

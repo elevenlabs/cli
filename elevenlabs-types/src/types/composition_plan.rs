@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// Composition plan for the `music_v2` model. Using this field with any other model will result in an error.
+/// Composition plan for the `music_v2` and `music_v2_5` models. Using this field with any other model will result in an error.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 #[serde(transparent)]
 pub struct CompositionPlan {

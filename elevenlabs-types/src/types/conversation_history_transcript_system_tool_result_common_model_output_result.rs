@@ -20,6 +20,20 @@ pub enum ConversationHistoryTranscriptSystemToolResultCommonModelOutputResult {
             data: EndCallToolResultModel,
         },
 
+        #[serde(rename = "end_procedure_error")]
+        #[non_exhaustive]
+        EndProcedureError {
+            #[serde(flatten)]
+            data: EndProcedureToolResultErrorModel,
+        },
+
+        #[serde(rename = "end_procedure_success")]
+        #[non_exhaustive]
+        EndProcedureSuccess {
+            #[serde(flatten)]
+            data: EndProcedureToolResultSuccessModel,
+        },
+
         #[serde(rename = "knowledge_base_rag_success")]
         #[non_exhaustive]
         KnowledgeBaseRagSuccess {
@@ -60,6 +74,20 @@ pub enum ConversationHistoryTranscriptSystemToolResultCommonModelOutputResult {
         SkipTurnSuccess {
             #[serde(flatten)]
             data: SkipTurnToolResponseModel,
+        },
+
+        #[serde(rename = "start_procedure_error")]
+        #[non_exhaustive]
+        StartProcedureError {
+            #[serde(flatten)]
+            data: StartProcedureToolResultErrorModel,
+        },
+
+        #[serde(rename = "start_procedure_success")]
+        #[non_exhaustive]
+        StartProcedureSuccess {
+            #[serde(flatten)]
+            data: StartProcedureToolResultSuccessModel,
         },
 
         #[serde(rename = "testing_tool_result")]
@@ -152,6 +180,14 @@ impl ConversationHistoryTranscriptSystemToolResultCommonModelOutputResult {
         Self::EndCallSuccess { data }
     }
 
+    pub fn end_procedure_error(data: EndProcedureToolResultErrorModel) -> Self {
+        Self::EndProcedureError { data }
+    }
+
+    pub fn end_procedure_success(data: EndProcedureToolResultSuccessModel) -> Self {
+        Self::EndProcedureSuccess { data }
+    }
+
     pub fn knowledge_base_rag_success(data: KnowledgeBaseRagToolResultModel) -> Self {
         Self::KnowledgeBaseRagSuccess { data }
     }
@@ -174,6 +210,14 @@ impl ConversationHistoryTranscriptSystemToolResultCommonModelOutputResult {
 
     pub fn skip_turn_success(data: SkipTurnToolResponseModel) -> Self {
         Self::SkipTurnSuccess { data }
+    }
+
+    pub fn start_procedure_error(data: StartProcedureToolResultErrorModel) -> Self {
+        Self::StartProcedureError { data }
+    }
+
+    pub fn start_procedure_success(data: StartProcedureToolResultSuccessModel) -> Self {
+        Self::StartProcedureSuccess { data }
     }
 
     pub fn testing_tool_result(data: TestToolResultModel) -> Self {
