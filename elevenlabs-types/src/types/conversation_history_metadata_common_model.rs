@@ -10,6 +10,11 @@ pub struct ConversationHistoryMetadataCommonModel {
     pub accepted_time_unix_secs: Option<i64>,
     #[serde(default)]
     pub call_duration_secs: i64,
+    /// Seconds the caller was held in the concurrency wait queue. Excluded from call_duration_secs and from billed time. None when the conversation was never queued.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub queue_wait_secs: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -79,6 +84,7 @@ pub struct ConversationHistoryMetadataCommonModelBuilder {
     start_time_unix_secs: Option<i64>,
     accepted_time_unix_secs: Option<i64>,
     call_duration_secs: Option<i64>,
+    queue_wait_secs: Option<f64>,
     cost: Option<i64>,
     deletion_settings: Option<ConversationDeletionSettings>,
     feedback: Option<ConversationHistoryFeedbackCommonModel>,
@@ -120,6 +126,11 @@ impl ConversationHistoryMetadataCommonModelBuilder {
 
     pub fn call_duration_secs(mut self, value: i64) -> Self {
         self.call_duration_secs = Some(value);
+        self
+    }
+
+    pub fn queue_wait_secs(mut self, value: f64) -> Self {
+        self.queue_wait_secs = Some(value);
         self
     }
 
@@ -262,6 +273,7 @@ impl ConversationHistoryMetadataCommonModelBuilder {
             start_time_unix_secs: self.start_time_unix_secs.ok_or_else(|| BuildError::missing_field("start_time_unix_secs"))?,
             accepted_time_unix_secs: self.accepted_time_unix_secs,
             call_duration_secs: self.call_duration_secs.ok_or_else(|| BuildError::missing_field("call_duration_secs"))?,
+            queue_wait_secs: self.queue_wait_secs,
             cost: self.cost,
             deletion_settings: self.deletion_settings,
             feedback: self.feedback,

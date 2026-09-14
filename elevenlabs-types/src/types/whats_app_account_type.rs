@@ -4,45 +4,40 @@ use super::*;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum MusicModelId {
-    /// Deprecated: Deprecated.
-    MusicV1,
-    MusicV2,
-    MusicV25,
+pub enum WhatsAppAccountType {
+    CloudApi,
+    Coexistence,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
     __Unknown(String),
 }
-impl Serialize for MusicModelId {
+impl Serialize for WhatsAppAccountType {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::MusicV1 => serializer.serialize_str("music_v1"),
-            Self::MusicV2 => serializer.serialize_str("music_v2"),
-            Self::MusicV25 => serializer.serialize_str("music_v2_5"),
+            Self::CloudApi => serializer.serialize_str("cloud_api"),
+            Self::Coexistence => serializer.serialize_str("coexistence"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
 }
 
-impl<'de> Deserialize<'de> for MusicModelId {
+impl<'de> Deserialize<'de> for WhatsAppAccountType {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
-            "music_v1" => Ok(Self::MusicV1),
-            "music_v2" => Ok(Self::MusicV2),
-            "music_v2_5" => Ok(Self::MusicV25),
+            "cloud_api" => Ok(Self::CloudApi),
+            "coexistence" => Ok(Self::Coexistence),
             _ => Ok(Self::__Unknown(value)),
         }
     }
 }
 
-impl fmt::Display for MusicModelId {
+impl fmt::Display for WhatsAppAccountType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MusicV1 => write!(f, "music_v1"),
-            Self::MusicV2 => write!(f, "music_v2"),
-            Self::MusicV25 => write!(f, "music_v2_5"),
+            Self::CloudApi => write!(f, "cloud_api"),
+            Self::Coexistence => write!(f, "coexistence"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

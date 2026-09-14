@@ -22,13 +22,6 @@ targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "aarch64-unknown
 pr-run-mode = "plan"
 # Publish jobs to run (npm publishing deferred until pipeline is validated)
 publish-jobs = ["homebrew"]
-# Prereleases must not reach brew/scoop. A tap has no prerelease channel — a
-# published manifest simply *is* the version `brew install elevenlabs` and
-# `scoop install elevenlabs` hand out — so tagging a 1.1.0-rc.1 would serve an
-# RC to every stable user. This was `true` during the alpha, when the taps were
-# the distribution channel for testers and there was no stable release to
-# clobber. Stable releases are unaffected either way; only prereleases are.
-publish-prereleases = false
 # Don't overwrite release.yml on `dist init` (preserves customizations)
 allow-dirty = ["ci"]
 # The archive format to use for windows builds (defaults .zip)

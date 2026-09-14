@@ -14,6 +14,9 @@ pub struct GetSignedUrlQueryRequest {
     /// The ID of the branch to use
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    /// The ID of the version to use
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
     /// The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
@@ -34,6 +37,7 @@ pub struct GetSignedUrlQueryRequestBuilder {
     agent_id: Option<String>,
     include_conversation_id: Option<bool>,
     branch_id: Option<String>,
+    version_id: Option<String>,
     environment: Option<String>,
     debug_events_request: Option<bool>,
 }
@@ -51,6 +55,11 @@ impl GetSignedUrlQueryRequestBuilder {
 
     pub fn branch_id(mut self, value: impl Into<String>) -> Self {
         self.branch_id = Some(value.into());
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
         self
     }
 
@@ -72,6 +81,7 @@ impl GetSignedUrlQueryRequestBuilder {
             agent_id: self.agent_id.ok_or_else(|| BuildError::missing_field("agent_id"))?,
             include_conversation_id: self.include_conversation_id,
             branch_id: self.branch_id,
+            version_id: self.version_id,
             environment: self.environment,
             debug_events_request: self.debug_events_request,
         })

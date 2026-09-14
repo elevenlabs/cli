@@ -8,6 +8,9 @@ pub struct LlmUsageCalculatorLlmResponseModel {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers")]
     pub price_per_minute: f64,
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers")]
+    pub price_per_message: f64,
 }
 
 impl LlmUsageCalculatorLlmResponseModel {
@@ -21,6 +24,7 @@ impl LlmUsageCalculatorLlmResponseModel {
 pub struct LlmUsageCalculatorLlmResponseModelBuilder {
     llm: Option<Llm>,
     price_per_minute: Option<f64>,
+    price_per_message: Option<f64>,
 }
 
 impl LlmUsageCalculatorLlmResponseModelBuilder {
@@ -34,14 +38,21 @@ impl LlmUsageCalculatorLlmResponseModelBuilder {
         self
     }
 
+    pub fn price_per_message(mut self, value: f64) -> Self {
+        self.price_per_message = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`LlmUsageCalculatorLlmResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`llm`](LlmUsageCalculatorLlmResponseModelBuilder::llm)
     /// - [`price_per_minute`](LlmUsageCalculatorLlmResponseModelBuilder::price_per_minute)
+    /// - [`price_per_message`](LlmUsageCalculatorLlmResponseModelBuilder::price_per_message)
     pub fn build(self) -> Result<LlmUsageCalculatorLlmResponseModel, BuildError> {
         Ok(LlmUsageCalculatorLlmResponseModel {
             llm: self.llm.ok_or_else(|| BuildError::missing_field("llm"))?,
             price_per_minute: self.price_per_minute.ok_or_else(|| BuildError::missing_field("price_per_minute"))?,
+            price_per_message: self.price_per_message.ok_or_else(|| BuildError::missing_field("price_per_message"))?,
         })
     }
 }

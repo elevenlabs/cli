@@ -22,6 +22,9 @@ pub struct ProcedureAtVersionResponseModel {
     /// When the agent should use this procedure. Empty string means this is a sub-procedure that should only start when another procedure references it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trigger: Option<String>,
+    /// Procedure ID of the folder this procedure is placed in. None means root.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_parent_id: Option<String>,
 }
 
 impl ProcedureAtVersionResponseModel {
@@ -39,6 +42,7 @@ pub struct ProcedureAtVersionResponseModelBuilder {
     content: Option<String>,
     r#type: Option<ProcedureType>,
     trigger: Option<String>,
+    folder_parent_id: Option<String>,
 }
 
 impl ProcedureAtVersionResponseModelBuilder {
@@ -72,6 +76,11 @@ impl ProcedureAtVersionResponseModelBuilder {
         self
     }
 
+    pub fn folder_parent_id(mut self, value: impl Into<String>) -> Self {
+        self.folder_parent_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`ProcedureAtVersionResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`procedure_id`](ProcedureAtVersionResponseModelBuilder::procedure_id)
@@ -85,6 +94,7 @@ impl ProcedureAtVersionResponseModelBuilder {
             content: self.content.ok_or_else(|| BuildError::missing_field("content"))?,
             r#type: self.r#type,
             trigger: self.trigger,
+            folder_parent_id: self.folder_parent_id,
         })
     }
 }

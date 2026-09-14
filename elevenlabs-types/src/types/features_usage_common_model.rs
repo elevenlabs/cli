@@ -36,6 +36,10 @@ pub struct FeaturesUsageCommonModel {
     pub versioning: Option<FeatureStatusCommonModel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_input: Option<FeatureStatusCommonModel>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub freeform_procedure: Option<FeatureStatusCommonModel>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structured_procedure: Option<FeatureStatusCommonModel>,
 }
 
 impl FeaturesUsageCommonModel {
@@ -63,6 +67,8 @@ pub struct FeaturesUsageCommonModelBuilder {
     agent_testing: Option<TestsFeatureUsageCommonModel>,
     versioning: Option<FeatureStatusCommonModel>,
     file_input: Option<FeatureStatusCommonModel>,
+    freeform_procedure: Option<FeatureStatusCommonModel>,
+    structured_procedure: Option<FeatureStatusCommonModel>,
 }
 
 impl FeaturesUsageCommonModelBuilder {
@@ -146,6 +152,16 @@ impl FeaturesUsageCommonModelBuilder {
         self
     }
 
+    pub fn freeform_procedure(mut self, value: FeatureStatusCommonModel) -> Self {
+        self.freeform_procedure = Some(value);
+        self
+    }
+
+    pub fn structured_procedure(mut self, value: FeatureStatusCommonModel) -> Self {
+        self.structured_procedure = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`FeaturesUsageCommonModel`].
     pub fn build(self) -> Result<FeaturesUsageCommonModel, BuildError> {
         Ok(FeaturesUsageCommonModel {
@@ -165,6 +181,8 @@ impl FeaturesUsageCommonModelBuilder {
             agent_testing: self.agent_testing,
             versioning: self.versioning,
             file_input: self.file_input,
+            freeform_procedure: self.freeform_procedure,
+            structured_procedure: self.structured_procedure,
         })
     }
 }

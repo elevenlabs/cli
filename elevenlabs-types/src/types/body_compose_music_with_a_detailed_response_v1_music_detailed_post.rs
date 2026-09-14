@@ -25,7 +25,7 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
     /// The ID of the finetune to use for the generation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub finetune_id: Option<String>,
-    /// Controls how strictly section durations in the `composition_plan` are enforced. Only used with `composition_plan` and only applies to `music_v1`; for `music_v2` section durations are always enforced and this is ignored. When false for `music_v1`, the model may adjust individual section durations for better quality and latency, while preserving the total song duration from the plan.
+    /// Controls how strictly section durations in the `composition_plan` are enforced. Only used with `composition_plan` and only applies to `music_v1`; for `music_v2` and `music_v2_5` section durations are always enforced and this is ignored. When false for `music_v1`, the model may adjust individual section durations for better quality and latency, while preserving the total song duration from the plan.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub respect_sections_durations: Option<bool>,
     /// Whether to store the generated song for inpainting.

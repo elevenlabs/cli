@@ -7,6 +7,7 @@ use super::*;
 pub enum ProcedureType {
     FreeForm,
     Deterministic,
+    Folder,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -17,6 +18,7 @@ impl Serialize for ProcedureType {
         match self {
             Self::FreeForm => serializer.serialize_str("free_form"),
             Self::Deterministic => serializer.serialize_str("deterministic"),
+            Self::Folder => serializer.serialize_str("folder"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -28,6 +30,7 @@ impl<'de> Deserialize<'de> for ProcedureType {
         match value.as_str() {
             "free_form" => Ok(Self::FreeForm),
             "deterministic" => Ok(Self::Deterministic),
+            "folder" => Ok(Self::Folder),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -38,6 +41,7 @@ impl fmt::Display for ProcedureType {
         match self {
             Self::FreeForm => write!(f, "free_form"),
             Self::Deterministic => write!(f, "deterministic"),
+            Self::Folder => write!(f, "folder"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }
