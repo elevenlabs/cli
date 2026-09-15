@@ -16,6 +16,9 @@ pub struct CreateProcedureRequestModel {
     /// When the agent should use this procedure. Empty string means this is a sub-procedure that should only start when another procedure references it. If omitted or null, the trigger is derived from the content instead. Also accepts `description` as an alias.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trigger: Option<String>,
+    /// Procedure ID of the folder to create this procedure in, or null for root.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_parent_id: Option<String>,
 }
 
 impl CreateProcedureRequestModel {
@@ -31,6 +34,7 @@ pub struct CreateProcedureRequestModelBuilder {
     content: Option<String>,
     r#type: Option<ProcedureType>,
     trigger: Option<String>,
+    folder_parent_id: Option<String>,
 }
 
 impl CreateProcedureRequestModelBuilder {
@@ -54,6 +58,11 @@ impl CreateProcedureRequestModelBuilder {
         self
     }
 
+    pub fn folder_parent_id(mut self, value: impl Into<String>) -> Self {
+        self.folder_parent_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`CreateProcedureRequestModel`].
     pub fn build(self) -> Result<CreateProcedureRequestModel, BuildError> {
         Ok(CreateProcedureRequestModel {
@@ -61,6 +70,7 @@ impl CreateProcedureRequestModelBuilder {
             content: self.content,
             r#type: self.r#type,
             trigger: self.trigger,
+            folder_parent_id: self.folder_parent_id,
         })
     }
 }

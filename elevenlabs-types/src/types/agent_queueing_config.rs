@@ -10,7 +10,7 @@ pub struct AgentQueueingConfig {
     /// Maximum time a caller can wait in the queue before being rejected
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wait_timeout_seconds: Option<i64>,
-    /// Custom hold audio played to queued callers; when unset, callers hear the default hold tone. Set via the hold-audio upload route, not writable through agent PATCH.
+    /// Custom hold audio played to queued callers; when unset, callers hear the default hold tone. Read-only: set it by uploading a file through the agent hold-audio endpoint.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hold_audio: Option<AgentHoldAudioConfig>,
 }

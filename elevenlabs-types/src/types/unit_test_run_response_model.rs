@@ -15,6 +15,10 @@ pub struct UnitTestRunResponseModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ran_against_draft: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub workflow_node_id: Option<String>,
     pub status: TestRunStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -51,6 +55,8 @@ pub struct UnitTestRunResponseModelBuilder {
     test_invocation_id: Option<String>,
     agent_id: Option<String>,
     branch_id: Option<String>,
+    version_id: Option<String>,
+    ran_against_draft: Option<bool>,
     workflow_node_id: Option<String>,
     status: Option<TestRunStatus>,
     agent_responses: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
@@ -87,6 +93,16 @@ impl UnitTestRunResponseModelBuilder {
 
     pub fn branch_id(mut self, value: impl Into<String>) -> Self {
         self.branch_id = Some(value.into());
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
+    pub fn ran_against_draft(mut self, value: bool) -> Self {
+        self.ran_against_draft = Some(value);
         self
     }
 
@@ -159,6 +175,8 @@ impl UnitTestRunResponseModelBuilder {
             test_invocation_id: self.test_invocation_id.ok_or_else(|| BuildError::missing_field("test_invocation_id"))?,
             agent_id: self.agent_id.ok_or_else(|| BuildError::missing_field("agent_id"))?,
             branch_id: self.branch_id,
+            version_id: self.version_id,
+            ran_against_draft: self.ran_against_draft,
             workflow_node_id: self.workflow_node_id,
             status: self.status.ok_or_else(|| BuildError::missing_field("status"))?,
             agent_responses: self.agent_responses,

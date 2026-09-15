@@ -11,7 +11,7 @@ pub struct AgentsTestsListQueryRequest {
     /// How many Tests to return at maximum. Can not exceed 100, defaults to 30.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
-    /// Search query to filter tests by name.
+    /// Search query to filter tests and folders by name.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub search: Option<String>,
     /// Filter by parent folder ID. Use 'root' to get items in the root folder.

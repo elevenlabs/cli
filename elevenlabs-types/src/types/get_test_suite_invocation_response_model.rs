@@ -11,6 +11,10 @@ pub struct GetTestSuiteInvocationResponseModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ran_against_draft: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folder_id: Option<String>,
@@ -37,6 +41,8 @@ pub struct GetTestSuiteInvocationResponseModelBuilder {
     id: Option<String>,
     agent_id: Option<String>,
     branch_id: Option<String>,
+    version_id: Option<String>,
+    ran_against_draft: Option<bool>,
     created_at: Option<i64>,
     folder_id: Option<String>,
     repeat_count: Option<i64>,
@@ -58,6 +64,16 @@ impl GetTestSuiteInvocationResponseModelBuilder {
 
     pub fn branch_id(mut self, value: impl Into<String>) -> Self {
         self.branch_id = Some(value.into());
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
+    pub fn ran_against_draft(mut self, value: bool) -> Self {
+        self.ran_against_draft = Some(value);
         self
     }
 
@@ -100,6 +116,8 @@ impl GetTestSuiteInvocationResponseModelBuilder {
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,
             agent_id: self.agent_id,
             branch_id: self.branch_id,
+            version_id: self.version_id,
+            ran_against_draft: self.ran_against_draft,
             created_at: self.created_at,
             folder_id: self.folder_id,
             repeat_count: self.repeat_count,

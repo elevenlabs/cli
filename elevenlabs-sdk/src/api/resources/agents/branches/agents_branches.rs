@@ -112,6 +112,7 @@ impl BranchesClient {
     ///                 conversation_config: None,
     ///                 platform_settings: None,
     ///                 workflow: None,
+    ///                 include_draft: None,
     ///             },
     ///             None,
     ///         )

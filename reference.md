@@ -21,6 +21,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents deployments`](#elevenlabs-agents-deployments)
 - [`elevenlabs agents drafts`](#elevenlabs-agents-drafts)
 - [`elevenlabs agents exotel`](#elevenlabs-agents-exotel)
+- [`elevenlabs agents hold-audio`](#elevenlabs-agents-hold-audio)
 - [`elevenlabs agents knowledge-base`](#elevenlabs-agents-knowledge-base)
 - [`elevenlabs agents knowledge-base crawl-jobs`](#elevenlabs-agents-knowledge-base-crawl-jobs)
 - [`elevenlabs agents knowledge-base document`](#elevenlabs-agents-knowledge-base-document)
@@ -564,6 +565,7 @@ Get a signed url to start a conversation with an agent with an agent that requir
 | `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
 | `--include-conversation-id` | `boolean` | No | Whether to include a conversation_id with the response. If included, the conversation_signature cannot be used again. |
 | `--branch-id` | `string` | No | The ID of the branch to use |
+| `--version-id` | `string` | No | The ID of the version to use |
 | `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
 | `--debug-events-request` | `boolean` | No | Whether to enable debug events. Only available for users with editor access to the agent. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
@@ -604,6 +606,7 @@ Get a WebRTC session token for real-time communication.
 | `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
 | `--participant-name` | `string` | No | Optional custom participant name. If not provided, user ID will be used |
 | `--branch-id` | `string` | No | The ID of the branch to use |
+| `--version-id` | `string` | No | The ID of the version to use |
 | `--environment` | `string` | No | The environment to use for resolving environment variables (e.g. 'production', 'staging'). Defaults to 'production'. |
 | `--debug-events-request` | `boolean` | No | Whether to enable debug events. Only available for users with editor access to the agent. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
@@ -631,7 +634,7 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
 | `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
 | `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
-| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in\|exists\|missing. For in, pipe-delimit values. |
+| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|gt\|gte\|lt\|lte\|missing. |
 | `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|gt\|gte\|lt\|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed. |
 | `--data-collection-ids` | `string` | No | Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned. |
 | `--evaluation-criteria-ids` | `string` | No | Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned. |
@@ -797,7 +800,7 @@ Search through conversation transcript messages by full-text and fuzzy search
 | `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
 | `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
 | `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
-| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in\|exists\|missing. For in, pipe-delimit values. |
+| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|gt\|gte\|lt\|lte\|missing. |
 | `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|gt\|gte\|lt\|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed. |
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
 | `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
@@ -1009,6 +1012,33 @@ Handle an outbound call via Exotel Connect API
 |------|------|----------|-------------|
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents hold-audio`
+
+#### `elevenlabs agents hold-audio create`
+
+Sets the custom hold audio played on loop to callers waiting in the agent's concurrency wait queue. Replaces any previously uploaded clip.
+
+`POST /v1/convai/agents/{agent_id}/hold-audio`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents hold-audio delete`
+
+Removes the agent's custom hold audio; queued callers hear the default hold tone again.
+
+`DELETE /v1/convai/agents/{agent_id}/hold-audio`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 
@@ -1716,7 +1746,7 @@ Retrieve a procedure at a specific version or the current branch HEAD.
 
 #### `elevenlabs agents procedures list`
 
-List the agent's procedures on a branch with their procedure_id, version_id, name, type, trigger, and has_draft. has_draft is true when a procedure has unpublished draft changes on this branch; its name/type/trigger then reflect that draft. Does not return procedure content -- use Get Procedure to read a procedure's body.
+List the procedures attached to this agent branch. By default, unpublished drafts take precedence over the latest committed version. Pass agent_version_id to list a published snapshot instead. has_draft is true when a procedure has unpublished draft changes on this branch. Procedure content is not included; use Get Procedure to read a procedure's body.
 
 `GET /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures`
 
@@ -1963,7 +1993,7 @@ Lists all agent response tests with pagination support and optional search filte
 |------|------|----------|-------------|
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
-| `--search` | `string` | No | Search query to filter tests by name. |
+| `--search` | `string` | No | Search query to filter tests and folders by name. |
 | `--parent-folder-id` | `string` | No | Filter by parent folder ID. Use 'root' to get items in the root folder. |
 | `--types` | `string` | No | If present, the endpoint will return only tests/folders of the given types. |
 | `--include-folders` | `string` | No | Deprecated. Use the `types` query param and include `folder` instead. |
@@ -2080,6 +2110,7 @@ Lists all test invocations with pagination support and optional search filtering
 |------|------|----------|-------------|
 | `--agent-id` | `string` | No | Filter by agent ID |
 | `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
+| `--search` | `string` | No | Search query to filter tests and folders by name. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 

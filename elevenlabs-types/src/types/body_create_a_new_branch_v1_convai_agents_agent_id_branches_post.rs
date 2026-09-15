@@ -22,6 +22,9 @@ pub struct BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPost {
     /// Updated workflow definition
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workflow: Option<AgentWorkflowRequestModel>,
+    /// When true, the new branch uses the caller's draft procedure set instead of the branch tip. Requires parent_version_id to be the branch tip.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_draft: Option<bool>,
 }
 
 impl BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPost {
@@ -39,6 +42,7 @@ pub struct BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPostBuilder {
     conversation_config: Option<HashMap<String, serde_json::Value>>,
     platform_settings: Option<HashMap<String, serde_json::Value>>,
     workflow: Option<AgentWorkflowRequestModel>,
+    include_draft: Option<bool>,
 }
 
 impl BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPostBuilder {
@@ -72,6 +76,11 @@ impl BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPostBuilder {
         self
     }
 
+    pub fn include_draft(mut self, value: bool) -> Self {
+        self.include_draft = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPost`].
     /// This method will fail if any of the following fields are not set:
     /// - [`parent_version_id`](BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPostBuilder::parent_version_id)
@@ -85,6 +94,7 @@ impl BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPostBuilder {
             conversation_config: self.conversation_config,
             platform_settings: self.platform_settings,
             workflow: self.workflow,
+            include_draft: self.include_draft,
         })
     }
 }

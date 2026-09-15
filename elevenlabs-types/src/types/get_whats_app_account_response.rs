@@ -14,6 +14,9 @@ pub struct GetWhatsAppAccountResponse {
     pub phone_number_name: String,
     #[serde(default)]
     pub phone_number: String,
+    /// Which Embedded Signup flow produced this account.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account_type: Option<WhatsAppAccountType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assigned_agent_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,6 +45,7 @@ pub struct GetWhatsAppAccountResponseBuilder {
     business_account_name: Option<String>,
     phone_number_name: Option<String>,
     phone_number: Option<String>,
+    account_type: Option<WhatsAppAccountType>,
     assigned_agent_id: Option<String>,
     enable_messaging: Option<bool>,
     enable_audio_message_response: Option<bool>,
@@ -73,6 +77,11 @@ impl GetWhatsAppAccountResponseBuilder {
 
     pub fn phone_number(mut self, value: impl Into<String>) -> Self {
         self.phone_number = Some(value.into());
+        self
+    }
+
+    pub fn account_type(mut self, value: WhatsAppAccountType) -> Self {
+        self.account_type = Some(value);
         self
     }
 
@@ -120,6 +129,7 @@ impl GetWhatsAppAccountResponseBuilder {
             business_account_name: self.business_account_name.ok_or_else(|| BuildError::missing_field("business_account_name"))?,
             phone_number_name: self.phone_number_name.ok_or_else(|| BuildError::missing_field("phone_number_name"))?,
             phone_number: self.phone_number.ok_or_else(|| BuildError::missing_field("phone_number"))?,
+            account_type: self.account_type,
             assigned_agent_id: self.assigned_agent_id,
             enable_messaging: self.enable_messaging,
             enable_audio_message_response: self.enable_audio_message_response,

@@ -22,6 +22,21 @@ pub struct ProcedureListItemResponseModel {
     /// True when the procedure has unpublished draft changes on this branch (a newly created or edited procedure not yet published). When true, the name, type, and trigger reflect that draft.
     #[serde(default)]
     pub has_draft: bool,
+    /// Tool IDs referenced in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_tool_ids: Option<Vec<String>>,
+    /// Knowledge base IDs referenced in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_kb_ids: Option<Vec<String>>,
+    /// Procedure IDs referenced in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_procedure_ids: Option<Vec<String>>,
+    /// Dynamic variable names used in the procedure content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_dynamic_variables: Option<Vec<String>>,
+    /// Procedure ID of the folder this procedure is placed in. None means root.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_parent_id: Option<String>,
 }
 
 impl ProcedureListItemResponseModel {
@@ -39,6 +54,11 @@ pub struct ProcedureListItemResponseModelBuilder {
     r#type: Option<ProcedureType>,
     trigger: Option<String>,
     has_draft: Option<bool>,
+    referenced_tool_ids: Option<Vec<String>>,
+    referenced_kb_ids: Option<Vec<String>>,
+    referenced_procedure_ids: Option<Vec<String>>,
+    referenced_dynamic_variables: Option<Vec<String>>,
+    folder_parent_id: Option<String>,
 }
 
 impl ProcedureListItemResponseModelBuilder {
@@ -72,6 +92,31 @@ impl ProcedureListItemResponseModelBuilder {
         self
     }
 
+    pub fn referenced_tool_ids(mut self, value: Vec<String>) -> Self {
+        self.referenced_tool_ids = Some(value);
+        self
+    }
+
+    pub fn referenced_kb_ids(mut self, value: Vec<String>) -> Self {
+        self.referenced_kb_ids = Some(value);
+        self
+    }
+
+    pub fn referenced_procedure_ids(mut self, value: Vec<String>) -> Self {
+        self.referenced_procedure_ids = Some(value);
+        self
+    }
+
+    pub fn referenced_dynamic_variables(mut self, value: Vec<String>) -> Self {
+        self.referenced_dynamic_variables = Some(value);
+        self
+    }
+
+    pub fn folder_parent_id(mut self, value: impl Into<String>) -> Self {
+        self.folder_parent_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`ProcedureListItemResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`procedure_id`](ProcedureListItemResponseModelBuilder::procedure_id)
@@ -84,6 +129,11 @@ impl ProcedureListItemResponseModelBuilder {
             r#type: self.r#type,
             trigger: self.trigger,
             has_draft: self.has_draft.ok_or_else(|| BuildError::missing_field("has_draft"))?,
+            referenced_tool_ids: self.referenced_tool_ids,
+            referenced_kb_ids: self.referenced_kb_ids,
+            referenced_procedure_ids: self.referenced_procedure_ids,
+            referenced_dynamic_variables: self.referenced_dynamic_variables,
+            folder_parent_id: self.folder_parent_id,
         })
     }
 }

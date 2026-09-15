@@ -46,6 +46,9 @@ pub struct AgentPlatformSettingsResponseModel {
     /// Call limits for the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_limits: Option<AgentCallLimits>,
+    /// Concurrency wait-queue config for the agent
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queueing_config: Option<AgentQueueingConfig>,
     /// Privacy settings for the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub privacy: Option<PrivacyConfigOutput>,
@@ -91,6 +94,7 @@ pub struct AgentPlatformSettingsResponseModelBuilder {
     auto_translate_transcript_to_app_language: Option<bool>,
     auth: Option<AuthSettings>,
     call_limits: Option<AgentCallLimits>,
+    queueing_config: Option<AgentQueueingConfig>,
     privacy: Option<PrivacyConfigOutput>,
     trust_context: Option<AgentTrustContext>,
     analysis_llm: Option<Llm>,
@@ -171,6 +175,11 @@ impl AgentPlatformSettingsResponseModelBuilder {
         self
     }
 
+    pub fn queueing_config(mut self, value: AgentQueueingConfig) -> Self {
+        self.queueing_config = Some(value);
+        self
+    }
+
     pub fn privacy(mut self, value: PrivacyConfigOutput) -> Self {
         self.privacy = Some(value);
         self
@@ -223,6 +232,7 @@ impl AgentPlatformSettingsResponseModelBuilder {
             auto_translate_transcript_to_app_language: self.auto_translate_transcript_to_app_language,
             auth: self.auth,
             call_limits: self.call_limits,
+            queueing_config: self.queueing_config,
             privacy: self.privacy,
             trust_context: self.trust_context,
             analysis_llm: self.analysis_llm,

@@ -16,6 +16,8 @@ pub mod widget;
 pub use widget::WidgetClient;
 pub mod link;
 pub use link::LinkClient;
+pub mod hold_audio;
+pub use hold_audio::HoldAudioClient;
 pub mod knowledge_base;
 pub use knowledge_base::KnowledgeBaseClient;
 pub mod tests;
@@ -69,6 +71,7 @@ pub struct AgentsClient {
     pub summaries: SummariesClient,
     pub widget: WidgetClient,
     pub link: LinkClient,
+    pub hold_audio: HoldAudioClient,
     pub knowledge_base: KnowledgeBaseClient,
     pub tests: TestsClient,
     pub users: UsersClient,
@@ -104,6 +107,7 @@ impl AgentsClient {
             summaries: SummariesClient::new(config.clone())?,
             widget: WidgetClient::new(config.clone())?,
             link: LinkClient::new(config.clone())?,
+            hold_audio: HoldAudioClient::new(config.clone())?,
             knowledge_base: KnowledgeBaseClient::new(config.clone())?,
             tests: TestsClient::new(config.clone())?,
             users: UsersClient::new(config.clone())?,

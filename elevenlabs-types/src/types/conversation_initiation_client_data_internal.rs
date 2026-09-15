@@ -26,7 +26,7 @@ pub struct ConversationInitiationClientDataInternal {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub procedure_ids: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub dynamic_variables: Option<HashMap<String, serde_json::Value>>,
+    pub dynamic_variables: Option<HashMap<String, DynamicVariableInternalValueType>>,
     /// Configuration for which tools to mock and fallback behavior
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_mock_config: Option<OrchestratorToolMockBehaviorConfig>,
@@ -52,7 +52,7 @@ pub struct ConversationInitiationClientDataInternalBuilder {
     environment: Option<String>,
     starting_workflow_node_id: Option<String>,
     procedure_ids: Option<Vec<String>>,
-    dynamic_variables: Option<HashMap<String, serde_json::Value>>,
+    dynamic_variables: Option<HashMap<String, DynamicVariableInternalValueType>>,
     tool_mock_config: Option<OrchestratorToolMockBehaviorConfig>,
     tool_mock_overrides: Option<HashMap<String, Vec<ToolResponseMockConfigOutput>>>,
 }
@@ -98,7 +98,7 @@ impl ConversationInitiationClientDataInternalBuilder {
         self
     }
 
-    pub fn dynamic_variables(mut self, value: HashMap<String, serde_json::Value>) -> Self {
+    pub fn dynamic_variables(mut self, value: HashMap<String, DynamicVariableInternalValueType>) -> Self {
         self.dynamic_variables = Some(value);
         self
     }

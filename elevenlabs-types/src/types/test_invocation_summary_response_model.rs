@@ -13,6 +13,15 @@ pub struct TestInvocationSummaryResponseModel {
     /// The ID of the branch this test invocation was run on
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    /// The ID of the agent version this test invocation ran against. For draft or config-override runs this is the version those uncommitted changes were applied on top of. None only for runs recorded before this field existed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
+    /// Whether the run included uncommitted changes (a saved draft or an ad-hoc config override) layered on top of version_id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ran_against_draft: Option<bool>,
+    /// Whether the test runs in this invocation did not all execute against the same version, which happens when a subset of runs was resubmitted after the original run. When true, version_id describes the most recent resubmit rather than every run.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runs_diverged_from_version: Option<bool>,
     /// Creation time of the test invocation in unix seconds
     #[serde(default)]
     pub created_at_unix_secs: i64,
@@ -51,6 +60,9 @@ pub struct TestInvocationSummaryResponseModelBuilder {
     id: Option<String>,
     agent_id: Option<String>,
     branch_id: Option<String>,
+    version_id: Option<String>,
+    ran_against_draft: Option<bool>,
+    runs_diverged_from_version: Option<bool>,
     created_at_unix_secs: Option<i64>,
     test_run_count: Option<i64>,
     passed_count: Option<i64>,
@@ -74,6 +86,21 @@ impl TestInvocationSummaryResponseModelBuilder {
 
     pub fn branch_id(mut self, value: impl Into<String>) -> Self {
         self.branch_id = Some(value.into());
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
+        self
+    }
+
+    pub fn ran_against_draft(mut self, value: bool) -> Self {
+        self.ran_against_draft = Some(value);
+        self
+    }
+
+    pub fn runs_diverged_from_version(mut self, value: bool) -> Self {
+        self.runs_diverged_from_version = Some(value);
         self
     }
 
@@ -131,6 +158,9 @@ impl TestInvocationSummaryResponseModelBuilder {
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,
             agent_id: self.agent_id,
             branch_id: self.branch_id,
+            version_id: self.version_id,
+            ran_against_draft: self.ran_against_draft,
+            runs_diverged_from_version: self.runs_diverged_from_version,
             created_at_unix_secs: self.created_at_unix_secs.ok_or_else(|| BuildError::missing_field("created_at_unix_secs"))?,
             test_run_count: self.test_run_count.ok_or_else(|| BuildError::missing_field("test_run_count"))?,
             passed_count: self.passed_count.ok_or_else(|| BuildError::missing_field("passed_count"))?,

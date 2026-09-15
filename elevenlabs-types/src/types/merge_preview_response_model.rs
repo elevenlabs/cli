@@ -43,6 +43,12 @@ pub struct MergePreviewResponseModel {
     /// The ID of the main branch for this agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub main_branch_id: Option<String>,
+    /// Procedures keyed by procedure_id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub procedures: Option<HashMap<String, ProcedureRefResponseModel>>,
+    /// URL of the default hold tone played to queued callers when no custom hold audio is uploaded, so the dashboard can preview it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_hold_audio_url: Option<String>,
     /// Dot-paths of config fields where both branches modified the same field relative to their common ancestor (conflicts). Present regardless of which side wins the conflict.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub overridden_fields: Option<Vec<String>>,
@@ -76,6 +82,8 @@ pub struct MergePreviewResponseModelBuilder {
     version_id: Option<String>,
     branch_id: Option<String>,
     main_branch_id: Option<String>,
+    procedures: Option<HashMap<String, ProcedureRefResponseModel>>,
+    default_hold_audio_url: Option<String>,
     overridden_fields: Option<Vec<String>>,
     conflicts: Option<Vec<FieldConflict>>,
     source_identical_to_target: Option<bool>,
@@ -147,6 +155,16 @@ impl MergePreviewResponseModelBuilder {
         self
     }
 
+    pub fn procedures(mut self, value: HashMap<String, ProcedureRefResponseModel>) -> Self {
+        self.procedures = Some(value);
+        self
+    }
+
+    pub fn default_hold_audio_url(mut self, value: impl Into<String>) -> Self {
+        self.default_hold_audio_url = Some(value.into());
+        self
+    }
+
     pub fn overridden_fields(mut self, value: Vec<String>) -> Self {
         self.overridden_fields = Some(value);
         self
@@ -183,6 +201,8 @@ impl MergePreviewResponseModelBuilder {
             version_id: self.version_id,
             branch_id: self.branch_id,
             main_branch_id: self.main_branch_id,
+            procedures: self.procedures,
+            default_hold_audio_url: self.default_hold_audio_url,
             overridden_fields: self.overridden_fields,
             conflicts: self.conflicts,
             source_identical_to_target: self.source_identical_to_target,

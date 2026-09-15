@@ -192,6 +192,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
                 avatar: elevenlabs_sdk::api::resources::agents::widget::AvatarClient { http_client: http_client.clone() },
             },
             link: elevenlabs_sdk::api::resources::agents::LinkClient { http_client: http_client.clone() },
+            hold_audio: elevenlabs_sdk::api::resources::agents::HoldAudioClient { http_client: http_client.clone() },
             knowledge_base: elevenlabs_sdk::api::resources::agents::KnowledgeBaseClient {
                 http_client: http_client.clone(),
                 documents: elevenlabs_sdk::api::resources::agents::knowledge_base::DocumentsClient {
