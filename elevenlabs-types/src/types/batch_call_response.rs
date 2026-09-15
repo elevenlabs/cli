@@ -38,7 +38,7 @@ pub struct BatchCallResponse {
     #[serde(default)]
     pub retry_count: i64,
     #[serde(default)]
-    pub telephony_call_config: TelephonyCallConfig,
+    pub telephony_call_config: TelephonyCallConfigOutput,
     /// Maximum number of simultaneous calls for this batch. When set, dispatch is governed by this limit rather than workspace/agent capacity percentages.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_concurrency_limit: Option<i64>,
@@ -74,7 +74,7 @@ pub struct BatchCallResponseBuilder {
     last_updated_at_unix: Option<i64>,
     status: Option<BatchCallStatus>,
     retry_count: Option<i64>,
-    telephony_call_config: Option<TelephonyCallConfig>,
+    telephony_call_config: Option<TelephonyCallConfigOutput>,
     target_concurrency_limit: Option<i64>,
     agent_name: Option<String>,
     branch_name: Option<String>,
@@ -166,7 +166,7 @@ impl BatchCallResponseBuilder {
         self
     }
 
-    pub fn telephony_call_config(mut self, value: TelephonyCallConfig) -> Self {
+    pub fn telephony_call_config(mut self, value: TelephonyCallConfigOutput) -> Self {
         self.telephony_call_config = Some(value);
         self
     }

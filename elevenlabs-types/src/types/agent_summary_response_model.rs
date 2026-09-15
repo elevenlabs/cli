@@ -10,6 +10,9 @@ pub struct AgentSummaryResponseModel {
     /// The name of the agent
     #[serde(default)]
     pub name: String,
+    /// Voice ID assigned to this agent
+    #[serde(default)]
+    pub voice_id: String,
     /// Agent tags used to categorize the agent
     #[serde(default)]
     pub tags: Vec<String>,
@@ -37,6 +40,7 @@ impl AgentSummaryResponseModel {
 pub struct AgentSummaryResponseModelBuilder {
     agent_id: Option<String>,
     name: Option<String>,
+    voice_id: Option<String>,
     tags: Option<Vec<String>>,
     created_at_unix_secs: Option<i64>,
     access_info: Option<ResourceAccessInfo>,
@@ -52,6 +56,11 @@ impl AgentSummaryResponseModelBuilder {
 
     pub fn name(mut self, value: impl Into<String>) -> Self {
         self.name = Some(value.into());
+        self
+    }
+
+    pub fn voice_id(mut self, value: impl Into<String>) -> Self {
+        self.voice_id = Some(value.into());
         self
     }
 
@@ -84,6 +93,7 @@ impl AgentSummaryResponseModelBuilder {
     /// This method will fail if any of the following fields are not set:
     /// - [`agent_id`](AgentSummaryResponseModelBuilder::agent_id)
     /// - [`name`](AgentSummaryResponseModelBuilder::name)
+    /// - [`voice_id`](AgentSummaryResponseModelBuilder::voice_id)
     /// - [`tags`](AgentSummaryResponseModelBuilder::tags)
     /// - [`created_at_unix_secs`](AgentSummaryResponseModelBuilder::created_at_unix_secs)
     /// - [`access_info`](AgentSummaryResponseModelBuilder::access_info)
@@ -91,6 +101,7 @@ impl AgentSummaryResponseModelBuilder {
         Ok(AgentSummaryResponseModel {
             agent_id: self.agent_id.ok_or_else(|| BuildError::missing_field("agent_id"))?,
             name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
+            voice_id: self.voice_id.ok_or_else(|| BuildError::missing_field("voice_id"))?,
             tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,
             created_at_unix_secs: self.created_at_unix_secs.ok_or_else(|| BuildError::missing_field("created_at_unix_secs"))?,
             access_info: self.access_info.ok_or_else(|| BuildError::missing_field("access_info"))?,

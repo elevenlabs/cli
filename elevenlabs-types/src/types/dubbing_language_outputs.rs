@@ -5,7 +5,7 @@ use super::*;
 /// Signed, time-limited download URLs for a language target's outputs.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct DubbingLanguageOutputs {
-    /// Signed URL of the dubbed lossless audio track.
+    /// Signed URL for the dubbed lossless audio track, in FLAC. The link expires one hour after it is issued; re-read the language target for a fresh one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lossless_audio: Option<String>,
 }

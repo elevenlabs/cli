@@ -6,7 +6,7 @@ use super::*;
 pub struct ConvAiWebhooks {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub post_call_webhook_id: Option<String>,
-    /// List of event types to send via webhook. Options: transcript, audio, call_initiation_failure, unredacted_transcript, unredacted_audio.
+    /// List of event types to send via webhook. Options: transcript, audio, call_initiation_failure, answering_machine_detection, unredacted_transcript, unredacted_audio.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub events: Option<Vec<WebhookEventType>>,
     /// Format for transcript webhooks.

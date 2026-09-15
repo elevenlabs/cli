@@ -2,15 +2,12 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// Execution-related properties for a tool.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+/// Execution-related properties for a tool (2025-11-25 only).
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct ToolExecution {
     #[serde(rename = "taskSupport")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_support: Option<ToolExecutionTaskSupport>,
-    /// Additional properties that are not part of the defined schema.
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl ToolExecution {
@@ -35,7 +32,6 @@ impl ToolExecutionBuilder {
     pub fn build(self) -> Result<ToolExecution, BuildError> {
         Ok(ToolExecution {
             task_support: self.task_support,
-            extra: Default::default(),
         })
     }
 }

@@ -4,12 +4,12 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct VoicesNotPermittedWarning {
-    /// Identifies this warning; branch on it to read the fields below.
+    /// Identifies this warning; branch on it to read the other fields.
     pub r#type: String,
-    /// Speakers whose voices were not permitted for cloning. The dub used a replacement voice for each of them; the rest of the speakers are unaffected.
+    /// Speakers whose voices were not permitted for cloning. The dub used a replacement voice for each of them; all other speakers are unaffected.
     #[serde(default)]
     pub speaker_ids: Vec<String>,
-    /// Human-readable description of the warning, for display. The wording may change at any time; branch on `type` instead.
+    /// Human-readable description of the warning, for display. The wording may change at any time, so we recommend branching on `type` instead.
     #[serde(default)]
     pub message: String,
 }

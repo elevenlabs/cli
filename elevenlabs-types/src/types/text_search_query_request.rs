@@ -53,6 +53,9 @@ pub struct TextSearchQueryRequest {
     /// Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in|exists|missing. For in, pipe-delimit values.
     #[serde(default)]
     pub data_collection_params: Vec<Option<String>>,
+    /// Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
+    #[serde(default)]
+    pub dynamic_variable_params: Vec<Option<String>>,
     /// Filter conversations by tool names used during the call.
     #[serde(default)]
     pub tool_names: Vec<Option<String>>,
@@ -129,6 +132,7 @@ pub struct TextSearchQueryRequestBuilder {
     user_id: Option<String>,
     evaluation_params: Option<Vec<Option<String>>>,
     data_collection_params: Option<Vec<Option<String>>>,
+    dynamic_variable_params: Option<Vec<Option<String>>>,
     tool_names: Option<Vec<Option<String>>>,
     tool_names_successful: Option<Vec<Option<String>>>,
     tool_names_errored: Option<Vec<Option<String>>>,
@@ -229,6 +233,11 @@ impl TextSearchQueryRequestBuilder {
         self
     }
 
+    pub fn dynamic_variable_params(mut self, value: Vec<Option<String>>) -> Self {
+        self.dynamic_variable_params = Some(value);
+        self
+    }
+
     pub fn tool_names(mut self, value: Vec<Option<String>>) -> Self {
         self.tool_names = Some(value);
         self
@@ -322,6 +331,7 @@ impl TextSearchQueryRequestBuilder {
     /// - [`triggered_procedure_ids`](TextSearchQueryRequestBuilder::triggered_procedure_ids)
     /// - [`evaluation_params`](TextSearchQueryRequestBuilder::evaluation_params)
     /// - [`data_collection_params`](TextSearchQueryRequestBuilder::data_collection_params)
+    /// - [`dynamic_variable_params`](TextSearchQueryRequestBuilder::dynamic_variable_params)
     /// - [`tool_names`](TextSearchQueryRequestBuilder::tool_names)
     /// - [`tool_names_successful`](TextSearchQueryRequestBuilder::tool_names_successful)
     /// - [`tool_names_errored`](TextSearchQueryRequestBuilder::tool_names_errored)
@@ -347,6 +357,7 @@ impl TextSearchQueryRequestBuilder {
             user_id: self.user_id,
             evaluation_params: self.evaluation_params.ok_or_else(|| BuildError::missing_field("evaluation_params"))?,
             data_collection_params: self.data_collection_params.ok_or_else(|| BuildError::missing_field("data_collection_params"))?,
+            dynamic_variable_params: self.dynamic_variable_params.ok_or_else(|| BuildError::missing_field("dynamic_variable_params"))?,
             tool_names: self.tool_names.ok_or_else(|| BuildError::missing_field("tool_names"))?,
             tool_names_successful: self.tool_names_successful.ok_or_else(|| BuildError::missing_field("tool_names_successful"))?,
             tool_names_errored: self.tool_names_errored.ok_or_else(|| BuildError::missing_field("tool_names_errored"))?,

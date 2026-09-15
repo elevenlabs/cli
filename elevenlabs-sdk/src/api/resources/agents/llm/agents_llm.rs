@@ -40,7 +40,7 @@ impl LlmClient {
     pub async fn list(
         &self,
         options: Option<RequestOptions>,
-    ) -> Result<LlmListResponseModelInput, ApiError> {
+    ) -> Result<LlmListResponseModel, ApiError> {
         self.http_client
             .execute_request(Method::GET, "v1/convai/llm/list", None, None, options)
             .await

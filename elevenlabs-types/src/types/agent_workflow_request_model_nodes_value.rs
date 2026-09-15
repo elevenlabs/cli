@@ -45,6 +45,8 @@ pub enum AgentWorkflowRequestModelNodesValue {
             #[serde(skip_serializing_if = "Option::is_none")]
             transfer_type: Option<TransferTypeEnum>,
             #[serde(skip_serializing_if = "Option::is_none")]
+            sip_refer_play_dialtone: Option<bool>,
+            #[serde(skip_serializing_if = "Option::is_none")]
             uui: Option<UuiTransferConfig>,
             #[serde(skip_serializing_if = "Option::is_none")]
             post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>,
@@ -112,7 +114,7 @@ impl AgentWorkflowRequestModelNodesValue {
     }
 
     pub fn phone_number(transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination) -> Self {
-        Self::PhoneNumber { custom_sip_headers: None, transfer_destination, transfer_type: None, uui: None, post_dial_digits: None, position: None, edge_order: None }
+        Self::PhoneNumber { custom_sip_headers: None, transfer_destination, transfer_type: None, sip_refer_play_dialtone: None, uui: None, post_dial_digits: None, position: None, edge_order: None }
     }
 
     pub fn standalone_agent() -> Self {
@@ -163,28 +165,32 @@ impl AgentWorkflowRequestModelNodesValue {
         Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior: Some(entry_behavior) }
     }
 
-    pub fn phone_number_with_custom_sip_headers(custom_sip_headers: Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers: Some(custom_sip_headers), transfer_destination, transfer_type, uui, post_dial_digits, position, edge_order }
+    pub fn phone_number_with_custom_sip_headers(custom_sip_headers: Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers: Some(custom_sip_headers), transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order }
     }
 
-    pub fn phone_number_with_transfer_type(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: TransferTypeEnum, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type: Some(transfer_type), uui, post_dial_digits, position, edge_order }
+    pub fn phone_number_with_transfer_type(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: TransferTypeEnum, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type: Some(transfer_type), sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order }
     }
 
-    pub fn phone_number_with_uui(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, uui: UuiTransferConfig, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, uui: Some(uui), post_dial_digits, position, edge_order }
+    pub fn phone_number_with_sip_refer_play_dialtone(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: bool, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone: Some(sip_refer_play_dialtone), uui, post_dial_digits, position, edge_order }
     }
 
-    pub fn phone_number_with_post_dial_digits(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, uui: Option<UuiTransferConfig>, post_dial_digits: WorkflowPhoneNumberNodeModelInputPostDialDigits, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, uui, post_dial_digits: Some(post_dial_digits), position, edge_order }
+    pub fn phone_number_with_uui(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: UuiTransferConfig, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui: Some(uui), post_dial_digits, position, edge_order }
     }
 
-    pub fn phone_number_with_position(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: PositionInput, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, uui, post_dial_digits, position: Some(position), edge_order }
+    pub fn phone_number_with_post_dial_digits(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: WorkflowPhoneNumberNodeModelInputPostDialDigits, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits: Some(post_dial_digits), position, edge_order }
     }
 
-    pub fn phone_number_with_edge_order(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Vec<String>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, uui, post_dial_digits, position, edge_order: Some(edge_order) }
+    pub fn phone_number_with_position(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: PositionInput, edge_order: Option<Vec<String>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position: Some(position), edge_order }
+    }
+
+    pub fn phone_number_with_edge_order(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Vec<String>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order: Some(edge_order) }
     }
 
     pub fn standalone_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {

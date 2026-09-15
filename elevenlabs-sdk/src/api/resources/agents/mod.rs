@@ -359,6 +359,7 @@ impl AgentsClient {
     /// * `archived` - Filter agents by archived status
     /// * `show_only_owned_agents` - If set to true, the endpoint will omit any agents that were shared with you by someone else and include only the ones you own. Deprecated: use created_by_user_id instead.
     /// * `created_by_user_id` - Filter agents by creator user ID. When set, only agents created by this user are returned. Takes precedence over show_only_owned_agents. Use '@me' to refer to the authenticated user.
+    /// * `tags` - Filter agents by tag. Repeat the parameter to match any of several tags.
     /// * `sort_direction` - The direction to sort the results
     /// * `sort_by` - The field to sort the results by
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
@@ -388,10 +389,10 @@ impl AgentsClient {
     ///                 archived: Some(true),
     ///                 show_only_owned_agents: Some(true),
     ///                 created_by_user_id: Some("created_by_user_id".to_string()),
+    ///                 tags: vec![Some("tags".to_string())],
     ///                 sort_direction: Some(SortDirection::Asc),
     ///                 sort_by: Some(AgentSortBy::Name),
     ///                 cursor: Some("cursor".to_string()),
-    ///                 ..Default::default()
     ///             },
     ///             None,
     ///         )
@@ -417,6 +418,7 @@ impl AgentsClient {
                         request.show_only_owned_agents.clone(),
                     )
                     .string("created_by_user_id", request.created_by_user_id.clone())
+                    .string_array("tags", request.tags.clone())
                     .serialize("sort_direction", request.sort_direction.clone())
                     .serialize("sort_by", request.sort_by.clone())
                     .string("cursor", request.cursor.clone())

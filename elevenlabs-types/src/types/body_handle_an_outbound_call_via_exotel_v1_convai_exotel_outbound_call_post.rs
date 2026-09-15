@@ -13,7 +13,7 @@ pub struct BodyHandleAnOutboundCallViaExotelV1ConvaiExotelOutboundCallPost {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation_initiation_client_data: Option<ConversationInitiationClientDataRequestInput>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub telephony_call_config: Option<TelephonyCallConfig>,
+    pub telephony_call_config: Option<TelephonyCallConfigInput>,
 }
 
 impl BodyHandleAnOutboundCallViaExotelV1ConvaiExotelOutboundCallPost {
@@ -29,7 +29,7 @@ pub struct BodyHandleAnOutboundCallViaExotelV1ConvaiExotelOutboundCallPostBuilde
     agent_phone_number_id: Option<String>,
     to_number: Option<String>,
     conversation_initiation_client_data: Option<ConversationInitiationClientDataRequestInput>,
-    telephony_call_config: Option<TelephonyCallConfig>,
+    telephony_call_config: Option<TelephonyCallConfigInput>,
 }
 
 impl BodyHandleAnOutboundCallViaExotelV1ConvaiExotelOutboundCallPostBuilder {
@@ -53,7 +53,7 @@ impl BodyHandleAnOutboundCallViaExotelV1ConvaiExotelOutboundCallPostBuilder {
         self
     }
 
-    pub fn telephony_call_config(mut self, value: TelephonyCallConfig) -> Self {
+    pub fn telephony_call_config(mut self, value: TelephonyCallConfigInput) -> Self {
         self.telephony_call_config = Some(value);
         self
     }

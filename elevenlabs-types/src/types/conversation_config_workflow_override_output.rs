@@ -22,6 +22,9 @@ pub struct ConversationConfigWorkflowOverrideOutput {
     /// The events that will be sent to monitoring connections.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub monitoring_events: Option<Vec<ClientEvent>>,
+    /// Configure DTMF (keypad) input collection during phone calls
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dtmf_input_settings: Option<DtmfInputConfig>,
     /// Configuration for background sound during conversations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub background_sound: Option<BackgroundSoundConfigWorkflowOverride>,
@@ -45,6 +48,7 @@ pub struct ConversationConfigWorkflowOverrideOutputBuilder {
     file_input: Option<FileInputConfigWorkflowOverride>,
     monitoring_enabled: Option<bool>,
     monitoring_events: Option<Vec<ClientEvent>>,
+    dtmf_input_settings: Option<DtmfInputConfig>,
     background_sound: Option<BackgroundSoundConfigWorkflowOverride>,
     source_attribution: Option<bool>,
 }
@@ -80,6 +84,11 @@ impl ConversationConfigWorkflowOverrideOutputBuilder {
         self
     }
 
+    pub fn dtmf_input_settings(mut self, value: DtmfInputConfig) -> Self {
+        self.dtmf_input_settings = Some(value);
+        self
+    }
+
     pub fn background_sound(mut self, value: BackgroundSoundConfigWorkflowOverride) -> Self {
         self.background_sound = Some(value);
         self
@@ -99,6 +108,7 @@ impl ConversationConfigWorkflowOverrideOutputBuilder {
             file_input: self.file_input,
             monitoring_enabled: self.monitoring_enabled,
             monitoring_events: self.monitoring_events,
+            dtmf_input_settings: self.dtmf_input_settings,
             background_sound: self.background_sound,
             source_attribution: self.source_attribution,
         })

@@ -18,7 +18,7 @@ pub struct WebhookToolApiSchemaConfigInput {
     pub path_params_schema: Option<HashMap<String, LiteralJsonSchemaProperty>>,
     /// Schema for any query params, if any. These will be added to end of the URL as query params. Note: properties in a query param must all be literal types
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub query_params_schema: Option<QueryParamsJsonSchema>,
+    pub query_params_schema: Option<QueryParamsJsonSchemaInput>,
     /// Schema for the body parameters, if any. Used for POST/PATCH/PUT requests. The schema should be an object which will be sent as the json body
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_body_schema: Option<ObjectJsonSchemaPropertyInput>,
@@ -52,7 +52,7 @@ pub struct WebhookToolApiSchemaConfigInputBuilder {
     url: Option<String>,
     method: Option<WebhookToolApiSchemaConfigInputMethod>,
     path_params_schema: Option<HashMap<String, LiteralJsonSchemaProperty>>,
-    query_params_schema: Option<QueryParamsJsonSchema>,
+    query_params_schema: Option<QueryParamsJsonSchemaInput>,
     request_body_schema: Option<ObjectJsonSchemaPropertyInput>,
     response_body_schema: Option<ObjectJsonSchemaPropertyInput>,
     response_filter: Option<ResponseFilter>,
@@ -82,7 +82,7 @@ impl WebhookToolApiSchemaConfigInputBuilder {
         self
     }
 
-    pub fn query_params_schema(mut self, value: QueryParamsJsonSchema) -> Self {
+    pub fn query_params_schema(mut self, value: QueryParamsJsonSchemaInput) -> Self {
         self.query_params_schema = Some(value);
         self
     }

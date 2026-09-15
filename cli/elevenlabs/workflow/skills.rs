@@ -1,22 +1,27 @@
 //! `generate-skills`, shadowing the framework's built-in so the emitted
-//! SKILL.md files mention the two agent-feedback affordances.
+//! SKILL.md files cover the hand-written commands and the two
+//! agent-feedback affordances.
 //!
 //! ## Why this shadows rather than extends
 //!
 //! The emitter (`fern_cli_sdk::openapi::skill_emitter`) walks the OpenAPI
-//! spec and renders fixed templates. It has no hook for extra prose, and
-//! it is generated code — editing it would be clobbered by the next
+//! spec and renders fixed templates. Commands in this `workflow/` tree
+//! exist only here, so they are invisible to it — an agent that installed
+//! the generated skills would have no idea `say`, `agents push` or
+//! `residency` exist. It also has no hook for extra prose, and it is
+//! generated code — editing it would be clobbered by the next
 //! `fern generate`. Registering a custom command with the same name wins
 //! dispatch over the built-in, so this file (protected by `.fernignore`)
 //! can wrap it instead.
 //!
 //! The wrapper stays deliberately thin: it calls the framework's
-//! [`generate_skills`] for the actual content, so upstream improvements to
-//! the templates still arrive. It owns only the output path and the extra
-//! section. If the emitter's signature changes upstream, this fails to
-//! compile — visibly, rather than silently emitting stale skills.
+//! [`generate_skills`] for the spec-derived content, so upstream
+//! improvements to the templates still arrive. It owns only the output
+//! path, the extra sections and the hand-written skills. If the emitter's
+//! signature changes upstream, this fails to compile — visibly, rather
+//! than silently emitting stale skills.
 //!
-//! ## Why the two features need this at all
+//! ## Why the two feedback features need this at all
 //!
 //! Neither is reachable by the emitter. `--intent` is a
 //! [`GlobalParameter`](super::intent), and the Global Flags table is a
@@ -25,8 +30,22 @@
 //! walks spec-derived resources. Both gaps are worth fixing upstream in
 //! the generator; until then, an agent reading only the skills would never
 //! learn either exists.
+//!
+//! ## Adding a hand-written skill
+//!
+//! Drop a `<name>.md` in `skills/` next to this file and add it to
+//! [`CUSTOM_SKILLS`]. It lives here, rather than under `.agents/skills/`
+//! with the rest, because `.fernignore` protects `cli/elevenlabs/workflow/`
+//! but not `.agents/` — a regeneration that swept `.agents/` away would take
+//! the `include_str!` target with it and break the build. `.agents/skills/say/
+//! SKILL.md` is a symlink back to this copy, so an agent working in this repo
+//! still loads it (`.claude` symlinks to `.agents`) without a second file to
+//! keep in sync.
+//!
+//! Those same bytes serve both audiences, so a skill must not contain paths
+//! relative to either layout.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use fern_cli_sdk::app::CliApp;
 use fern_cli_sdk::error::CliError;
@@ -60,8 +79,16 @@ OAuth in a keyring as an alternative to the env var.";
 /// Matches the emitter's own naming: `{bin_name}-shared/SKILL.md`.
 const SHARED_SKILL: &str = "elevenlabs-shared";
 
-/// The binary name the emitter uses for headings and file prefixes.
+/// The binary name the emitter uses for headings and file prefixes, which
+/// `main.rs` pins via `CliApp::new("elevenlabs")`. `AppContext` does not
+/// expose it, and this file only ever ships in the elevenlabs CLI.
 const BIN_NAME: &str = "elevenlabs";
+
+/// Hand-written skills, as `(directory suffix, contents)`.
+///
+/// `include_str!` rather than a runtime read: the generated skills have to
+/// work from an installed binary, which has no repo to read from.
+const CUSTOM_SKILLS: &[(&str, &str)] = &[("say", include_str!("skills/say.md"))];
 
 /// Appended to the shared skill, which every group skill links as a
 /// prerequisite — so this is read once and applies everywhere.
@@ -119,17 +146,8 @@ built. `--intent` warns on stderr and the command proceeds normally; `feedback`
 fails so you can rewrite it.
 "#;
 
-fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
-    let out_dir = matches
-        .get_one::<String>("output-dir")
-        .map(String::as_str)
-        .unwrap_or("skills");
-    // The framework's own validator, so this path behaves exactly as the
-    // built-in did. Note it deliberately does not sandbox: it rejects control
-    // characters and resolves the path, but the target may be anywhere on the
-    // filesystem (see its docs). Shadowing neither adds nor removes that.
-    let resolved = fern_cli_sdk::validate::validate_safe_output_dir(out_dir)?;
-
+/// Every file `generate-skills` should write, spec-derived ones first.
+fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
     let shared = PathBuf::from(SHARED_SKILL).join("SKILL.md");
     let mut files = generate_skills(ctx.spec(), BIN_NAME, &[]);
 
@@ -156,8 +174,18 @@ fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> 
         )));
     }
 
-    for (rel_path, content) in &files {
-        let full_path = resolved.join(rel_path);
+    files.extend(CUSTOM_SKILLS.iter().map(|(name, content)| {
+        (
+            PathBuf::from(format!("{BIN_NAME}-{name}")).join("SKILL.md"),
+            (*content).to_string(),
+        )
+    }));
+    Ok(files)
+}
+
+fn write_all(root: &Path, files: &[(PathBuf, String)]) -> Result<(), CliError> {
+    for (rel_path, content) in files {
+        let full_path = root.join(rel_path);
         if let Some(parent) = full_path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
                 CliError::Validation(format!(
@@ -170,6 +198,22 @@ fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> 
             CliError::Validation(format!("Failed to write {}: {e}", full_path.display()))
         })?;
     }
+    Ok(())
+}
+
+fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let out_dir = matches
+        .get_one::<String>("output-dir")
+        .map(String::as_str)
+        .unwrap_or("skills");
+    // The framework's own validator, so this path behaves exactly as the
+    // built-in did. Note it deliberately does not sandbox: it rejects control
+    // characters and resolves the path, but the target may be anywhere on the
+    // filesystem (see its docs). Shadowing neither adds nor removes that.
+    let resolved = fern_cli_sdk::validate::validate_safe_output_dir(out_dir)?;
+
+    let files = skill_files(ctx)?;
+    write_all(&resolved, &files)?;
 
     eprintln!(
         "Wrote {} skill file(s) to {}/",
@@ -225,5 +269,64 @@ mod tests {
         // `generate_skills` builds this path as `{bin_name}-shared/SKILL.md`.
         // If the two drift, `handle` errors rather than emitting silently.
         assert_eq!(SHARED_SKILL, format!("{BIN_NAME}-shared"));
+    }
+
+    /// Guards the substitution in [`skill_files`]: it only fires when the
+    /// emitter actually renders the no-auth fallback for an empty binding
+    /// list. If a future emitter renders something else, the hand-written
+    /// section would silently never be applied.
+    #[test]
+    fn the_emitter_still_renders_the_no_auth_fallback() {
+        let doc = fern_cli_sdk::openapi::discovery::RestDescription::default();
+        let files = generate_skills(&doc, BIN_NAME, &[]);
+        let (_, shared) = files
+            .iter()
+            .find(|(p, _)| p.starts_with(SHARED_SKILL))
+            .expect("the shared skill is always emitted");
+        assert!(
+            shared.contains(NO_AUTH_LINE),
+            "the emitter no longer renders the no-auth fallback, so the \
+             hand-written authentication section would never be \
+             substituted:\n{shared}"
+        );
+    }
+
+    /// Every hand-written skill needs the frontmatter an agent harness reads
+    /// to decide whether to load it.
+    #[test]
+    fn custom_skills_carry_usable_frontmatter() {
+        for (name, content) in CUSTOM_SKILLS {
+            assert!(
+                content.starts_with("---\n"),
+                "{name}: SKILL.md must open with YAML frontmatter"
+            );
+            let front = content
+                .split("---\n")
+                .nth(1)
+                .unwrap_or_else(|| panic!("{name}: unterminated frontmatter"));
+            assert!(
+                front.contains(&format!("name: {BIN_NAME}-{name}")),
+                "{name}: the frontmatter name must match the emitted directory \
+                 {BIN_NAME}-{name}, or the two copies drift"
+            );
+            assert!(
+                front.contains("description:"),
+                "{name}: a skill without a description is never selected"
+            );
+        }
+    }
+
+    /// The same bytes are installed by `generate-skills` and read in-repo
+    /// from `.agents/skills/`, so a path that only resolves in one layout is
+    /// a broken link in the other.
+    #[test]
+    fn custom_skills_avoid_layout_relative_links() {
+        for (name, content) in CUSTOM_SKILLS {
+            assert!(
+                !content.contains("](../") && !content.contains("`../"),
+                "{name}: SKILL.md must not reference sibling skills by relative \
+                 path — the in-repo and generated layouts differ"
+            );
+        }
     }
 }

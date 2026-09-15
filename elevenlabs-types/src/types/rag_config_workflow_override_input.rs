@@ -25,6 +25,9 @@ pub struct RagConfigWorkflowOverrideInput {
     /// Custom prompt for rewriting user queries before RAG retrieval. The conversation history will be automatically appended at the end. If not set, the default prompt will be used.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query_rewrite_prompt_override: Option<String>,
+    /// When set, the agent uses the knowledge_base tool instead of the legacy knowledge_base_rag tool. None means the agent is not opted in.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub knowledge_base_tool_info: Option<KnowledgeBaseToolInfo>,
 }
 
 impl RagConfigWorkflowOverrideInput {
@@ -43,6 +46,7 @@ pub struct RagConfigWorkflowOverrideInputBuilder {
     max_retrieved_rag_chunks_count: Option<i64>,
     num_candidates: Option<i64>,
     query_rewrite_prompt_override: Option<String>,
+    knowledge_base_tool_info: Option<KnowledgeBaseToolInfo>,
 }
 
 impl RagConfigWorkflowOverrideInputBuilder {
@@ -81,6 +85,11 @@ impl RagConfigWorkflowOverrideInputBuilder {
         self
     }
 
+    pub fn knowledge_base_tool_info(mut self, value: KnowledgeBaseToolInfo) -> Self {
+        self.knowledge_base_tool_info = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`RagConfigWorkflowOverrideInput`].
     pub fn build(self) -> Result<RagConfigWorkflowOverrideInput, BuildError> {
         Ok(RagConfigWorkflowOverrideInput {
@@ -91,6 +100,7 @@ impl RagConfigWorkflowOverrideInputBuilder {
             max_retrieved_rag_chunks_count: self.max_retrieved_rag_chunks_count,
             num_candidates: self.num_candidates,
             query_rewrite_prompt_override: self.query_rewrite_prompt_override,
+            knowledge_base_tool_info: self.knowledge_base_tool_info,
         })
     }
 }

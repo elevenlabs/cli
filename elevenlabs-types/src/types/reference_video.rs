@@ -11,7 +11,7 @@ pub struct ReferenceVideo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template_node_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub studio_clip: Option<StudioClipReference>,
+    pub studio_clip: Option<StudioClipLocator>,
 }
 
 impl ReferenceVideo {
@@ -26,7 +26,7 @@ pub struct ReferenceVideoBuilder {
     generation_id: Option<String>,
     content_asset_id: Option<String>,
     template_node_id: Option<String>,
-    studio_clip: Option<StudioClipReference>,
+    studio_clip: Option<StudioClipLocator>,
 }
 
 impl ReferenceVideoBuilder {
@@ -45,7 +45,7 @@ impl ReferenceVideoBuilder {
         self
     }
 
-    pub fn studio_clip(mut self, value: StudioClipReference) -> Self {
+    pub fn studio_clip(mut self, value: StudioClipLocator) -> Self {
         self.studio_clip = Some(value);
         self
     }

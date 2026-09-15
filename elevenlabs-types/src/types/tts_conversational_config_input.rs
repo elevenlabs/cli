@@ -49,6 +49,9 @@ pub struct TtsConversationalConfigInput {
     /// Opt-in to SSML phoneme tag handling for V3 models. When enabled, phoneme tags (inline and from pronunciation dictionaries) are parsed into inline IPA before being sent to the model.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enable_phoneme_tags: Option<bool>,
+    /// Optional TTS effects spec: filter preset, distance (proximity EQ), and environment (convolution reverb).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_effects: Option<EffectsSpecInput>,
 }
 
 impl TtsConversationalConfigInput {
@@ -73,6 +76,7 @@ pub struct TtsConversationalConfigInputBuilder {
     text_normalisation_type: Option<TextNormalisationType>,
     pronunciation_dictionary_locators: Option<Vec<PydanticPronunciationDictionaryVersionLocator>>,
     enable_phoneme_tags: Option<bool>,
+    audio_effects: Option<EffectsSpecInput>,
 }
 
 impl TtsConversationalConfigInputBuilder {
@@ -141,6 +145,11 @@ impl TtsConversationalConfigInputBuilder {
         self
     }
 
+    pub fn audio_effects(mut self, value: EffectsSpecInput) -> Self {
+        self.audio_effects = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`TtsConversationalConfigInput`].
     pub fn build(self) -> Result<TtsConversationalConfigInput, BuildError> {
         Ok(TtsConversationalConfigInput {
@@ -157,6 +166,7 @@ impl TtsConversationalConfigInputBuilder {
             text_normalisation_type: self.text_normalisation_type,
             pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
             enable_phoneme_tags: self.enable_phoneme_tags,
+            audio_effects: self.audio_effects,
         })
     }
 }

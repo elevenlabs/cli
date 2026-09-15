@@ -49,6 +49,9 @@ pub struct TtsConversationalConfigWorkflowOverrideInput {
     /// Opt-in to SSML phoneme tag handling for V3 models. When enabled, phoneme tags (inline and from pronunciation dictionaries) are parsed into inline IPA before being sent to the model.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enable_phoneme_tags: Option<bool>,
+    /// Optional TTS effects spec: filter preset, distance (proximity EQ), and environment (convolution reverb).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_effects: Option<EffectsSpecInput>,
 }
 
 impl TtsConversationalConfigWorkflowOverrideInput {
@@ -73,6 +76,7 @@ pub struct TtsConversationalConfigWorkflowOverrideInputBuilder {
     text_normalisation_type: Option<TextNormalisationType>,
     pronunciation_dictionary_locators: Option<Vec<PydanticPronunciationDictionaryVersionLocator>>,
     enable_phoneme_tags: Option<bool>,
+    audio_effects: Option<EffectsSpecInput>,
 }
 
 impl TtsConversationalConfigWorkflowOverrideInputBuilder {
@@ -141,6 +145,11 @@ impl TtsConversationalConfigWorkflowOverrideInputBuilder {
         self
     }
 
+    pub fn audio_effects(mut self, value: EffectsSpecInput) -> Self {
+        self.audio_effects = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`TtsConversationalConfigWorkflowOverrideInput`].
     pub fn build(self) -> Result<TtsConversationalConfigWorkflowOverrideInput, BuildError> {
         Ok(TtsConversationalConfigWorkflowOverrideInput {
@@ -157,6 +166,7 @@ impl TtsConversationalConfigWorkflowOverrideInputBuilder {
             text_normalisation_type: self.text_normalisation_type,
             pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
             enable_phoneme_tags: self.enable_phoneme_tags,
+            audio_effects: self.audio_effects,
         })
     }
 }

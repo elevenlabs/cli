@@ -20,6 +20,7 @@ mod feedback;
 mod intent;
 mod project;
 mod residency;
+mod say;
 mod settings;
 mod skills;
 mod templates;
@@ -40,6 +41,7 @@ pub fn register(app: CliApp) -> CliApp {
     let app = tests::register(app);
     let app = residency::register(app);
     let app = feedback::register(app);
+    let app = say::register(app);
     // Shadows the framework's built-in; see that module's docs.
     let app = skills::register(app);
     components::register(app)

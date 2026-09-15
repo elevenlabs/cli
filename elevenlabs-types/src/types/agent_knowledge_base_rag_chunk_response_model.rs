@@ -10,6 +10,9 @@ pub struct AgentKnowledgeBaseRagChunkResponseModel {
     /// Name of the source knowledge base document.
     #[serde(default)]
     pub document_name: String,
+    /// Tracked source URL for URL documents, or null for other document types.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
     /// ID of the retrieved chunk.
     #[serde(default)]
     pub chunk_id: String,
@@ -38,6 +41,7 @@ impl AgentKnowledgeBaseRagChunkResponseModel {
 pub struct AgentKnowledgeBaseRagChunkResponseModelBuilder {
     document_id: Option<String>,
     document_name: Option<String>,
+    source_url: Option<String>,
     chunk_id: Option<String>,
     text: Option<String>,
     vector_distance: Option<f64>,
@@ -53,6 +57,11 @@ impl AgentKnowledgeBaseRagChunkResponseModelBuilder {
 
     pub fn document_name(mut self, value: impl Into<String>) -> Self {
         self.document_name = Some(value.into());
+        self
+    }
+
+    pub fn source_url(mut self, value: impl Into<String>) -> Self {
+        self.source_url = Some(value.into());
         self
     }
 
@@ -93,6 +102,7 @@ impl AgentKnowledgeBaseRagChunkResponseModelBuilder {
         Ok(AgentKnowledgeBaseRagChunkResponseModel {
             document_id: self.document_id.ok_or_else(|| BuildError::missing_field("document_id"))?,
             document_name: self.document_name.ok_or_else(|| BuildError::missing_field("document_name"))?,
+            source_url: self.source_url,
             chunk_id: self.chunk_id.ok_or_else(|| BuildError::missing_field("chunk_id"))?,
             text: self.text.ok_or_else(|| BuildError::missing_field("text"))?,
             vector_distance: self.vector_distance,

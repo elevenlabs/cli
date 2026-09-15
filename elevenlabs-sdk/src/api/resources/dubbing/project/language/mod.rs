@@ -17,14 +17,14 @@ impl LanguageClient {
         })
     }
 
-    /// List a project's language targets (cursor-paginated).
+    /// List a project's language targets, cursor-paginated, each with signed output URLs once it has produced an output.
     ///
     /// # Arguments
     ///
     /// * `project_id` - Identifier of the parent dubbing project.
-    /// * `cursor` - Pagination cursor from a previous response's next_cursor.
-    /// * `page_size` - Number of language targets per page (max 100).
-    /// * `status` - Filter to targets in this status (queued, processing, completed, stale, failed).
+    /// * `cursor` - Pass the `next_cursor` from a previous response to fetch the page after it. Omit for the first page.
+    /// * `page_size` - Number of language targets per page. Clamped to between 1 and 100 rather than rejected, so a larger value returns a full page.
+    /// * `status` - Filter to targets in this status: `queued`, `processing`, `completed`, `stale`, or `failed`. Omit to return every status.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -78,7 +78,11 @@ impl LanguageClient {
             .await
     }
 
-    /// Queue a language target for a project (starts once the project is ready).
+    /// Add a language to dub a project into, and queue the dub.
+    ///
+    /// This is the call that produces dubbed audio, and it is billed per generation. The target is created `queued` and starts as soon as the project is `ready`, so it can be added at any point after the project is created. It inherits the project's dubbing model and cannot pick another.
+    ///
+    /// A project created with `webhook_ids` sends a `dubbing_language_completed` event carrying the output download URLs, so we recommend subscribing rather than polling this target to completion.
     ///
     /// # Arguments
     ///
@@ -133,7 +137,7 @@ impl LanguageClient {
             .await
     }
 
-    /// Full language-target detail.
+    /// Full language-target detail. Once the target reports `completed`, `outputs` carries the signed download URLs. To learn when that happens, we recommend the project's `webhook_ids` subscription rather than polling this endpoint; fetch here when a delivered URL has expired, or to reconcile after an edit.
     ///
     /// # Arguments
     ///
@@ -185,7 +189,7 @@ impl LanguageClient {
             .await
     }
 
-    /// Delete a language target.
+    /// Delete a language target and its outputs, leaving the project and its other languages intact. This cannot be undone, and a dub already running is still billed.
     ///
     /// # Arguments
     ///
