@@ -32,6 +32,7 @@
 //! [`super::feedback`]) — there the text *is* the payload, so a rejection
 //! is an error.
 
+use std::io::IsTerminal;
 use std::sync::OnceLock;
 
 use fern_cli_sdk::app::CliApp;
@@ -39,12 +40,10 @@ use fern_cli_sdk::openapi::discovery::{
     GlobalParameter, GlobalParameterApplyMode, GlobalParameterLocation,
 };
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use serde_json::{json, Value};
 
 /// Header carrying the sanitised, percent-encoded intent.
 pub const INTENT_HEADER: &str = "X-Agent-Intent";
-
-/// Env var an agent sets to describe its goal once for a whole task.
-const INTENT_ENV: &str = "ELEVENLABS_AGENT_INTENT";
 
 /// Internal env var holding the sanitised, encoded value. Written only by
 /// [`resolve`]; read by the framework through the hidden global parameter.
@@ -280,7 +279,10 @@ fn resolve_with(raw: Option<String>) -> Option<(String, String)> {
             Some((clean, encoded))
         }
         Err(reason) => {
-            eprintln!("warning: --intent dropped because {reason}.");
+            // Empty is how a caller declines (see [`enforce`]), not a mistake.
+            if reason != DropReason::Empty {
+                eprintln!("warning: --intent dropped because {reason}.");
+            }
             None
         }
     }
@@ -292,8 +294,7 @@ fn resolve_with(raw: Option<String>) -> Option<(String, String)> {
 /// before clap reads `.env()` bindings, which is what lets the sanitised
 /// value reach the framework at all.
 pub fn resolve() {
-    let raw = scan_argv(std::env::args()).or_else(|| std::env::var(INTENT_ENV).ok());
-    let _ = RESOLVED.set(resolve_with(raw));
+    let _ = RESOLVED.set(resolve_with(scan_argv(std::env::args())));
 }
 
 /// The sanitised intent as plain text, for JSON payloads.
@@ -308,18 +309,165 @@ pub fn resolved_encoded() -> Option<String> {
     RESOLVED.get()?.as_ref().map(|(_, encoded)| encoded.clone())
 }
 
+// ── Requiring it ────────────────────────────────────────────────────
+
+/// One sentence, for the JSON envelope's `message`.
+const REFUSAL_MESSAGE: &str =
+    "--intent is required when the CLI is not attached to an interactive terminal.";
+
+/// Distinct from the framework's `validationError` so an agent can branch on
+/// this case instead of matching prose.
+const REFUSAL_REASON: &str = "intentRequired";
+
+/// The envelope's `help`. Has to stand on its own: the gate covers `--help`
+/// too, and the flag is registered hidden.
+const REFUSAL_HELP: &str = "Re-run the same command with --intent \"<one sentence: why you are \
+     running this>\". Describe the goal, not the data: one line, max 500 characters, no \
+     credentials and no absolute file paths. Pass --intent \"\" to decline. The flag has to be \
+     on every command — there is no environment variable that sets it once.";
+
+/// The same content laid out for a terminal. No colour: the gate only fires
+/// when stderr is not a terminal, where the framework suppresses it too.
+const REFUSAL_DETAIL: &str = r#"
+  Re-run the same command with:
+    --intent "<one sentence: why you are running this>"
+
+  For example:
+    elevenlabs voices search --intent "pick a narrator voice for an audiobook"
+
+  One line, max 500 characters. Describe the goal, not the data — values
+  carrying credentials or absolute file paths are dropped with a warning.
+
+  Nothing to say? Pass --intent "" and the command runs.
+
+  The flag goes on every command; there is no environment variable that sets
+  it once for a whole task."#;
+
+/// Whether this invocation must carry `--intent`. Fail-closed: anything that
+/// is none of the three exemptions requires the flag.
+///
+/// `stderr_is_tty` rather than stdout because it is what the framework already
+/// treats as "a person is watching" (`output::stderr_supports_color`), and it
+/// survives `| jq` and `> out.json`.
+fn gate_required(stderr_is_tty: bool, cargo_launched: bool, flag_present: bool) -> bool {
+    !(flag_present || stderr_is_tty || cargo_launched)
+}
+
+/// True when cargo launched an ancestor of this process, which is how the
+/// generated wire tests get past the gate — they spawn this binary with piped
+/// stdio and regeneration would drop any edit to them.
+fn cargo_launched() -> bool {
+    std::env::var_os("CARGO_MANIFEST_DIR").is_some()
+        && std::env::var_os("CARGO_PKG_NAME").is_some()
+}
+
+/// Whether `--intent` appears in argv at all, value or not — unlike
+/// [`scan_argv`]. A bare trailing `--intent` counts as present, so clap raises
+/// its own "a value is required" instead of us claiming it was forgotten.
+fn flag_present<I: IntoIterator<Item = String>>(args: I) -> bool {
+    args.into_iter()
+        .skip(1)
+        .take_while(|arg| arg.as_str() != "--")
+        .any(|arg| arg == "--intent" || arg.starts_with("--intent="))
+}
+
+/// How to render the refusal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RefusalFormat {
+    Text,
+    /// Pretty-printed `{"error": …}`.
+    Json,
+    /// The same envelope on one line, for NDJSON readers.
+    Jsonl,
+}
+
+/// Pick the rendering from raw argv, since clap has not run yet. Last wins,
+/// like clap.
+fn refusal_format<I: IntoIterator<Item = String>>(args: I) -> RefusalFormat {
+    let mut iter = args.into_iter().skip(1);
+    let mut format = RefusalFormat::Text;
+    while let Some(arg) = iter.next() {
+        if arg == "--" {
+            break;
+        }
+        let value = if let Some(rest) = arg.strip_prefix("--format=") {
+            Some(rest.to_string())
+        } else if arg == "--format" {
+            iter.next()
+        } else {
+            None
+        };
+        if let Some(value) = value {
+            format = if value.eq_ignore_ascii_case("json") {
+                RefusalFormat::Json
+            } else if value.eq_ignore_ascii_case("jsonl") {
+                RefusalFormat::Jsonl
+            } else {
+                RefusalFormat::Text
+            };
+        }
+    }
+    format
+}
+
+/// Shaped like the framework's `CliError::Validation` envelope, so a consumer
+/// already reading `.error.message` needs no special case.
+fn refusal_envelope() -> Value {
+    json!({
+        "error": {
+            "code": 400,
+            "message": REFUSAL_MESSAGE,
+            "reason": REFUSAL_REASON,
+            "help": REFUSAL_HELP,
+        }
+    })
+}
+
+/// Returned rather than printed so a test can assert the shape.
+fn refusal_body(format: RefusalFormat) -> String {
+    match format {
+        RefusalFormat::Json => serde_json::to_string_pretty(&refusal_envelope())
+            .unwrap_or_else(|_| REFUSAL_MESSAGE.to_string()),
+        RefusalFormat::Jsonl => serde_json::to_string(&refusal_envelope())
+            .unwrap_or_else(|_| REFUSAL_MESSAGE.to_string()),
+        RefusalFormat::Text => format!("error[validation]: {REFUSAL_MESSAGE}\n{REFUSAL_DETAIL}"),
+    }
+}
+
+/// Refuse the invocation unless it carries `--intent`, or a person is watching.
+///
+/// Runs from [`register`], before `CliApp::run` parses anything, which is what
+/// lets it cover the generated commands as well as `--help`, `completion` and
+/// `man`.
+pub fn enforce() {
+    let args: Vec<String> = std::env::args().collect();
+    if !gate_required(
+        std::io::stderr().is_terminal(),
+        cargo_launched(),
+        flag_present(args.iter().cloned()),
+    ) {
+        return;
+    }
+    eprintln!("{}", refusal_body(refusal_format(args)));
+    std::process::exit(fern_cli_sdk::error::CliError::EXIT_CODE_VALIDATION);
+}
+
 // ── Registration ────────────────────────────────────────────────────
 
-const INTENT_HELP: &str = "Optional. Why are you running this command? Briefly describe the \
-     user's goal in one sentence (max 500 characters). Do not include personal or customer \
-     data — describe the goal, not the data. Values carrying credentials or file paths are \
-     dropped with a warning.";
+const INTENT_HELP: &str = "Why are you running this command? Briefly describe the user's goal \
+     in one sentence (max 500 characters). Required unless the CLI is attached to an \
+     interactive terminal — pass an empty value to decline. Do not include personal or \
+     customer data — describe the goal, not the data. Values carrying credentials or file \
+     paths are dropped with a warning.";
 
-/// Register the intent parameters and resolve the value.
+/// Enforce the requirement, then register the intent parameters and resolve
+/// the value.
 ///
 /// Two parameters, deliberately: see the module docs for why the flag the
-/// agent types is never the one that goes on the wire.
+/// agent types is never the one that goes on the wire. [`enforce`] runs first
+/// so a refused invocation does no other work.
 pub fn register(app: CliApp) -> CliApp {
+    enforce();
     resolve();
     app.global_parameter(GlobalParameter {
         name: "intent".into(),
@@ -328,7 +476,7 @@ pub fn register(app: CliApp) -> CliApp {
         // it. A target distinct from the real header keeps it that way even
         // if the apply-mode rules were ever loosened upstream.
         target: "X-Agent-Intent-Unvalidated".into(),
-        env: Some(INTENT_ENV.into()),
+        env: None,
         default: None,
         optional: true,
         apply: GlobalParameterApplyMode::Explicit,
@@ -584,6 +732,16 @@ mod tests {
     }
 
     #[test]
+    fn an_empty_value_is_accepted_silently_and_exports_nothing() {
+        with_env(|| {
+            // `--intent ""` is the documented way to decline, so it must not
+            // produce a warning — only the absence of a header.
+            assert_eq!(resolve_with(Some(String::new())), None);
+            assert!(std::env::var(CHECKED_ENV).is_err());
+        });
+    }
+
+    #[test]
     fn a_rejected_value_exports_nothing() {
         with_env(|| {
             assert_eq!(resolve_with(Some("auth with sk_abc123".to_string())), None);
@@ -616,5 +774,97 @@ mod tests {
                 Ok("list the workspace voices")
             );
         });
+    }
+
+    // ── the gate ──
+
+    #[test]
+    fn the_flag_is_the_first_way_past_the_gate() {
+        for (tty, cargo) in [(false, false), (true, false), (false, true), (true, true)] {
+            assert!(!gate_required(tty, cargo, true), "tty={tty} cargo={cargo}");
+        }
+    }
+
+    #[test]
+    fn a_watching_person_or_cargo_also_opens_the_gate() {
+        assert!(!gate_required(true, false, false));
+        assert!(!gate_required(false, true, false));
+    }
+
+    #[test]
+    fn a_piped_non_cargo_caller_without_the_flag_is_refused() {
+        // The one combination that fails.
+        assert!(gate_required(false, false, false));
+    }
+
+    #[test]
+    fn presence_ignores_the_value() {
+        assert!(flag_present(argv(&["voices", "list", "--intent", "find a voice"])));
+        assert!(flag_present(argv(&["voices", "list", "--intent=find a voice"])));
+        assert!(flag_present(argv(&["voices", "list", "--intent", ""])));
+        assert!(flag_present(argv(&["voices", "list", "--intent="])));
+        // Present, so clap raises the real "a value is required" error.
+        assert!(flag_present(argv(&["voices", "list", "--intent"])));
+    }
+
+    #[test]
+    fn presence_is_false_when_absent_or_past_the_terminator() {
+        assert!(!flag_present(argv(&["voices", "list"])));
+        assert!(!flag_present(argv(&["voices", "list", "--", "--intent", "x"])));
+        assert!(!flag_present(argv(&["voices", "list", "--intentional"])));
+    }
+
+    #[test]
+    fn the_refusal_format_comes_from_argv() {
+        assert_eq!(refusal_format(argv(&["voices", "list"])), RefusalFormat::Text);
+        assert_eq!(
+            refusal_format(argv(&["--format", "json", "voices", "list"])),
+            RefusalFormat::Json
+        );
+        assert_eq!(
+            refusal_format(argv(&["--format=JSON", "voices", "list"])),
+            RefusalFormat::Json
+        );
+        assert_eq!(refusal_format(argv(&["--format", "jsonl"])), RefusalFormat::Jsonl);
+        assert_eq!(refusal_format(argv(&["--format", "table"])), RefusalFormat::Text);
+        // Last wins, like clap.
+        assert_eq!(
+            refusal_format(argv(&["--format", "json", "--format", "table"])),
+            RefusalFormat::Text
+        );
+        // Nothing after `--` is a flag.
+        assert_eq!(
+            refusal_format(argv(&["say", "--", "--format", "json"])),
+            RefusalFormat::Text
+        );
+    }
+
+    #[test]
+    fn the_json_refusal_is_a_framework_shaped_envelope() {
+        let doc: Value = serde_json::from_str(&refusal_body(RefusalFormat::Json))
+            .expect("the envelope must parse");
+        assert_eq!(doc["error"]["code"], 400);
+        assert_eq!(doc["error"]["reason"], REFUSAL_REASON);
+        assert_eq!(doc["error"]["message"], REFUSAL_MESSAGE);
+        assert!(doc["error"]["help"].as_str().unwrap().contains("--intent"));
+    }
+
+    #[test]
+    fn the_jsonl_refusal_is_one_line() {
+        // NDJSON is read a line at a time; a bare `{` would break the reader.
+        let body = refusal_body(RefusalFormat::Jsonl);
+        assert_eq!(body.lines().count(), 1, "got: {body}");
+        serde_json::from_str::<Value>(&body).expect("each line must parse");
+    }
+
+    #[test]
+    fn the_text_refusal_documents_the_flag_on_its_own() {
+        // The only documentation an agent is guaranteed to see.
+        let body = refusal_body(RefusalFormat::Text);
+        assert!(body.starts_with("error[validation]: "), "got: {body}");
+        assert!(body.contains("--intent \"<one sentence"), "got: {body}");
+        assert!(body.contains("elevenlabs voices search --intent"), "got: {body}");
+        assert!(body.contains("--intent \"\""), "got: {body}");
+        assert!(body.contains("no environment variable"), "got: {body}");
     }
 }
