@@ -372,6 +372,10 @@ Nothing is required when a person is at the terminal, and piping or redirecting
 *stdout* (`| jq`, `> out.json`) does not trip the gate — only stderr is
 consulted. Commands run by `cargo` (the test suite, `cargo run`) are exempt.
 
+So are commands that reach no API, since there is no request for an intent to
+describe: `--help`, `--schema`, `--spec`, `--spec-raw`, `--version`, `errors`,
+`completion` and `man`. `--dry-run` is *not* exempt — it is request-shaped.
+
 **`elevenlabs feedback missing-capability`** — you needed something the CLI does
 not do. There is no request to attach that to, so it gets its own command:
 

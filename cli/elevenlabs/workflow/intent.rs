@@ -1,11 +1,11 @@
-//! Optional agent-supplied intent, carried on every request as
-//! `X-Agent-Intent`.
+//! Agent-supplied intent, carried on every request as `X-Agent-Intent` and
+//! required of non-interactive callers by [`enforce`].
 //!
 //! The CLI is driven mostly by AI agents. We already know *which* command
 //! ran (`cmd/agents.push` in the User-Agent — see [`super::api::command_scope`])
 //! but never *why*. The hosted MCP server answers that by injecting a
 //! `context` argument into every advertised tool schema; this is the CLI's
-//! equivalent, minus the ability to make it required.
+//! equivalent.
 //!
 //! ## Why the flag never reaches the wire
 //!
@@ -324,7 +324,8 @@ const REFUSAL_REASON: &str = "intentRequired";
 const REFUSAL_HELP: &str = "Re-run the same command with --intent \"<one sentence: why you are \
      running this>\". Describe the goal, not the data: one line, max 500 characters, no \
      credentials and no absolute file paths. Pass --intent \"\" to decline. The flag has to be \
-     on every command — there is no environment variable that sets it once.";
+     on every command that reaches the API — there is no environment variable that sets it \
+     once.";
 
 /// The same content laid out for a terminal. No colour: the gate only fires
 /// when stderr is not a terminal, where the framework suppresses it too.
@@ -340,17 +341,54 @@ const REFUSAL_DETAIL: &str = r#"
 
   Nothing to say? Pass --intent "" and the command runs.
 
-  The flag goes on every command; there is no environment variable that sets
-  it once for a whole task."#;
+  The flag goes on every command that reaches the API; no environment variable
+  sets it once for a whole task."#;
 
 /// Whether this invocation must carry `--intent`. Fail-closed: anything that
-/// is none of the three exemptions requires the flag.
+/// is none of the exemptions requires the flag. A symmetric OR, so the order
+/// of the inputs carries no meaning.
 ///
 /// `stderr_is_tty` rather than stdout because it is what the framework already
 /// treats as "a person is watching" (`output::stderr_supports_color`), and it
 /// survives `| jq` and `> out.json`.
-fn gate_required(stderr_is_tty: bool, cargo_launched: bool, flag_present: bool) -> bool {
-    !(flag_present || stderr_is_tty || cargo_launched)
+fn gate_required(
+    stderr_is_tty: bool,
+    cargo_launched: bool,
+    non_request: bool,
+    flag_present: bool,
+) -> bool {
+    !(flag_present || stderr_is_tty || cargo_launched || non_request)
+}
+
+/// True for invocations that never reach the API: discovery (`--help`,
+/// `--schema`, `--spec`, `--spec-raw`, `errors`) and plumbing (`--version`,
+/// `completion`, `man`, `generate-skills`).
+///
+/// They emit no `server_cli_request`, so an intent supplied here is discarded —
+/// requiring one collects nothing and teaches the caller to write filler. It
+/// also breaks callers that are not agents: `--version` is the usual
+/// post-install check (`scripts/verify-agents-as-code.sh` opens with one), and
+/// `eval "$(elevenlabs completion zsh)"` runs from shell init.
+///
+/// `--dry-run` is deliberately absent: it is request-shaped, and an agent
+/// exploring the API with it is still an agent.
+fn is_non_request(args: &[String]) -> bool {
+    use fern_cli_sdk::cli_args::{
+        extract_subcommand_path, wants_help, wants_schema, wants_spec, wants_spec_raw,
+    };
+    // The framework's predicates scan every token, so cut at `--` first —
+    // otherwise `say -- --help`, which speaks the literal word, exempts itself.
+    let end = args.iter().position(|a| a == "--").unwrap_or(args.len());
+    let argv = &args[..end];
+    wants_help(argv)
+        || wants_schema(argv)
+        || wants_spec(argv)
+        || wants_spec_raw(argv)
+        || argv.iter().any(|a| a == "--version" || a == "-V")
+        || matches!(
+            extract_subcommand_path(argv).first().map(String::as_str),
+            Some("completion" | "man" | "errors" | "generate-skills"),
+        )
 }
 
 /// True when cargo launched an ancestor of this process, which is how the
@@ -437,13 +475,14 @@ fn refusal_body(format: RefusalFormat) -> String {
 /// Refuse the invocation unless it carries `--intent`, or a person is watching.
 ///
 /// Runs from [`register`], before `CliApp::run` parses anything, which is what
-/// lets it cover the generated commands as well as `--help`, `completion` and
-/// `man`.
+/// lets it cover the generated `<resource> <method>` commands. See
+/// [`is_non_request`] for what it deliberately does not cover.
 pub fn enforce() {
     let args: Vec<String> = std::env::args().collect();
     if !gate_required(
         std::io::stderr().is_terminal(),
         cargo_launched(),
+        is_non_request(&args),
         flag_present(args.iter().cloned()),
     ) {
         return;
@@ -455,8 +494,8 @@ pub fn enforce() {
 // ── Registration ────────────────────────────────────────────────────
 
 const INTENT_HELP: &str = "Why are you running this command? Briefly describe the user's goal \
-     in one sentence (max 500 characters). Required unless the CLI is attached to an \
-     interactive terminal — pass an empty value to decline. Do not include personal or \
+     in one sentence (max 500 characters). Required on every command that reaches the API \
+     unless the CLI is attached to an interactive terminal — pass an empty value to decline. Do not include personal or \
      customer data — describe the goal, not the data. Values carrying credentials or file \
      paths are dropped with a warning.";
 
@@ -779,22 +818,68 @@ mod tests {
     // ── the gate ──
 
     #[test]
-    fn the_flag_is_the_first_way_past_the_gate() {
-        for (tty, cargo) in [(false, false), (true, false), (false, true), (true, true)] {
-            assert!(!gate_required(tty, cargo, true), "tty={tty} cargo={cargo}");
+    fn the_flag_alone_opens_the_gate() {
+        for tty in [false, true] {
+            for cargo in [false, true] {
+                for non_request in [false, true] {
+                    assert!(!gate_required(tty, cargo, non_request, true));
+                }
+            }
         }
     }
 
     #[test]
-    fn a_watching_person_or_cargo_also_opens_the_gate() {
-        assert!(!gate_required(true, false, false));
-        assert!(!gate_required(false, true, false));
+    fn each_exemption_opens_the_gate_on_its_own() {
+        assert!(!gate_required(true, false, false, false), "stderr is a tty");
+        assert!(!gate_required(false, true, false, false), "cargo launched");
+        assert!(!gate_required(false, false, true, false), "makes no request");
     }
 
     #[test]
-    fn a_piped_non_cargo_caller_without_the_flag_is_refused() {
+    fn a_piped_non_cargo_request_without_the_flag_is_refused() {
         // The one combination that fails.
-        assert!(gate_required(false, false, false));
+        assert!(gate_required(false, false, false, false));
+    }
+
+    #[test]
+    fn discovery_and_plumbing_need_no_intent() {
+        for args in [
+            argv(&["--help"]),
+            argv(&["-h"]),
+            argv(&["voices", "search", "--help"]),
+            argv(&["--version"]),
+            argv(&["-V"]),
+            argv(&["--schema"]),
+            argv(&["voices", "search", "--schema"]),
+            argv(&["--spec"]),
+            argv(&["--spec-raw"]),
+            argv(&["completion", "zsh"]),
+            argv(&["man"]),
+            argv(&["errors"]),
+            argv(&["generate-skills"]),
+        ] {
+            assert!(is_non_request(&args), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn anything_that_reaches_the_api_still_needs_one() {
+        for args in [
+            argv(&["voices", "search"]),
+            argv(&["text-to-speech", "convert", "--voice-id", "x", "--text", "hi"]),
+            argv(&["agents", "push"]),
+            argv(&["feedback", "missing-capability", "no batch render"]),
+            // Request-shaped, so still gated even though nothing is sent.
+            argv(&["voices", "search", "--dry-run"]),
+        ] {
+            assert!(!is_non_request(&args), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn a_flag_after_the_terminator_does_not_exempt() {
+        // `say -- --help` speaks the literal word, so it is still a request.
+        assert!(!is_non_request(&argv(&["say", "--", "--help"])));
     }
 
     #[test]
