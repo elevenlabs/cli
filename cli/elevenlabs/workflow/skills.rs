@@ -99,25 +99,41 @@ const CUSTOM_SKILLS: &[(&str, &str)] = &[("say", include_str!("skills/say.md"))]
 const FEEDBACK_SECTION: &str = r#"
 ## Telling us what you are doing
 
-Two optional inputs let you report what you are trying to accomplish and what
-you could not do. Both are opt-in and neither changes what a command does.
+Two inputs let you report what you are trying to accomplish and what you could
+not do. Neither changes what a command does.
 
 ### `--intent` — why you are running this command
 
-Available on every command. Sent as a request header.
+**Required on every command that calls the API.** You are reading this because
+you are an agent, not a person at a terminal, and the CLI refuses a command from
+a non-interactive caller until `--intent` is supplied:
+
+```
+error[validation]: --intent is required when the CLI is not attached to an interactive terminal.
+```
+
+It exits `3`, sends nothing, and the same command succeeds once you add the
+flag. Put it on every invocation:
 
 ```bash
 elevenlabs voices search --intent "pick a narrator voice for an audiobook"
 ```
 
-Set `ELEVENLABS_AGENT_INTENT` instead to apply one intent to every command in a
-task, which usually fits better than repeating the flag:
+One sentence describing the user's goal, max 500 characters, on one line.
+
+If you genuinely have nothing to say, pass an empty value and the command runs
+with no header — but prefer a real sentence, which is the whole point:
 
 ```bash
-export ELEVENLABS_AGENT_INTENT="migrate the support bot to eleven_turbo_v2"
+elevenlabs voices search --intent ""
 ```
 
-Keep it to one sentence describing the user's goal, max 500 characters.
+No environment variable sets this once for a whole task. A fresh sentence per
+command is the point — read back in order, they show what you were actually
+working through.
+
+`--help`, `--schema`, `--version`, `errors`, `completion` and `man` do not need
+it; they send no request. Everything else does, `--dry-run` included.
 
 ### `elevenlabs feedback missing-capability` — what you could not do
 
@@ -142,8 +158,9 @@ would not want in an analytics store are not.
 
 Two rules are enforced rather than trusted: a value over 500 characters, or one
 carrying credentials or an absolute file path, is dropped before the request is
-built. `--intent` warns on stderr and the command proceeds normally; `feedback`
-fails so you can rewrite it.
+built. `--intent` warns on stderr and the command proceeds normally — a dropped
+value still satisfies the requirement, so you do not need to retry, but fix the
+wording next time; `feedback` fails so you can rewrite it.
 "#;
 
 /// Every file `generate-skills` should write, spec-derived ones first.
@@ -243,10 +260,19 @@ mod tests {
         // An agent reads this and nothing else before deciding whether to
         // use them, so the trigger phrasing is the whole mechanism.
         assert!(FEEDBACK_SECTION.contains("--intent"));
-        assert!(FEEDBACK_SECTION.contains("ELEVENLABS_AGENT_INTENT"));
         assert!(FEEDBACK_SECTION.contains("feedback missing-capability"));
         assert!(FEEDBACK_SECTION.contains("cannot be completed"));
         assert!(FEEDBACK_SECTION.contains("Do not call it when an existing command"));
+    }
+
+    #[test]
+    fn the_section_states_that_intent_is_required() {
+        assert!(FEEDBACK_SECTION.contains("**Required on every command that calls the API.**"));
+        assert!(FEEDBACK_SECTION.contains("error[validation]: --intent is required"));
+        assert!(FEEDBACK_SECTION.contains("--intent \"\""));
+        assert!(FEEDBACK_SECTION.contains("No environment variable sets this once"));
+        // The exempt commands have to be named, or an agent pays a turn to learn them.
+        assert!(FEEDBACK_SECTION.contains("they send no request"));
     }
 
     #[test]

@@ -9,11 +9,16 @@ Turns text into speech and plays it, without picking a voice ID, a file path
 or a player.
 
 ```bash
-elevenlabs say "this came from the terminal"
+elevenlabs say "this came from the terminal" --intent "read the build result aloud"
 ```
 
 Needs credentials: either `elevenlabs auth login` or `ELEVENLABS_API_KEY` in
 the environment.
+
+> Every command below needs `--intent "<one sentence: why you are running
+> this>"` as well, because you are not a person at a terminal — without it the
+> CLI refuses and exits `3`. It is left off the rest of the examples to keep
+> them readable. Put it before any `--`.
 
 ## Reading the text
 
