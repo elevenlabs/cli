@@ -94,27 +94,53 @@ fn handle_missing_capability(
     Ok(())
 }
 
+/// Shown in the `feedback` row of `elevenlabs --help`. Load-bearing: the row
+/// was blank before, so an agent skimming the command list saw a bare word and
+/// no reason to descend into it.
+const GROUP_ABOUT: &str = "Report a capability the CLI is missing, so it can get built";
+
+fn missing_capability_command() -> clap::Command {
+    clap::Command::new("missing-capability")
+        .about("Report that a task could not be completed with any available command")
+        .long_about(LONG_ABOUT)
+        .arg(
+            clap::Arg::new("capability")
+                .required(true)
+                .help(
+                    "What you were trying to accomplish that the available commands \
+                     could not do. One or two sentences, max 500 characters, no \
+                     personal data.",
+                ),
+        )
+}
+
 /// Register the `feedback` command group.
+///
+/// One registration owning the whole subtree, rather than `command_under`,
+/// because an implicitly-created parent gets no `about`
+/// (`custom_commands::graft_subcommand`) and that is generated code. Splitting
+/// it across two registrations does not work either: grafting a bare group at
+/// the root replaces the existing node and discards the child, and registering
+/// the group first makes its own dispatch entry shadow the subcommand.
 ///
 /// Registered untyped so the handler can read the framework's global
 /// `--dry-run`, which the typed form does not surface — the same reason
 /// `tools push` and `agents pull` use this form.
 pub fn register(app: CliApp) -> CliApp {
-    app.command_under(
-        &["feedback"],
-        clap::Command::new("missing-capability")
-            .about("Report that a task could not be completed with any available command")
-            .long_about(LONG_ABOUT)
-            .arg(
-                clap::Arg::new("capability")
-                    .required(true)
-                    .help(
-                        "What you were trying to accomplish that the available commands \
-                         could not do. One or two sentences, max 500 characters, no \
-                         personal data.",
-                    ),
-            ),
-        Box::new(|matches, ctx| handle_missing_capability(matches, downcast_ctx(ctx)?)),
+    app.command(
+        clap::Command::new("feedback")
+            .about(GROUP_ABOUT)
+            .subcommand_required(true)
+            .arg_required_else_help(true)
+            .subcommand(missing_capability_command()),
+        Box::new(|matches, ctx| match matches.subcommand() {
+            Some(("missing-capability", m)) => {
+                handle_missing_capability(m, downcast_ctx(ctx)?)
+            }
+            _ => Err(CliError::Validation(
+                "unknown feedback subcommand; try `elevenlabs feedback --help`".into(),
+            )),
+        }),
     )
 }
 
@@ -159,6 +185,17 @@ mod tests {
         // land escaped text in the analytics store.
         let body = report_body("no accent picker", Some("gerar diálogo".to_string()));
         assert_eq!(body["intent"], "gerar diálogo");
+    }
+
+    #[test]
+    fn the_group_describes_itself_and_owns_the_subcommand() {
+        // The whole point of the single-registration form: an implicitly
+        // created parent has no `about`, which left the `--help` row blank.
+        let cmd = clap::Command::new("feedback")
+            .about(GROUP_ABOUT)
+            .subcommand(missing_capability_command());
+        assert!(cmd.get_about().is_some());
+        assert!(cmd.find_subcommand("missing-capability").is_some());
     }
 
     #[test]

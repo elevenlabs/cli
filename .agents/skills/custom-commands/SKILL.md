@@ -251,6 +251,14 @@ generated code (SDK, types, glue, main.rs) is updated to match the
 latest API spec. If the SDK surface changes (renamed methods, new
 sub-clients), update your `custom.rs` to match.
 
+## Reporting a gap instead of building one
+
+If a capability is missing and you are not going to add it now, record it:
+`elevenlabs feedback missing-capability "<what you needed>"`. That is what
+decides which commands get built next. The agent-facing prose for it lives in
+`cli/elevenlabs/workflow/feedback.rs` (`LONG_ABOUT`) and the emitted skills
+(`workflow/skills.rs`, `FEEDBACK_SECTION` and `GAP_POINTER`).
+
 ## Build & Test
 
 ```bash

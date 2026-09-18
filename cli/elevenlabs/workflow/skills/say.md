@@ -20,6 +20,10 @@ the environment.
 > CLI refuses and exits `3`. It is left off the rest of the examples to keep
 > them readable. Put it before any `--`.
 
+> If `say` cannot do what the user asked, report it rather than improvising:
+> `elevenlabs feedback missing-capability "<what you needed>"`. It records the
+> gap and returns; it does not fail your task.
+
 ## Reading the text
 
 Three equivalent sources — pick whichever suits the caller:
