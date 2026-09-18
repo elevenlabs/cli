@@ -325,7 +325,8 @@ const REFUSAL_HELP: &str = "Re-run the same command with --intent \"<one sentenc
      running this>\". Describe the goal, not the data: one line, max 500 characters, no \
      credentials and no absolute file paths. Pass --intent \"\" to decline. The flag has to be \
      on every command that reaches the API — there is no environment variable that sets it \
-     once.";
+     once. If no command can do what you need, report it with `elevenlabs feedback \
+     missing-capability \"<what you needed>\"` instead of giving up.";
 
 /// The same content laid out for a terminal. No colour: the gate only fires
 /// when stderr is not a terminal, where the framework suppresses it too.
@@ -342,7 +343,10 @@ const REFUSAL_DETAIL: &str = r#"
   Nothing to say? Pass --intent "" and the command runs.
 
   The flag goes on every command that reaches the API; no environment variable
-  sets it once for a whole task."#;
+  sets it once for a whole task.
+
+  If no command can do what you need, say so instead of giving up:
+    elevenlabs feedback missing-capability "<what you needed>""#;
 
 /// Whether this invocation must carry `--intent`. Fail-closed: anything that
 /// is none of the exemptions requires the flag. A symmetric OR, so the order
@@ -363,6 +367,11 @@ fn gate_required(
 /// True for invocations that never reach the API: discovery (`--help`,
 /// `--schema`, `--spec`, `--spec-raw`, `errors`) and plumbing (`--version`,
 /// `completion`, `man`, `generate-skills`).
+///
+/// `feedback` is the exception that does reach the API. It is exempt anyway:
+/// it is the one command we want more of, its text already explains itself,
+/// and refusing an agent's first attempt to report a gap is the worst possible
+/// place to charge a retry.
 ///
 /// They emit no `server_cli_request`, so an intent supplied here is discarded —
 /// requiring one collects nothing and teaches the caller to write filler. It
@@ -387,7 +396,7 @@ fn is_non_request(args: &[String]) -> bool {
         || argv.iter().any(|a| a == "--version" || a == "-V")
         || matches!(
             extract_subcommand_path(argv).first().map(String::as_str),
-            Some("completion" | "man" | "errors" | "generate-skills"),
+            Some("completion" | "man" | "errors" | "generate-skills" | "feedback"),
         )
 }
 
@@ -857,6 +866,8 @@ mod tests {
             argv(&["man"]),
             argv(&["errors"]),
             argv(&["generate-skills"]),
+            // Reaches the API, but exempt on purpose — see `is_non_request`.
+            argv(&["feedback", "missing-capability", "no batch render"]),
         ] {
             assert!(is_non_request(&args), "{args:?}");
         }
@@ -868,12 +879,21 @@ mod tests {
             argv(&["voices", "search"]),
             argv(&["text-to-speech", "convert", "--voice-id", "x", "--text", "hi"]),
             argv(&["agents", "push"]),
-            argv(&["feedback", "missing-capability", "no batch render"]),
             // Request-shaped, so still gated even though nothing is sent.
             argv(&["voices", "search", "--dry-run"]),
         ] {
             assert!(!is_non_request(&args), "{args:?}");
         }
+    }
+
+    #[test]
+    fn the_refusal_points_at_a_command_the_gate_exempts() {
+        // Couples the advertised command to the exemption: rewording either
+        // one must not leave the refusal naming a command it then refuses.
+        let advertised = "elevenlabs feedback missing-capability";
+        assert!(REFUSAL_DETAIL.contains(advertised));
+        assert!(REFUSAL_HELP.contains("feedback missing-capability"));
+        assert!(is_non_request(&argv(&["feedback", "missing-capability", "x"])));
     }
 
     #[test]
@@ -931,7 +951,11 @@ mod tests {
         assert_eq!(doc["error"]["code"], 400);
         assert_eq!(doc["error"]["reason"], REFUSAL_REASON);
         assert_eq!(doc["error"]["message"], REFUSAL_MESSAGE);
-        assert!(doc["error"]["help"].as_str().unwrap().contains("--intent"));
+        let help = doc["error"]["help"].as_str().unwrap();
+        assert!(help.contains("--intent"));
+        // Machine formats never print the prose block, so an agent only ever
+        // sees `help` — the pointer has to be in here too.
+        assert!(help.contains("feedback missing-capability"), "got: {help}");
     }
 
     #[test]
@@ -951,5 +975,8 @@ mod tests {
         assert!(body.contains("elevenlabs voices search --intent"), "got: {body}");
         assert!(body.contains("--intent \"\""), "got: {body}");
         assert!(body.contains("no environment variable"), "got: {body}");
+        // The refusal is the one surface every non-interactive agent reads, so
+        // it is also where the feedback channel gets announced.
+        assert!(body.contains("feedback missing-capability"), "got: {body}");
     }
 }
