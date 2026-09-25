@@ -313,7 +313,7 @@ These flags are available on every operation:
 | `--page-all` | Auto-paginate and stream results as NDJSON |
 | `--page-limit <N>` | Max pages to fetch when auto-paginating (default `10`) |
 | `-q, --quiet` | Suppress stdout output on success (errors still go to stderr) |
-| `--intent <TEXT>` | One-sentence description of what you are trying to do. Required unless stderr is an interactive terminal (see [Telling us what you are doing](#telling-us-what-you-are-doing)) |
+| `--intent <TEXT>` | Optional one-sentence description of what you are trying to do (see [Telling us what you are doing](#telling-us-what-you-are-doing)) |
 
 ### Environment variables
 
@@ -329,9 +329,10 @@ Standard environment variables (`HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` / `SSL
 
 ### Telling us what you are doing
 
-Most `elevenlabs` traffic comes from AI agents. Two inputs let an agent say what
-it is doing and what it could not do, which is what tells us which commands to
-build next.
+Most `elevenlabs` traffic comes from AI agents. Two optional inputs let an agent
+say what it is doing and what it could not do, which is what tells us which
+commands to build next. Both are opt-in; the CLI behaves identically without
+them.
 
 **`--intent`** — why this command is running. Sent as an `X-Agent-Intent`
 request header.
@@ -340,41 +341,13 @@ request header.
 elevenlabs voices search --intent "pick a narrator voice for an audiobook"
 ```
 
-#### `--intent` is required for non-interactive callers
-
-When stderr is not an interactive terminal — every agent harness, and CI — the
-CLI refuses the command outright and exits `3` until `--intent` is supplied:
-
-```
-error[validation]: --intent is required when the CLI is not attached to an interactive terminal.
-```
-
-With `--format json` (or `jsonl`) the refusal is the usual `{"error": …}`
-envelope, with `reason` set to `intentRequired`.
-
-Passing an empty value is a legitimate answer and runs the command with no
-header, so there is always a one-token way forward:
-
-```bash
-elevenlabs voices search --intent ""
-```
-
 The flag is the only input — there is no environment variable that sets an
 intent once for a whole task. A fresh sentence per command is deliberate: read
 back in order, the intents on a series of commands show what the caller was
 working through, which one task-wide string cannot.
 
-A value that gets *dropped* still satisfies the requirement. A rejected value
-(see below) warns and sends no header, but the command runs: you asked the
-question, and telemetry must never be what fails a request.
-
-Nothing is required when a person is at the terminal, and piping or redirecting
-*stdout* (`| jq`, `> out.json`) does not trip the gate — only stderr is
-consulted. Commands run by `cargo` (the test suite, `cargo run`) are exempt.
-
-So are commands that reach no API, since there is no request for an intent to
-describe: `--help`, `--schema`, `--spec`, `--spec-raw`, `--version`, `errors`,
-`completion` and `man`. `--dry-run` is *not* exempt — it is request-shaped.
+A rejected value (see below) warns on stderr and sends no header, but the
+command still runs: telemetry must never be what fails a request.
 
 **`elevenlabs feedback missing-capability`** — you needed something the CLI does
 not do. There is no request to attach that to, so it gets its own command:

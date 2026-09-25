@@ -18,6 +18,7 @@ impl InvocationsClient {
     /// # Arguments
     ///
     /// * `agent_id` - Filter by agent ID
+    /// * `branch_id` - Filter by branch ID
     /// * `page_size` - How many Tests to return at maximum. Can not exceed 100, defaults to 30.
     /// * `search` - Search query to filter tests and folders by name.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
@@ -45,6 +46,7 @@ impl InvocationsClient {
     ///         .list(
     ///             &AgentsTestsInvocationsListQueryRequest {
     ///                 agent_id: Some("agent_id".to_string()),
+    ///                 branch_id: Some("branch_id".to_string()),
     ///                 page_size: Some(1),
     ///                 search: Some("search".to_string()),
     ///                 cursor: Some("cursor".to_string()),
@@ -67,6 +69,7 @@ impl InvocationsClient {
                 None,
                 QueryBuilder::new()
                     .string("agent_id", request.agent_id.clone())
+                    .string("branch_id", request.branch_id.clone())
                     .int("page_size", request.page_size.clone())
                     .string("search", request.search.clone())
                     .string("cursor", request.cursor.clone())

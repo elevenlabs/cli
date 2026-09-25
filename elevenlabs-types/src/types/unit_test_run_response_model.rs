@@ -39,6 +39,12 @@ pub struct UnitTestRunResponseModel {
     pub root_folder_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
+    /// Credits billed for this test run. None for runs created before cost tracking.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credits_used: Option<i64>,
+    /// Finalized billing and provider-usage breakdown for this test run.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub charging: Option<ConversationChargingCommonModel>,
 }
 
 impl UnitTestRunResponseModel {
@@ -68,6 +74,8 @@ pub struct UnitTestRunResponseModelBuilder {
     root_folder_id: Option<String>,
     root_folder_name: Option<String>,
     environment: Option<String>,
+    credits_used: Option<i64>,
+    charging: Option<ConversationChargingCommonModel>,
 }
 
 impl UnitTestRunResponseModelBuilder {
@@ -161,6 +169,16 @@ impl UnitTestRunResponseModelBuilder {
         self
     }
 
+    pub fn credits_used(mut self, value: i64) -> Self {
+        self.credits_used = Some(value);
+        self
+    }
+
+    pub fn charging(mut self, value: ConversationChargingCommonModel) -> Self {
+        self.charging = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`UnitTestRunResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`test_run_id`](UnitTestRunResponseModelBuilder::test_run_id)
@@ -188,6 +206,8 @@ impl UnitTestRunResponseModelBuilder {
             root_folder_id: self.root_folder_id,
             root_folder_name: self.root_folder_name,
             environment: self.environment,
+            credits_used: self.credits_used,
+            charging: self.charging,
         })
     }
 }

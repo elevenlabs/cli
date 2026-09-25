@@ -4,6 +4,9 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct AlertingMonitorConfig {
+    /// Whether this monitor is enabled and can notify
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     /// Failure rate threshold at which this monitor can notify.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
@@ -40,6 +43,7 @@ impl AlertingMonitorConfig {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct AlertingMonitorConfigBuilder {
+    enabled: Option<bool>,
     threshold: Option<f64>,
     relative_increase_threshold: Option<f64>,
     min_failure_count: Option<i64>,
@@ -50,6 +54,11 @@ pub struct AlertingMonitorConfigBuilder {
 }
 
 impl AlertingMonitorConfigBuilder {
+    pub fn enabled(mut self, value: bool) -> Self {
+        self.enabled = Some(value);
+        self
+    }
+
     pub fn threshold(mut self, value: f64) -> Self {
         self.threshold = Some(value);
         self
@@ -88,6 +97,7 @@ impl AlertingMonitorConfigBuilder {
     /// Consumes the builder and constructs a [`AlertingMonitorConfig`].
     pub fn build(self) -> Result<AlertingMonitorConfig, BuildError> {
         Ok(AlertingMonitorConfig {
+            enabled: self.enabled,
             threshold: self.threshold,
             relative_increase_threshold: self.relative_increase_threshold,
             min_failure_count: self.min_failure_count,

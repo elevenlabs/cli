@@ -155,6 +155,44 @@ pub enum ImageGenerationRequest {
             resolution: Option<GptImage2RequestResolution>,
         },
 
+        #[serde(rename = "gpt-image-2.5-flare")]
+        #[non_exhaustive]
+        GptImage25Flare {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            webhook: Option<WebhookTarget>,
+            #[serde(default)]
+            prompt: String,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            images: Option<Vec<ImageReference>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            mask: Option<ImageReference>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            quality: Option<GptImage25FlareRequestQuality>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            aspect_ratio: Option<GptImage25FlareRequestAspectRatio>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            resolution: Option<GptImage25FlareRequestResolution>,
+        },
+
+        #[serde(rename = "gpt-image-2.5-sunburst")]
+        #[non_exhaustive]
+        GptImage25Sunburst {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            webhook: Option<WebhookTarget>,
+            #[serde(default)]
+            prompt: String,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            images: Option<Vec<ImageReference>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            mask: Option<ImageReference>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            quality: Option<GptImage25SunburstRequestQuality>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            aspect_ratio: Option<GptImage25SunburstRequestAspectRatio>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            resolution: Option<GptImage25SunburstRequestResolution>,
+        },
+
         /// Catch-all variant for unrecognized discriminant values.
         /// If the server sends a discriminant not recognized by the current SDK
         /// version, the raw payload is captured here so callers can still inspect it.
@@ -197,6 +235,14 @@ impl ImageGenerationRequest {
 
     pub fn gpt_image2(prompt: String) -> Self {
         Self::GptImage2 { webhook: None, prompt, images: None, mask: None, quality: None, aspect_ratio: None, resolution: None }
+    }
+
+    pub fn gpt_image25flare(prompt: String) -> Self {
+        Self::GptImage25Flare { webhook: None, prompt, images: None, mask: None, quality: None, aspect_ratio: None, resolution: None }
+    }
+
+    pub fn gpt_image25sunburst(prompt: String) -> Self {
+        Self::GptImage25Sunburst { webhook: None, prompt, images: None, mask: None, quality: None, aspect_ratio: None, resolution: None }
     }
 
     pub fn bytedance_seedream5lite_with_webhook(webhook: WebhookTarget, prompt: String, images: Option<Vec<ImageReference>>, aspect_ratio: Option<BytedanceSeedream5LiteRequestAspectRatio>, seed: Option<i64>, resolution: Option<BytedanceSeedream5LiteRequestResolution>) -> Self {
@@ -369,6 +415,54 @@ impl ImageGenerationRequest {
 
     pub fn gpt_image2_with_resolution(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage2RequestQuality>, aspect_ratio: Option<GptImage2RequestAspectRatio>, resolution: GptImage2RequestResolution) -> Self {
         Self::GptImage2 { webhook, prompt, images, mask, quality, aspect_ratio, resolution: Some(resolution) }
+    }
+
+    pub fn gpt_image25flare_with_webhook(webhook: WebhookTarget, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage25FlareRequestQuality>, aspect_ratio: Option<GptImage25FlareRequestAspectRatio>, resolution: Option<GptImage25FlareRequestResolution>) -> Self {
+        Self::GptImage25Flare { webhook: Some(webhook), prompt, images, mask, quality, aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25flare_with_images(webhook: Option<WebhookTarget>, prompt: String, images: Vec<ImageReference>, mask: Option<ImageReference>, quality: Option<GptImage25FlareRequestQuality>, aspect_ratio: Option<GptImage25FlareRequestAspectRatio>, resolution: Option<GptImage25FlareRequestResolution>) -> Self {
+        Self::GptImage25Flare { webhook, prompt, images: Some(images), mask, quality, aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25flare_with_mask(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: ImageReference, quality: Option<GptImage25FlareRequestQuality>, aspect_ratio: Option<GptImage25FlareRequestAspectRatio>, resolution: Option<GptImage25FlareRequestResolution>) -> Self {
+        Self::GptImage25Flare { webhook, prompt, images, mask: Some(mask), quality, aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25flare_with_quality(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: GptImage25FlareRequestQuality, aspect_ratio: Option<GptImage25FlareRequestAspectRatio>, resolution: Option<GptImage25FlareRequestResolution>) -> Self {
+        Self::GptImage25Flare { webhook, prompt, images, mask, quality: Some(quality), aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25flare_with_aspect_ratio(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage25FlareRequestQuality>, aspect_ratio: GptImage25FlareRequestAspectRatio, resolution: Option<GptImage25FlareRequestResolution>) -> Self {
+        Self::GptImage25Flare { webhook, prompt, images, mask, quality, aspect_ratio: Some(aspect_ratio), resolution }
+    }
+
+    pub fn gpt_image25flare_with_resolution(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage25FlareRequestQuality>, aspect_ratio: Option<GptImage25FlareRequestAspectRatio>, resolution: GptImage25FlareRequestResolution) -> Self {
+        Self::GptImage25Flare { webhook, prompt, images, mask, quality, aspect_ratio, resolution: Some(resolution) }
+    }
+
+    pub fn gpt_image25sunburst_with_webhook(webhook: WebhookTarget, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage25SunburstRequestQuality>, aspect_ratio: Option<GptImage25SunburstRequestAspectRatio>, resolution: Option<GptImage25SunburstRequestResolution>) -> Self {
+        Self::GptImage25Sunburst { webhook: Some(webhook), prompt, images, mask, quality, aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25sunburst_with_images(webhook: Option<WebhookTarget>, prompt: String, images: Vec<ImageReference>, mask: Option<ImageReference>, quality: Option<GptImage25SunburstRequestQuality>, aspect_ratio: Option<GptImage25SunburstRequestAspectRatio>, resolution: Option<GptImage25SunburstRequestResolution>) -> Self {
+        Self::GptImage25Sunburst { webhook, prompt, images: Some(images), mask, quality, aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25sunburst_with_mask(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: ImageReference, quality: Option<GptImage25SunburstRequestQuality>, aspect_ratio: Option<GptImage25SunburstRequestAspectRatio>, resolution: Option<GptImage25SunburstRequestResolution>) -> Self {
+        Self::GptImage25Sunburst { webhook, prompt, images, mask: Some(mask), quality, aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25sunburst_with_quality(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: GptImage25SunburstRequestQuality, aspect_ratio: Option<GptImage25SunburstRequestAspectRatio>, resolution: Option<GptImage25SunburstRequestResolution>) -> Self {
+        Self::GptImage25Sunburst { webhook, prompt, images, mask, quality: Some(quality), aspect_ratio, resolution }
+    }
+
+    pub fn gpt_image25sunburst_with_aspect_ratio(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage25SunburstRequestQuality>, aspect_ratio: GptImage25SunburstRequestAspectRatio, resolution: Option<GptImage25SunburstRequestResolution>) -> Self {
+        Self::GptImage25Sunburst { webhook, prompt, images, mask, quality, aspect_ratio: Some(aspect_ratio), resolution }
+    }
+
+    pub fn gpt_image25sunburst_with_resolution(webhook: Option<WebhookTarget>, prompt: String, images: Option<Vec<ImageReference>>, mask: Option<ImageReference>, quality: Option<GptImage25SunburstRequestQuality>, aspect_ratio: Option<GptImage25SunburstRequestAspectRatio>, resolution: GptImage25SunburstRequestResolution) -> Self {
+        Self::GptImage25Sunburst { webhook, prompt, images, mask, quality, aspect_ratio, resolution: Some(resolution) }
     }
 
     pub fn unknown(value: serde_json::Value) -> Self {

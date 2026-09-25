@@ -13,6 +13,8 @@ pub struct SeparateStemsRequest {
     pub sign_with_c2pa: Option<bool>,
     #[serde(skip)]
     pub output_format: Option<AllowedOutputFormats>,
+    #[serde(skip)]
+    pub enable_logging: Option<bool>,
 }
 impl SeparateStemsRequest {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
@@ -54,6 +56,7 @@ pub struct SeparateStemsRequestBuilder {
     stem_variation_id: Option<MusicSeparateStemsRequestStemVariationId>,
     sign_with_c2pa: Option<bool>,
     output_format: Option<AllowedOutputFormats>,
+    enable_logging: Option<bool>,
 }
 
 impl SeparateStemsRequestBuilder {
@@ -77,6 +80,11 @@ impl SeparateStemsRequestBuilder {
         self
     }
 
+    pub fn enable_logging(mut self, value: bool) -> Self {
+        self.enable_logging = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`SeparateStemsRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`file`](SeparateStemsRequestBuilder::file)
@@ -86,6 +94,7 @@ impl SeparateStemsRequestBuilder {
             stem_variation_id: self.stem_variation_id,
             sign_with_c2pa: self.sign_with_c2pa,
             output_format: self.output_format,
+            enable_logging: self.enable_logging,
         })
     }
 }

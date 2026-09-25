@@ -1725,6 +1725,11 @@ async fn wire_update_9() {
 }
 
 #[tokio::test]
+async fn wire_list_v2() {
+    run_case("list_v2").await;
+}
+
+#[tokio::test]
 async fn wire_get_sip_messages_1() {
     run_case("get_sip_messages_1").await;
 }
@@ -2510,13 +2515,28 @@ async fn wire_get_49() {
 }
 
 #[tokio::test]
+async fn wire_list_35() {
+    run_case("list_35").await;
+}
+
+#[tokio::test]
+async fn wire_get_50() {
+    run_case("get_50").await;
+}
+
+#[tokio::test]
+async fn wire_list_36() {
+    run_case("list_36").await;
+}
+
+#[tokio::test]
 async fn wire_create_37() {
     run_case("create_37").await;
 }
 
 #[tokio::test]
-async fn wire_list_35() {
-    run_case("list_35").await;
+async fn wire_get_51() {
+    run_case("get_51").await;
 }
 
 #[tokio::test]
@@ -2525,8 +2545,18 @@ async fn wire_create_38() {
 }
 
 #[tokio::test]
-async fn wire_get_50() {
-    run_case("get_50").await;
+async fn wire_list_37() {
+    run_case("list_37").await;
+}
+
+#[tokio::test]
+async fn wire_create_39() {
+    run_case("create_39").await;
+}
+
+#[tokio::test]
+async fn wire_get_52() {
+    run_case("get_52").await;
 }
 
 #[tokio::test]
@@ -2540,18 +2570,18 @@ async fn wire_update_25() {
 }
 
 #[tokio::test]
-async fn wire_list_36() {
-    run_case("list_36").await;
+async fn wire_list_38() {
+    run_case("list_38").await;
 }
 
 #[tokio::test]
-async fn wire_create_39() {
-    run_case("create_39").await;
+async fn wire_create_40() {
+    run_case("create_40").await;
 }
 
 #[tokio::test]
-async fn wire_get_51() {
-    run_case("get_51").await;
+async fn wire_get_53() {
+    run_case("get_53").await;
 }
 
 #[tokio::test]
@@ -2570,8 +2600,8 @@ async fn wire_register() {
 }
 
 #[tokio::test]
-async fn wire_get_52() {
-    run_case("get_52").await;
+async fn wire_get_54() {
+    run_case("get_54").await;
 }
 
 #[tokio::test]
@@ -2585,13 +2615,13 @@ async fn wire_remove_1() {
 }
 
 #[tokio::test]
-async fn wire_list_37() {
-    run_case("list_37").await;
+async fn wire_list_39() {
+    run_case("list_39").await;
 }
 
 #[tokio::test]
-async fn wire_list_38() {
-    run_case("list_38").await;
+async fn wire_list_40() {
+    run_case("list_40").await;
 }
 
 #[tokio::test]
@@ -2610,13 +2640,13 @@ async fn wire_remove_2() {
 }
 
 #[tokio::test]
-async fn wire_list_39() {
-    run_case("list_39").await;
+async fn wire_list_41() {
+    run_case("list_41").await;
 }
 
 #[tokio::test]
-async fn wire_create_40() {
-    run_case("create_40").await;
+async fn wire_create_41() {
+    run_case("create_41").await;
 }
 
 #[tokio::test]
@@ -2630,8 +2660,8 @@ async fn wire_update_27() {
 }
 
 #[tokio::test]
-async fn wire_get_53() {
-    run_case("get_53").await;
+async fn wire_get_55() {
+    run_case("get_55").await;
 }
 
 #[tokio::test]
@@ -2640,18 +2670,18 @@ async fn wire_delete_32() {
 }
 
 #[tokio::test]
-async fn wire_list_40() {
-    run_case("list_40").await;
+async fn wire_list_42() {
+    run_case("list_42").await;
 }
 
 #[tokio::test]
-async fn wire_create_41() {
-    run_case("create_41").await;
+async fn wire_create_42() {
+    run_case("create_42").await;
 }
 
 #[tokio::test]
-async fn wire_get_54() {
-    run_case("get_54").await;
+async fn wire_get_56() {
+    run_case("get_56").await;
 }
 
 #[tokio::test]
@@ -2675,8 +2705,8 @@ async fn wire_get_muted_tracks() {
 }
 
 #[tokio::test]
-async fn wire_create_42() {
-    run_case("create_42").await;
+async fn wire_create_43() {
+    run_case("create_43").await;
 }
 
 #[tokio::test]
@@ -2685,13 +2715,13 @@ async fn wire_update_29() {
 }
 
 #[tokio::test]
-async fn wire_list_41() {
-    run_case("list_41").await;
+async fn wire_list_43() {
+    run_case("list_43").await;
 }
 
 #[tokio::test]
-async fn wire_get_55() {
-    run_case("get_55").await;
+async fn wire_get_57() {
+    run_case("get_57").await;
 }
 
 #[tokio::test]
@@ -2705,18 +2735,18 @@ async fn wire_stream_archive() {
 }
 
 #[tokio::test]
-async fn wire_list_42() {
-    run_case("list_42").await;
+async fn wire_list_44() {
+    run_case("list_44").await;
 }
 
 #[tokio::test]
-async fn wire_create_43() {
-    run_case("create_43").await;
+async fn wire_create_44() {
+    run_case("create_44").await;
 }
 
 #[tokio::test]
-async fn wire_get_56() {
-    run_case("get_56").await;
+async fn wire_get_58() {
+    run_case("get_58").await;
 }
 
 #[tokio::test]
@@ -2735,13 +2765,13 @@ async fn wire_convert_6() {
 }
 
 #[tokio::test]
-async fn wire_list_43() {
-    run_case("list_43").await;
+async fn wire_list_45() {
+    run_case("list_45").await;
 }
 
 #[tokio::test]
-async fn wire_get_57() {
-    run_case("get_57").await;
+async fn wire_get_59() {
+    run_case("get_59").await;
 }
 
 #[tokio::test]
@@ -2755,28 +2785,8 @@ async fn wire_stream_6() {
 }
 
 #[tokio::test]
-async fn wire_create_44() {
-    run_case("create_44").await;
-}
-
-#[tokio::test]
-async fn wire_get_58() {
-    run_case("get_58").await;
-}
-
-#[tokio::test]
-async fn wire_get_default() {
-    run_case("get_default").await;
-}
-
-#[tokio::test]
-async fn wire_get_59() {
-    run_case("get_59").await;
-}
-
-#[tokio::test]
-async fn wire_update_31() {
-    run_case("update_31").await;
+async fn wire_create_45() {
+    run_case("create_45").await;
 }
 
 #[tokio::test]
@@ -2785,13 +2795,33 @@ async fn wire_get_60() {
 }
 
 #[tokio::test]
-async fn wire_create_45() {
-    run_case("create_45").await;
+async fn wire_get_default() {
+    run_case("get_default").await;
+}
+
+#[tokio::test]
+async fn wire_get_61() {
+    run_case("get_61").await;
+}
+
+#[tokio::test]
+async fn wire_update_31() {
+    run_case("update_31").await;
+}
+
+#[tokio::test]
+async fn wire_get_62() {
+    run_case("get_62").await;
 }
 
 #[tokio::test]
 async fn wire_create_46() {
     run_case("create_46").await;
+}
+
+#[tokio::test]
+async fn wire_create_47() {
+    run_case("create_47").await;
 }
 
 #[tokio::test]
@@ -2805,8 +2835,8 @@ async fn wire_train() {
 }
 
 #[tokio::test]
-async fn wire_create_47() {
-    run_case("create_47").await;
+async fn wire_create_48() {
+    run_case("create_48").await;
 }
 
 #[tokio::test]
@@ -2825,23 +2855,8 @@ async fn wire_request() {
 }
 
 #[tokio::test]
-async fn wire_get_61() {
-    run_case("get_61").await;
-}
-
-#[tokio::test]
-async fn wire_get_62() {
-    run_case("get_62").await;
-}
-
-#[tokio::test]
 async fn wire_get_63() {
     run_case("get_63").await;
-}
-
-#[tokio::test]
-async fn wire_separate() {
-    run_case("separate").await;
 }
 
 #[tokio::test]
@@ -2855,8 +2870,8 @@ async fn wire_get_65() {
 }
 
 #[tokio::test]
-async fn wire_verify() {
-    run_case("verify").await;
+async fn wire_separate() {
+    run_case("separate").await;
 }
 
 #[tokio::test]
@@ -2865,18 +2880,33 @@ async fn wire_get_66() {
 }
 
 #[tokio::test]
-async fn wire_list_44() {
-    run_case("list_44").await;
+async fn wire_get_67() {
+    run_case("get_67").await;
 }
 
 #[tokio::test]
-async fn wire_list_45() {
-    run_case("list_45").await;
+async fn wire_verify() {
+    run_case("verify").await;
 }
 
 #[tokio::test]
-async fn wire_create_48() {
-    run_case("create_48").await;
+async fn wire_get_68() {
+    run_case("get_68").await;
+}
+
+#[tokio::test]
+async fn wire_list_46() {
+    run_case("list_46").await;
+}
+
+#[tokio::test]
+async fn wire_list_47() {
+    run_case("list_47").await;
+}
+
+#[tokio::test]
+async fn wire_create_49() {
+    run_case("create_49").await;
 }
 
 #[tokio::test]
@@ -2890,8 +2920,8 @@ async fn wire_update_34() {
 }
 
 #[tokio::test]
-async fn wire_list_46() {
-    run_case("list_46").await;
+async fn wire_list_48() {
+    run_case("list_48").await;
 }
 
 #[tokio::test]
@@ -2900,8 +2930,8 @@ async fn wire_search_3() {
 }
 
 #[tokio::test]
-async fn wire_create_49() {
-    run_case("create_49").await;
+async fn wire_create_50() {
+    run_case("create_50").await;
 }
 
 #[tokio::test]
@@ -2915,8 +2945,8 @@ async fn wire_delete_37() {
 }
 
 #[tokio::test]
-async fn wire_list_47() {
-    run_case("list_47").await;
+async fn wire_list_49() {
+    run_case("list_49").await;
 }
 
 #[tokio::test]
@@ -2925,8 +2955,8 @@ async fn wire_update_35() {
 }
 
 #[tokio::test]
-async fn wire_get_67() {
-    run_case("get_67").await;
+async fn wire_get_69() {
+    run_case("get_69").await;
 }
 
 #[tokio::test]
@@ -2945,8 +2975,8 @@ async fn wire_get_usage_by_product_over_time() {
 }
 
 #[tokio::test]
-async fn wire_get_68() {
-    run_case("get_68").await;
+async fn wire_get_70() {
+    run_case("get_70").await;
 }
 
 #[tokio::test]
@@ -3637,6 +3667,11 @@ async fn wire_delete_13_error() {
 #[tokio::test]
 async fn wire_update_9_error() {
     run_case("update_9_error").await;
+}
+
+#[tokio::test]
+async fn wire_list_v2_error() {
+    run_case("list_v2_error").await;
 }
 
 #[tokio::test]
@@ -4425,13 +4460,28 @@ async fn wire_get_49_error() {
 }
 
 #[tokio::test]
+async fn wire_list_35_error() {
+    run_case("list_35_error").await;
+}
+
+#[tokio::test]
+async fn wire_get_50_error() {
+    run_case("get_50_error").await;
+}
+
+#[tokio::test]
+async fn wire_list_36_error() {
+    run_case("list_36_error").await;
+}
+
+#[tokio::test]
 async fn wire_create_37_error() {
     run_case("create_37_error").await;
 }
 
 #[tokio::test]
-async fn wire_list_35_error() {
-    run_case("list_35_error").await;
+async fn wire_get_51_error() {
+    run_case("get_51_error").await;
 }
 
 #[tokio::test]
@@ -4440,8 +4490,18 @@ async fn wire_create_38_error() {
 }
 
 #[tokio::test]
-async fn wire_get_50_error() {
-    run_case("get_50_error").await;
+async fn wire_list_37_error() {
+    run_case("list_37_error").await;
+}
+
+#[tokio::test]
+async fn wire_create_39_error() {
+    run_case("create_39_error").await;
+}
+
+#[tokio::test]
+async fn wire_get_52_error() {
+    run_case("get_52_error").await;
 }
 
 #[tokio::test]
@@ -4455,18 +4515,18 @@ async fn wire_update_25_error() {
 }
 
 #[tokio::test]
-async fn wire_list_36_error() {
-    run_case("list_36_error").await;
+async fn wire_list_38_error() {
+    run_case("list_38_error").await;
 }
 
 #[tokio::test]
-async fn wire_create_39_error() {
-    run_case("create_39_error").await;
+async fn wire_create_40_error() {
+    run_case("create_40_error").await;
 }
 
 #[tokio::test]
-async fn wire_get_51_error() {
-    run_case("get_51_error").await;
+async fn wire_get_53_error() {
+    run_case("get_53_error").await;
 }
 
 #[tokio::test]
@@ -4485,8 +4545,8 @@ async fn wire_register_error() {
 }
 
 #[tokio::test]
-async fn wire_get_52_error() {
-    run_case("get_52_error").await;
+async fn wire_get_54_error() {
+    run_case("get_54_error").await;
 }
 
 #[tokio::test]
@@ -4500,13 +4560,13 @@ async fn wire_remove_1_error() {
 }
 
 #[tokio::test]
-async fn wire_list_37_error() {
-    run_case("list_37_error").await;
+async fn wire_list_39_error() {
+    run_case("list_39_error").await;
 }
 
 #[tokio::test]
-async fn wire_list_38_error() {
-    run_case("list_38_error").await;
+async fn wire_list_40_error() {
+    run_case("list_40_error").await;
 }
 
 #[tokio::test]
@@ -4525,13 +4585,13 @@ async fn wire_remove_2_error() {
 }
 
 #[tokio::test]
-async fn wire_list_39_error() {
-    run_case("list_39_error").await;
+async fn wire_list_41_error() {
+    run_case("list_41_error").await;
 }
 
 #[tokio::test]
-async fn wire_create_40_error() {
-    run_case("create_40_error").await;
+async fn wire_create_41_error() {
+    run_case("create_41_error").await;
 }
 
 #[tokio::test]
@@ -4545,8 +4605,8 @@ async fn wire_update_27_error() {
 }
 
 #[tokio::test]
-async fn wire_get_53_error() {
-    run_case("get_53_error").await;
+async fn wire_get_55_error() {
+    run_case("get_55_error").await;
 }
 
 #[tokio::test]
@@ -4555,18 +4615,18 @@ async fn wire_delete_32_error() {
 }
 
 #[tokio::test]
-async fn wire_list_40_error() {
-    run_case("list_40_error").await;
+async fn wire_list_42_error() {
+    run_case("list_42_error").await;
 }
 
 #[tokio::test]
-async fn wire_create_41_error() {
-    run_case("create_41_error").await;
+async fn wire_create_42_error() {
+    run_case("create_42_error").await;
 }
 
 #[tokio::test]
-async fn wire_get_54_error() {
-    run_case("get_54_error").await;
+async fn wire_get_56_error() {
+    run_case("get_56_error").await;
 }
 
 #[tokio::test]
@@ -4590,8 +4650,8 @@ async fn wire_get_muted_tracks_error() {
 }
 
 #[tokio::test]
-async fn wire_create_42_error() {
-    run_case("create_42_error").await;
+async fn wire_create_43_error() {
+    run_case("create_43_error").await;
 }
 
 #[tokio::test]
@@ -4600,13 +4660,13 @@ async fn wire_update_29_error() {
 }
 
 #[tokio::test]
-async fn wire_list_41_error() {
-    run_case("list_41_error").await;
+async fn wire_list_43_error() {
+    run_case("list_43_error").await;
 }
 
 #[tokio::test]
-async fn wire_get_55_error() {
-    run_case("get_55_error").await;
+async fn wire_get_57_error() {
+    run_case("get_57_error").await;
 }
 
 #[tokio::test]
@@ -4620,18 +4680,18 @@ async fn wire_stream_archive_error() {
 }
 
 #[tokio::test]
-async fn wire_list_42_error() {
-    run_case("list_42_error").await;
+async fn wire_list_44_error() {
+    run_case("list_44_error").await;
 }
 
 #[tokio::test]
-async fn wire_create_43_error() {
-    run_case("create_43_error").await;
+async fn wire_create_44_error() {
+    run_case("create_44_error").await;
 }
 
 #[tokio::test]
-async fn wire_get_56_error() {
-    run_case("get_56_error").await;
+async fn wire_get_58_error() {
+    run_case("get_58_error").await;
 }
 
 #[tokio::test]
@@ -4650,13 +4710,13 @@ async fn wire_convert_6_error() {
 }
 
 #[tokio::test]
-async fn wire_list_43_error() {
-    run_case("list_43_error").await;
+async fn wire_list_45_error() {
+    run_case("list_45_error").await;
 }
 
 #[tokio::test]
-async fn wire_get_57_error() {
-    run_case("get_57_error").await;
+async fn wire_get_59_error() {
+    run_case("get_59_error").await;
 }
 
 #[tokio::test]
@@ -4670,28 +4730,8 @@ async fn wire_stream_6_error() {
 }
 
 #[tokio::test]
-async fn wire_create_44_error() {
-    run_case("create_44_error").await;
-}
-
-#[tokio::test]
-async fn wire_get_58_error() {
-    run_case("get_58_error").await;
-}
-
-#[tokio::test]
-async fn wire_get_default_error() {
-    run_case("get_default_error").await;
-}
-
-#[tokio::test]
-async fn wire_get_59_error() {
-    run_case("get_59_error").await;
-}
-
-#[tokio::test]
-async fn wire_update_31_error() {
-    run_case("update_31_error").await;
+async fn wire_create_45_error() {
+    run_case("create_45_error").await;
 }
 
 #[tokio::test]
@@ -4700,13 +4740,33 @@ async fn wire_get_60_error() {
 }
 
 #[tokio::test]
-async fn wire_create_45_error() {
-    run_case("create_45_error").await;
+async fn wire_get_default_error() {
+    run_case("get_default_error").await;
+}
+
+#[tokio::test]
+async fn wire_get_61_error() {
+    run_case("get_61_error").await;
+}
+
+#[tokio::test]
+async fn wire_update_31_error() {
+    run_case("update_31_error").await;
+}
+
+#[tokio::test]
+async fn wire_get_62_error() {
+    run_case("get_62_error").await;
 }
 
 #[tokio::test]
 async fn wire_create_46_error() {
     run_case("create_46_error").await;
+}
+
+#[tokio::test]
+async fn wire_create_47_error() {
+    run_case("create_47_error").await;
 }
 
 #[tokio::test]
@@ -4720,8 +4780,8 @@ async fn wire_train_error() {
 }
 
 #[tokio::test]
-async fn wire_create_47_error() {
-    run_case("create_47_error").await;
+async fn wire_create_48_error() {
+    run_case("create_48_error").await;
 }
 
 #[tokio::test]
@@ -4740,23 +4800,8 @@ async fn wire_request_error() {
 }
 
 #[tokio::test]
-async fn wire_get_61_error() {
-    run_case("get_61_error").await;
-}
-
-#[tokio::test]
-async fn wire_get_62_error() {
-    run_case("get_62_error").await;
-}
-
-#[tokio::test]
 async fn wire_get_63_error() {
     run_case("get_63_error").await;
-}
-
-#[tokio::test]
-async fn wire_separate_error() {
-    run_case("separate_error").await;
 }
 
 #[tokio::test]
@@ -4770,8 +4815,8 @@ async fn wire_get_65_error() {
 }
 
 #[tokio::test]
-async fn wire_verify_error() {
-    run_case("verify_error").await;
+async fn wire_separate_error() {
+    run_case("separate_error").await;
 }
 
 #[tokio::test]
@@ -4780,18 +4825,33 @@ async fn wire_get_66_error() {
 }
 
 #[tokio::test]
-async fn wire_list_44_error() {
-    run_case("list_44_error").await;
+async fn wire_get_67_error() {
+    run_case("get_67_error").await;
 }
 
 #[tokio::test]
-async fn wire_list_45_error() {
-    run_case("list_45_error").await;
+async fn wire_verify_error() {
+    run_case("verify_error").await;
 }
 
 #[tokio::test]
-async fn wire_create_48_error() {
-    run_case("create_48_error").await;
+async fn wire_get_68_error() {
+    run_case("get_68_error").await;
+}
+
+#[tokio::test]
+async fn wire_list_46_error() {
+    run_case("list_46_error").await;
+}
+
+#[tokio::test]
+async fn wire_list_47_error() {
+    run_case("list_47_error").await;
+}
+
+#[tokio::test]
+async fn wire_create_49_error() {
+    run_case("create_49_error").await;
 }
 
 #[tokio::test]
@@ -4805,8 +4865,8 @@ async fn wire_update_34_error() {
 }
 
 #[tokio::test]
-async fn wire_list_46_error() {
-    run_case("list_46_error").await;
+async fn wire_list_48_error() {
+    run_case("list_48_error").await;
 }
 
 #[tokio::test]
@@ -4815,8 +4875,8 @@ async fn wire_search_3_error() {
 }
 
 #[tokio::test]
-async fn wire_create_49_error() {
-    run_case("create_49_error").await;
+async fn wire_create_50_error() {
+    run_case("create_50_error").await;
 }
 
 #[tokio::test]
@@ -4830,8 +4890,8 @@ async fn wire_delete_37_error() {
 }
 
 #[tokio::test]
-async fn wire_list_47_error() {
-    run_case("list_47_error").await;
+async fn wire_list_49_error() {
+    run_case("list_49_error").await;
 }
 
 #[tokio::test]
@@ -4840,8 +4900,8 @@ async fn wire_update_35_error() {
 }
 
 #[tokio::test]
-async fn wire_get_67_error() {
-    run_case("get_67_error").await;
+async fn wire_get_69_error() {
+    run_case("get_69_error").await;
 }
 
 #[tokio::test]
@@ -4860,8 +4920,8 @@ async fn wire_get_usage_by_product_over_time_error() {
 }
 
 #[tokio::test]
-async fn wire_get_68_error() {
-    run_case("get_68_error").await;
+async fn wire_get_70_error() {
+    run_case("get_70_error").await;
 }
 
 #[tokio::test]
@@ -4925,8 +4985,8 @@ async fn wire_create_30_optfileomitted() {
 }
 
 #[tokio::test]
-async fn wire_create_38_optfileomitted() {
-    run_case("create_38_optfileomitted").await;
+async fn wire_create_39_optfileomitted() {
+    run_case("create_39_optfileomitted").await;
 }
 
 #[tokio::test]
@@ -4935,8 +4995,8 @@ async fn wire_register_optfileomitted() {
 }
 
 #[tokio::test]
-async fn wire_create_41_optfileomitted() {
-    run_case("create_41_optfileomitted").await;
+async fn wire_create_42_optfileomitted() {
+    run_case("create_42_optfileomitted").await;
 }
 
 #[tokio::test]

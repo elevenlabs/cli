@@ -11,6 +11,9 @@ pub struct AgentsConversationsMessagesSearchQueryRequest {
     /// Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
+    /// Filter conversations by branch ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_id: Option<String>,
     /// Number of results per page. Max 50.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
@@ -30,6 +33,7 @@ impl AgentsConversationsMessagesSearchQueryRequest {
 pub struct AgentsConversationsMessagesSearchQueryRequestBuilder {
     text_query: Option<String>,
     agent_id: Option<String>,
+    branch_id: Option<String>,
     page_size: Option<i64>,
     cursor: Option<String>,
 }
@@ -42,6 +46,11 @@ impl AgentsConversationsMessagesSearchQueryRequestBuilder {
 
     pub fn agent_id(mut self, value: impl Into<String>) -> Self {
         self.agent_id = Some(value.into());
+        self
+    }
+
+    pub fn branch_id(mut self, value: impl Into<String>) -> Self {
+        self.branch_id = Some(value.into());
         self
     }
 
@@ -62,6 +71,7 @@ impl AgentsConversationsMessagesSearchQueryRequestBuilder {
         Ok(AgentsConversationsMessagesSearchQueryRequest {
             text_query: self.text_query.ok_or_else(|| BuildError::missing_field("text_query"))?,
             agent_id: self.agent_id,
+            branch_id: self.branch_id,
             page_size: self.page_size,
             cursor: self.cursor,
         })

@@ -16,6 +16,9 @@ pub struct BodyGenerateCompositionPlanV1MusicPlanPost {
     /// The model to use for the generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<MusicModelId>,
+    /// When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
+    #[serde(skip)]
+    pub enable_logging: Option<bool>,
 }
 
 impl BodyGenerateCompositionPlanV1MusicPlanPost {
@@ -31,6 +34,7 @@ pub struct BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
     music_length_ms: Option<i64>,
     source_composition_plan: Option<BodyGenerateCompositionPlanV1MusicPlanPostSourceCompositionPlan>,
     model_id: Option<MusicModelId>,
+    enable_logging: Option<bool>,
 }
 
 impl BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
@@ -54,6 +58,11 @@ impl BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
         self
     }
 
+    pub fn enable_logging(mut self, value: bool) -> Self {
+        self.enable_logging = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyGenerateCompositionPlanV1MusicPlanPost`].
     /// This method will fail if any of the following fields are not set:
     /// - [`prompt`](BodyGenerateCompositionPlanV1MusicPlanPostBuilder::prompt)
@@ -63,6 +72,7 @@ impl BodyGenerateCompositionPlanV1MusicPlanPostBuilder {
             music_length_ms: self.music_length_ms,
             source_composition_plan: self.source_composition_plan,
             model_id: self.model_id,
+            enable_logging: self.enable_logging,
         })
     }
 }

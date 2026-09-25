@@ -104,16 +104,9 @@ not do. Neither changes what a command does.
 
 ### `--intent` — why you are running this command
 
-**Required on every command that calls the API.** You are reading this because
-you are an agent, not a person at a terminal, and the CLI refuses a command from
-a non-interactive caller until `--intent` is supplied:
-
-```
-error[validation]: --intent is required when the CLI is not attached to an interactive terminal.
-```
-
-It exits `3`, sends nothing, and the same command succeeds once you add the
-flag. Put it on every invocation:
+Optional, and available on every command. Sent as a request header. Nothing
+changes if you leave it off, but supplying it is what tells us which commands
+to build next:
 
 ```bash
 elevenlabs voices search --intent "pick a narrator voice for an audiobook"
@@ -121,19 +114,9 @@ elevenlabs voices search --intent "pick a narrator voice for an audiobook"
 
 One sentence describing the user's goal, max 500 characters, on one line.
 
-If you genuinely have nothing to say, pass an empty value and the command runs
-with no header — but prefer a real sentence, which is the whole point:
-
-```bash
-elevenlabs voices search --intent ""
-```
-
 No environment variable sets this once for a whole task. A fresh sentence per
 command is the point — read back in order, they show what you were actually
 working through.
-
-`--help`, `--schema`, `--version`, `errors`, `completion` and `man` do not need
-it; they send no request. Everything else does, `--dry-run` included.
 
 ### `elevenlabs feedback missing-capability` — what you could not do
 
@@ -293,13 +276,12 @@ mod tests {
     }
 
     #[test]
-    fn the_section_states_that_intent_is_required() {
-        assert!(FEEDBACK_SECTION.contains("**Required on every command that calls the API.**"));
-        assert!(FEEDBACK_SECTION.contains("error[validation]: --intent is required"));
-        assert!(FEEDBACK_SECTION.contains("--intent \"\""));
+    fn the_section_frames_intent_as_optional() {
+        assert!(FEEDBACK_SECTION.contains("Optional, and available on every command"));
         assert!(FEEDBACK_SECTION.contains("No environment variable sets this once"));
-        // The exempt commands have to be named, or an agent pays a turn to learn them.
-        assert!(FEEDBACK_SECTION.contains("they send no request"));
+        // The requirement is gone; nothing here may imply it is still enforced.
+        assert!(!FEEDBACK_SECTION.contains("Required on every command"));
+        assert!(!FEEDBACK_SECTION.contains("error[validation]"));
     }
 
     #[test]

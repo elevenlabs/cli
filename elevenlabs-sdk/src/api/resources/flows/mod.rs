@@ -7,11 +7,14 @@ pub mod image;
 pub use image::ImageClient;
 pub mod text_to_speech;
 pub use text_to_speech::TextToSpeechClient2;
+pub mod templates;
+pub use templates::TemplatesClient;
 pub struct FlowsClient {
     pub http_client: HttpClient,
     pub video: VideoClient,
     pub image: ImageClient,
     pub text_to_speech: TextToSpeechClient2,
+    pub templates: TemplatesClient,
 }
 
 impl FlowsClient {
@@ -21,6 +24,7 @@ impl FlowsClient {
             video: VideoClient::new(config.clone())?,
             image: ImageClient::new(config.clone())?,
             text_to_speech: TextToSpeechClient2::new(config.clone())?,
+            templates: TemplatesClient::new(config.clone())?,
         })
     }
 }

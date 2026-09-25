@@ -47,13 +47,13 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter conversations by the user ID who initiated them.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
-    /// Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
+    /// Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success|failure|unknown. Example: eval=value_framing:success
     #[serde(default)]
     pub evaluation_params: Vec<Option<String>>,
-    /// Data collection filters. Repeat param. Format: id:op:value where op is one of eq|gt|gte|lt|lte|missing.
+    /// Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value.
     #[serde(default)]
     pub data_collection_params: Vec<Option<String>>,
-    /// Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
+    /// Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value. Names containing ':' cannot be expressed.
     #[serde(default)]
     pub dynamic_variable_params: Vec<Option<String>>,
     /// Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.

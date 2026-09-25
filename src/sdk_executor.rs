@@ -257,11 +257,30 @@ impl CliExecutor {
             builder = builder.body(body.clone());
         }
 
+        // An explicit API key header wins over the provider; the API rejects
+        // requests carrying both it and `Authorization`.
+        let supplied_api_key = crate::auth::provider::supplied_api_key_header(
+            headers
+                .iter()
+                .filter_map(|(k, v)| Some((k.as_str(), v.to_str().ok()?)))
+                .chain(
+                    self.global_headers
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str())),
+                ),
+        )
+        .is_some();
+
         // Apply auth — ADR-0001: credentials stay inside apply().
         // Fail closed: if the provider returns an error, we surface it
         // rather than silently sending without credentials.
         let endpoint = EndpointAuthMetadata::unspecified();
-        builder = match self.auth_provider.apply(builder, &endpoint) {
+        let applied = if supplied_api_key {
+            Ok(builder)
+        } else {
+            self.auth_provider.apply(builder, &endpoint)
+        };
+        builder = match applied {
             Ok(b) => b,
             Err(e) => {
                 tracing::warn!(
@@ -718,6 +737,40 @@ mod tests {
 
         let resp = executor.execute_inner(request).await.unwrap();
         assert_eq!(resp.status().as_u16(), 200);
+    }
+
+    #[tokio::test]
+    async fn api_key_global_header_suppresses_auth_provider() {
+        let mock_server = wiremock::MockServer::start().await;
+        wiremock::Mock::given(wiremock::matchers::method("GET"))
+            .respond_with(wiremock::ResponseTemplate::new(200))
+            .mount(&mock_server)
+            .await;
+
+        let bearer = || crate::auth::test_helpers::bearer("OAuth", "oauth-token");
+        let url = format!("{}/test", mock_server.uri());
+        let http = || HttpConfig::new("test-cli").unwrap();
+
+        let with_key = CliExecutor::new(
+            http(),
+            bearer(),
+            vec![("xi-api-key".into(), "sk_env".into())],
+            None,
+        );
+        let request = reqwest::Client::new().get(&url).build().unwrap();
+        with_key.execute_inner(request).await.unwrap();
+
+        let without_key = CliExecutor::new(http(), bearer(), vec![], None);
+        let request = reqwest::Client::new().get(&url).build().unwrap();
+        without_key.execute_inner(request).await.unwrap();
+
+        let received = mock_server.received_requests().await.unwrap();
+        assert_eq!(received[0].headers.get("xi-api-key").unwrap(), "sk_env");
+        assert!(received[0].headers.get("authorization").is_none());
+        assert_eq!(
+            received[1].headers.get("authorization").unwrap(),
+            "Bearer oauth-token"
+        );
     }
 
     #[tokio::test]

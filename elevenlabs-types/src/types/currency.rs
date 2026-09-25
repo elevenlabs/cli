@@ -9,6 +9,7 @@ pub enum Currency {
     Eur,
     Inr,
     Pln,
+    Gbp,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -21,6 +22,7 @@ impl Serialize for Currency {
             Self::Eur => serializer.serialize_str("eur"),
             Self::Inr => serializer.serialize_str("inr"),
             Self::Pln => serializer.serialize_str("pln"),
+            Self::Gbp => serializer.serialize_str("gbp"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -34,6 +36,7 @@ impl<'de> Deserialize<'de> for Currency {
             "eur" => Ok(Self::Eur),
             "inr" => Ok(Self::Inr),
             "pln" => Ok(Self::Pln),
+            "gbp" => Ok(Self::Gbp),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -46,6 +49,7 @@ impl fmt::Display for Currency {
             Self::Eur => write!(f, "eur"),
             Self::Inr => write!(f, "inr"),
             Self::Pln => write!(f, "pln"),
+            Self::Gbp => write!(f, "gbp"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

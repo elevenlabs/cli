@@ -259,6 +259,10 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             video: elevenlabs_sdk::api::resources::flows::VideoClient { http_client: http_client.clone() },
             image: elevenlabs_sdk::api::resources::flows::ImageClient { http_client: http_client.clone() },
             text_to_speech: elevenlabs_sdk::api::resources::flows::TextToSpeechClient2 { http_client: http_client.clone() },
+            templates: elevenlabs_sdk::api::resources::flows::TemplatesClient {
+                http_client: http_client.clone(),
+                runs: elevenlabs_sdk::api::resources::flows::templates::RunsClient { http_client: http_client.clone() },
+            },
         },
         productions: elevenlabs_sdk::api::ProductionsClient {
             http_client: http_client.clone(),
