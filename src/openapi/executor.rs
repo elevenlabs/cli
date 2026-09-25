@@ -16,6 +16,7 @@ use futures_util::StreamExt;
 use serde_json::{json, Map, Value};
 use tokio::io::AsyncWriteExt;
 
+use crate::auth::provider::{supplied_api_key_header, SuppliedHeaderAuthProvider};
 use crate::auth::{handle_error_response, DynAuthProvider, EndpointAuthMetadata};
 use crate::error::CliError;
 use crate::openapi::discovery::{
@@ -2030,6 +2031,24 @@ pub async fn execute_method(
 
     let input = parse_and_validate_inputs(doc, method, params_json, body_json, upload.is_some(), base_url_override, extra_headers, extra_global_params)?;
 
+    // An explicit API key header wins over the configured provider; the API
+    // rejects requests carrying both it and `Authorization`.
+    let supplied_auth: DynAuthProvider;
+    let auth_provider = match supplied_api_key_header(
+        input
+            .header_params
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str())),
+    ) {
+        Some(name) => {
+            supplied_auth = std::sync::Arc::new(SuppliedHeaderAuthProvider::new(
+                supplied_header_hint(doc, name),
+            ));
+            &supplied_auth
+        }
+        None => auth_provider,
+    };
+
     // Human-readable identifier for the operation, used in
     // `x-fern-sdk-return-value` extraction errors so the user can find
     // the offending op when the response shape disagrees with the
@@ -3536,6 +3555,26 @@ fn build_multipart_stream(
         content_type,
         content_length,
     ))
+}
+
+/// Where a supplied API-key header came from, for the 401/403 error footer.
+fn supplied_header_hint(doc: &RestDescription, header: &str) -> String {
+    let global = doc
+        .global_headers
+        .iter()
+        .find(|h| h.header.eq_ignore_ascii_case(header));
+    let mut sources = Vec::new();
+    if let Some(h) = global {
+        sources.push(format!("--{}", crate::openapi::app::global_header_flag_name(h)));
+        if let Some(env) = &h.env {
+            sources.push(format!("env var {env}"));
+        }
+    }
+    if sources.is_empty() {
+        format!("`{header}` header")
+    } else {
+        format!("`{header}` header ({})", sources.join(" or "))
+    }
 }
 
 /// Header names the spec itself declares as credentials — the `name` of every
@@ -6004,6 +6043,108 @@ mod tests {
         assert!(
             built.headers().get(reqwest::header::AUTHORIZATION).is_none(),
             "security: [] must opt out of auth even with a bearer provider"
+        );
+    }
+
+    /// GET with a bearer provider and `extra_headers`; returns the result and
+    /// the headers the server received.
+    async fn execute_with_bearer_and_headers(
+        status: u16,
+        extra_headers: &[(String, String)],
+    ) -> (Result<Option<Value>, CliError>, reqwest::header::HeaderMap) {
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(wiremock::matchers::method("GET"))
+            .respond_with(ResponseTemplate::new(status).set_body_json(json!({"ok": true})))
+            .mount(&server)
+            .await;
+
+        let doc = RestDescription {
+            root_url: format!("{}/", server.uri()),
+            global_headers: vec![crate::openapi::discovery::GlobalHeader {
+                header: "xi-api-key".to_string(),
+                name: Some("api-key".to_string()),
+                env: Some("ELEVENLABS_API_KEY".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let method = RestMethod {
+            http_method: "GET".to_string(),
+            path: "v1/models".to_string(),
+            ..Default::default()
+        };
+        let provider: crate::auth::DynAuthProvider = std::sync::Arc::new(
+            crate::auth::BearerAuthProvider::new(
+                "OAuth",
+                crate::auth::AuthCredentialSource::literal("oauth-token"),
+            ),
+        );
+        let result = execute_method(
+            &doc,
+            &method,
+            None,
+            None,
+            &provider,
+            None,
+            None,
+            None,
+            None,
+            false,
+            &PaginationConfig::default(),
+            &crate::formatter::OutputPipeline::default(),
+            true,
+            None,
+            &crate::http::HttpConfig::new("test").unwrap(),
+            false,
+            true,
+            false,
+            false,
+            extra_headers,
+            &[],
+        )
+        .await;
+        let received = server.received_requests().await.unwrap();
+        (result, received[0].headers.clone())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_api_key_header_replaces_configured_provider() {
+        // elevenlabs/cli#142
+        let key = vec![("xi-api-key".to_string(), "sk_env".to_string())];
+        let (result, headers) = execute_with_bearer_and_headers(200, &key).await;
+        assert!(result.is_ok(), "{result:?}");
+        assert_eq!(headers.get("xi-api-key").unwrap(), "sk_env");
+        assert!(
+            headers.get(reqwest::header::AUTHORIZATION).is_none(),
+            "an explicit API key must stop the provider adding Authorization"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_provider_applies_without_api_key_header() {
+        let (result, headers) = execute_with_bearer_and_headers(200, &[]).await;
+        assert!(result.is_ok(), "{result:?}");
+        assert_eq!(
+            headers.get(reqwest::header::AUTHORIZATION).unwrap(),
+            "Bearer oauth-token"
+        );
+        // An empty value (e.g. `ELEVENLABS_API_KEY=`) is not a credential.
+        let blank = vec![("xi-api-key".to_string(), " ".to_string())];
+        let (_, headers) = execute_with_bearer_and_headers(200, &blank).await;
+        assert!(headers.get(reqwest::header::AUTHORIZATION).is_some());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_rejected_api_key_header_is_named_in_error() {
+        let key = vec![("xi-api-key".to_string(), "sk_env".to_string())];
+        let (result, _) = execute_with_bearer_and_headers(401, &key).await;
+        // The hint is in `help`, which Display omits.
+        let help = format!("{:?}", result.unwrap_err());
+        assert!(
+            help.contains("ELEVENLABS_API_KEY") && help.contains("--api-key"),
+            "got: {help}"
         );
     }
 
