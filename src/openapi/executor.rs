@@ -6111,7 +6111,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn test_api_key_header_replaces_configured_provider() {
-        // elevenlabs/cli#142
         let key = vec![("xi-api-key".to_string(), "sk_env".to_string())];
         let (result, headers) = execute_with_bearer_and_headers(200, &key).await;
         assert!(result.is_ok(), "{result:?}");

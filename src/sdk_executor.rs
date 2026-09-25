@@ -741,7 +741,6 @@ mod tests {
 
     #[tokio::test]
     async fn api_key_global_header_suppresses_auth_provider() {
-        // elevenlabs/cli#142
         let mock_server = wiremock::MockServer::start().await;
         wiremock::Mock::given(wiremock::matchers::method("GET"))
             .respond_with(wiremock::ResponseTemplate::new(200))
