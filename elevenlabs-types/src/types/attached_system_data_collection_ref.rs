@@ -5,7 +5,7 @@ use super::*;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct AttachedSystemDataCollectionRef {
     /// Id of the referenced built-in system data-collection item.
-    pub analysis_item_id: String,
+    pub analysis_item_id: SystemDataCollectionId,
     /// Transcript context ('conversation' or 'agent') used when running this item.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<AnalysisScope>,
@@ -20,13 +20,13 @@ impl AttachedSystemDataCollectionRef {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct AttachedSystemDataCollectionRefBuilder {
-    analysis_item_id: Option<String>,
+    analysis_item_id: Option<SystemDataCollectionId>,
     scope: Option<AnalysisScope>,
 }
 
 impl AttachedSystemDataCollectionRefBuilder {
-    pub fn analysis_item_id(mut self, value: impl Into<String>) -> Self {
-        self.analysis_item_id = Some(value.into());
+    pub fn analysis_item_id(mut self, value: SystemDataCollectionId) -> Self {
+        self.analysis_item_id = Some(value);
         self
     }
 

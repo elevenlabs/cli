@@ -6,18 +6,22 @@ use super::*;
 #[serde(tag = "type")]
 #[non_exhaustive]
 pub enum AlertingSettingsNotifiersItem {
-        #[serde(rename = "integration")]
-        #[non_exhaustive]
-        Integration {
-            #[serde(default)]
-            connection_id: String,
-        },
-
         #[serde(rename = "webhook")]
         #[non_exhaustive]
         Webhook {
             #[serde(default)]
             webhook_id: String,
+        },
+
+        #[serde(rename = "integration")]
+        #[non_exhaustive]
+        Integration {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            integration_type: Option<AlertingIntegrationNotifierIntegrationType>,
+            #[serde(default)]
+            connection_id: String,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            channel_id: Option<String>,
         },
 
         /// Catch-all variant for unrecognized discriminant values.
@@ -28,12 +32,20 @@ pub enum AlertingSettingsNotifiersItem {
 }
 
 impl AlertingSettingsNotifiersItem {
-    pub fn integration(connection_id: String) -> Self {
-        Self::Integration { connection_id }
-    }
-
     pub fn webhook(webhook_id: String) -> Self {
         Self::Webhook { webhook_id }
+    }
+
+    pub fn integration(connection_id: String) -> Self {
+        Self::Integration { integration_type: None, connection_id, channel_id: None }
+    }
+
+    pub fn integration_with_integration_type(integration_type: AlertingIntegrationNotifierIntegrationType, connection_id: String, channel_id: Option<String>) -> Self {
+        Self::Integration { integration_type: Some(integration_type), connection_id, channel_id }
+    }
+
+    pub fn integration_with_channel_id(integration_type: Option<AlertingIntegrationNotifierIntegrationType>, connection_id: String, channel_id: String) -> Self {
+        Self::Integration { integration_type, connection_id, channel_id: Some(channel_id) }
     }
 
     pub fn unknown(value: serde_json::Value) -> Self {

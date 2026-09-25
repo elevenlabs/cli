@@ -196,9 +196,9 @@ impl ConversationsClient {
     /// * `rating_min` - Minimum overall rating (1-5).
     /// * `has_feedback_comment` - Filter conversations with user feedback comments.
     /// * `user_id` - Filter conversations by the user ID who initiated them.
-    /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
-    /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|gt|gte|lt|lte|missing.
-    /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
+    /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success|failure|unknown. Example: eval=value_framing:success
+    /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value.
+    /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value. Names containing ':' cannot be expressed.
     /// * `data_collection_ids` - Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.
     /// * `evaluation_criteria_ids` - Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned.
     /// * `tool_names` - Filter conversations by tool names used during the call.

@@ -11,6 +11,9 @@ pub struct ListMcpToolsResponseModel {
     /// A list of tools available on the MCP server.
     #[serde(default)]
     pub tools: Vec<Tool>,
+    /// Derived approval states for currently discovered tools. Populated only for persisted MCP servers using per-tool approval; otherwise empty.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_approval_statuses: Option<Vec<McpToolApprovalStatus>>,
     /// Error message if the operation was not successful.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_message: Option<String>,
@@ -27,6 +30,7 @@ impl ListMcpToolsResponseModel {
 pub struct ListMcpToolsResponseModelBuilder {
     success: Option<bool>,
     tools: Option<Vec<Tool>>,
+    tool_approval_statuses: Option<Vec<McpToolApprovalStatus>>,
     error_message: Option<String>,
 }
 
@@ -38,6 +42,11 @@ impl ListMcpToolsResponseModelBuilder {
 
     pub fn tools(mut self, value: Vec<Tool>) -> Self {
         self.tools = Some(value);
+        self
+    }
+
+    pub fn tool_approval_statuses(mut self, value: Vec<McpToolApprovalStatus>) -> Self {
+        self.tool_approval_statuses = Some(value);
         self
     }
 
@@ -54,6 +63,7 @@ impl ListMcpToolsResponseModelBuilder {
         Ok(ListMcpToolsResponseModel {
             success: self.success.ok_or_else(|| BuildError::missing_field("success"))?,
             tools: self.tools.ok_or_else(|| BuildError::missing_field("tools"))?,
+            tool_approval_statuses: self.tool_approval_statuses,
             error_message: self.error_message,
         })
     }

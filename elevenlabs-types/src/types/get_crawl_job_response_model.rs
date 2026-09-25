@@ -10,10 +10,14 @@ pub struct GetCrawlJobResponseModel {
     pub seed_url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
-    #[serde(default)]
-    pub max_depth: i64,
+    /// Deprecated - this field is a no-op and will be removed in a future version.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<i64>,
     #[serde(default)]
     pub max_pages: i64,
+    /// Whether to automatically discover and enqueue additional pages found while crawling.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_discover: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<CrawlStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -48,6 +52,7 @@ pub struct GetCrawlJobResponseModelBuilder {
     pattern: Option<String>,
     max_depth: Option<i64>,
     max_pages: Option<i64>,
+    auto_discover: Option<bool>,
     status: Option<CrawlStatus>,
     pages_identified: Option<i64>,
     pages_scraped: Option<i64>,
@@ -82,6 +87,11 @@ impl GetCrawlJobResponseModelBuilder {
 
     pub fn max_pages(mut self, value: i64) -> Self {
         self.max_pages = Some(value);
+        self
+    }
+
+    pub fn auto_discover(mut self, value: bool) -> Self {
+        self.auto_discover = Some(value);
         self
     }
 
@@ -133,7 +143,6 @@ impl GetCrawlJobResponseModelBuilder {
     /// Consumes the builder and constructs a [`GetCrawlJobResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`seed_url`](GetCrawlJobResponseModelBuilder::seed_url)
-    /// - [`max_depth`](GetCrawlJobResponseModelBuilder::max_depth)
     /// - [`max_pages`](GetCrawlJobResponseModelBuilder::max_pages)
     /// - [`root_folder_id`](GetCrawlJobResponseModelBuilder::root_folder_id)
     /// - [`updated_at`](GetCrawlJobResponseModelBuilder::updated_at)
@@ -144,8 +153,9 @@ impl GetCrawlJobResponseModelBuilder {
             r#type: self.r#type,
             seed_url: self.seed_url.ok_or_else(|| BuildError::missing_field("seed_url"))?,
             pattern: self.pattern,
-            max_depth: self.max_depth.ok_or_else(|| BuildError::missing_field("max_depth"))?,
+            max_depth: self.max_depth,
             max_pages: self.max_pages.ok_or_else(|| BuildError::missing_field("max_pages"))?,
+            auto_discover: self.auto_discover,
             status: self.status,
             pages_identified: self.pages_identified,
             pages_scraped: self.pages_scraped,

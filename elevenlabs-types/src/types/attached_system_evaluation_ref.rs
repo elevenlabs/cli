@@ -5,7 +5,7 @@ use super::*;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AttachedSystemEvaluationRef {
     /// Id of the referenced built-in system evaluation.
-    pub analysis_item_id: AttachedSystemEvaluationRefAnalysisItemId,
+    pub analysis_item_id: SystemEvaluationId,
     /// Transcript context ('conversation' or 'agent') used when running this item.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<AnalysisScope>,
@@ -25,13 +25,13 @@ impl AttachedSystemEvaluationRef {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct AttachedSystemEvaluationRefBuilder {
-    analysis_item_id: Option<AttachedSystemEvaluationRefAnalysisItemId>,
+    analysis_item_id: Option<SystemEvaluationId>,
     scope: Option<AnalysisScope>,
     weight: Option<f64>,
 }
 
 impl AttachedSystemEvaluationRefBuilder {
-    pub fn analysis_item_id(mut self, value: AttachedSystemEvaluationRefAnalysisItemId) -> Self {
+    pub fn analysis_item_id(mut self, value: SystemEvaluationId) -> Self {
         self.analysis_item_id = Some(value);
         self
     }
