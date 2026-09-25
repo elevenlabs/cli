@@ -2,10 +2,9 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// Id of the referenced built-in system evaluation.
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum AttachedSystemEvaluationRefAnalysisItemId {
+pub enum SystemEvaluationId {
     SystemEvalCriteriaSentiment,
     SystemEvalCriteriaFrustration,
     /// This variant is used for forward compatibility.
@@ -13,7 +12,7 @@ pub enum AttachedSystemEvaluationRefAnalysisItemId {
     /// it will be captured here with the raw string value.
     __Unknown(String),
 }
-impl Serialize for AttachedSystemEvaluationRefAnalysisItemId {
+impl Serialize for SystemEvaluationId {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
             Self::SystemEvalCriteriaSentiment => serializer.serialize_str("__system_eval_criteria_sentiment"),
@@ -23,7 +22,7 @@ impl Serialize for AttachedSystemEvaluationRefAnalysisItemId {
     }
 }
 
-impl<'de> Deserialize<'de> for AttachedSystemEvaluationRefAnalysisItemId {
+impl<'de> Deserialize<'de> for SystemEvaluationId {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
         match value.as_str() {
@@ -34,7 +33,7 @@ impl<'de> Deserialize<'de> for AttachedSystemEvaluationRefAnalysisItemId {
     }
 }
 
-impl fmt::Display for AttachedSystemEvaluationRefAnalysisItemId {
+impl fmt::Display for SystemEvaluationId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SystemEvalCriteriaSentiment => write!(f, "__system_eval_criteria_sentiment"),

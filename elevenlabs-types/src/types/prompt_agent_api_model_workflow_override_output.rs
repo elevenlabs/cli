@@ -33,6 +33,9 @@ pub struct PromptAgentApiModelWorkflowOverrideOutput {
     /// Built-in system tools to be used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub built_in_tools: Option<BuiltInToolsWorkflowOverrideOutput>,
+    /// Enable parallel tool calling. When enabled, the agent can execute multiple tools in parallel within a single turn. Not supported by all models.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_parallel_tool_calls: Option<bool>,
     /// A list of MCP server ids to be used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mcp_server_ids: Option<Vec<String>>,
@@ -85,6 +88,7 @@ pub struct PromptAgentApiModelWorkflowOverrideOutputBuilder {
     max_tokens: Option<i64>,
     tool_ids: Option<Vec<String>>,
     built_in_tools: Option<BuiltInToolsWorkflowOverrideOutput>,
+    enable_parallel_tool_calls: Option<bool>,
     mcp_server_ids: Option<Vec<String>>,
     native_mcp_server_ids: Option<Vec<String>>,
     knowledge_base: Option<Vec<KnowledgeBaseLocator>>,
@@ -140,6 +144,11 @@ impl PromptAgentApiModelWorkflowOverrideOutputBuilder {
 
     pub fn built_in_tools(mut self, value: BuiltInToolsWorkflowOverrideOutput) -> Self {
         self.built_in_tools = Some(value);
+        self
+    }
+
+    pub fn enable_parallel_tool_calls(mut self, value: bool) -> Self {
+        self.enable_parallel_tool_calls = Some(value);
         self
     }
 
@@ -205,6 +214,7 @@ impl PromptAgentApiModelWorkflowOverrideOutputBuilder {
             max_tokens: self.max_tokens,
             tool_ids: self.tool_ids,
             built_in_tools: self.built_in_tools,
+            enable_parallel_tool_calls: self.enable_parallel_tool_calls,
             mcp_server_ids: self.mcp_server_ids,
             native_mcp_server_ids: self.native_mcp_server_ids,
             knowledge_base: self.knowledge_base,

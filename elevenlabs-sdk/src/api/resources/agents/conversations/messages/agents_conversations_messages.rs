@@ -31,9 +31,9 @@ impl MessagesClient {
     /// * `rating_min` - Minimum overall rating (1-5).
     /// * `has_feedback_comment` - Filter conversations with user feedback comments.
     /// * `user_id` - Filter conversations by the user ID who initiated them.
-    /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success
-    /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|gt|gte|lt|lte|missing.
-    /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|gt|gte|lt|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed.
+    /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success|failure|unknown. Example: eval=value_framing:success
+    /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value.
+    /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value. Names containing ':' cannot be expressed.
     /// * `tool_names` - Filter conversations by tool names used during the call.
     /// * `tool_names_successful` - Filter conversations by tool names that had successful calls.
     /// * `tool_names_errored` - Filter conversations by tool names that had errored calls.
@@ -207,6 +207,7 @@ impl MessagesClient {
     ///
     /// * `text_query` - The search query text for semantic similarity matching
     /// * `agent_id` - Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource.
+    /// * `branch_id` - Filter conversations by branch ID.
     /// * `page_size` - Number of results per page. Max 50.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
@@ -234,6 +235,7 @@ impl MessagesClient {
     ///             &AgentsConversationsMessagesSearchQueryRequest {
     ///                 text_query: "Customer asking to cancel and get money back".to_string(),
     ///                 agent_id: Some("agent_id".to_string()),
+    ///                 branch_id: Some("branch_id".to_string()),
     ///                 page_size: Some(1),
     ///                 cursor: Some("cursor".to_string()),
     ///             },
@@ -255,6 +257,7 @@ impl MessagesClient {
                 QueryBuilder::new()
                     .string("text_query", request.text_query.clone())
                     .string("agent_id", request.agent_id.clone())
+                    .string("branch_id", request.branch_id.clone())
                     .int("page_size", request.page_size.clone())
                     .string("cursor", request.cursor.clone())
                     .build(),

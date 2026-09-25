@@ -8,6 +8,9 @@ pub struct AgentsTestsInvocationsListQueryRequest {
     /// Filter by agent ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
+    /// Filter by branch ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_id: Option<String>,
     /// How many Tests to return at maximum. Can not exceed 100, defaults to 30.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
@@ -29,6 +32,7 @@ impl AgentsTestsInvocationsListQueryRequest {
 #[non_exhaustive]
 pub struct AgentsTestsInvocationsListQueryRequestBuilder {
     agent_id: Option<String>,
+    branch_id: Option<String>,
     page_size: Option<i64>,
     search: Option<String>,
     cursor: Option<String>,
@@ -37,6 +41,11 @@ pub struct AgentsTestsInvocationsListQueryRequestBuilder {
 impl AgentsTestsInvocationsListQueryRequestBuilder {
     pub fn agent_id(mut self, value: impl Into<String>) -> Self {
         self.agent_id = Some(value.into());
+        self
+    }
+
+    pub fn branch_id(mut self, value: impl Into<String>) -> Self {
+        self.branch_id = Some(value.into());
         self
     }
 
@@ -59,6 +68,7 @@ impl AgentsTestsInvocationsListQueryRequestBuilder {
     pub fn build(self) -> Result<AgentsTestsInvocationsListQueryRequest, BuildError> {
         Ok(AgentsTestsInvocationsListQueryRequest {
             agent_id: self.agent_id,
+            branch_id: self.branch_id,
             page_size: self.page_size,
             search: self.search,
             cursor: self.cursor,

@@ -9,10 +9,11 @@ pub struct ToDialogueSettingsResponseModel {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub stability: Option<f64>,
+    /// Determines how strongly the model is guided while generating. Higher values make the model adhere more closely to the voice, at the cost of variation. Not supported by every model.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
-    pub speed: Option<f64>,
+    pub similarity: Option<f64>,
 }
 
 impl ToDialogueSettingsResponseModel {
@@ -25,7 +26,7 @@ impl ToDialogueSettingsResponseModel {
 #[non_exhaustive]
 pub struct ToDialogueSettingsResponseModelBuilder {
     stability: Option<f64>,
-    speed: Option<f64>,
+    similarity: Option<f64>,
 }
 
 impl ToDialogueSettingsResponseModelBuilder {
@@ -34,8 +35,8 @@ impl ToDialogueSettingsResponseModelBuilder {
         self
     }
 
-    pub fn speed(mut self, value: f64) -> Self {
-        self.speed = Some(value);
+    pub fn similarity(mut self, value: f64) -> Self {
+        self.similarity = Some(value);
         self
     }
 
@@ -43,7 +44,7 @@ impl ToDialogueSettingsResponseModelBuilder {
     pub fn build(self) -> Result<ToDialogueSettingsResponseModel, BuildError> {
         Ok(ToDialogueSettingsResponseModel {
             stability: self.stability,
-            speed: self.speed,
+            similarity: self.similarity,
         })
     }
 }

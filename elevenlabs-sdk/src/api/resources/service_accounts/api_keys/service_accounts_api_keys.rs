@@ -83,7 +83,10 @@ impl ApiKeysClient {
     ///         permissions: BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPostPermissions::PermissionTypeList(vec![]),
     ///         character_limit: None,
     ///         allowed_ips: None,
-    ///         third_party_disable_allowed: None
+    ///         third_party_disable_allowed: None,
+    ///         tts_concurrency_limit: None,
+    ///         dubbing_concurrency_limit: None,
+    ///         music_concurrency_limit: None
     ///     }, None).await;
     /// }
     /// ```

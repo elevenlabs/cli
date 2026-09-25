@@ -7,7 +7,7 @@ pub struct BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPost {
     /// URL to a page of documentation that the agent will have access to in order to interact with users.
     #[serde(default)]
     pub url: String,
-    /// Maximum depth for crawling (1-5), defaults to 3.
+    /// Deprecated - this field is a no-op and will be removed in a future version.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_depth: Option<i64>,
     /// Maximum number of pages to crawl (1-10,000), defaults to 1000.
@@ -28,6 +28,9 @@ pub struct BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPost {
     /// Whether to automatically remove the document if the URL becomes unavailable. Only applicable when auto-sync is enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_remove: Option<bool>,
+    /// Automatically discover and add new pages linked from already-crawled pages during auto-sync. Requires enable_auto_sync=true.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_discover: Option<bool>,
     /// Minimum frequency (in days) at which the underlying eligible documents are refreshed. The actual interval may be shorter, never longer. Defaults to 7, tightened to the parent folder's frequency if that is stricter. Only applicable when auto-sync is enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum_frequency_days: Option<i64>,
@@ -50,6 +53,7 @@ pub struct BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPostBuilder {
     parent_folder_id: Option<String>,
     enable_auto_sync: Option<bool>,
     auto_remove: Option<bool>,
+    auto_discover: Option<bool>,
     minimum_frequency_days: Option<i64>,
 }
 
@@ -94,6 +98,11 @@ impl BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPostBuilder {
         self
     }
 
+    pub fn auto_discover(mut self, value: bool) -> Self {
+        self.auto_discover = Some(value);
+        self
+    }
+
     pub fn minimum_frequency_days(mut self, value: i64) -> Self {
         self.minimum_frequency_days = Some(value);
         self
@@ -112,6 +121,7 @@ impl BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPostBuilder {
             parent_folder_id: self.parent_folder_id,
             enable_auto_sync: self.enable_auto_sync,
             auto_remove: self.auto_remove,
+            auto_discover: self.auto_discover,
             minimum_frequency_days: self.minimum_frequency_days,
         })
     }

@@ -15,7 +15,7 @@ pub struct BodyTextToDialogueFullWithTimestamps {
     pub language_code: Option<String>,
     /// Settings controlling the dialogue generation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub settings: Option<ModelSettingsResponseModel>,
+    pub settings: Option<ToDialogueSettingsResponseModel>,
     /// A list of pronunciation dictionary locators (id, version_id) to be applied to the text. They will be applied in order. You may have up to 3 locators per request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pronunciation_dictionary_locators: Option<Vec<PronunciationDictionaryVersionLocator>>,
@@ -25,6 +25,18 @@ pub struct BodyTextToDialogueFullWithTimestamps {
     /// This parameter controls text normalization with three modes: 'auto', 'on', and 'off'. When set to 'auto', the system will automatically decide whether to apply text normalization (e.g., spelling out numbers). With 'on', text normalization will always be applied, while with 'off', it will be skipped.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apply_text_normalization: Option<BodyTextToDialogueFullWithTimestampsApplyTextNormalization>,
+    /// A list of request_ids of dialogue generations that came before this one. Used to condition the model for continuity when splitting a large task into multiple requests. A maximum of 3 request_ids can be sent. The last request_id is the audio which is closest to the current request. Not supported by every model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_request_ids: Option<Vec<String>>,
+    /// A list of request_ids of dialogue generations that come after this one. Useful for maintaining continuity when regenerating a clip in the middle of a sequence. A maximum of 3 request_ids can be sent. The first request_id is the audio which is closest to the current request. Not supported by every model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_request_ids: Option<Vec<String>>,
+    /// The text that comes immediately before this generation, used to condition the model for prosodic continuity. A maximum of 100 characters can be sent. Not supported by every model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_text: Option<String>,
+    /// The text that comes immediately after this generation, used to condition the model for prosodic continuity. A maximum of 100 characters can be sent. Not supported by every model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub future_text: Option<String>,
     /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM and WAV formats with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
     #[serde(skip)]
     pub output_format: Option<TextToDialogueConvertWithTimestampsRequestOutputFormat>,
@@ -45,10 +57,14 @@ pub struct BodyTextToDialogueFullWithTimestampsBuilder {
     inputs: Option<Vec<DialogueInput>>,
     model_id: Option<String>,
     language_code: Option<String>,
-    settings: Option<ModelSettingsResponseModel>,
+    settings: Option<ToDialogueSettingsResponseModel>,
     pronunciation_dictionary_locators: Option<Vec<PronunciationDictionaryVersionLocator>>,
     seed: Option<i64>,
     apply_text_normalization: Option<BodyTextToDialogueFullWithTimestampsApplyTextNormalization>,
+    previous_request_ids: Option<Vec<String>>,
+    next_request_ids: Option<Vec<String>>,
+    previous_text: Option<String>,
+    future_text: Option<String>,
     output_format: Option<TextToDialogueConvertWithTimestampsRequestOutputFormat>,
     enable_logging: Option<bool>,
 }
@@ -69,7 +85,7 @@ impl BodyTextToDialogueFullWithTimestampsBuilder {
         self
     }
 
-    pub fn settings(mut self, value: ModelSettingsResponseModel) -> Self {
+    pub fn settings(mut self, value: ToDialogueSettingsResponseModel) -> Self {
         self.settings = Some(value);
         self
     }
@@ -86,6 +102,26 @@ impl BodyTextToDialogueFullWithTimestampsBuilder {
 
     pub fn apply_text_normalization(mut self, value: BodyTextToDialogueFullWithTimestampsApplyTextNormalization) -> Self {
         self.apply_text_normalization = Some(value);
+        self
+    }
+
+    pub fn previous_request_ids(mut self, value: Vec<String>) -> Self {
+        self.previous_request_ids = Some(value);
+        self
+    }
+
+    pub fn next_request_ids(mut self, value: Vec<String>) -> Self {
+        self.next_request_ids = Some(value);
+        self
+    }
+
+    pub fn previous_text(mut self, value: impl Into<String>) -> Self {
+        self.previous_text = Some(value.into());
+        self
+    }
+
+    pub fn future_text(mut self, value: impl Into<String>) -> Self {
+        self.future_text = Some(value.into());
         self
     }
 
@@ -111,6 +147,10 @@ impl BodyTextToDialogueFullWithTimestampsBuilder {
             pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
             seed: self.seed,
             apply_text_normalization: self.apply_text_normalization,
+            previous_request_ids: self.previous_request_ids,
+            next_request_ids: self.next_request_ids,
+            previous_text: self.previous_text,
+            future_text: self.future_text,
             output_format: self.output_format,
             enable_logging: self.enable_logging,
         })

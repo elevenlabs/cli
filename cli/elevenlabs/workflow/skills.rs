@@ -1,21 +1,40 @@
-//! `generate-skills`, extended to cover the hand-written commands.
+//! `generate-skills`, shadowing the framework's built-in so the emitted
+//! SKILL.md files cover the hand-written commands and the two
+//! agent-feedback affordances.
 //!
-//! The framework's own `generate-skills` renders one `SKILL.md` per OpenAPI
-//! resource group, driven entirely by the embedded spec — so the commands in
-//! this `workflow/` tree, which exist only here, are invisible to it. An
-//! agent that installed the generated skills would have no idea `say`,
-//! `agents push` or `residency` exist.
+//! ## Why this shadows rather than extends
 //!
-//! This shadows the built-in rather than duplicating it: `graft_subcommand`
-//! is custom-wins on leaf collision and custom commands are dispatched ahead
-//! of binding operations, so registering `generate-skills` here takes over
-//! the name. Every spec-derived file still comes from the framework's own
-//! emitter via [`skill_emitter::generate_skills`], so improvements to it
-//! keep flowing through; this only appends the hand-written skills and
-//! writes the result.
+//! The emitter (`fern_cli_sdk::openapi::skill_emitter`) walks the OpenAPI
+//! spec and renders fixed templates. Commands in this `workflow/` tree
+//! exist only here, so they are invisible to it — an agent that installed
+//! the generated skills would have no idea `say`, `agents push` or
+//! `residency` exist. It also has no hook for extra prose, and it is
+//! generated code — editing it would be clobbered by the next
+//! `fern generate`. Registering a custom command with the same name wins
+//! dispatch over the built-in, so this file (protected by `.fernignore`)
+//! can wrap it instead.
 //!
-//! Adding a skill: drop a `<name>.md` in `skills/` next to this file and add
-//! it to [`CUSTOM_SKILLS`]. It lives here, rather than under `.agents/skills/`
+//! The wrapper stays deliberately thin: it calls the framework's
+//! [`generate_skills`] for the spec-derived content, so upstream
+//! improvements to the templates still arrive. It owns only the output
+//! path, the extra sections and the hand-written skills. If the emitter's
+//! signature changes upstream, this fails to compile — visibly, rather
+//! than silently emitting stale skills.
+//!
+//! ## Why the two feedback features need this at all
+//!
+//! Neither is reachable by the emitter. `--intent` is a
+//! [`GlobalParameter`](super::intent), and the Global Flags table is a
+//! hardcoded list that does not enumerate registered globals. `feedback
+//! missing-capability` is a hand-written command, and the emitter only
+//! walks spec-derived resources. Both gaps are worth fixing upstream in
+//! the generator; until then, an agent reading only the skills would never
+//! learn either exists.
+//!
+//! ## Adding a hand-written skill
+//!
+//! Drop a `<name>.md` in `skills/` next to this file and add it to
+//! [`CUSTOM_SKILLS`]. It lives here, rather than under `.agents/skills/`
 //! with the rest, because `.fernignore` protects `cli/elevenlabs/workflow/`
 //! but not `.agents/` — a regeneration that swept `.agents/` away would take
 //! the `include_str!` target with it and break the build. `.agents/skills/say/
@@ -29,13 +48,39 @@
 use std::path::{Path, PathBuf};
 
 use fern_cli_sdk::app::CliApp;
-use fern_cli_sdk::auth::{no_auth_provider, SchemeBinding};
 use fern_cli_sdk::error::CliError;
-use fern_cli_sdk::openapi::{skill_emitter, AppContext};
+use fern_cli_sdk::openapi::skill_emitter::{generate_skills, generate_skills_command};
+use fern_cli_sdk::openapi::AppContext;
 
-/// The binary name, which `main.rs` pins via `CliApp::new("elevenlabs")`.
-/// The emitter takes it as a parameter to prefix every skill directory
-/// (`elevenlabs-shared`, `elevenlabs-agents`, …); `AppContext` does not
+use super::util::downcast_ctx;
+
+/// What the emitter writes when it is handed no auth bindings. We cannot
+/// hand it ours: they live on the `OpenApiBinding`, which `AppContext` does
+/// not expose, and the spec carries no `securitySchemes` for the fallback to
+/// use either. Left alone the shared skill would tell agents this CLI needs
+/// no credentials, which is both wrong and the first thing they read.
+const NO_AUTH_LINE: &str = "No authentication configured.";
+
+/// Replaces [`NO_AUTH_LINE`]. Hand-written rather than rendered, so it can
+/// say the thing an agent actually needs — the env var name — which the
+/// generic rendering of our OAuth binding ("custom auth provider") does not.
+const AUTH_SECTION: &str = "\
+Every request is authenticated with an ElevenLabs API key, sent as the \
+`xi-api-key` header.
+
+```bash
+export ELEVENLABS_API_KEY=xi-...
+```
+
+A `.env` file in the working directory is loaded automatically. For a one-off \
+call, pass `--xi-api-key xi-...` instead. `elevenlabs auth login` sets up \
+OAuth in a keyring as an alternative to the env var.";
+
+/// Matches the emitter's own naming: `{bin_name}-shared/SKILL.md`.
+const SHARED_SKILL: &str = "elevenlabs-shared";
+
+/// The binary name the emitter uses for headings and file prefixes, which
+/// `main.rs` pins via `CliApp::new("elevenlabs")`. `AppContext` does not
 /// expose it, and this file only ever ships in the elevenlabs CLI.
 const BIN_NAME: &str = "elevenlabs";
 
@@ -45,39 +90,97 @@ const BIN_NAME: &str = "elevenlabs";
 /// work from an installed binary, which has no repo to read from.
 const CUSTOM_SKILLS: &[(&str, &str)] = &[("say", include_str!("skills/say.md"))];
 
-/// The auth bindings to render the shared skill's "Authentication" section
-/// from.
+/// Appended to the shared skill, which every group skill links as a
+/// prerequisite — so this is read once and applies everywhere.
 ///
-/// `AppContext` carries the resolved auth *provider* but not the bindings
-/// that describe it, and they live on a `pub(crate)` field of the framework's
-/// `CliApp`, so there is nothing to forward. Passing an empty slice is not an
-/// option: the emitter would fall back to the spec's `securitySchemes`, which
-/// this API declares as `{}`, and the section would read "No authentication
-/// configured."
-///
-/// So it is reconstructed to match what `main.rs` declares — a PKCE login
-/// flow named `OAuth`. The emitter renders a `Custom` binding as the constant
-/// string "custom auth provider" and collects no environment variables from
-/// it, so the provider handed over here is never consulted and the output is
-/// identical to the built-in's. `the_shared_skill_still_documents_oauth`
-/// fails loudly if a future emitter starts reading it.
-fn auth_bindings() -> Vec<(String, SchemeBinding)> {
-    vec![(
-        "OAuth".to_string(),
-        SchemeBinding::Custom(no_auth_provider()),
-    )]
-}
+/// Wording tracks the hosted MCP's `context` argument and `get_more_tools`
+/// tool, which are what demonstrably get agents to supply these, with the
+/// PII sentence the MCP versions lack.
+const FEEDBACK_SECTION: &str = r#"
+## Telling us what you are doing
+
+Two inputs let you report what you are trying to accomplish and what you could
+not do. Neither changes what a command does.
+
+### `--intent` — why you are running this command
+
+Optional, and available on every command. Sent as a request header. Nothing
+changes if you leave it off, but supplying it is what tells us which commands
+to build next:
+
+```bash
+elevenlabs voices search --intent "pick a narrator voice for an audiobook"
+```
+
+One sentence describing the user's goal, max 500 characters, on one line.
+
+No environment variable sets this once for a whole task. A fresh sentence per
+command is the point — read back in order, they show what you were actually
+working through.
+
+### `elevenlabs feedback missing-capability` — what you could not do
+
+Call this when the user's request cannot be completed with any available
+`elevenlabs` command. Describe the capability you were looking for, so it can
+inform which commands get built next. Do not call it when an existing command
+already covers the request.
+
+```bash
+elevenlabs feedback missing-capability \
+  "no way to batch-render a script to separate files per speaker"
+```
+
+It records the report and returns; it does not fail the task. Continue with the
+available commands, or tell the user the thing is not supported yet.
+
+### Never put personal data in either field
+
+Describe the *goal*, not the data. Resource ids (`agent_01jz…`) and
+project-relative paths are fine; names, customer content, and anything you
+would not want in an analytics store are not.
+
+Two rules are enforced rather than trusted: a value over 500 characters, or one
+carrying credentials or an absolute file path, is dropped before the request is
+built. `--intent` warns on stderr and the command proceeds normally — a dropped
+value still satisfies the requirement, so you do not need to retry, but fix the
+wording next time; `feedback` fails so you can rewrite it.
+"#;
 
 /// Every file `generate-skills` should write, spec-derived ones first.
-fn skill_files(ctx: &AppContext) -> Vec<(PathBuf, String)> {
-    let mut files = skill_emitter::generate_skills(ctx.spec(), BIN_NAME, &auth_bindings());
+fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
+    let shared = PathBuf::from(SHARED_SKILL).join("SKILL.md");
+    let mut files = generate_skills(ctx.spec(), BIN_NAME, &[]);
+
+    let mut appended = false;
+    for (path, content) in files.iter_mut() {
+        if *path == shared {
+            // Only when the emitter actually produced the no-auth text. If a
+            // future framework version renders real bindings, defer to it
+            // rather than overwriting a better section with ours.
+            if content.contains(NO_AUTH_LINE) {
+                *content = content.replace(NO_AUTH_LINE, AUTH_SECTION);
+            }
+            content.push_str(FEEDBACK_SECTION);
+            appended = true;
+        }
+    }
+    if !appended {
+        // The emitter renamed or dropped the shared skill. Fail loudly: the
+        // alternative is silently shipping skills without the section, which
+        // is the exact failure this command exists to prevent.
+        return Err(CliError::Other(anyhow::anyhow!(
+            "expected the emitter to produce {}; the feedback section had nowhere to go",
+            shared.display()
+        )));
+    }
+
     files.extend(CUSTOM_SKILLS.iter().map(|(name, content)| {
         (
             PathBuf::from(format!("{BIN_NAME}-{name}")).join("SKILL.md"),
             (*content).to_string(),
         )
     }));
-    files
+    Ok(files)
 }
 
 fn write_all(root: &Path, files: &[(PathBuf, String)]) -> Result<(), CliError> {
@@ -98,20 +201,18 @@ fn write_all(root: &Path, files: &[(PathBuf, String)]) -> Result<(), CliError> {
     Ok(())
 }
 
-#[derive(clap::Args)]
-struct SkillsArgs {
-    /// Output directory [default: skills]
-    #[arg(long, value_name = "PATH")]
-    output_dir: Option<String>,
-}
-
-fn handle(args: SkillsArgs, ctx: &AppContext) -> Result<(), CliError> {
-    let out_dir = args.output_dir.as_deref().unwrap_or("skills");
-    // Same guard the framework applies: refuses control characters and paths
-    // that would escape the working tree.
+fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let out_dir = matches
+        .get_one::<String>("output-dir")
+        .map(String::as_str)
+        .unwrap_or("skills");
+    // The framework's own validator, so this path behaves exactly as the
+    // built-in did. Note it deliberately does not sandbox: it rejects control
+    // characters and resolves the path, but the target may be anywhere on the
+    // filesystem (see its docs). Shadowing neither adds nor removes that.
     let resolved = fern_cli_sdk::validate::validate_safe_output_dir(out_dir)?;
 
-    let files = skill_files(ctx);
+    let files = skill_files(ctx)?;
     write_all(&resolved, &files)?;
 
     eprintln!(
@@ -122,21 +223,81 @@ fn handle(args: SkillsArgs, ctx: &AppContext) -> Result<(), CliError> {
     Ok(())
 }
 
-/// Register `generate-skills`, replacing the framework's own.
+/// Register the shadowing `generate-skills`.
 ///
-/// The `about` text matches the built-in so `--help` reads the same whether
-/// or not this override is present.
+/// Reuses the framework's own clap definition so `--help` and `--output-dir`
+/// stay identical to the command being replaced.
 pub fn register(app: CliApp) -> CliApp {
-    app.command_typed_with(
-        clap::Command::new("generate-skills")
-            .about("Generate SKILL.md files for AI agent integration"),
-        handle,
+    app.command(
+        generate_skills_command(),
+        Box::new(|matches, ctx| handle(matches, downcast_ctx(ctx)?)),
     )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_section_documents_both_affordances() {
+        // An agent reads this and nothing else before deciding whether to
+        // use them, so the trigger phrasing is the whole mechanism.
+        assert!(FEEDBACK_SECTION.contains("--intent"));
+        assert!(FEEDBACK_SECTION.contains("feedback missing-capability"));
+        assert!(FEEDBACK_SECTION.contains("cannot be completed"));
+        assert!(FEEDBACK_SECTION.contains("Do not call it when an existing command"));
+    }
+
+    #[test]
+    fn the_section_frames_intent_as_optional() {
+        assert!(FEEDBACK_SECTION.contains("Optional, and available on every command"));
+        assert!(FEEDBACK_SECTION.contains("No environment variable sets this once"));
+        // The requirement is gone; nothing here may imply it is still enforced.
+        assert!(!FEEDBACK_SECTION.contains("Required on every command"));
+        assert!(!FEEDBACK_SECTION.contains("error[validation]"));
+    }
+
+    #[test]
+    fn the_section_states_the_pii_rule() {
+        assert!(FEEDBACK_SECTION.contains("Never put personal data"));
+        assert!(FEEDBACK_SECTION.contains("500 characters"));
+    }
+
+    #[test]
+    fn the_auth_replacement_names_the_env_var() {
+        // The whole point of overriding the rendered section: an agent needs
+        // the variable name, not the words "custom auth provider".
+        assert!(AUTH_SECTION.contains("ELEVENLABS_API_KEY"));
+        assert!(AUTH_SECTION.contains("xi-api-key"));
+        assert!(!AUTH_SECTION.contains(NO_AUTH_LINE));
+    }
+
+    #[test]
+    fn the_shared_skill_target_matches_the_emitters_naming() {
+        // `generate_skills` builds this path as `{bin_name}-shared/SKILL.md`.
+        // If the two drift, `handle` errors rather than emitting silently.
+        assert_eq!(SHARED_SKILL, format!("{BIN_NAME}-shared"));
+    }
+
+    /// Guards the substitution in [`skill_files`]: it only fires when the
+    /// emitter actually renders the no-auth fallback for an empty binding
+    /// list. If a future emitter renders something else, the hand-written
+    /// section would silently never be applied.
+    #[test]
+    fn the_emitter_still_renders_the_no_auth_fallback() {
+        let doc = fern_cli_sdk::openapi::discovery::RestDescription::default();
+        let files = generate_skills(&doc, BIN_NAME, &[]);
+        let (_, shared) = files
+            .iter()
+            .find(|(p, _)| p.starts_with(SHARED_SKILL))
+            .expect("the shared skill is always emitted");
+        assert!(
+            shared.contains(NO_AUTH_LINE),
+            "the emitter no longer renders the no-auth fallback, so the \
+             hand-written authentication section would never be \
+             substituted:\n{shared}"
+        );
+    }
 
     /// Every hand-written skill needs the frontmatter an agent harness reads
     /// to decide whether to load it.
@@ -175,27 +336,5 @@ mod tests {
                  path — the in-repo and generated layouts differ"
             );
         }
-    }
-
-    /// Guards the reconstruction in [`auth_bindings`]: if the emitter ever
-    /// starts reading the provider inside a `Custom` binding, the stand-in
-    /// stops being equivalent and this notices.
-    #[test]
-    fn the_shared_skill_still_documents_oauth() {
-        let doc = fern_cli_sdk::openapi::discovery::RestDescription::default();
-        let files = skill_emitter::generate_skills(&doc, BIN_NAME, &auth_bindings());
-        let (_, shared) = files
-            .iter()
-            .find(|(p, _)| p.starts_with(format!("{BIN_NAME}-shared")))
-            .expect("the shared skill is always emitted");
-        assert!(
-            shared.contains("- **OAuth** (bearer): custom auth provider"),
-            "the shared skill lost its authentication line; auth_bindings() \
-             no longer reproduces what the framework renders:\n{shared}"
-        );
-        assert!(
-            !shared.contains("No authentication configured"),
-            "an empty binding list leaked through"
-        );
     }
 }
