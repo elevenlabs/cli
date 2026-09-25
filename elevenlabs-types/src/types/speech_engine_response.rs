@@ -37,6 +37,10 @@ pub struct SpeechEngineResponse {
     /// ISO language code used by the speech engine (e.g. 'en')
     #[serde(default)]
     pub language: String,
+    /// Time in seconds to wait for the upstream speech engine endpoint to respond before the attempt is abandoned and retried. Must be between 2 and 15 seconds.
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers")]
+    pub cascade_timeout_seconds: f64,
     /// Arbitrary tags for categorization and filtering
     #[serde(default)]
     pub tags: Vec<String>,
@@ -71,6 +75,7 @@ pub struct SpeechEngineResponseBuilder {
     privacy: Option<PrivacyConfigOutput>,
     call_limits: Option<AgentCallLimits>,
     language: Option<String>,
+    cascade_timeout_seconds: Option<f64>,
     tags: Option<Vec<String>>,
     overrides: Option<SpeechEngineConversationInitiationClientDataConfig>,
     metadata: Option<AgentMetadataDbModel>,
@@ -133,6 +138,11 @@ impl SpeechEngineResponseBuilder {
         self
     }
 
+    pub fn cascade_timeout_seconds(mut self, value: f64) -> Self {
+        self.cascade_timeout_seconds = Some(value);
+        self
+    }
+
     pub fn tags(mut self, value: Vec<String>) -> Self {
         self.tags = Some(value);
         self
@@ -166,6 +176,7 @@ impl SpeechEngineResponseBuilder {
     /// - [`privacy`](SpeechEngineResponseBuilder::privacy)
     /// - [`call_limits`](SpeechEngineResponseBuilder::call_limits)
     /// - [`language`](SpeechEngineResponseBuilder::language)
+    /// - [`cascade_timeout_seconds`](SpeechEngineResponseBuilder::cascade_timeout_seconds)
     /// - [`tags`](SpeechEngineResponseBuilder::tags)
     /// - [`overrides`](SpeechEngineResponseBuilder::overrides)
     /// - [`metadata`](SpeechEngineResponseBuilder::metadata)
@@ -182,6 +193,7 @@ impl SpeechEngineResponseBuilder {
             privacy: self.privacy.ok_or_else(|| BuildError::missing_field("privacy"))?,
             call_limits: self.call_limits.ok_or_else(|| BuildError::missing_field("call_limits"))?,
             language: self.language.ok_or_else(|| BuildError::missing_field("language"))?,
+            cascade_timeout_seconds: self.cascade_timeout_seconds.ok_or_else(|| BuildError::missing_field("cascade_timeout_seconds"))?,
             tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,
             overrides: self.overrides.ok_or_else(|| BuildError::missing_field("overrides"))?,
             metadata: self.metadata.ok_or_else(|| BuildError::missing_field("metadata"))?,

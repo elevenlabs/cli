@@ -3,11 +3,6 @@ pub use crate::prelude::*;
 use super::*;
 
 /// Alerting configuration used at both per-agent and per-workspace level.
-/// 
-/// All fields are optional overrides; the cascade resolver fills in defaults
-/// when they are unset. Notifiers stack and dedupe (by webhook_id) across the
-/// workspace and agent layers rather than overriding each other.
-/// 
 /// Cascade order for per-monitor threshold and auto-resolve: agent → workspace →
 /// system default.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -18,7 +13,7 @@ pub struct AlertingSettings {
     /// How many minutes an alert can stay inactive before it is auto-resolved. Unset values fall through to the next layer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_resolve_after_inactive_minutes: Option<i64>,
-    /// Delivery channels for alert lifecycle notifications. Stacked and deduped by ``webhook_id`` / ``connection_id`` with other layers.
+    /// Delivery channels for alert lifecycle notifications. Stacked with other layers and deduped by ``webhook_id``, PagerDuty ``connection_id``, or Slack ``(connection_id, channel_id)``.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notifiers: Option<Vec<AlertingSettingsNotifiersItem>>,
 }

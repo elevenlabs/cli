@@ -7,7 +7,7 @@ pub struct CreateAgentConversationTicketRequestModel {
     /// Conversation this ticket is about.
     #[serde(default)]
     pub conversation_id: String,
-    /// The QA finding covering the whole conversation.
+    /// The issue this ticket is about, covering the whole conversation rather than a single turn.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub qa_comment: Option<String>,
     /// Optional turn-level comments on what went wrong.

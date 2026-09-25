@@ -17,6 +17,15 @@ pub struct BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdAp
     /// Whether the holder of this key may disable it via the self-disable endpoint. On create, omit or pass null to use the workspace's default (enabled for non-Enterprise plans, disabled for Enterprise plans). On update, omit to leave it unchanged, or pass "clear" to reset it to the workspace default. Only honored for workspaces with self-disable access enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub third_party_disable_allowed: Option<bool>,
+    /// Maximum concurrent text-to-speech/speech-to-speech requests for this API key. Only available for enterprise customers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tts_concurrency_limit: Option<i64>,
+    /// Maximum concurrent dubbing requests for this API key. Only available for enterprise customers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dubbing_concurrency_limit: Option<i64>,
+    /// Maximum concurrent music generation requests for this API key. Only available for enterprise customers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub music_concurrency_limit: Option<i64>,
 }
 
 impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPost {
@@ -33,6 +42,9 @@ pub struct BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdAp
     character_limit: Option<i64>,
     allowed_ips: Option<Vec<String>>,
     third_party_disable_allowed: Option<bool>,
+    tts_concurrency_limit: Option<i64>,
+    dubbing_concurrency_limit: Option<i64>,
+    music_concurrency_limit: Option<i64>,
 }
 
 impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPostBuilder {
@@ -61,6 +73,21 @@ impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysP
         self
     }
 
+    pub fn tts_concurrency_limit(mut self, value: i64) -> Self {
+        self.tts_concurrency_limit = Some(value);
+        self
+    }
+
+    pub fn dubbing_concurrency_limit(mut self, value: i64) -> Self {
+        self.dubbing_concurrency_limit = Some(value);
+        self
+    }
+
+    pub fn music_concurrency_limit(mut self, value: i64) -> Self {
+        self.music_concurrency_limit = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPost`].
     /// This method will fail if any of the following fields are not set:
     /// - [`name`](BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPostBuilder::name)
@@ -72,6 +99,9 @@ impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysP
             character_limit: self.character_limit,
             allowed_ips: self.allowed_ips,
             third_party_disable_allowed: self.third_party_disable_allowed,
+            tts_concurrency_limit: self.tts_concurrency_limit,
+            dubbing_concurrency_limit: self.dubbing_concurrency_limit,
+            music_concurrency_limit: self.music_concurrency_limit,
         })
     }
 }

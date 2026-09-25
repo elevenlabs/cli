@@ -43,6 +43,9 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
     /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
     #[serde(skip)]
     pub output_format: Option<MusicComposeDetailedRequestOutputFormat>,
+    /// When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
+    #[serde(skip)]
+    pub enable_logging: Option<bool>,
 }
 
 impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
@@ -67,6 +70,7 @@ pub struct BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
     with_waveform_visual: Option<bool>,
     sign_with_c2pa: Option<bool>,
     output_format: Option<MusicComposeDetailedRequestOutputFormat>,
+    enable_logging: Option<bool>,
 }
 
 impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
@@ -135,6 +139,11 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
         self
     }
 
+    pub fn enable_logging(mut self, value: bool) -> Self {
+        self.enable_logging = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyComposeMusicWithADetailedResponseV1MusicDetailedPost`].
     pub fn build(self) -> Result<BodyComposeMusicWithADetailedResponseV1MusicDetailedPost, BuildError> {
         Ok(BodyComposeMusicWithADetailedResponseV1MusicDetailedPost {
@@ -151,6 +160,7 @@ impl BodyComposeMusicWithADetailedResponseV1MusicDetailedPostBuilder {
             with_waveform_visual: self.with_waveform_visual,
             sign_with_c2pa: self.sign_with_c2pa,
             output_format: self.output_format,
+            enable_logging: self.enable_logging,
         })
     }
 }

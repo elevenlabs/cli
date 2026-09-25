@@ -22,6 +22,15 @@ pub struct BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiK
     /// Whether the holder of this key may disable it via the self-disable endpoint. On create, omit or pass null to use the workspace's default (enabled for non-Enterprise plans, disabled for Enterprise plans). On update, omit to leave it unchanged, or pass "clear" to reset it to the workspace default. Only honored for workspaces with self-disable access enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub third_party_disable_allowed: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchThirdPartyDisableAllowed>,
+    /// Maximum concurrent text-to-speech/speech-to-speech requests for this API key. Only available for enterprise customers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tts_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchTtsConcurrencyLimit>,
+    /// Maximum concurrent dubbing requests for this API key. Only available for enterprise customers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dubbing_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchDubbingConcurrencyLimit>,
+    /// Maximum concurrent music generation requests for this API key. Only available for enterprise customers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub music_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchMusicConcurrencyLimit>,
 }
 
 impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch {
@@ -39,6 +48,9 @@ pub struct BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiK
     character_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchCharacterLimit>,
     allowed_ips: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchAllowedIps>,
     third_party_disable_allowed: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchThirdPartyDisableAllowed>,
+    tts_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchTtsConcurrencyLimit>,
+    dubbing_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchDubbingConcurrencyLimit>,
+    music_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchMusicConcurrencyLimit>,
 }
 
 impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchBuilder {
@@ -72,6 +84,21 @@ impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApi
         self
     }
 
+    pub fn tts_concurrency_limit(mut self, value: BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchTtsConcurrencyLimit) -> Self {
+        self.tts_concurrency_limit = Some(value);
+        self
+    }
+
+    pub fn dubbing_concurrency_limit(mut self, value: BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchDubbingConcurrencyLimit) -> Self {
+        self.dubbing_concurrency_limit = Some(value);
+        self
+    }
+
+    pub fn music_concurrency_limit(mut self, value: BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchMusicConcurrencyLimit) -> Self {
+        self.music_concurrency_limit = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch`].
     pub fn build(self) -> Result<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch, BuildError> {
         Ok(BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch {
@@ -81,6 +108,9 @@ impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApi
             character_limit: self.character_limit,
             allowed_ips: self.allowed_ips,
             third_party_disable_allowed: self.third_party_disable_allowed,
+            tts_concurrency_limit: self.tts_concurrency_limit,
+            dubbing_concurrency_limit: self.dubbing_concurrency_limit,
+            music_concurrency_limit: self.music_concurrency_limit,
         })
     }
 }

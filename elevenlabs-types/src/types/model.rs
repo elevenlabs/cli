@@ -39,13 +39,13 @@ pub struct Model {
     /// Whether the model requires alpha access.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requires_alpha_access: Option<bool>,
-    /// The maximum number of characters that can be requested by a free user.
+    /// Deprecated. Not enforced; use `maximum_text_length_per_request` instead.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_characters_request_free_user: Option<i64>,
-    /// The maximum number of characters that can be requested by a subscribed user.
+    /// Deprecated. Not enforced; use `maximum_text_length_per_request` instead.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_characters_request_subscribed_user: Option<i64>,
-    /// The maximum length of text that can be requested for this model.
+    /// The maximum number of input text characters accepted per request for this model. Longer requests are rejected.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub maximum_text_length_per_request: Option<i64>,
     /// The languages supported by the model.

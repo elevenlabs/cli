@@ -75,6 +75,8 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs dubbing transcripts`](#elevenlabs-dubbing-transcripts)
 - [`elevenlabs environment-variables`](#elevenlabs-environment-variables)
 - [`elevenlabs flows image`](#elevenlabs-flows-image)
+- [`elevenlabs flows templates`](#elevenlabs-flows-templates)
+- [`elevenlabs flows templates runs`](#elevenlabs-flows-templates-runs)
 - [`elevenlabs flows text-to-speech`](#elevenlabs-flows-text-to-speech)
 - [`elevenlabs flows video`](#elevenlabs-flows-video)
 - [`elevenlabs forced-alignment`](#elevenlabs-forced-alignment)
@@ -633,9 +635,9 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--rating-min` | `string` | No | Minimum overall rating (1-5). |
 | `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
 | `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
-| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
-| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|gt\|gte\|lt\|lte\|missing. |
-| `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|gt\|gte\|lt\|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed. |
+| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success\|failure\|unknown. Example: eval=value_framing:success |
+| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt\|gte\|lt\|lte require a numeric value. |
+| `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt\|gte\|lt\|lte require a numeric value. Names containing ':' cannot be expressed. |
 | `--data-collection-ids` | `string` | No | Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned. |
 | `--evaluation-criteria-ids` | `string` | No | Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned. |
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
@@ -773,6 +775,7 @@ Search conversation transcripts by semantic similarity to surface relevant messa
 |------|------|----------|-------------|
 | `--text-query` | `string` | Yes | The search query text for semantic similarity matching |
 | `--agent-id` | `string` | No | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
+| `--branch-id` | `string` | No | Filter conversations by branch ID. |
 | `--page-size` | `integer` | No | Number of results per page. Max 50. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
@@ -799,9 +802,9 @@ Search through conversation transcript messages by full-text and fuzzy search
 | `--rating-min` | `string` | No | Minimum overall rating (1-5). |
 | `--has-feedback-comment` | `string` | No | Filter conversations with user feedback comments. |
 | `--user-id` | `string` | No | Filter conversations by the user ID who initiated them. |
-| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result. Example: eval=value_framing:success |
-| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|gt\|gte\|lt\|lte\|missing. |
-| `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|gt\|gte\|lt\|lte. Comparison operators require a numeric value. Names containing ':' cannot be expressed. |
+| `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success\|failure\|unknown. Example: eval=value_framing:success |
+| `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt\|gte\|lt\|lte require a numeric value. |
+| `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt\|gte\|lt\|lte require a numeric value. Names containing ':' cannot be expressed. |
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
 | `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
 | `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
@@ -1688,6 +1691,27 @@ Retrieve all Phone Numbers
 | `--branch-id` | `string` | No | Filter by assigned branch ID |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
+#### `elevenlabs agents phone-numbers list-v2`
+
+Retrieve a page of Phone Numbers
+
+`GET /v1/convai/v2/phone-numbers`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | Number of phone numbers per page |
+| `--search` | `string` | No | Filter by phone number ID, label, or phone number. A phone number ID must match exactly; label and phone number matching is a case-insensitive substring. |
+| `--label` | `string` | No | Filter by label. Matching is a case-insensitive substring. |
+| `--phone-number` | `string` | No | Filter by phone number |
+| `--provider` | `string` | No | Filter by telephony provider |
+| `--supports-outbound` | `string` | No | Filter by whether the phone number can place outbound calls |
+| `--agent-id` | `string` | No | Filter by assigned agent ID |
+| `--branch-id` | `string` | No | Filter by assigned branch ID |
+| `--sort-by` | `string` | No | The field to sort the results by |
+| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
 #### `elevenlabs agents phone-numbers update`
 
 Update assigned agent of a phone number
@@ -2109,6 +2133,7 @@ Lists all test invocations with pagination support and optional search filtering
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--agent-id` | `string` | No | Filter by agent ID |
+| `--branch-id` | `string` | No | Filter by branch ID |
 | `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
 | `--search` | `string` | No | Search query to filter tests and folders by name. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
@@ -3297,6 +3322,78 @@ List the image generations created through this API, newest first.
 
 ---
 
+### `elevenlabs flows templates`
+
+#### `elevenlabs flows templates get`
+
+Retrieve one flows template, together with each runnable version's inputs and outputs. `versions` is empty when no published version is runnable through this API. Works for any template you can open, including templates shared with you by link or published to Explore from another workspace, which `GET /v1/flows/templates` does not list.
+
+`GET /v1/flows/templates/{template_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--template-id` | `string` | Yes | The ID of the template, as shown in the ElevenLabs app or by `GET /v1/flows/templates`. |
+| `--versions-per-template` | `integer` | No | How many of each template's published versions to return, newest first. `has_more_versions` tells you when a template has more. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs flows templates list`
+
+List the published flows templates in your workspace, together with each runnable version's inputs and outputs. Use the ids here as `template_id` / `version_id` on `POST /v1/flows/templates/{template_id}/runs`. Versions built on models that are not available to you through the API are left out, so `versions` is empty when none of a template's published versions is runnable through this API. Templates shared with you by link, or published to Explore from another workspace, are not listed but can still be fetched and run by `template_id`.
+
+`GET /v1/flows/templates`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Pagination cursor: the `next_cursor` value of the previous page's response. Omit it for the first page. |
+| `--page-size` | `integer` | No | How many templates to return per page. Lower than the run list's ceiling because each row expands its versions' input and output schemas. |
+| `--versions-per-template` | `integer` | No | How many of each template's published versions to return, newest first. `has_more_versions` tells you when a template has more. |
+| `--search` | `string` | No | Only return templates whose name or description contains this text. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs flows templates runs`
+
+#### `elevenlabs flows templates runs create`
+
+Start a run of a flows template. Pass `version_id` to pin a snapshot, or omit it / pass `latest` to run the latest published version. Set input values under `inputs`, keyed by input port id. The response is the run in its initial state, with every output already listed under its port id in `outputs`. Include `webhook` to receive a `flows_template_run` event carrying the finished run once its `status` is `completed` or `failed`; this is the recommended way to wait. Without one, fetch `GET /v1/flows/templates/{template_id}/runs/{run_id}` at a modest interval until the `status` is terminal.
+
+`POST /v1/flows/templates/{template_id}/runs`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--template-id` | `string` | Yes | The ID of the template, as shown in the ElevenLabs app or by `GET /v1/flows/templates`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs flows templates runs get`
+
+Retrieve a template run: its `status`, rolled up from its outputs, and each output's own status and download URL once completed.
+
+`GET /v1/flows/templates/{template_id}/runs/{run_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--template-id` | `string` | Yes | The ID of the template, as shown in the ElevenLabs app or by `GET /v1/flows/templates`. |
+| `--run-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs flows templates runs list`
+
+List this template's runs created through this API, newest first.
+
+`GET /v1/flows/templates/{template_id}/runs`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--template-id` | `string` | Yes | The ID of the template, as shown in the ElevenLabs app or by `GET /v1/flows/templates`. |
+| `--cursor` | `string` | No | Pagination cursor: the `next_cursor` value of the previous page's response. Omit it for the first page. |
+| `--page-size` | `integer` | No | How many runs to return per page. |
+| `--version-id` | `string` | No | Only return runs of this template version id. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
 ### `elevenlabs flows text-to-speech`
 
 #### `elevenlabs flows text-to-speech create`
@@ -3484,6 +3581,7 @@ Compose a song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3496,6 +3594,7 @@ Compose a song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3508,6 +3607,7 @@ Stream a song and its detailed metadata using Server-Sent Events (SSE).
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3520,6 +3620,7 @@ Separate an audio file into individual stems. This endpoint might have high late
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `AllowedOutputFormats` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -3532,6 +3633,7 @@ Stream a composed song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3570,6 +3672,7 @@ Create a composition plan for music generation. Usage of this endpoint does not 
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
