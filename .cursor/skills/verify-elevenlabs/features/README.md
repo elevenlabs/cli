@@ -10,7 +10,7 @@ The surface is the terminal binary built from this repo. The xi web app, the Fer
 - Run `.cursor/skills/verify-elevenlabs/bin/verify-elevenlabs doctor` and require `ok`, `api_key=unset`, and `port=none`.
 - Use the `home=` and `work=` paths doctor prints. Both are under `/tmp/verify-elevenlabs-runs/<id>/`. The home directory is not the user's real home.
 - The work directory starts empty. `dotenvy` must not see a repo `.env`, so the work directory stays outside this checkout.
-- `ELEVENLABS_API_KEY` is unset inside the drive. Do not export a key to make a recipe pass.
+- `ELEVENLABS_API_KEY` is unset inside the drive unless the recipe says `--with-api-key`. Do not export a key to make a recipe pass. `--with-api-key` only forwards a key that is already in the parent environment.
 - Never drive an instance whose doctor failed, the real `~/.elevenlabs`, or the repo path `.verify-project`.
 
 ## Driving conventions
@@ -31,7 +31,7 @@ The surface is the terminal binary built from this repo. The xi web app, the Fer
 - Record the feature file and the `--name` with every artifact. The `.meta` `feature_command` field is that name.
 - Report an unreachable path with the attempted command and the unmet precondition.
 - Do not report a skipped entry point as verified through a different path.
-- `agents add`, `push`, `pull`, tool creation, and test creation call the API. They are not recipes in this map.
+- `agents add`, `push`, `pull`, tool creation, and test creation call the API and change a live workspace. `verify-elevenlabs run` refuses them. They are not recipes in this map.
 
 ## Feature entry contract
 
@@ -48,4 +48,8 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Agent templates](./agent-templates.md) covers listing built-in templates and showing one template's JSON.
 - [Agent status](./agents-status.md) covers the missing-project error and the empty project status.
 - [Say defaults](./say-config.md) covers reading, setting, and clearing local speech defaults.
+- [Speaking text](./speaking-text.md) covers turning text into an audio file when an API key is already set.
+- [Read the signed-in user](./read-user.md) covers the README's authenticated `user get` example.
+- [Quick start](./quick-start.md) covers `elevenlabs --help`.
+- [Shell completion](./shell-completion.md) covers generating a bash completion script.
 - [Residency](./residency.md) covers reading and switching the local data-residency region.

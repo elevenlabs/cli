@@ -33,7 +33,7 @@ Preconditions:
 ## Gotchas
 
 - `say config` writes the real `~/.elevenlabs/config.json` when `HOME` is the user's home. Doctor must show a disposable home before any set or unset.
-- `elevenlabs say "hello"` calls the API and plays audio. It is not this feature.
+- `elevenlabs say "hello"` calls the API and plays audio. It is not this feature. The file recipe is `speaking-text.md`.
 - The `Player:` line depends on what is installed (`ffplay`, `mpv`, `paplay`, `aplay`, or `none found on PATH`). Assert that the label is present, not a particular player.
 - `config` is a subcommand. `elevenlabs say config` changes settings. Speaking the word config aloud would be `elevenlabs say -- config`, which needs an API key.
 - A voice id is stored as a string. This recipe does not check that ElevenLabs hosts that voice.

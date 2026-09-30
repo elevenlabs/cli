@@ -34,3 +34,4 @@ Preconditions:
 - `--base-url` and `ELEVENLABS_BASE_URL` override the stored region for one command. The harness unsets `ELEVENLABS_BASE_URL` before the command so the stored value is what the process would export.
 - `global` and `us` are different regions. `global` uses `https://api.elevenlabs.io`. `us` uses `https://api.us.elevenlabs.io`.
 - An invalid region does not roll back a previous successful set.
+- A stored non-global region changes the host for every later command in that home, including `user get` and `say`. After this recipe, run `elevenlabs residency global` before any authenticated command.
