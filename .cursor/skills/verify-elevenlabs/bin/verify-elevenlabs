@@ -432,10 +432,20 @@ cmd_run() {
   local session="verify-elevenlabs-${RUN_ID}-${name}"
   printf '%s\n' "$session" >> "$RUN_DIR/sessions"
   tmux_base kill-session -t "=$session" 2>/dev/null || true
+  # history-limit is fixed when the window is created. The portal config
+  # uses 10000, which drops the head of `completion bash` (~75k lines).
+  # Raise the server default only for this new-session, then put it back.
+  local previous_limit
+  previous_limit="$(tmux_base show-options -gv history-limit 2>/dev/null || printf '%s' 10000)"
+  tmux_base set-option -g history-limit 120000
+  set +e
   tmux_base new-session -d -s "$session" -c "$WORK_DIR" -x 220 -y 80 -- env \
     "HOME=$HOME_DIR" \
     bash --noprofile --norc
-  tmux_base set-option -t "$session" history-limit 5000
+  local new_status=$?
+  set -e
+  tmux_base set-option -g history-limit "$previous_limit" || true
+  [[ "$new_status" -eq 0 ]] || die "tmux session $session did not start"
 
   local started=0
   local _

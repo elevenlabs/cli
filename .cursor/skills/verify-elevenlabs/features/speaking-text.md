@@ -34,3 +34,4 @@ Preconditions:
 - `--output` skips the player check, so a missing `ffplay` does not block this recipe.
 - Do not pass `--xi-api-key` or `--dry-run`. Both can put the secret in the transcript. The helper rejects `--xi-api-key`.
 - `say` does not create or delete agents. It does spend text-to-speech quota on the account that owns the key.
+- The harness shell-quotes each argument, so the pane shows `this\ came\ from\ the\ terminal` rather than double quotes. The proof is `Saved to from-terminal.mp3` and the file.

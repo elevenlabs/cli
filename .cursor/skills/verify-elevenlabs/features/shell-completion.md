@@ -18,11 +18,11 @@ Preconditions:
 - `verify-elevenlabs doctor` prints `ok` for this run.
 - No project files and no API key are required.
 
-- **Bash script.** Run `verify-elevenlabs run --name completion-bash -- completion bash`. Exit code `0`. The transcript contains `_elevenlabs` and `complete -F _elevenlabs elevenlabs`.
+- **Bash script.** Run `verify-elevenlabs run --name completion-bash -- completion bash`. Exit code `0`. The transcript contains the typed command `elevenlabs completion bash` and the line `complete -F _elevenlabs -o nosort -o bashdefault -o default elevenlabs`.
 - **Proof.** The transcript is the script. It does not contain an HTTP status. The work directory is unchanged.
 
 ## Gotchas
 
-- The script is large because it covers every subcommand. Assert the function name and the `complete -F` line, not a particular resource.
+- The script is large because it covers every subcommand (on the order of 75,000 lines). Assert the `complete -F _elevenlabs` line, not a particular resource. A tmux history of 10000 lines keeps only the tail, including when `history-limit` is raised after the window exists. The helper raises the server default before creating the window and restores it immediately after.
 - `completion` with no shell name prints help and exits non-zero. This recipe always passes `bash`.
 - Sourcing the script into the user's real shell is not part of the drive. The harness only runs the CLI.
