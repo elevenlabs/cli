@@ -996,6 +996,7 @@ async fn build_http_request(
         if let Some((name, value)) =
             page_state.injection(method.pagination.as_ref(), &pagination.token_query_param)
         {
+            all_query_params.retain(|(param, _)| param != &name);
             all_query_params.push((name, value));
         }
         // Upload operations carry `uploadType=multipart`; route it through the
@@ -1148,6 +1149,16 @@ fn get_nested_str<'a>(val: &'a Value, dotted_path: &str) -> Option<&'a str> {
         current = current.get(segment)?;
     }
     current.as_str()
+}
+
+fn next_cursor_if_more<'a>(body: &'a Value, path: &str) -> Option<&'a str> {
+    let has_more = get_nested_value(body, "has_more")
+        .and_then(Value::as_bool)
+        .or_else(|| get_nested_value(body, "pagination.has_more").and_then(Value::as_bool));
+    if has_more == Some(false) {
+        return None;
+    }
+    get_nested_str(body, path).filter(|token| !token.is_empty())
 }
 
 /// Resolve a dot-separated path (`data`, `result.items`, `users.0.name`)
@@ -1349,12 +1360,12 @@ async fn handle_json_response(
         if pagination.page_all && *pages_fetched < pagination.page_limit {
             let should_continue = match endpoint_pag {
                 Some(EndpointPagination::Cursor { next_cursor, .. }) => {
-                    match get_nested_str(&json_val, next_cursor) {
-                        Some(token) if !token.is_empty() => {
+                    match get_nested_str(&json_val, next_cursor).filter(|token| !token.is_empty()) {
+                        Some(token) => {
                             *page_state = PageState::Cursor(Some(token.to_string()));
                             true
                         }
-                        _ => false,
+                        None => false,
                     }
                 }
                 Some(EndpointPagination::Offset {
@@ -1480,12 +1491,27 @@ async fn handle_json_response(
                 // it issues exactly one request, surfaces the `results`
                 // selection like the others, and stops.
                 Some(EndpointPagination::Custom { .. }) => false,
-                None => match get_nested_str(&json_val, &pagination.token_response_path) {
-                    Some(token) if !token.is_empty() => {
+                None => match next_cursor_if_more(&json_val, &pagination.token_response_path) {
+                    Some(token) => {
                         *page_state = PageState::Cursor(Some(token.to_string()));
                         true
                     }
-                    _ => false,
+                    None => {
+                        let has_more = get_nested_value(&json_val, "has_more")
+                            .and_then(Value::as_bool)
+                            .or_else(|| {
+                                get_nested_value(&json_val, "pagination.has_more")
+                                    .and_then(Value::as_bool)
+                            });
+                        if has_more == Some(true) {
+                            return Err(CliError::Validation(format!(
+                                "Automatic pagination stopped early: response has has_more=true but no usable cursor at '{}'",
+                                pagination.token_response_path
+                            ))
+                            .into());
+                        }
+                        false
+                    }
                 },
             };
 
@@ -2163,6 +2189,21 @@ pub async fn execute_method(
             .context("Failed to write output")?;
         return Ok(None);
     }
+
+    let mut inferred_pagination = None;
+    if pagination.page_all && method.pagination.is_none() {
+        if let Some((query_param, response_path, _)) = super::parser::infer_cursor_fields(
+            &method.parameters,
+            method.response.as_ref(),
+            &doc.schemas,
+        ) {
+            let mut config = pagination.clone();
+            config.token_query_param = query_param.to_string();
+            config.token_response_path = response_path.to_string();
+            inferred_pagination = Some(config);
+        }
+    }
+    let pagination = inferred_pagination.as_ref().unwrap_or(pagination);
 
     let endpoint_pag = method.pagination.as_ref();
     let mut page_state: PageState = PageState::initial(endpoint_pag);
@@ -9873,6 +9914,44 @@ mod tests {
             PageState::Cursor(Some(ref t)) => assert_eq!(t, "abc"),
             other => panic!("expected Cursor(Some(\"abc\")), got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn test_explicit_cursor_follows_declared_token_when_nested_has_more_is_false() {
+        let pagination = page_all_pagination();
+        let endpoint = EndpointPagination::Cursor {
+            cursor: "marker".to_string(),
+            next_cursor: "next_marker".to_string(),
+            results: "entries".to_string(),
+        };
+        let pipeline = crate::formatter::OutputPipeline::default();
+        let mut pages_fetched = 0u32;
+        let mut page_state = PageState::Cursor(None);
+        let mut captured = Vec::new();
+        let mut pager_none: Option<crate::pager::PagerHandle> = None;
+
+        let result = handle_json_response(
+            r#"{"entries":[],"next_marker":"next-page","pagination":{"has_more":false}}"#,
+            &pagination,
+            Some(&endpoint),
+            &pipeline,
+            &mut pages_fetched,
+            &mut page_state,
+            true,
+            &mut captured,
+            "http://example.com/test",
+            &[],
+            None,
+            false,
+            "test-op",
+            &mut pager_none,
+        )
+        .await
+        .unwrap();
+
+        assert!(result, "explicit cursor metadata controls continuation");
+        assert_eq!(pages_fetched, 1);
+        assert!(matches!(page_state, PageState::Cursor(Some(token)) if token == "next-page"));
     }
 
     #[tokio::test]
