@@ -1323,6 +1323,64 @@ fn resolve_pagination_extension(
     parse_pagination_config(value, op_id, false)
 }
 
+/// Return a recognized query/response cursor pair for runtime fallback when
+/// an operation has no explicit pagination metadata.
+pub(super) fn infer_cursor_fields<'a>(
+    parameters: &HashMap<String, MethodParameter>,
+    response: Option<&SchemaRef>,
+    schemas: &'a HashMap<String, JsonSchema>,
+) -> Option<(&'static str, &'static str, &'a JsonSchema)> {
+    let response_name = response?.schema_ref.as_deref()?;
+    let mut response_schema = schemas.get(response_name)?;
+    let mut visited = HashSet::new();
+    while let Some(next_name) = response_schema.schema_ref.as_deref() {
+        if !visited.insert(next_name) {
+            return None;
+        }
+        response_schema = schemas.get(next_name)?;
+    }
+
+    // The request and response names are not uniform across APIs. Keep this
+    // list explicit rather than guessing from similarly named fields.
+    const CURSOR_PAIRS: &[(&str, &str)] = &[
+        ("next_page_token", "next_page_token"),
+        ("cursor", "next_cursor"),
+        ("page_token", "pagination.next_page_token"),
+        ("page_token", "next_page_token"),
+        ("start_after_history_item_id", "last_history_item_id"),
+    ];
+
+    for &(request_name, response_path) in CURSOR_PAIRS {
+        let is_query_parameter = parameters
+            .get(request_name)
+            .is_some_and(|parameter| parameter.location.as_deref() == Some("query"));
+        if !is_query_parameter || schema_property_at_path(response_schema, response_path).is_none()
+        {
+            continue;
+        }
+
+        return Some((request_name, response_path, response_schema));
+    }
+
+    None
+}
+
+fn schema_property_at_path<'a>(
+    schema: &'a JsonSchema,
+    path: &str,
+) -> Option<&'a JsonSchemaProperty> {
+    let mut properties = &schema.properties;
+    let mut segments = path.split('.').peekable();
+    while let Some(segment) = segments.next() {
+        let property = properties.get(segment)?;
+        if segments.peek().is_none() {
+            return Some(property);
+        }
+        properties = &property.properties;
+    }
+    None
+}
+
 /// Parse a `x-fern-pagination` config object. Discrimination order mirrors
 /// `fern-api/fern`'s `getPaginationExtension.ts`:
 ///

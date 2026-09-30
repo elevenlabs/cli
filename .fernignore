@@ -38,6 +38,7 @@ elevenlabs-types/.gitignore
 # Hand-written tests (tests/wire_test.rs next to them is generated).
 tests/e2e_smoke.rs
 tests/say_test.rs
+tests/pagination_test.rs
 .fern/replay.lock
 .fern/replay.yml
 .gitattributes
