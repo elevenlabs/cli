@@ -1,0 +1,440 @@
+#!/usr/bin/env bash
+# Isolated driver for the elevenlabs CLI.
+# Invocation is documented in ../SKILL.md. Do not point this at a real home
+# directory or at scripts/verify-agents-as-code.sh.
+
+set -euo pipefail
+
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# bin -> verify-elevenlabs -> skills -> .cursor -> repo root
+ROOT="$(cd "$BIN_DIR/../../../.." && pwd)"
+RUNS_ROOT="${VERIFY_RUNS_ROOT:-/tmp/verify-elevenlabs-runs}"
+LATEST="$RUNS_ROOT/latest"
+SHM_TARGET="/dev/shm/verify-elevenlabs-target"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  verify-elevenlabs launch [--run-id ID]
+  verify-elevenlabs doctor [--run-id ID]
+  verify-elevenlabs run [--run-id ID] --name NAME -- <elevenlabs-args>
+  verify-elevenlabs cleanup [--run-id ID]
+
+launch builds the elevenlabs binary with `cargo +stable build --bin elevenlabs --locked`
+and creates an isolated HOME and work directory. doctor is read-only. run executes
+one command in its own tmux session. cleanup removes that run's tmux sessions and
+scratch directory and leaves the evidence directory in place.
+EOF
+}
+
+die() {
+  printf 'verify-elevenlabs: %s\n' "$*" >&2
+  exit 1
+}
+
+tmux_base() {
+  if [[ -f /exec-daemon/tmux.portal.conf ]]; then
+    tmux -f /exec-daemon/tmux.portal.conf "$@"
+  else
+    tmux "$@"
+  fi
+}
+
+require_run_id_syntax() {
+  local id="$1"
+  [[ "$id" =~ ^[A-Za-z0-9._-]+$ ]] || die "run id must match [A-Za-z0-9._-]+ (got $id)"
+}
+
+resolve_run_id() {
+  local id="${1:-}"
+  if [[ -n "$id" ]]; then
+    require_run_id_syntax "$id"
+    printf '%s' "$id"
+    return
+  fi
+  [[ -f "$LATEST" ]] || die "no run id. Pass --run-id or run launch first."
+  local latest
+  latest="$(tr -d '[:space:]' < "$LATEST")"
+  require_run_id_syntax "$latest"
+  printf '%s' "$latest"
+}
+
+parse_global_flags() {
+  RUN_ID=""
+  ARGS=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --run-id)
+        [[ $# -ge 2 ]] || die "--run-id needs a value"
+        RUN_ID="$2"
+        require_run_id_syntax "$RUN_ID"
+        shift 2
+        ;;
+      --run-id=*)
+        RUN_ID="${1#--run-id=}"
+        require_run_id_syntax "$RUN_ID"
+        shift
+        ;;
+      *)
+        ARGS+=("$1")
+        shift
+        ;;
+    esac
+  done
+}
+
+load_state() {
+  local id
+  id="$(resolve_run_id "${RUN_ID:-}")"
+  RUN_DIR="$RUNS_ROOT/$id"
+  [[ -f "$RUN_DIR/state.env" ]] || die "no state for run $id at $RUN_DIR/state.env"
+  # state.env is written by launch with %q quoting.
+  # shellcheck disable=SC1090
+  source "$RUN_DIR/state.env"
+  [[ "$RUN_ID" == "$id" ]] || die "state run id mismatch"
+}
+
+avail_kb() {
+  df -Pk "$1" | awk 'NR==2 {print $4}'
+}
+
+can_exec_dir() {
+  local dir="$1"
+  [[ -d "$dir" && -w "$dir" ]] || return 1
+  local probe="$dir/.verify-elevenlabs-exec-probe"
+  printf '#!/bin/sh\nexit 0\n' > "$probe" || return 1
+  chmod +x "$probe" || {
+    rm -f "$probe"
+    return 1
+  }
+  if "$probe" >/dev/null 2>&1; then
+    rm -f "$probe"
+    return 0
+  fi
+  rm -f "$probe"
+  return 1
+}
+
+pick_target_dir() {
+  local root_kb candidate kb
+  if [[ -n "${CARGO_TARGET_DIR:-}" ]]; then
+    mkdir -p "$CARGO_TARGET_DIR"
+    can_exec_dir "$CARGO_TARGET_DIR" || die "CARGO_TARGET_DIR=$CARGO_TARGET_DIR is not executable"
+    printf '%s' "$CARGO_TARGET_DIR"
+    return
+  fi
+  root_kb="$(avail_kb "$ROOT")"
+  # A debug build of this CLI needs several gigabytes of object files.
+  if [[ "$root_kb" -ge 4194304 ]]; then
+    mkdir -p "$ROOT/target"
+    if can_exec_dir "$ROOT/target"; then
+      printf '%s' "$ROOT/target"
+      return
+    fi
+  fi
+  for candidate in /mnt/verify-elevenlabs-target "$SHM_TARGET"; do
+    if [[ -d "$candidate" ]] && can_exec_dir "$candidate"; then
+      kb="$(avail_kb "$candidate")"
+      if [[ "$kb" -ge 4194304 ]]; then
+        printf '%s' "$candidate"
+        return
+      fi
+    fi
+  done
+  die "no executable directory with 4GiB free for the build (repo filesystem has ${root_kb}KB). /dev/shm is often mounted noexec, so a build there fails with Permission denied. Mount a tmpfs and rerun launch: sudo mkdir -p /mnt/verify-elevenlabs-target && sudo mount -t tmpfs -o rw,nosuid,nodev,exec,size=12G tmpfs /mnt/verify-elevenlabs-target && sudo chown $(id -u):$(id -g) /mnt/verify-elevenlabs-target"
+}
+
+doctor_checks() {
+  load_state
+  local fail=0
+  bad() {
+    printf 'doctor: FAIL %s\n' "$*" >&2
+    fail=1
+  }
+
+  [[ -x "$BINARY" ]] || bad "binary missing or not executable: $BINARY"
+  [[ "$BINARY" == "$TARGET_DIR/debug/elevenlabs" ]] || bad "binary is not $TARGET_DIR/debug/elevenlabs"
+  [[ -f "$RUN_DIR/OWNED" ]] || bad "run directory has no OWNED marker"
+  [[ -d "$HOME_DIR" ]] || bad "home directory missing: $HOME_DIR"
+  [[ -d "$WORK_DIR" ]] || bad "work directory missing: $WORK_DIR"
+  [[ -n "${REAL_HOME:-}" && "$HOME_DIR" == "$REAL_HOME" ]] && bad "home is the real user home"
+  [[ "$HOME_DIR" == "$RUN_DIR/home" ]] || bad "home is not inside the run directory"
+  [[ "$WORK_DIR" == "$RUN_DIR/work" ]] || bad "work is not inside the run directory"
+  [[ "${API_KEY_FORWARDED:-1}" == "0" ]] || bad "state would forward an API key"
+  command -v tmux >/dev/null 2>&1 || bad "tmux is not on PATH"
+
+  if [[ -x "$BINARY" ]]; then
+    local version
+    version="$(
+      HOME="$HOME_DIR" env -u ELEVENLABS_API_KEY -u ELEVENLABS_BASE_URL "$BINARY" --version | tr -d '\r'
+    )"
+    [[ "$version" == "$VERSION" ]] || bad "version is '$version', launch recorded '$VERSION'"
+  fi
+
+  if [[ "$fail" -ne 0 ]]; then
+    return 1
+  fi
+
+  if [[ -n "${ELEVENLABS_API_KEY:-}" ]]; then
+    printf 'doctor: parent shell has ELEVENLABS_API_KEY set; run does not forward it\n' >&2
+  fi
+
+  printf 'ok\n'
+  printf 'run_id=%s\n' "$RUN_ID"
+  printf 'binary=%s\n' "$BINARY"
+  printf 'version=%s\n' "$VERSION"
+  printf 'target_dir=%s\n' "$TARGET_DIR"
+  printf 'home=%s\n' "$HOME_DIR"
+  printf 'work=%s\n' "$WORK_DIR"
+  printf 'evidence=%s\n' "$EVIDENCE_DIR"
+  printf 'api_key=unset\n'
+  printf 'port=none\n'
+}
+
+cmd_launch() {
+  [[ ${#ARGS[@]} -eq 0 ]] || die "launch takes no extra arguments"
+  local run_id="${RUN_ID:-}"
+  if [[ -z "$run_id" ]]; then
+    run_id="run-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  fi
+  require_run_id_syntax "$run_id"
+
+  command -v cargo >/dev/null 2>&1 || die "cargo is not on PATH"
+  command -v tmux >/dev/null 2>&1 || die "tmux is not on PATH"
+  if ! cargo +stable --version >/dev/null 2>&1; then
+    die "cargo +stable is not installed. Run: rustup toolchain install stable --profile minimal"
+  fi
+
+  local target_dir
+  target_dir="$(pick_target_dir)"
+  mkdir -p "$target_dir"
+
+  local run_dir="$RUNS_ROOT/$run_id"
+  local home_dir="$run_dir/home"
+  local work_dir="$run_dir/work"
+  local evidence="${VERIFY_EVIDENCE_DIR:-/tmp/verify-elevenlabs-evidence/$run_id}"
+  mkdir -p "$home_dir" "$work_dir" "$evidence"
+  : > "$run_dir/sessions"
+  touch "$run_dir/OWNED"
+
+  (
+    cd "$ROOT"
+    export CARGO_TARGET_DIR="$target_dir"
+    cargo +stable build --bin elevenlabs --locked
+  )
+  local binary="$target_dir/debug/elevenlabs"
+  [[ -x "$binary" ]] || die "build did not produce $binary"
+
+  local version
+  version="$(
+    HOME="$home_dir" env -u ELEVENLABS_API_KEY -u ELEVENLABS_BASE_URL "$binary" --version | tr -d '\r'
+  )"
+  [[ "$version" == elevenlabs\ * ]] || die "unexpected version output: $version"
+
+  {
+    printf 'RUN_ID=%q\n' "$run_id"
+    printf 'ROOT=%q\n' "$ROOT"
+    printf 'TARGET_DIR=%q\n' "$target_dir"
+    printf 'BINARY=%q\n' "$binary"
+    printf 'VERSION=%q\n' "$version"
+    printf 'HOME_DIR=%q\n' "$home_dir"
+    printf 'WORK_DIR=%q\n' "$work_dir"
+    printf 'EVIDENCE_DIR=%q\n' "$evidence"
+    printf 'REAL_HOME=%q\n' "${HOME:-}"
+    printf 'RUN_DIR=%q\n' "$run_dir"
+    printf 'API_KEY_FORWARDED=%q\n' "0"
+  } > "$run_dir/state.env"
+  printf '%s\n' "$run_id" > "$LATEST"
+
+  printf 'ready: %s run=%s\n' "$version" "$run_id"
+  printf 'binary: %s\n' "$binary"
+  printf 'target_dir: %s\n' "$target_dir"
+  printf 'home: %s\n' "$home_dir"
+  printf 'work: %s\n' "$work_dir"
+  printf 'evidence: %s\n' "$evidence"
+}
+
+cmd_doctor() {
+  [[ ${#ARGS[@]} -eq 0 ]] || die "doctor takes no extra arguments"
+  doctor_checks
+}
+
+cmd_run() {
+  local name=""
+  local -a eleven=()
+  local i=0
+  while [[ $i -lt ${#ARGS[@]} ]]; do
+    case "${ARGS[$i]}" in
+      --name)
+        [[ $((i + 1)) -lt ${#ARGS[@]} ]] || die "--name needs a value"
+        name="${ARGS[$((i + 1))]}"
+        i=$((i + 2))
+        ;;
+      --name=*)
+        name="${ARGS[$i]#--name=}"
+        i=$((i + 1))
+        ;;
+      --)
+        i=$((i + 1))
+        if [[ $i -lt ${#ARGS[@]} ]]; then
+          eleven=("${ARGS[@]:$i}")
+        fi
+        break
+        ;;
+      *)
+        die "unexpected argument '${ARGS[$i]}'. Usage: run --name NAME -- <elevenlabs-args>"
+        ;;
+    esac
+  done
+  [[ -n "$name" ]] || die "--name is required"
+  [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] || die "name must match [A-Za-z0-9._-]+"
+  [[ ${#eleven[@]} -gt 0 ]] || die "missing elevenlabs arguments after --"
+
+  doctor_checks >/dev/null
+  mkdir -p "$EVIDENCE_DIR"
+
+  local session="verify-elevenlabs-${RUN_ID}-${name}"
+  printf '%s\n' "$session" >> "$RUN_DIR/sessions"
+  tmux_base kill-session -t "=$session" 2>/dev/null || true
+  tmux_base new-session -d -s "$session" -c "$WORK_DIR" -x 220 -y 80 -- env \
+    "HOME=$HOME_DIR" \
+    bash --noprofile --norc
+  tmux_base set-option -t "$session" history-limit 5000
+
+  local started=0
+  local _
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if tmux_base has-session -t "=$session" 2>/dev/null; then
+      started=1
+      break
+    fi
+    sleep 0.1
+  done
+  [[ "$started" == 1 ]] || die "tmux session $session did not start"
+
+  local cmdline home_q work_q exit_file exit_q
+  cmdline="$(printf '%q ' "$BINARY" "${eleven[@]}")"
+  home_q="$(printf '%q' "$HOME_DIR")"
+  work_q="$(printf '%q' "$WORK_DIR")"
+  mkdir -p "$RUN_DIR/exits"
+  exit_file="$RUN_DIR/exits/$name"
+  rm -f "$exit_file"
+  exit_q="$(printf '%q' "$exit_file")"
+  # The exit file is created only after the CLI returns. Matching a sentinel
+  # in the pane races the typed command line, which contains that text too.
+  tmux_base send-keys -t "$session:0.0" \
+    "export HOME=$home_q; unset ELEVENLABS_API_KEY ELEVENLABS_BASE_URL; cd $work_q; ${cmdline}; printf '%s\n' \"\$?\" > $exit_q" \
+    C-m
+
+  local transcript="$EVIDENCE_DIR/${name}.transcript.txt"
+  local captured=""
+  local deadline=$((SECONDS + 45))
+  while ((SECONDS < deadline)); do
+    if [[ -s "$exit_file" ]]; then
+      sleep 0.3
+      break
+    fi
+    sleep 0.2
+  done
+  captured="$(tmux_base capture-pane -p -S - -t "$session:0.0" || true)"
+  printf '%s\n' "$captured" > "$transcript"
+
+  if [[ ! -s "$exit_file" ]]; then
+    tmux_base kill-session -t "=$session" 2>/dev/null || true
+    die "timed out waiting for $name. Partial transcript: $transcript"
+  fi
+
+  local exit_code
+  exit_code="$(tr -d '[:space:]' < "$exit_file")"
+  [[ "$exit_code" =~ ^[0-9]+$ ]] || die "exit file for $name was not a number: $exit_code"
+  printf '%s\n' "$exit_code" > "$EVIDENCE_DIR/${name}.exit"
+  {
+    printf 'run_id=%s\n' "$RUN_ID"
+    printf 'feature_command=%s\n' "$name"
+    printf 'argv='
+    printf '%q ' "${eleven[@]}"
+    printf '\n'
+    printf 'exit=%s\n' "$exit_code"
+    printf 'binary=%s\n' "$BINARY"
+    printf 'version=%s\n' "$VERSION"
+    printf 'home=%s\n' "$HOME_DIR"
+    printf 'work=%s\n' "$WORK_DIR"
+    printf 'session=%s\n' "$session"
+  } > "$EVIDENCE_DIR/${name}.meta"
+
+  tmux_base kill-session -t "=$session" 2>/dev/null || true
+  printf 'evidence: %s\n' "$transcript"
+  printf 'exit: %s\n' "$exit_code"
+}
+
+cmd_cleanup() {
+  [[ ${#ARGS[@]} -eq 0 ]] || die "cleanup takes no extra arguments"
+  local id evidence=""
+  id="$(resolve_run_id "${RUN_ID:-}")"
+  local run_dir="$RUNS_ROOT/$id"
+  if [[ -f "$run_dir/state.env" ]]; then
+    # shellcheck disable=SC1090
+    source "$run_dir/state.env"
+    evidence="${EVIDENCE_DIR:-}"
+  fi
+
+  if [[ -f "$run_dir/sessions" ]]; then
+    local session
+    while IFS= read -r session; do
+      [[ -n "$session" ]] || continue
+      tmux_base kill-session -t "=$session" 2>/dev/null || true
+    done < "$run_dir/sessions"
+  fi
+
+  if command -v tmux >/dev/null 2>&1; then
+    local session
+    while IFS= read -r session; do
+      [[ -n "$session" ]] || continue
+      case "$session" in
+        "verify-elevenlabs-${id}" | "verify-elevenlabs-${id}-"*)
+          tmux_base kill-session -t "=$session" 2>/dev/null || true
+          ;;
+      esac
+    done < <(tmux_base ls -F '#{session_name}' 2>/dev/null || true)
+  fi
+
+  if [[ -d "$run_dir" ]]; then
+    rm -rf "$run_dir"
+  fi
+  if [[ -f "$LATEST" ]]; then
+    local latest
+    latest="$(tr -d '[:space:]' < "$LATEST")"
+    if [[ "$latest" == "$id" ]]; then
+      rm -f "$LATEST"
+    fi
+  fi
+
+  printf 'cleaned run %s\n' "$id"
+  if [[ -n "$evidence" ]]; then
+    if [[ ! -d "$evidence" ]]; then
+      die "evidence directory missing after cleanup: $evidence"
+    fi
+    printf 'evidence kept: %s\n' "$evidence"
+  fi
+}
+
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 2
+fi
+
+COMMAND="$1"
+shift
+parse_global_flags "$@"
+
+case "$COMMAND" in
+  launch) cmd_launch ;;
+  doctor) cmd_doctor ;;
+  run) cmd_run ;;
+  cleanup) cmd_cleanup ;;
+  -h | --help | help) usage ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
