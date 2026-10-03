@@ -450,7 +450,7 @@ fn read_text(source: TextSource) -> Result<String, CliError> {
 /// parks this worker thread so a nested `block_on` is legal — but generic
 /// over the output so the body can return [`CliError`] directly instead of
 /// being forced through `SdkError`.
-fn run_async<F: std::future::Future>(future: F) -> F::Output {
+pub(super) fn run_async<F: std::future::Future>(future: F) -> F::Output {
     tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(future))
 }
 

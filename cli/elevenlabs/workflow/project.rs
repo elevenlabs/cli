@@ -207,7 +207,7 @@ fn escaped(path_str: &str, root: &Path) -> CliError {
 /// Open a file for writing, refusing to follow a symlink at the final
 /// component. Without this a symlink planted in the project redirects the write
 /// to its target — including creating the target when the link dangles.
-fn create_no_follow(path: &Path) -> Result<std::fs::File, CliError> {
+pub(super) fn create_no_follow(path: &Path) -> Result<std::fs::File, CliError> {
     let mut opts = std::fs::OpenOptions::new();
     opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
@@ -284,7 +284,7 @@ pub fn remove_in_project(path_str: &str) -> Result<bool, CliError> {
 
 /// Config files can hold webhook headers and other sensitive values, so keep
 /// them owner-only (v0 used the same posture for its credential file).
-fn restrict_permissions(file: &std::fs::File) {
+pub(super) fn restrict_permissions(file: &std::fs::File) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
