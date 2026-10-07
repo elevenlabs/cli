@@ -38,12 +38,13 @@ fn base_url_to_export(existing: Option<&str>, residency: &str) -> Option<&'stati
 
 /// Export the stored residency's base URL unless something more explicit
 /// already set one. Precedence ends up: `--base-url` > `ELEVENLABS_BASE_URL`
-/// (real env or `.env`) > stored residency > default.
+/// (the real environment) > stored residency > default.
+///
+/// A `.env` is deliberately not read here: the framework loads it later
+/// through its filter, which refuses base URL, proxy and TLS settings from a
+/// repository's `.env`. Loading it unfiltered at this point let a `.env`
+/// route every request, and the key with it, through a host of its choosing.
 fn apply_stored_residency() {
-    // The framework loads `.env` inside `run()`, i.e. after this point, and
-    // dotenvy never overrides an existing var — so load it here first to see
-    // a `.env`-provided base URL and leave it alone.
-    let _ = dotenvy::dotenv();
     let existing = std::env::var(BASE_URL_ENV).ok();
     let residency = settings::read_residency();
     if let Some(url) = base_url_to_export(existing.as_deref(), &residency) {

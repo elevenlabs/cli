@@ -31,15 +31,15 @@ use super::settings;
 
 /// George — the voice the co-generated SDK uses in its own doctests, so a
 /// first run with no config still produces something sensible.
-const DEFAULT_VOICE_ID: &str = "JBFqnCBsd6RMkjVDRZzb";
+pub(super) const DEFAULT_VOICE_ID: &str = "JBFqnCBsd6RMkjVDRZzb";
 /// The most expressive model, and the only family that honors audio tags
 /// (`[whispers]`, `[laughs]`) rather than reading them aloud as text. Costs
 /// roughly 0.8s more to first audio than `eleven_flash_v2_5`, which stays the
 /// swap when speed matters more than delivery:
 /// `elevenlabs say config model eleven_flash_v2_5`.
-const DEFAULT_MODEL_ID: &str = "eleven_v3";
+pub(super) const DEFAULT_MODEL_ID: &str = "eleven_v3";
 
-const MP3_FORMAT: &str = "mp3_44100_128";
+pub(super) const MP3_FORMAT: &str = "mp3_44100_128";
 const WAV_FORMAT: &str = "wav_44100";
 
 /// Section holding `say`'s settings inside `~/.elevenlabs/config.json`.
@@ -450,7 +450,7 @@ fn read_text(source: TextSource) -> Result<String, CliError> {
 /// parks this worker thread so a nested `block_on` is legal — but generic
 /// over the output so the body can return [`CliError`] directly instead of
 /// being forced through `SdkError`.
-fn run_async<F: std::future::Future>(future: F) -> F::Output {
+pub(super) fn run_async<F: std::future::Future>(future: F) -> F::Output {
     tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(future))
 }
 

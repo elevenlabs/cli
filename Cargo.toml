@@ -1,6 +1,6 @@
 [package]
 name = "elevenlabs-cli"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2021"
 description = "CLI for the ElevenLabs API"
 license = "MIT"
@@ -48,6 +48,9 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
 
 [dependencies]
 anyhow = "1"
+# Reads the API key the approval page copied for `elevenlabs onboard`; no image
+# support, so the musl targets link without an image stack.
+arboard = { version = "3", default-features = false, features = ["wayland-data-control"] }
 base64 = "0.22"
 bytes = "1"
 clap = { version = "4", features = ["derive", "string", "env"] }
