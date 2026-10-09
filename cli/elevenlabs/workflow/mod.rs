@@ -18,6 +18,7 @@ mod api;
 mod components;
 mod feedback;
 mod intent;
+mod onboard;
 mod project;
 mod residency;
 mod say;
@@ -35,6 +36,7 @@ pub fn register(app: CliApp) -> CliApp {
     // and the environment, which has to happen before `CliApp::run` parses
     // anything (see that module's docs).
     let app = intent::register(app);
+    let app = onboard::register(app);
     let app = agents::register(app);
     let app = templates::register(app);
     let app = tools::register(app);
