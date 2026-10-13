@@ -31,12 +31,18 @@ pub struct BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPost {
     /// This parameter controls text normalization with three modes: 'auto', 'on', and 'off'. When set to 'auto', the system will automatically decide whether to apply text normalization (e.g., spelling out numbers). With 'on', text normalization will always be applied, while with 'off', it will be skipped.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apply_text_normalization: Option<BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPostApplyTextNormalization>,
+    /// Whether to use the IVC version of a professional voice. This may improve expressiveness and reduce latency.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub use_pvc_as_ivc: Option<bool>,
     /// A list of request_ids of dialogue generations that came before this one. Used to condition the model for continuity when splitting a large task into multiple requests. A maximum of 3 request_ids can be sent. The last request_id is the audio which is closest to the current request. Not supported by every model.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub previous_request_ids: Option<Vec<String>>,
     /// A list of request_ids of dialogue generations that come after this one. Useful for maintaining continuity when regenerating a clip in the middle of a sequence. A maximum of 3 request_ids can be sent. The first request_id is the audio which is closest to the current request. Not supported by every model.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_request_ids: Option<Vec<String>>,
+    /// Audio effects applied to the generated audio. Unknown IDs return 404 with `param` naming the field. Reverb (`environment_id` with `send_level` above 0) and a non-zero `pan` produce stereo audio and are rejected with 400 for `ulaw_*`, `alaw_*`, and `pcm_*` output formats. Effects don't change the cost of the request.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_effects: Option<EffectsSpecInput>,
     /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
     #[serde(skip)]
     pub output_format: Option<AllowedOutputFormats>,
@@ -63,8 +69,10 @@ pub struct BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPostBuilde
     pronunciation_dictionary_locators: Option<Vec<PronunciationDictionaryVersionLocator>>,
     seed: Option<i64>,
     apply_text_normalization: Option<BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPostApplyTextNormalization>,
+    use_pvc_as_ivc: Option<bool>,
     previous_request_ids: Option<Vec<String>>,
     next_request_ids: Option<Vec<String>>,
+    audio_effects: Option<EffectsSpecInput>,
     output_format: Option<AllowedOutputFormats>,
     enable_logging: Option<bool>,
 }
@@ -115,6 +123,11 @@ impl BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPostBuilder {
         self
     }
 
+    pub fn use_pvc_as_ivc(mut self, value: bool) -> Self {
+        self.use_pvc_as_ivc = Some(value);
+        self
+    }
+
     pub fn previous_request_ids(mut self, value: Vec<String>) -> Self {
         self.previous_request_ids = Some(value);
         self
@@ -122,6 +135,11 @@ impl BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPostBuilder {
 
     pub fn next_request_ids(mut self, value: Vec<String>) -> Self {
         self.next_request_ids = Some(value);
+        self
+    }
+
+    pub fn audio_effects(mut self, value: EffectsSpecInput) -> Self {
+        self.audio_effects = Some(value);
         self
     }
 
@@ -149,8 +167,10 @@ impl BodyTextToDialogueMultiVoiceStreamingV1TextToDialogueStreamPostBuilder {
             pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
             seed: self.seed,
             apply_text_normalization: self.apply_text_normalization,
+            use_pvc_as_ivc: self.use_pvc_as_ivc,
             previous_request_ids: self.previous_request_ids,
             next_request_ids: self.next_request_ids,
+            audio_effects: self.audio_effects,
             output_format: self.output_format,
             enable_logging: self.enable_logging,
         })

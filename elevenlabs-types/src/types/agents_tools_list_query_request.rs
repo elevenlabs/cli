@@ -26,6 +26,9 @@ pub struct AgentsToolsListQueryRequest {
     /// The field to sort the results by
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_by: Option<ToolSortBy>,
+    /// Filter to tools referenced by this agent's main branch: tools attached to the agent, tools on authored workflow nodes, and tools referenced by procedures.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub used_by_agent_id: Option<String>,
     /// Used for fetching next page. Cursor is returned in the response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
@@ -47,6 +50,7 @@ pub struct AgentsToolsListQueryRequestBuilder {
     types: Option<Vec<Option<ToolTypeFilter>>>,
     sort_direction: Option<SortDirection>,
     sort_by: Option<ToolSortBy>,
+    used_by_agent_id: Option<String>,
     cursor: Option<String>,
 }
 
@@ -86,6 +90,11 @@ impl AgentsToolsListQueryRequestBuilder {
         self
     }
 
+    pub fn used_by_agent_id(mut self, value: impl Into<String>) -> Self {
+        self.used_by_agent_id = Some(value.into());
+        self
+    }
+
     pub fn cursor(mut self, value: impl Into<String>) -> Self {
         self.cursor = Some(value.into());
         self
@@ -103,6 +112,7 @@ impl AgentsToolsListQueryRequestBuilder {
             types: self.types.ok_or_else(|| BuildError::missing_field("types"))?,
             sort_direction: self.sort_direction,
             sort_by: self.sort_by,
+            used_by_agent_id: self.used_by_agent_id,
             cursor: self.cursor,
         })
     }

@@ -8,6 +8,7 @@ pub enum AgentConversationTicketStatus {
     Open,
     InProgress,
     Resolved,
+    Cancelled,
     Merged,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
@@ -20,6 +21,7 @@ impl Serialize for AgentConversationTicketStatus {
             Self::Open => serializer.serialize_str("open"),
             Self::InProgress => serializer.serialize_str("in_progress"),
             Self::Resolved => serializer.serialize_str("resolved"),
+            Self::Cancelled => serializer.serialize_str("cancelled"),
             Self::Merged => serializer.serialize_str("merged"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
@@ -33,6 +35,7 @@ impl<'de> Deserialize<'de> for AgentConversationTicketStatus {
             "open" => Ok(Self::Open),
             "in_progress" => Ok(Self::InProgress),
             "resolved" => Ok(Self::Resolved),
+            "cancelled" => Ok(Self::Cancelled),
             "merged" => Ok(Self::Merged),
             _ => Ok(Self::__Unknown(value)),
         }
@@ -45,6 +48,7 @@ impl fmt::Display for AgentConversationTicketStatus {
             Self::Open => write!(f, "open"),
             Self::InProgress => write!(f, "in_progress"),
             Self::Resolved => write!(f, "resolved"),
+            Self::Cancelled => write!(f, "cancelled"),
             Self::Merged => write!(f, "merged"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }

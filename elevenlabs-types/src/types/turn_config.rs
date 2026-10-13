@@ -28,7 +28,7 @@ pub struct TurnConfig {
     /// When enabled, starts generating LLM responses during silence before full turn confidence is reached, reducing perceived latency. May increase LLM costs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speculative_turn: Option<bool>,
-    /// When enabled, if VAD detects no speech, attempts to re-transcribe accumulated audio at turn timeout. Disables silence discount billing for affected turns.
+    /// When enabled, if VAD detects no speech, attempts to re-transcribe accumulated audio at turn timeout. Disables silence discount billing while enabled for the active agent or workflow node.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retranscribe_on_turn_timeout: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]

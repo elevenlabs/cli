@@ -13,6 +13,9 @@ pub struct PromptAgentApiModelOverrideConfig {
     /// Whether to allow overriding the tool_ids field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_ids: Option<bool>,
+    /// Whether to allow overriding the tool_ids_strict field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_ids_strict: Option<bool>,
     /// Whether to allow overriding the native_mcp_server_ids field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub native_mcp_server_ids: Option<bool>,
@@ -33,6 +36,7 @@ pub struct PromptAgentApiModelOverrideConfigBuilder {
     prompt: Option<bool>,
     llm: Option<bool>,
     tool_ids: Option<bool>,
+    tool_ids_strict: Option<bool>,
     native_mcp_server_ids: Option<bool>,
     knowledge_base: Option<bool>,
 }
@@ -53,6 +57,11 @@ impl PromptAgentApiModelOverrideConfigBuilder {
         self
     }
 
+    pub fn tool_ids_strict(mut self, value: bool) -> Self {
+        self.tool_ids_strict = Some(value);
+        self
+    }
+
     pub fn native_mcp_server_ids(mut self, value: bool) -> Self {
         self.native_mcp_server_ids = Some(value);
         self
@@ -69,6 +78,7 @@ impl PromptAgentApiModelOverrideConfigBuilder {
             prompt: self.prompt,
             llm: self.llm,
             tool_ids: self.tool_ids,
+            tool_ids_strict: self.tool_ids_strict,
             native_mcp_server_ids: self.native_mcp_server_ids,
             knowledge_base: self.knowledge_base,
         })

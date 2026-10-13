@@ -12,6 +12,8 @@ pub struct ConversationTurnMetrics {
     pub convai_tts_model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub convai_tts_cascade: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_id: Option<String>,
 }
 
 impl ConversationTurnMetrics {
@@ -27,6 +29,7 @@ pub struct ConversationTurnMetricsBuilder {
     convai_asr_provider: Option<String>,
     convai_tts_model: Option<String>,
     convai_tts_cascade: Option<String>,
+    voice_id: Option<String>,
 }
 
 impl ConversationTurnMetricsBuilder {
@@ -50,6 +53,11 @@ impl ConversationTurnMetricsBuilder {
         self
     }
 
+    pub fn voice_id(mut self, value: impl Into<String>) -> Self {
+        self.voice_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationTurnMetrics`].
     pub fn build(self) -> Result<ConversationTurnMetrics, BuildError> {
         Ok(ConversationTurnMetrics {
@@ -57,6 +65,7 @@ impl ConversationTurnMetricsBuilder {
             convai_asr_provider: self.convai_asr_provider,
             convai_tts_model: self.convai_tts_model,
             convai_tts_cascade: self.convai_tts_cascade,
+            voice_id: self.voice_id,
         })
     }
 }

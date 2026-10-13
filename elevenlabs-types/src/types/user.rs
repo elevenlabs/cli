@@ -7,6 +7,9 @@ pub struct User {
     /// The unique identifier of the user.
     #[serde(default)]
     pub user_id: String,
+    /// The unique identifier of the workspace this user's API key belongs to.
+    #[serde(default)]
+    pub workspace_id: String,
     /// Details of the user's subscription.
     pub subscription: SubscriptionResponse,
     /// Whether the user is new. This field is deprecated and will be removed in the future. Use 'created_at' instead.
@@ -56,6 +59,7 @@ impl User {
 #[non_exhaustive]
 pub struct UserBuilder {
     user_id: Option<String>,
+    workspace_id: Option<String>,
     subscription: Option<SubscriptionResponse>,
     is_new_user: Option<bool>,
     can_use_delayed_payment_methods: Option<bool>,
@@ -74,6 +78,11 @@ pub struct UserBuilder {
 impl UserBuilder {
     pub fn user_id(mut self, value: impl Into<String>) -> Self {
         self.user_id = Some(value.into());
+        self
+    }
+
+    pub fn workspace_id(mut self, value: impl Into<String>) -> Self {
+        self.workspace_id = Some(value.into());
         self
     }
 
@@ -145,6 +154,7 @@ impl UserBuilder {
     /// Consumes the builder and constructs a [`User`].
     /// This method will fail if any of the following fields are not set:
     /// - [`user_id`](UserBuilder::user_id)
+    /// - [`workspace_id`](UserBuilder::workspace_id)
     /// - [`subscription`](UserBuilder::subscription)
     /// - [`is_new_user`](UserBuilder::is_new_user)
     /// - [`can_use_delayed_payment_methods`](UserBuilder::can_use_delayed_payment_methods)
@@ -155,6 +165,7 @@ impl UserBuilder {
     pub fn build(self) -> Result<User, BuildError> {
         Ok(User {
             user_id: self.user_id.ok_or_else(|| BuildError::missing_field("user_id"))?,
+            workspace_id: self.workspace_id.ok_or_else(|| BuildError::missing_field("workspace_id"))?,
             subscription: self.subscription.ok_or_else(|| BuildError::missing_field("subscription"))?,
             is_new_user: self.is_new_user.ok_or_else(|| BuildError::missing_field("is_new_user"))?,
             can_use_delayed_payment_methods: self.can_use_delayed_payment_methods.ok_or_else(|| BuildError::missing_field("can_use_delayed_payment_methods"))?,

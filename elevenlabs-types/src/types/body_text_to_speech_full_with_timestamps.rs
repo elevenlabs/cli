@@ -34,7 +34,7 @@ pub struct BodyTextToSpeechFullWithTimestamps {
     /// A list of request_id of the samples that come after this generation. next_request_ids is especially useful for maintaining the speech's continuity when regenerating a sample that has had some audio quality issues. For example, if you have generated 3 speech clips, and you want to improve clip 2, passing the request id of clip 3 as a next_request_id (and that of clip 1 as a previous_request_id) will help maintain natural flow in the combined speech. The results will be best when the same model is used across the generations. In case both next_text and next_request_ids is send, next_text will be ignored. A maximum of 3 request_ids can be send.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_request_ids: Option<Vec<String>>,
-    /// If true, we won't use PVC version of the voice for the generation but the IVC version. This is a temporary workaround for higher latency in PVC versions.
+    /// Whether to use the IVC version of a professional voice. This may improve expressiveness and reduce latency.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_pvc_as_ivc: Option<bool>,
     /// This parameter controls text normalization with three modes: 'auto', 'on', and 'off'. When set to 'auto', the system will automatically decide whether to apply text normalization (e.g., spelling out numbers). With 'on', text normalization will always be applied, while with 'off', it will be skipped.
@@ -43,6 +43,9 @@ pub struct BodyTextToSpeechFullWithTimestamps {
     /// This parameter controls language text normalization. This helps with proper pronunciation of text in some supported languages. WARNING: This parameter can heavily increase the latency of the request. Currently only supported for Japanese.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apply_language_text_normalization: Option<bool>,
+    /// Audio effects applied to the generated audio. Unknown IDs return 404 with `param` naming the field. Reverb (`environment_id` with `send_level` above 0) and a non-zero `pan` produce stereo audio and are rejected with 400 for `ulaw_*`, `alaw_*`, and `pcm_*` output formats. Effects don't change the cost of the request.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_effects: Option<EffectsSpecInput>,
     /// When enable_logging is set to false zero retention mode will be used for the request. This will mean history features are unavailable for this request, including request stitching. Zero retention mode may only be used by enterprise customers.
     #[serde(skip)]
     pub enable_logging: Option<bool>,
@@ -83,6 +86,7 @@ pub struct BodyTextToSpeechFullWithTimestampsBuilder {
     use_pvc_as_ivc: Option<bool>,
     apply_text_normalization: Option<BodyTextToSpeechFullWithTimestampsApplyTextNormalization>,
     apply_language_text_normalization: Option<bool>,
+    audio_effects: Option<EffectsSpecInput>,
     enable_logging: Option<bool>,
     optimize_streaming_latency: Option<i64>,
     output_format: Option<TextToSpeechConvertWithTimestampsRequestOutputFormat>,
@@ -154,6 +158,11 @@ impl BodyTextToSpeechFullWithTimestampsBuilder {
         self
     }
 
+    pub fn audio_effects(mut self, value: EffectsSpecInput) -> Self {
+        self.audio_effects = Some(value);
+        self
+    }
+
     pub fn enable_logging(mut self, value: bool) -> Self {
         self.enable_logging = Some(value);
         self
@@ -187,6 +196,7 @@ impl BodyTextToSpeechFullWithTimestampsBuilder {
             use_pvc_as_ivc: self.use_pvc_as_ivc,
             apply_text_normalization: self.apply_text_normalization,
             apply_language_text_normalization: self.apply_language_text_normalization,
+            audio_effects: self.audio_effects,
             enable_logging: self.enable_logging,
             optimize_streaming_latency: self.optimize_streaming_latency,
             output_format: self.output_format,

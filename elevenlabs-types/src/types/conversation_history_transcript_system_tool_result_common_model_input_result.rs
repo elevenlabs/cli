@@ -127,6 +127,15 @@ pub enum ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
             branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>,
             #[serde(skip_serializing_if = "Option::is_none")]
             preserve_client_tts_overrides: Option<bool>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            preserve_voice_settings: Option<bool>,
+        },
+
+        #[serde(rename = "transfer_to_number_amazon_connect_success")]
+        #[non_exhaustive]
+        TransferToNumberAmazonConnectSuccess {
+            #[serde(flatten)]
+            data: TransferToNumberResultAmazonConnectSuccessModel,
         },
 
         #[serde(rename = "transfer_to_number_error")]
@@ -229,7 +238,11 @@ impl ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
     }
 
     pub fn transfer_to_agent_success(from_agent: String, to_agent: String, condition: String) -> Self {
-        Self::TransferToAgentSuccess { status: None, from_agent, to_agent, to_node: None, condition, delay_ms: None, transfer_message: None, enable_transferred_agent_first_message: None, branch_info: None, preserve_client_tts_overrides: None }
+        Self::TransferToAgentSuccess { status: None, from_agent, to_agent, to_node: None, condition, delay_ms: None, transfer_message: None, enable_transferred_agent_first_message: None, branch_info: None, preserve_client_tts_overrides: None, preserve_voice_settings: None }
+    }
+
+    pub fn transfer_to_number_amazon_connect_success(data: TransferToNumberResultAmazonConnectSuccessModel) -> Self {
+        Self::TransferToNumberAmazonConnectSuccess { data }
     }
 
     pub fn transfer_to_number_error(data: TransferToNumberResultErrorModel) -> Self {
@@ -252,32 +265,36 @@ impl ConversationHistoryTranscriptSystemToolResultCommonModelInputResult {
         Self::VoicemailDetectionSuccess { data }
     }
 
-    pub fn transfer_to_agent_success_with_status(status: String, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::TransferToAgentSuccess { status: Some(status), from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides }
+    pub fn transfer_to_agent_success_with_status(status: String, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status: Some(status), from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn transfer_to_agent_success_with_to_node(status: Option<String>, from_agent: String, to_agent: String, to_node: String, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node: Some(to_node), condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides }
+    pub fn transfer_to_agent_success_with_to_node(status: Option<String>, from_agent: String, to_agent: String, to_node: String, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node: Some(to_node), condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn transfer_to_agent_success_with_delay_ms(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: i64, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms: Some(delay_ms), transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides }
+    pub fn transfer_to_agent_success_with_delay_ms(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: i64, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms: Some(delay_ms), transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn transfer_to_agent_success_with_transfer_message(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: String, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message: Some(transfer_message), enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides }
+    pub fn transfer_to_agent_success_with_transfer_message(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: String, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message: Some(transfer_message), enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn transfer_to_agent_success_with_enable_transferred_agent_first_message(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: bool, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message: Some(enable_transferred_agent_first_message), branch_info, preserve_client_tts_overrides }
+    pub fn transfer_to_agent_success_with_enable_transferred_agent_first_message(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: bool, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message: Some(enable_transferred_agent_first_message), branch_info, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn transfer_to_agent_success_with_branch_info(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: TransferToAgentToolResultSuccessModelInputBranchInfo, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info: Some(branch_info), preserve_client_tts_overrides }
+    pub fn transfer_to_agent_success_with_branch_info(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: TransferToAgentToolResultSuccessModelInputBranchInfo, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info: Some(branch_info), preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn transfer_to_agent_success_with_preserve_client_tts_overrides(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: bool) -> Self {
-        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides: Some(preserve_client_tts_overrides) }
+    pub fn transfer_to_agent_success_with_preserve_client_tts_overrides(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: bool, preserve_voice_settings: Option<bool>) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides: Some(preserve_client_tts_overrides), preserve_voice_settings }
+    }
+
+    pub fn transfer_to_agent_success_with_preserve_voice_settings(status: Option<String>, from_agent: String, to_agent: String, to_node: Option<String>, condition: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, branch_info: Option<TransferToAgentToolResultSuccessModelInputBranchInfo>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: bool) -> Self {
+        Self::TransferToAgentSuccess { status, from_agent, to_agent, to_node, condition, delay_ms, transfer_message, enable_transferred_agent_first_message, branch_info, preserve_client_tts_overrides, preserve_voice_settings: Some(preserve_voice_settings) }
     }
 
     pub fn unknown(value: serde_json::Value) -> Self {

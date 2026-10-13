@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct AgentQueueingConfig {
-    /// Hold callers in a wait queue when the agent is at its concurrency limit, instead of rejecting them immediately
+    /// Hold callers in a wait queue when the agent is at its concurrency limit, instead of rejecting them immediately. New agents are created with queueing enabled unless this field is set explicitly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     /// Maximum time a caller can wait in the queue before being rejected

@@ -54,7 +54,6 @@ impl MusicClient {
     /// # Arguments
     ///
     /// * `output_format` - Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
-    /// * `enable_logging` - When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -95,7 +94,6 @@ impl MusicClient {
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 QueryBuilder::new()
                     .serialize("output_format", request.output_format.clone())
-                    .bool("enable_logging", request.enable_logging.clone())
                     .build(),
                 options,
             )
@@ -107,7 +105,6 @@ impl MusicClient {
     /// # Arguments
     ///
     /// * `output_format` - Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
-    /// * `enable_logging` - When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -148,7 +145,6 @@ impl MusicClient {
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 QueryBuilder::new()
                     .serialize("output_format", request.output_format.clone())
-                    .bool("enable_logging", request.enable_logging.clone())
                     .build(),
                 options,
             )
@@ -160,7 +156,6 @@ impl MusicClient {
     /// # Arguments
     ///
     /// * `output_format` - Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
-    /// * `enable_logging` - When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -183,7 +178,6 @@ impl MusicClient {
     ///         .compose_detailed_stream(
     ///             &BodyStreamComposedMusicWithADetailedResponseV1MusicDetailedStreamPost {
     ///                 output_format: Some(MusicComposeDetailedStreamRequestOutputFormat::Auto),
-    ///                 enable_logging: Some(true),
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -203,7 +197,6 @@ impl MusicClient {
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 QueryBuilder::new()
                     .serialize("output_format", request.output_format.clone())
-                    .bool("enable_logging", request.enable_logging.clone())
                     .build(),
                 options,
             )
@@ -215,7 +208,6 @@ impl MusicClient {
     /// # Arguments
     ///
     /// * `output_format` - Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
-    /// * `enable_logging` - When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -256,7 +248,6 @@ impl MusicClient {
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 QueryBuilder::new()
                     .serialize("output_format", request.output_format.clone())
-                    .bool("enable_logging", request.enable_logging.clone())
                     .build(),
                 options,
             )
@@ -319,7 +310,6 @@ impl MusicClient {
     /// # Arguments
     ///
     /// * `output_format` - Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
-    /// * `enable_logging` - When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -337,7 +327,6 @@ impl MusicClient {
                 request.clone().to_multipart(),
                 QueryBuilder::new()
                     .serialize("output_format", request.output_format.clone())
-                    .bool("enable_logging", request.enable_logging.clone())
                     .build(),
                 options,
             )

@@ -13,6 +13,9 @@ pub struct PromptAgentApiModelOverrideInput {
     /// A list of IDs of tools used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_ids: Option<Vec<String>>,
+    /// Only applies as a conversation override, allowed whenever tool_ids may be overridden. When true, the overridden tool_ids is the full list of tools allowed in the conversation, including tools on workflow nodes. Ignored when set on the agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_ids_strict: Option<bool>,
     /// A list of Native MCP server ids to be used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub native_mcp_server_ids: Option<Vec<String>>,
@@ -33,6 +36,7 @@ pub struct PromptAgentApiModelOverrideInputBuilder {
     prompt: Option<String>,
     llm: Option<Llm>,
     tool_ids: Option<Vec<String>>,
+    tool_ids_strict: Option<bool>,
     native_mcp_server_ids: Option<Vec<String>>,
     knowledge_base: Option<Vec<KnowledgeBaseLocator>>,
 }
@@ -53,6 +57,11 @@ impl PromptAgentApiModelOverrideInputBuilder {
         self
     }
 
+    pub fn tool_ids_strict(mut self, value: bool) -> Self {
+        self.tool_ids_strict = Some(value);
+        self
+    }
+
     pub fn native_mcp_server_ids(mut self, value: Vec<String>) -> Self {
         self.native_mcp_server_ids = Some(value);
         self
@@ -69,6 +78,7 @@ impl PromptAgentApiModelOverrideInputBuilder {
             prompt: self.prompt,
             llm: self.llm,
             tool_ids: self.tool_ids,
+            tool_ids_strict: self.tool_ids_strict,
             native_mcp_server_ids: self.native_mcp_server_ids,
             knowledge_base: self.knowledge_base,
         })

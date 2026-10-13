@@ -13,6 +13,9 @@ pub struct BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
     /// The protection level for the branch
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protection_status: Option<BranchProtectionStatus>,
+    /// When true, rebase this branch onto main automatically after each new main version. Cannot be enabled on the main branch.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_rebase: Option<bool>,
 }
 
 impl BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
@@ -27,6 +30,7 @@ pub struct BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilde
     name: Option<String>,
     is_archived: Option<bool>,
     protection_status: Option<BranchProtectionStatus>,
+    auto_rebase: Option<bool>,
 }
 
 impl BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilder {
@@ -45,12 +49,18 @@ impl BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilder {
         self
     }
 
+    pub fn auto_rebase(mut self, value: bool) -> Self {
+        self.auto_rebase = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch`].
     pub fn build(self) -> Result<BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch, BuildError> {
         Ok(BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
             name: self.name,
             is_archived: self.is_archived,
             protection_status: self.protection_status,
+            auto_rebase: self.auto_rebase,
         })
     }
 }

@@ -278,4 +278,55 @@ impl SpeechEngineClient {
             )
             .await
     }
+
+    /// Create a new Speech Engine resource by duplicating an existing one
+    ///
+    /// # Arguments
+    ///
+    /// * `speech_engine_id` - The speech engine ID (accepts seng_ or agent_ prefix)
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .speech_engine
+    ///         .duplicate(
+    ///             &"seng_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &Some(DuplicateSpeechEngineRequest {
+    ///                 ..Default::default()
+    ///             }),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn duplicate(
+        &self,
+        speech_engine_id: &str,
+        request: &Option<DuplicateSpeechEngineRequest>,
+        options: Option<RequestOptions>,
+    ) -> Result<SpeechEngineResponse, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!("v1/speech-engine/{}/duplicate", speech_engine_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
 }

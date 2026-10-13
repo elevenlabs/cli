@@ -35,6 +35,9 @@ pub struct SpeechToTextChunkResponseModel {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub audio_duration_secs: Option<f64>,
+    /// Result of the optional transcript edit: the edited text, or an error if it could not be produced. Absent when no edit was requested. On success, both `text` and `edited_text` hold the edited transcript; compare them with the top-level `text` to see what changed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edited_transcript: Option<SpeechToTextChunkResponseModelEditedTranscript>,
 }
 
 impl SpeechToTextChunkResponseModel {
@@ -55,6 +58,7 @@ pub struct SpeechToTextChunkResponseModelBuilder {
     transcription_id: Option<String>,
     entities: Option<Vec<DetectedEntity>>,
     audio_duration_secs: Option<f64>,
+    edited_transcript: Option<SpeechToTextChunkResponseModelEditedTranscript>,
 }
 
 impl SpeechToTextChunkResponseModelBuilder {
@@ -103,6 +107,11 @@ impl SpeechToTextChunkResponseModelBuilder {
         self
     }
 
+    pub fn edited_transcript(mut self, value: SpeechToTextChunkResponseModelEditedTranscript) -> Self {
+        self.edited_transcript = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`SpeechToTextChunkResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`language_code`](SpeechToTextChunkResponseModelBuilder::language_code)
@@ -120,6 +129,7 @@ impl SpeechToTextChunkResponseModelBuilder {
             transcription_id: self.transcription_id,
             entities: self.entities,
             audio_duration_secs: self.audio_duration_secs,
+            edited_transcript: self.edited_transcript,
         })
     }
 }

@@ -37,6 +37,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents mcp-servers tool-approvals`](#elevenlabs-agents-mcp-servers-tool-approvals)
 - [`elevenlabs agents mcp-servers tool-configs`](#elevenlabs-agents-mcp-servers-tool-configs)
 - [`elevenlabs agents mcp-servers tools`](#elevenlabs-agents-mcp-servers-tools)
+- [`elevenlabs agents merge-proposals`](#elevenlabs-agents-merge-proposals)
 - [`elevenlabs agents phone-numbers`](#elevenlabs-agents-phone-numbers)
 - [`elevenlabs agents procedures`](#elevenlabs-agents-procedures)
 - [`elevenlabs agents procedures drafts`](#elevenlabs-agents-procedures-drafts)
@@ -58,6 +59,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents widget`](#elevenlabs-agents-widget)
 - [`elevenlabs agents widget avatar`](#elevenlabs-agents-widget-avatar)
 - [`elevenlabs assets`](#elevenlabs-assets)
+- [`elevenlabs audio-effects`](#elevenlabs-audio-effects)
 - [`elevenlabs audio-isolation`](#elevenlabs-audio-isolation)
 - [`elevenlabs audio-native`](#elevenlabs-audio-native)
 - [`elevenlabs dubbing`](#elevenlabs-dubbing)
@@ -117,6 +119,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs user subscription`](#elevenlabs-user-subscription)
 - [`elevenlabs voices`](#elevenlabs-voices)
 - [`elevenlabs voices accents`](#elevenlabs-voices-accents)
+- [`elevenlabs voices collections`](#elevenlabs-voices-collections)
 - [`elevenlabs voices ivc`](#elevenlabs-voices-ivc)
 - [`elevenlabs voices pvc`](#elevenlabs-voices-pvc)
 - [`elevenlabs voices pvc samples`](#elevenlabs-voices-pvc-samples)
@@ -194,7 +197,7 @@ Delete RAG index for the knowledgebase document.
 
 #### `elevenlabs agents duplicate`
 
-Create a new agent by duplicating an existing one
+Create a new agent by duplicating an existing one. The new agent gets a copy of every unarchived branch of the source agent, each with the same name and description and starting from the latest version on that branch. Version history, drafts, archived branches and traffic deployments are not copied, so the new agent routes all traffic to its main branch.
 
 `POST /v1/convai/agents/{agent_id}/duplicate`
 
@@ -271,7 +274,7 @@ Run selected tests on the agent with provided configuration. If the agent config
 
 #### `elevenlabs agents simulate-conversation` `[DEPRECATED]`
 
-Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user.
+Deprecated. This endpoint will be removed on 31 Oct 2026. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user.
 
 `POST /v1/convai/agents/{agent_id}/simulate-conversation`
 
@@ -283,7 +286,7 @@ Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:ag
 
 #### `elevenlabs agents simulate-conversation-stream` `[DEPRECATED]`
 
-Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user and stream back the response. Response is streamed back as partial lists of messages that should be concatenated and once the conversation has complete a single final message with the conversation analysis will be sent.
+Deprecated. This endpoint will be removed on 31 Oct 2026. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user and stream back the response. Response is streamed back as partial lists of messages that should be concatenated and once the conversation has complete a single final message with the conversation analysis will be sent.
 
 `POST /v1/convai/agents/{agent_id}/simulate-conversation/stream`
 
@@ -385,6 +388,7 @@ Download all recipients and conversation results for a terminal batch call as CS
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--batch-id` | `string` | Yes |  |
+| `--limit` | `string` | No | Only export the first N recipients; used to preview the columns. Omit to export every recipient. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents batch-calls get`
@@ -518,7 +522,7 @@ Rebase a branch onto the latest main branch, incorporating main's changes while 
 
 #### `elevenlabs agents branches update`
 
-Update agent branch properties such as archiving status and protection level
+Update agent branch properties such as archiving status, protection level, and auto-rebase onto main
 
 `PATCH /v1/convai/agents/{agent_id}/branches/{branch_id}`
 
@@ -971,6 +975,19 @@ Create a new deployment for an agent
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents deployments list`
+
+List the traffic split history of an agent, newest first
+
+`GET /v1/convai/agents/{agent_id}/deployments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--page` | `integer` | No | Page number, starting at 1 |
+| `--page-size` | `integer` | No | How many results at most should be returned |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 
@@ -1630,6 +1647,103 @@ Retrieve all tools available for a specific MCP server configuration.
 
 ---
 
+### `elevenlabs agents merge-proposals`
+
+#### `elevenlabs agents merge-proposals add-comment`
+
+Leave a comment on a merge_proposal without recording a review verdict. Unlike reviews, comments accumulate and can still be added once the merge_proposal is merged or closed.
+
+`POST /v1/convai/agents/{agent_id}/merge-proposals/{merge_proposal_id}/comments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--merge-proposal-id` | `string` | Yes | Unique identifier for the merge_proposal. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents merge-proposals create`
+
+Record a request to merge a source branch into a target branch. Anyone with edit access can open one; merging it later is gated on write access to the target branch, so this is how a change reaches a protected branch the author cannot merge into themselves.
+
+`POST /v1/convai/agents/{agent_id}/merge-proposals`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents merge-proposals get`
+
+Get a single merge_proposal.
+
+`GET /v1/convai/agents/{agent_id}/merge-proposals/{merge_proposal_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--merge-proposal-id` | `string` | Yes | Unique identifier for the merge_proposal. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents merge-proposals list`
+
+List the proposals for an agent, newest first.
+
+`GET /v1/convai/agents/{agent_id}/merge-proposals`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--status` | `string` | No | Only return proposals with this status. |
+| `--source-branch-id` | `string` | No | Only return proposals with this source branch. |
+| `--target-branch-id` | `string` | No | Only return proposals with this target branch. |
+| `--search` | `string` | No | Case-insensitive substring match over title and description. |
+| `--page-size` | `integer` | No | How many results at most should be returned |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents merge-proposals merge`
+
+Execute the merge. The caller must have write access to the target branch (admins only, for a protected branch), so this is where a reviewer approves and merges a request opened by someone who could not.
+
+`POST /v1/convai/agents/{agent_id}/merge-proposals/{merge_proposal_id}/merge`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--merge-proposal-id` | `string` | Yes | Unique identifier for the merge_proposal. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents merge-proposals submit-review`
+
+Approve a merge_proposal or request changes on it. A user's latest review replaces their previous one. Non-admins need an approval from another user before the merge is allowed.
+
+`POST /v1/convai/agents/{agent_id}/merge-proposals/{merge_proposal_id}/reviews`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--merge-proposal-id` | `string` | Yes | Unique identifier for the merge_proposal. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents merge-proposals update`
+
+Edit an open merge_proposal's title or description, or close it. The author closing it is recorded as withdrawn; anyone else as rejected.
+
+`PATCH /v1/convai/agents/{agent_id}/merge-proposals/{merge_proposal_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--merge-proposal-id` | `string` | Yes | Unique identifier for the merge_proposal. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+---
+
 ### `elevenlabs agents phone-numbers`
 
 #### `elevenlabs agents phone-numbers create`
@@ -1730,7 +1844,7 @@ Update assigned agent of a phone number
 
 #### `elevenlabs agents procedures compile`
 
-Compile procedure drafts into a workflow.
+Legacy. Do not use. Saving an agent draft (`POST /v1/convai/agents/{agent_id}/drafts`) and publishing an agent (`PATCH /v1/convai/agents/{agent_id}`) compile structured procedures into workflow nodes and edges, save the compiled workflow with the draft or version, and return validation errors, so a separate compile call is no longer needed. This endpoint remains available for the time being so existing callers do not break, as a dry-run that compiles the current procedure drafts into a workflow without persisting anything. It will eventually be deprecated.
 
 `POST /v1/convai/agents/{agent_id}/branches/{branch_id}/procedures/compile`
 
@@ -2023,6 +2137,7 @@ Lists all agent response tests with pagination support and optional search filte
 | `--include-folders` | `string` | No | Deprecated. Use the `types` query param and include `folder` instead. |
 | `--sort-mode` | `default | folders_first` | No | Sort mode for listing tests. Use 'folders_first' to place folders before tests. |
 | `--sharing-mode` | `TestSharingMode` | No | Filter test visibility. Use `shared_with_me` to return only tests/folders shared with the current user that they did not create. |
+| `--created-by-user-id` | `string` | No | Filter tests and folders by creator user ID. Use '@me' to refer to the authenticated user. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents tests move`
@@ -2113,6 +2228,17 @@ Updates an agent test folder. Currently only supports updating the folder name.
 
 ### `elevenlabs agents tests invocations`
 
+#### `elevenlabs agents tests invocations cancel`
+
+Cancels all pending runs in a test invocation.
+
+`POST /v1/convai/test-invocations/{test_invocation_id}/cancel`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-invocation-id` | `string` | Yes | The id of a test invocation. This is returned when tests are run. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
 #### `elevenlabs agents tests invocations get`
 
 Gets a test invocation by ID.
@@ -2134,6 +2260,10 @@ Lists all test invocations with pagination support and optional search filtering
 |------|------|----------|-------------|
 | `--agent-id` | `string` | No | Filter by agent ID |
 | `--branch-id` | `string` | No | Filter by branch ID |
+| `--test-id` | `string` | No | Filter to invocations that include a run of this test id |
+| `--start-time` | `string` | No | Inclusive lower bound on created_at, in unix seconds |
+| `--end-time` | `string` | No | Inclusive upper bound on created_at, in unix seconds |
+| `--version-id` | `string` | No | Filter by the agent version the tests ran against |
 | `--page-size` | `integer` | No | How many Tests to return at maximum. Can not exceed 100, defaults to 30. |
 | `--search` | `string` | No | Search query to filter tests and folders by name. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
@@ -2218,6 +2348,7 @@ Get all available tools in the workspace.
 | `--types` | `string` | No | If present, the endpoint will return only tools of the given types. |
 | `--sort-direction` | `SortDirection` | No | The direction to sort the results |
 | `--sort-by` | `string` | No | The field to sort the results by |
+| `--used-by-agent-id` | `string` | No | Filter to tools referenced by this agent's main branch: tools attached to the agent, tools on authored workflow nodes, and tools referenced by procedures. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
@@ -2296,7 +2427,7 @@ Raise a ticket about an agent's performance on a conversation, for triage with A
 
 #### `elevenlabs agents triage-tickets create-manual`
 
-Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). The comment is shown as the ticket title. Requires viewer access to the agent.
+Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). Without a title, one is derived from the comment. Requires viewer access to the agent.
 
 `POST /v1/convai/agents/{agent_id}/triage-tickets`
 
@@ -2330,7 +2461,7 @@ Get an agent conversation ticket by ID.
 
 #### `elevenlabs agents triage-tickets list`
 
-List an agent's conversation triage tickets, ordered by most recently created first. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
+List an agent's conversation triage tickets, ordered by most recently created first unless sorted by priority. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
 
 `GET /v1/convai/agents/{agent_id}/triage-tickets`
 
@@ -2341,10 +2472,14 @@ List an agent's conversation triage tickets, ordered by most recently created fi
 | `--conversation-id` | `string` | No | Filter tickets by conversation id. |
 | `--status` | `string` | No | Filter tickets by status. |
 | `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
+| `--priorities` | `string` | No | Filter tickets by priority. Repeat the parameter to filter by multiple priorities. |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, or by priority (most urgent first, then most recently created). |
 | `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
 | `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
 | `--issue-type` | `string` | No | Filter clusters by issue type. |
 | `--label` | `string` | No | Filter tickets by an exact label. |
+| `--merged-into-ticket-id` | `string` | No | Filter tickets merged into this ticket. |
+| `--search` | `string` | No | Case-insensitive free-text search across the ticket's title, description, comments, and turn comments. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
@@ -2361,21 +2496,42 @@ All non-service-account workspace members, each flagged with whether they curren
 
 #### `elevenlabs agents triage-tickets list-for-workspace`
 
-List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller); for a single agent's tickets, use the per-agent endpoint instead. Tickets for agents the caller cannot access are omitted.
+List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller). Supports the same filters, sorting and search as the per-agent endpoint. Tickets for agents the caller cannot access are omitted.
 
 `GET /v1/convai/triage-tickets`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--page-size` | `integer` | No | How many agent conversation tickets to return. Can not exceed 100. |
+| `--agent-id` | `string` | No | Only tickets for this agent. |
 | `--status` | `string` | No | Filter tickets by status. |
+| `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
+| `--priorities` | `string` | No | Filter tickets by priority. Repeat the parameter to filter by multiple priorities. |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, or by priority (most urgent first, then most recently created). |
+| `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
 | `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
+| `--issue-type` | `string` | No | Filter clusters by issue type. |
+| `--label` | `string` | No | Filter tickets by an exact label. |
+| `--merged-into-ticket-id` | `string` | No | Filter tickets merged into this ticket. |
+| `--search` | `string` | No | Case-insensitive free-text search across the ticket's title, description, comments, and turn comments. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
+#### `elevenlabs agents triage-tickets merge`
+
+Merge other open tickets of the same agent into this pending, in-progress, or resolved one. Their conversations move onto this ticket, its priority is raised to the highest among them, and they are kept with status 'merged'. Requires viewer access to the ticket's agent.
+
+`POST /v1/convai/triage-tickets/{agentqa_ticket_id}/merge`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agentqa-ticket-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 #### `elevenlabs agents triage-tickets update`
 
-Update a ticket's comment, status, and/or assignee. Requires editor access to the ticket's agent.
+Update a ticket's title, comment, status, priority, and/or assignee. Requires editor access to the ticket's agent.
 
 `PATCH /v1/convai/triage-tickets/{agentqa_ticket_id}`
 
@@ -2605,6 +2761,20 @@ List assets in the workspace, most recently created first.
 | `--page-size` | `integer` | No | Number of assets to return. |
 | `--cursor` | `string` | No | Token from a previous response's `next_cursor`. Omit to fetch the first page. |
 | `--search` | `string` | No | Optional free-text search filter over asset names. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs audio-effects`
+
+#### `elevenlabs audio-effects get-catalog`
+
+Lists the filter presets, reverb environments, and background noises that `audio_effects` can reference in Text to Speech, Text to Dialogue, and agent configurations.
+
+`GET /v1/audio-effects/catalog`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -3581,7 +3751,6 @@ Compose a song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
-| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3594,7 +3763,6 @@ Compose a song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
-| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3607,7 +3775,6 @@ Stream a song and its detailed metadata using Server-Sent Events (SSE).
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
-| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3620,7 +3787,6 @@ Separate an audio file into individual stems. This endpoint might have high late
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `AllowedOutputFormats` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
-| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -3633,7 +3799,6 @@ Stream a composed song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
-| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3672,7 +3837,6 @@ Create a composition plan for music generation. Usage of this endpoint does not 
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
-| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -4129,6 +4293,18 @@ Delete a Speech Engine resource
 |------|------|----------|-------------|
 | `--speech-engine-id` | `string` | Yes | The speech engine ID (accepts seng_ or agent_ prefix) |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs speech-engine duplicate`
+
+Create a new Speech Engine resource by duplicating an existing one
+
+`POST /v1/speech-engine/{speech_engine_id}/duplicate`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--speech-engine-id` | `string` | Yes | The speech engine ID (accepts seng_ or agent_ prefix) |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
 #### `elevenlabs speech-engine get`
 
@@ -5023,6 +5199,89 @@ Gets the list of available accents in the shared voice library.
 
 ---
 
+### `elevenlabs voices collections`
+
+#### `elevenlabs voices collections add-voice`
+
+Adds a voice to a voice collection. Adding a voice that is already in the collection succeeds without changes. Requires editor access to the collection.
+
+`POST /v1/voices/collections/{collection_id}/voice/{voice_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--collection-id` | `string` | Yes | Collection ID. |
+| `--voice-id` | `string` | Yes | Voice ID to be used, you can use https://api.elevenlabs.io/v1/voices to list all the available voices. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs voices collections create`
+
+Creates a new voice collection. The caller becomes its admin.
+
+`POST /v1/voices/collections`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs voices collections delete`
+
+Deletes a voice collection. The voices in it are not deleted. Requires admin access to the collection.
+
+`DELETE /v1/voices/collections/{collection_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--collection-id` | `string` | Yes | Collection ID. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs voices collections get`
+
+Returns a voice collection the user has access to.
+
+`GET /v1/voices/collections/{collection_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--collection-id` | `string` | Yes | Collection ID. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs voices collections list`
+
+Returns all the voice collections the user has access to, sorted by title.
+
+`GET /v1/voices/collections`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs voices collections remove-voice`
+
+Removes a voice from a voice collection. The voice itself is not deleted. Requires editor access to the collection.
+
+`DELETE /v1/voices/collections/{collection_id}/voice/{voice_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--collection-id` | `string` | Yes | Collection ID. |
+| `--voice-id` | `string` | Yes | Voice ID to be used, you can use https://api.elevenlabs.io/v1/voices to list all the available voices. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs voices collections update`
+
+Updates the title and icon of a voice collection. Fields that are omitted are left unchanged. Requires editor access to the collection.
+
+`PATCH /v1/voices/collections/{collection_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--collection-id` | `string` | Yes | Collection ID. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+---
+
 ### `elevenlabs voices ivc`
 
 #### `elevenlabs voices ivc create`
@@ -5595,7 +5854,7 @@ Removes any existing role on a workspace resource from a user, group, or workspa
 
 #### `elevenlabs workspace usage get-usage-by-product-over-time`
 
-Returns credit usage broken down by product type over time. The response is a tabular structure with columns, column_types, column_units, and rows.
+Returns credit usage broken down by product type over time. The response is a tabular structure with columns, column_types, column_units, and rows. Some id columns also get a display-name column, such as user_label or voice_name, appended after the existing columns.
 
 `POST /v1/workspace/analytics/query/usage-by-product-over-time`
 
