@@ -22,6 +22,10 @@ targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "aarch64-unknown
 pr-run-mode = "plan"
 # Publish jobs to run (npm publishing deferred until pipeline is validated)
 publish-jobs = ["homebrew"]
+# Alpha testers install via brew/scoop before public launch, so prereleases
+# must actually publish. A tap/bucket has no prerelease channel: whatever is
+# published is what `brew install` serves.
+publish-prereleases = true
 # Don't overwrite release.yml on `dist init` (preserves customizations)
 allow-dirty = ["ci"]
 # The archive format to use for windows builds (defaults .zip)

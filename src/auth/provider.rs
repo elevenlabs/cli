@@ -169,10 +169,81 @@ impl AuthProvider for NoAuthProvider {
     }
 }
 
+/// Whether `name` is an API-key header (`xi-api-key`, `X-API-Key`, …).
+/// Narrower than [`crate::debug::is_sensitive_header`], which errs wide for redaction.
+pub(crate) fn is_api_key_header(name: &str) -> bool {
+    let lowered = name.to_ascii_lowercase();
+    ["api-key", "apikey", "api_key"]
+        .iter()
+        .any(|p| lowered.contains(p))
+}
+
+/// The first header in `headers` carrying a non-empty API key.
+pub(crate) fn supplied_api_key_header<'a, I>(headers: I) -> Option<&'a str>
+where
+    I: IntoIterator<Item = (&'a str, &'a str)>,
+{
+    headers
+        .into_iter()
+        .find(|(name, value)| is_api_key_header(name) && !value.trim().is_empty())
+        .map(|(name, _)| name)
+}
+
+/// Replaces the configured provider when the request already carries an API
+/// key header, so `Authorization` isn't sent alongside it. Reports credentials
+/// as present so a 401 names the header rather than the unused keyring entry.
+#[derive(Debug, Clone)]
+pub(crate) struct SuppliedHeaderAuthProvider {
+    hint: String,
+}
+
+impl SuppliedHeaderAuthProvider {
+    pub(crate) fn new(hint: impl Into<String>) -> Self {
+        Self { hint: hint.into() }
+    }
+}
+
+impl AuthProvider for SuppliedHeaderAuthProvider {
+    fn name(&self) -> &str {
+        "supplied-header"
+    }
+
+    fn has_credentials(&self) -> bool {
+        true
+    }
+
+    fn credential_hints(&self) -> Vec<String> {
+        vec![self.hint.clone()]
+    }
+
+    fn apply(
+        &self,
+        request: reqwest::RequestBuilder,
+        _endpoint: &EndpointAuthMetadata,
+    ) -> Result<reqwest::RequestBuilder, CliError> {
+        Ok(request)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::auth::test_helpers::{auth_header, req};
+
+    #[test]
+    fn api_key_header_detection() {
+        for name in ["xi-api-key", "X-API-Key", "apikey", "x_api_key"] {
+            assert!(is_api_key_header(name), "{name}");
+        }
+        for name in ["authorization", "idempotency-key", "x-csrf-token", "cookie"] {
+            assert!(!is_api_key_header(name), "{name}");
+        }
+        assert_eq!(
+            supplied_api_key_header([("accept", "json"), ("xi-api-key", "sk")]),
+            Some("xi-api-key")
+        );
+        assert_eq!(supplied_api_key_header([("xi-api-key", "  ")]), None);
+    }
 
     #[tokio::test]
     async fn no_auth_provider_emits_no_headers() {
