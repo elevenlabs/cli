@@ -2,6 +2,8 @@ use crate::api::*;
 use crate::{ApiError, ClientConfig, HttpClient, QueryBuilder, RequestOptions};
 use reqwest::Method;
 
+pub mod collections;
+pub use collections::CollectionsClient;
 pub mod settings;
 pub use settings::SettingsClient3;
 pub mod accents;
@@ -14,6 +16,7 @@ pub mod samples;
 pub use samples::SamplesClient3;
 pub struct VoicesClient {
     pub http_client: HttpClient,
+    pub collections: CollectionsClient,
     pub settings: SettingsClient3,
     pub accents: AccentsClient,
     pub ivc: IvcClient,
@@ -25,6 +28,7 @@ impl VoicesClient {
     pub fn new(config: ClientConfig) -> Result<Self, ApiError> {
         Ok(Self {
             http_client: HttpClient::new(config.clone())?,
+            collections: CollectionsClient::new(config.clone())?,
             settings: SettingsClient3::new(config.clone())?,
             accents: AccentsClient::new(config.clone())?,
             ivc: IvcClient::new(config.clone())?,

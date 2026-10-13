@@ -1,5 +1,5 @@
 use crate::api::*;
-use crate::{ApiError, ClientConfig, HttpClient, RequestOptions};
+use crate::{ApiError, ClientConfig, HttpClient, QueryBuilder, RequestOptions};
 use reqwest::Method;
 
 pub struct DeploymentsClient {
@@ -11,6 +11,65 @@ impl DeploymentsClient {
         Ok(Self {
             http_client: HttpClient::new(config.clone())?,
         })
+    }
+
+    /// List the traffic split history of an agent, newest first
+    ///
+    /// # Arguments
+    ///
+    /// * `agent_id` - The id of an agent. This is returned on agent creation.
+    /// * `page` - Page number, starting at 1
+    /// * `page_size` - How many results at most should be returned
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .deployments
+    ///         .list(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &AgentsDeploymentsListQueryRequest {
+    ///                 page: Some(1),
+    ///                 page_size: Some(1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn list(
+        &self,
+        agent_id: &str,
+        request: &AgentsDeploymentsListQueryRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<ListResponseAgentDeploymentHistoryItem, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::GET,
+                &format!("v1/convai/agents/{}/deployments", agent_id),
+                None,
+                QueryBuilder::new()
+                    .int("page", request.page.clone())
+                    .int("page_size", request.page_size.clone())
+                    .build(),
+                options,
+            )
+            .await
     }
 
     /// Create a new deployment for an agent

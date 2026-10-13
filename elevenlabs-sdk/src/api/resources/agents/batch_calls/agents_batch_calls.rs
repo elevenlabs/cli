@@ -311,6 +311,7 @@ impl BatchCallsClient {
     ///
     /// # Arguments
     ///
+    /// * `limit` - Only export the first N recipients; used to preview the columns. Omit to export every recipient.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -331,13 +332,20 @@ impl BatchCallsClient {
     ///     client
     ///         .agents
     ///         .batch_calls
-    ///         .export(&"batch_id".to_string(), None)
+    ///         .export(
+    ///             &"batch_id".to_string(),
+    ///             &ExportQueryRequest {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
     ///         .await;
     /// }
     /// ```
     pub async fn export(
         &self,
         batch_id: &str,
+        request: &ExportQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<ByteStream, ApiError> {
         self.http_client
@@ -345,7 +353,9 @@ impl BatchCallsClient {
                 Method::GET,
                 &format!("v1/convai/batch-calling/{}/export", batch_id),
                 None,
-                None,
+                QueryBuilder::new()
+                    .int("limit", request.limit.clone())
+                    .build(),
                 options,
             )
             .await

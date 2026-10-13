@@ -16,6 +16,9 @@ pub struct UpdateMemberRequest {
     /// The workspace seat type
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace_seat_type: Option<SeatType>,
+    /// When unlocking a user whose original seat type has no seats available but a basic seat is available, downgrade the user to a basic seat instead of failing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_downgrade_to_basic_seat: Option<bool>,
 }
 
 impl UpdateMemberRequest {
@@ -31,6 +34,7 @@ pub struct UpdateMemberRequestBuilder {
     is_locked: Option<bool>,
     workspace_role: Option<SeatType>,
     workspace_seat_type: Option<SeatType>,
+    allow_downgrade_to_basic_seat: Option<bool>,
 }
 
 impl UpdateMemberRequestBuilder {
@@ -54,6 +58,11 @@ impl UpdateMemberRequestBuilder {
         self
     }
 
+    pub fn allow_downgrade_to_basic_seat(mut self, value: bool) -> Self {
+        self.allow_downgrade_to_basic_seat = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`UpdateMemberRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`email`](UpdateMemberRequestBuilder::email)
@@ -63,6 +72,7 @@ impl UpdateMemberRequestBuilder {
             is_locked: self.is_locked,
             workspace_role: self.workspace_role,
             workspace_seat_type: self.workspace_seat_type,
+            allow_downgrade_to_basic_seat: self.allow_downgrade_to_basic_seat,
         })
     }
 }

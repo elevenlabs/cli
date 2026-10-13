@@ -66,6 +66,7 @@ impl TextToSpeechClient {
     ///                 use_pvc_as_ivc: None,
     ///                 apply_text_normalization: None,
     ///                 apply_language_text_normalization: None,
+    ///                 audio_effects: None,
     ///             },
     ///             None,
     ///         )
@@ -149,6 +150,7 @@ impl TextToSpeechClient {
     ///                 use_pvc_as_ivc: None,
     ///                 apply_text_normalization: None,
     ///                 apply_language_text_normalization: None,
+    ///                 audio_effects: None,
     ///             },
     ///             None,
     ///         )
@@ -232,6 +234,7 @@ impl TextToSpeechClient {
     ///                 use_pvc_as_ivc: None,
     ///                 apply_text_normalization: None,
     ///                 apply_language_text_normalization: None,
+    ///                 audio_effects: None,
     ///             },
     ///             None,
     ///         )
@@ -317,6 +320,7 @@ impl TextToSpeechClient {
     ///                 use_pvc_as_ivc: None,
     ///                 apply_text_normalization: None,
     ///                 apply_language_text_normalization: None,
+    ///                 audio_effects: None,
     ///             },
     ///             None,
     ///         )

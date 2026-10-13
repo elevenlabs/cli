@@ -88,6 +88,9 @@ pub struct Subscription {
     /// True if any workspace owned by this user's auth account has redeemed the creator first-month discount coupon.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_used_creator_coupon_on_account: Option<bool>,
+    /// True if this user's auth account qualifies for the Starter first-month promo, using the same check as checkout. The starter_discount feature flag still decides whether the promo is offered.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_eligible_for_starter_promo: Option<bool>,
 }
 
 impl Subscription {
@@ -128,6 +131,7 @@ pub struct SubscriptionBuilder {
     pending_change: Option<SubscriptionPendingChange>,
     has_used_starter_coupon_on_account: Option<bool>,
     has_used_creator_coupon_on_account: Option<bool>,
+    is_eligible_for_starter_promo: Option<bool>,
 }
 
 impl SubscriptionBuilder {
@@ -276,6 +280,11 @@ impl SubscriptionBuilder {
         self
     }
 
+    pub fn is_eligible_for_starter_promo(mut self, value: bool) -> Self {
+        self.is_eligible_for_starter_promo = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`Subscription`].
     /// This method will fail if any of the following fields are not set:
     /// - [`tier`](SubscriptionBuilder::tier)
@@ -328,6 +337,7 @@ impl SubscriptionBuilder {
             pending_change: self.pending_change,
             has_used_starter_coupon_on_account: self.has_used_starter_coupon_on_account,
             has_used_creator_coupon_on_account: self.has_used_creator_coupon_on_account,
+            is_eligible_for_starter_promo: self.is_eligible_for_starter_promo,
         })
     }
 }

@@ -8,6 +8,7 @@ pub enum TestRunStatus {
     Pending,
     Passed,
     Failed,
+    Cancelled,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -19,6 +20,7 @@ impl Serialize for TestRunStatus {
             Self::Pending => serializer.serialize_str("pending"),
             Self::Passed => serializer.serialize_str("passed"),
             Self::Failed => serializer.serialize_str("failed"),
+            Self::Cancelled => serializer.serialize_str("cancelled"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -31,6 +33,7 @@ impl<'de> Deserialize<'de> for TestRunStatus {
             "pending" => Ok(Self::Pending),
             "passed" => Ok(Self::Passed),
             "failed" => Ok(Self::Failed),
+            "cancelled" => Ok(Self::Cancelled),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -42,6 +45,7 @@ impl fmt::Display for TestRunStatus {
             Self::Pending => write!(f, "pending"),
             Self::Passed => write!(f, "passed"),
             Self::Failed => write!(f, "failed"),
+            Self::Cancelled => write!(f, "cancelled"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

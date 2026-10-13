@@ -20,6 +20,8 @@ pub struct GetTestSuiteInvocationResponseModel {
     pub folder_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub repeat_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancelled: Option<bool>,
     /// None when repeat_count==1 (no bucketing). Otherwise tracks bucketing lifecycle.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bucketing_status: Option<BucketingStatus>,
@@ -46,6 +48,7 @@ pub struct GetTestSuiteInvocationResponseModelBuilder {
     created_at: Option<i64>,
     folder_id: Option<String>,
     repeat_count: Option<i64>,
+    cancelled: Option<bool>,
     bucketing_status: Option<BucketingStatus>,
     result_groups: Option<Vec<TestRunResultSummary>>,
     test_runs: Option<Vec<UnitTestRunResponseModel>>,
@@ -92,6 +95,11 @@ impl GetTestSuiteInvocationResponseModelBuilder {
         self
     }
 
+    pub fn cancelled(mut self, value: bool) -> Self {
+        self.cancelled = Some(value);
+        self
+    }
+
     pub fn bucketing_status(mut self, value: BucketingStatus) -> Self {
         self.bucketing_status = Some(value);
         self
@@ -121,6 +129,7 @@ impl GetTestSuiteInvocationResponseModelBuilder {
             created_at: self.created_at,
             folder_id: self.folder_id,
             repeat_count: self.repeat_count,
+            cancelled: self.cancelled,
             bucketing_status: self.bucketing_status,
             result_groups: self.result_groups,
             test_runs: self.test_runs.ok_or_else(|| BuildError::missing_field("test_runs"))?,

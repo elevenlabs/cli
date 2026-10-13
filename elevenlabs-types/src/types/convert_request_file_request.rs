@@ -13,6 +13,8 @@ pub struct ConvertRequest3 {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub transcript_edit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tag_audio_events: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub num_speakers: Option<i64>,
@@ -87,6 +89,12 @@ impl ConvertRequest3 {
     if let Some(ref value) = self.language_code {
         if let Ok(json_str) = serde_json::to_string(value) {
             form = form.text("language_code", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.transcript_edit {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("transcript_edit", json_str);
         }
     }
 
@@ -244,6 +252,7 @@ pub struct ConvertRequest3Builder {
     model_id: Option<String>,
     file: Option<Vec<u8>>,
     language_code: Option<String>,
+    transcript_edit: Option<String>,
     tag_audio_events: Option<bool>,
     num_speakers: Option<i64>,
     timestamps_granularity: Option<SpeechToTextConvertRequestTimestampsGranularity>,
@@ -284,6 +293,11 @@ impl ConvertRequest3Builder {
 
     pub fn language_code(mut self, value: impl Into<String>) -> Self {
         self.language_code = Some(value.into());
+        self
+    }
+
+    pub fn transcript_edit(mut self, value: impl Into<String>) -> Self {
+        self.transcript_edit = Some(value.into());
         self
     }
 
@@ -420,6 +434,7 @@ impl ConvertRequest3Builder {
             model_id: self.model_id.ok_or_else(|| BuildError::missing_field("model_id"))?,
             file: self.file,
             language_code: self.language_code,
+            transcript_edit: self.transcript_edit,
             tag_audio_events: self.tag_audio_events,
             num_speakers: self.num_speakers,
             timestamps_granularity: self.timestamps_granularity,

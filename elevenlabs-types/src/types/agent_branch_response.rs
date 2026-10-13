@@ -20,6 +20,8 @@ pub struct AgentBranchResponse {
     pub is_archived: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protection_status: Option<BranchProtectionStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_rebase: Option<bool>,
     /// Access information for the branch
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_info: Option<ResourceAccessInfo>,
@@ -53,6 +55,7 @@ pub struct AgentBranchResponseBuilder {
     last_committed_at: Option<i64>,
     is_archived: Option<bool>,
     protection_status: Option<BranchProtectionStatus>,
+    auto_rebase: Option<bool>,
     access_info: Option<ResourceAccessInfo>,
     current_live_percentage: Option<f64>,
     parent_branch: Option<AgentBranchBasicInfo>,
@@ -100,6 +103,11 @@ impl AgentBranchResponseBuilder {
         self
     }
 
+    pub fn auto_rebase(mut self, value: bool) -> Self {
+        self.auto_rebase = Some(value);
+        self
+    }
+
     pub fn access_info(mut self, value: ResourceAccessInfo) -> Self {
         self.access_info = Some(value);
         self
@@ -139,6 +147,7 @@ impl AgentBranchResponseBuilder {
             last_committed_at: self.last_committed_at.ok_or_else(|| BuildError::missing_field("last_committed_at"))?,
             is_archived: self.is_archived.ok_or_else(|| BuildError::missing_field("is_archived"))?,
             protection_status: self.protection_status,
+            auto_rebase: self.auto_rebase,
             access_info: self.access_info,
             current_live_percentage: self.current_live_percentage,
             parent_branch: self.parent_branch,

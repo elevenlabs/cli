@@ -7,6 +7,8 @@ pub struct AgentTransferOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub node_id: Option<String>,
     #[serde(default)]
     pub condition: String,
@@ -21,6 +23,9 @@ pub struct AgentTransferOutput {
     /// Defines whether TTS client overrides should be carried over to the transferred agent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preserve_client_tts_overrides: Option<bool>,
+    /// Defines whether the base voice, TTS model and voice settings should be carried over to the transferred agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preserve_voice_settings: Option<bool>,
 }
 
 impl AgentTransferOutput {
@@ -33,6 +38,7 @@ impl AgentTransferOutput {
 #[non_exhaustive]
 pub struct AgentTransferOutputBuilder {
     agent_id: Option<String>,
+    branch_id: Option<String>,
     node_id: Option<String>,
     condition: Option<String>,
     delay_ms: Option<i64>,
@@ -40,11 +46,17 @@ pub struct AgentTransferOutputBuilder {
     enable_transferred_agent_first_message: Option<bool>,
     is_workflow_node_transfer: Option<bool>,
     preserve_client_tts_overrides: Option<bool>,
+    preserve_voice_settings: Option<bool>,
 }
 
 impl AgentTransferOutputBuilder {
     pub fn agent_id(mut self, value: impl Into<String>) -> Self {
         self.agent_id = Some(value.into());
+        self
+    }
+
+    pub fn branch_id(mut self, value: impl Into<String>) -> Self {
+        self.branch_id = Some(value.into());
         self
     }
 
@@ -83,12 +95,18 @@ impl AgentTransferOutputBuilder {
         self
     }
 
+    pub fn preserve_voice_settings(mut self, value: bool) -> Self {
+        self.preserve_voice_settings = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentTransferOutput`].
     /// This method will fail if any of the following fields are not set:
     /// - [`condition`](AgentTransferOutputBuilder::condition)
     pub fn build(self) -> Result<AgentTransferOutput, BuildError> {
         Ok(AgentTransferOutput {
             agent_id: self.agent_id,
+            branch_id: self.branch_id,
             node_id: self.node_id,
             condition: self.condition.ok_or_else(|| BuildError::missing_field("condition"))?,
             delay_ms: self.delay_ms,
@@ -96,6 +114,7 @@ impl AgentTransferOutputBuilder {
             enable_transferred_agent_first_message: self.enable_transferred_agent_first_message,
             is_workflow_node_transfer: self.is_workflow_node_transfer,
             preserve_client_tts_overrides: self.preserve_client_tts_overrides,
+            preserve_voice_settings: self.preserve_voice_settings,
         })
     }
 }

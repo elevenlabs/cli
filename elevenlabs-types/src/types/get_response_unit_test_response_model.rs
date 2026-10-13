@@ -4,6 +4,9 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct GetResponseUnitTestResponseModel {
+    /// The access information for the requesting user on this test.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub access_info: Option<ResourceAccessInfo>,
     /// Metadata of a conversation this test was created from (if applicable).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_conversation_metadata: Option<TestFromConversationMetadataOutput>,
@@ -42,6 +45,7 @@ impl GetResponseUnitTestResponseModel {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct GetResponseUnitTestResponseModelBuilder {
+    access_info: Option<ResourceAccessInfo>,
     from_conversation_metadata: Option<TestFromConversationMetadataOutput>,
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
     chat_history: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
@@ -55,6 +59,11 @@ pub struct GetResponseUnitTestResponseModelBuilder {
 }
 
 impl GetResponseUnitTestResponseModelBuilder {
+    pub fn access_info(mut self, value: ResourceAccessInfo) -> Self {
+        self.access_info = Some(value);
+        self
+    }
+
     pub fn from_conversation_metadata(mut self, value: TestFromConversationMetadataOutput) -> Self {
         self.from_conversation_metadata = Some(value);
         self
@@ -111,6 +120,7 @@ impl GetResponseUnitTestResponseModelBuilder {
     /// - [`name`](GetResponseUnitTestResponseModelBuilder::name)
     pub fn build(self) -> Result<GetResponseUnitTestResponseModel, BuildError> {
         Ok(GetResponseUnitTestResponseModel {
+            access_info: self.access_info,
             from_conversation_metadata: self.from_conversation_metadata,
             dynamic_variables: self.dynamic_variables,
             chat_history: self.chat_history,

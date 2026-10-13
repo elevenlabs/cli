@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct GetTestInvocationsPageResponseModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub meta: Option<ListResponseMeta>,

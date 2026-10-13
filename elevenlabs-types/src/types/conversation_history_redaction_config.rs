@@ -10,6 +10,9 @@ pub struct ConversationHistoryRedactionConfig {
     /// The entities to redact from the conversation transcript, audio and analysis. Use top-level types like 'name', 'email_address', or dot notation for specific subtypes like 'name.full_name'.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entities: Option<Vec<ConfigEntityType>>,
+    /// Data collection item IDs whose extracted values are not redacted. Their rationales are still redacted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub excluded_data_collection_ids: Option<Vec<String>>,
 }
 
 impl ConversationHistoryRedactionConfig {
@@ -23,6 +26,7 @@ impl ConversationHistoryRedactionConfig {
 pub struct ConversationHistoryRedactionConfigBuilder {
     enabled: Option<bool>,
     entities: Option<Vec<ConfigEntityType>>,
+    excluded_data_collection_ids: Option<Vec<String>>,
 }
 
 impl ConversationHistoryRedactionConfigBuilder {
@@ -36,11 +40,17 @@ impl ConversationHistoryRedactionConfigBuilder {
         self
     }
 
+    pub fn excluded_data_collection_ids(mut self, value: Vec<String>) -> Self {
+        self.excluded_data_collection_ids = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationHistoryRedactionConfig`].
     pub fn build(self) -> Result<ConversationHistoryRedactionConfig, BuildError> {
         Ok(ConversationHistoryRedactionConfig {
             enabled: self.enabled,
             entities: self.entities,
+            excluded_data_collection_ids: self.excluded_data_collection_ids,
         })
     }
 }

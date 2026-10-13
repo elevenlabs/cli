@@ -29,6 +29,9 @@ pub struct AgentsTestsListQueryRequest {
     /// Filter test visibility. Use `shared_with_me` to return only tests/folders shared with the current user that they did not create.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sharing_mode: Option<TestSharingMode>,
+    /// Filter tests and folders by creator user ID. Use '@me' to refer to the authenticated user.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_by_user_id: Option<String>,
 }
 
 impl AgentsTestsListQueryRequest {
@@ -48,6 +51,7 @@ pub struct AgentsTestsListQueryRequestBuilder {
     include_folders: Option<bool>,
     sort_mode: Option<TestsListRequestSortMode>,
     sharing_mode: Option<TestSharingMode>,
+    created_by_user_id: Option<String>,
 }
 
 impl AgentsTestsListQueryRequestBuilder {
@@ -91,6 +95,11 @@ impl AgentsTestsListQueryRequestBuilder {
         self
     }
 
+    pub fn created_by_user_id(mut self, value: impl Into<String>) -> Self {
+        self.created_by_user_id = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentsTestsListQueryRequest`].
     /// This method will fail if any of the following fields are not set:
     /// - [`types`](AgentsTestsListQueryRequestBuilder::types)
@@ -104,6 +113,7 @@ impl AgentsTestsListQueryRequestBuilder {
             include_folders: self.include_folders,
             sort_mode: self.sort_mode,
             sharing_mode: self.sharing_mode,
+            created_by_user_id: self.created_by_user_id,
         })
     }
 }

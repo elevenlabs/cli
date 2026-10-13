@@ -20,6 +20,9 @@ pub struct AgentVersionMetadata {
     pub parents: AgentVersionParents,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_info: Option<ResourceAccessInfo>,
+    /// For a merge into the main branch, the people who published the merged changes on the source branch (access_info is whoever ran the merge). Null when not recorded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub merged_authors: Option<Vec<ResourceAccessInfo>>,
 }
 
 impl AgentVersionMetadata {
@@ -39,6 +42,7 @@ pub struct AgentVersionMetadataBuilder {
     time_committed_secs: Option<i64>,
     parents: Option<AgentVersionParents>,
     access_info: Option<ResourceAccessInfo>,
+    merged_authors: Option<Vec<ResourceAccessInfo>>,
 }
 
 impl AgentVersionMetadataBuilder {
@@ -82,6 +86,11 @@ impl AgentVersionMetadataBuilder {
         self
     }
 
+    pub fn merged_authors(mut self, value: Vec<ResourceAccessInfo>) -> Self {
+        self.merged_authors = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AgentVersionMetadata`].
     /// This method will fail if any of the following fields are not set:
     /// - [`id`](AgentVersionMetadataBuilder::id)
@@ -101,6 +110,7 @@ impl AgentVersionMetadataBuilder {
             time_committed_secs: self.time_committed_secs.ok_or_else(|| BuildError::missing_field("time_committed_secs"))?,
             parents: self.parents.ok_or_else(|| BuildError::missing_field("parents"))?,
             access_info: self.access_info,
+            merged_authors: self.merged_authors,
         })
     }
 }

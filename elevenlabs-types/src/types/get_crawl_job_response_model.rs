@@ -10,9 +10,6 @@ pub struct GetCrawlJobResponseModel {
     pub seed_url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
-    /// Deprecated - this field is a no-op and will be removed in a future version.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_depth: Option<i64>,
     #[serde(default)]
     pub max_pages: i64,
     /// Whether to automatically discover and enqueue additional pages found while crawling.
@@ -50,7 +47,6 @@ pub struct GetCrawlJobResponseModelBuilder {
     r#type: Option<CrawlType>,
     seed_url: Option<String>,
     pattern: Option<String>,
-    max_depth: Option<i64>,
     max_pages: Option<i64>,
     auto_discover: Option<bool>,
     status: Option<CrawlStatus>,
@@ -77,11 +73,6 @@ impl GetCrawlJobResponseModelBuilder {
 
     pub fn pattern(mut self, value: impl Into<String>) -> Self {
         self.pattern = Some(value.into());
-        self
-    }
-
-    pub fn max_depth(mut self, value: i64) -> Self {
-        self.max_depth = Some(value);
         self
     }
 
@@ -153,7 +144,6 @@ impl GetCrawlJobResponseModelBuilder {
             r#type: self.r#type,
             seed_url: self.seed_url.ok_or_else(|| BuildError::missing_field("seed_url"))?,
             pattern: self.pattern,
-            max_depth: self.max_depth,
             max_pages: self.max_pages.ok_or_else(|| BuildError::missing_field("max_pages"))?,
             auto_discover: self.auto_discover,
             status: self.status,

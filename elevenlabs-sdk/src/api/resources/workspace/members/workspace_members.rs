@@ -76,6 +76,7 @@ impl MembersClient {
     ///                 is_locked: None,
     ///                 workspace_role: None,
     ///                 workspace_seat_type: None,
+    ///                 allow_downgrade_to_basic_seat: None,
     ///             },
     ///             None,
     ///         )

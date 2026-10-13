@@ -13,7 +13,7 @@ pub struct CreateProcedureRequestModel {
     /// Procedure type
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<ProcedureType>,
-    /// When the agent should use this procedure. Empty string means this is a sub-procedure that should only start when another procedure references it. If omitted or null, the trigger is derived from the content instead. Also accepts `description` as an alias.
+    /// When the agent should use this procedure. Empty string means this is a sub-procedure that should only start when another procedure references it. Omit this field (or send null) to keep the stored trigger, which is empty on create. Send `""` to clear it. `description` is accepted as an alias.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trigger: Option<String>,
     /// Procedure ID of the folder to create this procedure in, or null for root.

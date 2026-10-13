@@ -13,7 +13,7 @@ impl TriageTicketsClient {
         })
     }
 
-    /// List an agent's conversation triage tickets, ordered by most recently created first. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
+    /// List an agent's conversation triage tickets, ordered by most recently created first unless sorted by priority. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
     ///
     /// # Arguments
     ///
@@ -21,10 +21,14 @@ impl TriageTicketsClient {
     /// * `conversation_id` - Filter tickets by conversation id.
     /// * `status` - Filter tickets by status.
     /// * `sources` - Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
+    /// * `priorities` - Filter tickets by priority. Repeat the parameter to filter by multiple priorities.
+    /// * `sort_by` - Order by most recently created, or by priority (most urgent first, then most recently created).
     /// * `owner_user_id` - Filter tickets by creator. Use 'agent' for agent-raised tickets.
     /// * `assignee_user_id` - Filter tickets by assignee. Use 'unassigned' for tickets with no assignee.
     /// * `issue_type` - Filter clusters by issue type.
     /// * `label` - Filter tickets by an exact label.
+    /// * `merged_into_ticket_id` - Filter tickets merged into this ticket.
+    /// * `search` - Case-insensitive free-text search across the ticket's title, description, comments, and turn comments.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
@@ -53,10 +57,14 @@ impl TriageTicketsClient {
     ///                 conversation_id: Some("conversation_id".to_string()),
     ///                 status: Some(AgentConversationTicketStatus::Open),
     ///                 sources: vec![Some(AgentConversationTicketSource::Qa)],
+    ///                 priorities: vec![Some(AgentConversationTicketPriority::Low)],
+    ///                 sort_by: Some(AgentConversationTicketSortBy::CreatedAt),
     ///                 owner_user_id: Some("owner_user_id".to_string()),
     ///                 assignee_user_id: Some("assignee_user_id".to_string()),
     ///                 issue_type: Some(AgentConversationTicketIssueType::KnowledgeGap),
     ///                 label: Some("label".to_string()),
+    ///                 merged_into_ticket_id: Some("merged_into_ticket_id".to_string()),
+    ///                 search: Some("search".to_string()),
     ///                 cursor: Some("cursor".to_string()),
     ///             },
     ///             None,
@@ -80,10 +88,17 @@ impl TriageTicketsClient {
                     .string("conversation_id", request.conversation_id.clone())
                     .serialize("status", request.status.clone())
                     .serialize_array("sources", request.sources.clone())
+                    .serialize_array("priorities", request.priorities.clone())
+                    .serialize("sort_by", request.sort_by.clone())
                     .string("owner_user_id", request.owner_user_id.clone())
                     .string("assignee_user_id", request.assignee_user_id.clone())
                     .serialize("issue_type", request.issue_type.clone())
                     .string("label", request.label.clone())
+                    .string(
+                        "merged_into_ticket_id",
+                        request.merged_into_ticket_id.clone(),
+                    )
+                    .string("search", request.search.clone())
                     .string("cursor", request.cursor.clone())
                     .build(),
                 options,
@@ -91,7 +106,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). The comment is shown as the ticket title. Requires viewer access to the agent.
+    /// Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). Without a title, one is derived from the comment. Requires viewer access to the agent.
     ///
     /// # Arguments
     ///
@@ -119,6 +134,8 @@ impl TriageTicketsClient {
     ///             &"agent_id".to_string(),
     ///             &CreateManualTicketRequestModel {
     ///                 qa_comment: "qa_comment".to_string(),
+    ///                 title: None,
+    ///                 priority: None,
     ///             },
     ///             None,
     ///         )
@@ -142,13 +159,22 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller); for a single agent's tickets, use the per-agent endpoint instead. Tickets for agents the caller cannot access are omitted.
+    /// List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller). Supports the same filters, sorting and search as the per-agent endpoint. Tickets for agents the caller cannot access are omitted.
     ///
     /// # Arguments
     ///
     /// * `page_size` - How many agent conversation tickets to return. Can not exceed 100.
+    /// * `agent_id` - Only tickets for this agent.
     /// * `status` - Filter tickets by status.
+    /// * `sources` - Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
+    /// * `priorities` - Filter tickets by priority. Repeat the parameter to filter by multiple priorities.
+    /// * `sort_by` - Order by most recently created, or by priority (most urgent first, then most recently created).
+    /// * `owner_user_id` - Filter tickets by creator. Use 'agent' for agent-raised tickets.
     /// * `assignee_user_id` - Filter tickets by assignee. Use 'unassigned' for tickets with no assignee.
+    /// * `issue_type` - Filter clusters by issue type.
+    /// * `label` - Filter tickets by an exact label.
+    /// * `merged_into_ticket_id` - Filter tickets merged into this ticket.
+    /// * `search` - Case-insensitive free-text search across the ticket's title, description, comments, and turn comments.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
@@ -173,10 +199,18 @@ impl TriageTicketsClient {
     ///         .list_for_workspace(
     ///             &ListForWorkspaceQueryRequest {
     ///                 page_size: Some(1),
+    ///                 agent_id: Some("agent_id".to_string()),
     ///                 status: Some(AgentConversationTicketStatus::Open),
+    ///                 sources: vec![Some(AgentConversationTicketSource::Qa)],
+    ///                 priorities: vec![Some(AgentConversationTicketPriority::Low)],
+    ///                 sort_by: Some(AgentConversationTicketSortBy::CreatedAt),
+    ///                 owner_user_id: Some("owner_user_id".to_string()),
     ///                 assignee_user_id: Some("assignee_user_id".to_string()),
+    ///                 issue_type: Some(AgentConversationTicketIssueType::KnowledgeGap),
+    ///                 label: Some("label".to_string()),
+    ///                 merged_into_ticket_id: Some("merged_into_ticket_id".to_string()),
+    ///                 search: Some("search".to_string()),
     ///                 cursor: Some("cursor".to_string()),
-    ///                 ..Default::default()
     ///             },
     ///             None,
     ///         )
@@ -195,8 +229,20 @@ impl TriageTicketsClient {
                 None,
                 QueryBuilder::new()
                     .int("page_size", request.page_size.clone())
+                    .string("agent_id", request.agent_id.clone())
                     .serialize("status", request.status.clone())
+                    .serialize_array("sources", request.sources.clone())
+                    .serialize_array("priorities", request.priorities.clone())
+                    .serialize("sort_by", request.sort_by.clone())
+                    .string("owner_user_id", request.owner_user_id.clone())
                     .string("assignee_user_id", request.assignee_user_id.clone())
+                    .serialize("issue_type", request.issue_type.clone())
+                    .string("label", request.label.clone())
+                    .string(
+                        "merged_into_ticket_id",
+                        request.merged_into_ticket_id.clone(),
+                    )
+                    .string("search", request.search.clone())
                     .string("cursor", request.cursor.clone())
                     .build(),
                 options,
@@ -231,8 +277,10 @@ impl TriageTicketsClient {
     ///         .create(
     ///             &CreateAgentConversationTicketRequestModel {
     ///                 conversation_id: "conversation_id".to_string(),
+    ///                 title: None,
     ///                 qa_comment: None,
     ///                 turn_comments: None,
+    ///                 priority: None,
     ///             },
     ///             None,
     ///         )
@@ -390,7 +438,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Update a ticket's comment, status, and/or assignee. Requires editor access to the ticket's agent.
+    /// Update a ticket's title, comment, status, priority, and/or assignee. Requires editor access to the ticket's agent.
     ///
     /// # Arguments
     ///
@@ -485,6 +533,57 @@ impl TriageTicketsClient {
             .execute_request(
                 Method::POST,
                 &format!("v1/convai/triage-tickets/{}/comments", agentqa_ticket_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Merge other open tickets of the same agent into this pending, in-progress, or resolved one. Their conversations move onto this ticket, its priority is raised to the highest among them, and they are kept with status 'merged'. Requires viewer access to the ticket's agent.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .triage_tickets
+    ///         .merge(
+    ///             &"agentqa_ticket_id".to_string(),
+    ///             &MergeAgentConversationTicketsRequestModel {
+    ///                 source_ticket_ids: vec!["source_ticket_ids".to_string()],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn merge(
+        &self,
+        agentqa_ticket_id: &str,
+        request: &MergeAgentConversationTicketsRequestModel,
+        options: Option<RequestOptions>,
+    ) -> Result<AgentConversationTicketResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!("v1/convai/triage-tickets/{}/merge", agentqa_ticket_id),
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 None,
                 options,

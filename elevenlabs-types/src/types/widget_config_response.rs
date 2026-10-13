@@ -139,6 +139,9 @@ pub struct WidgetConfigResponse {
     /// Whether to show the resize button
     #[serde(skip_serializing_if = "Option::is_none")]
     pub show_resize_button: Option<bool>,
+    /// Whether to ask the user to confirm before ending a chat or call
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_confirmation_enabled: Option<bool>,
     #[serde(default)]
     pub language: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -216,6 +219,7 @@ pub struct WidgetConfigResponseBuilder {
     text_contents: Option<WidgetTextContents>,
     styles: Option<WidgetStyles>,
     show_resize_button: Option<bool>,
+    end_confirmation_enabled: Option<bool>,
     language: Option<String>,
     supported_language_overrides: Option<Vec<String>>,
     language_presets: Option<HashMap<String, WidgetLanguagePresetResponse>>,
@@ -452,6 +456,11 @@ impl WidgetConfigResponseBuilder {
         self
     }
 
+    pub fn end_confirmation_enabled(mut self, value: bool) -> Self {
+        self.end_confirmation_enabled = Some(value);
+        self
+    }
+
     pub fn language(mut self, value: impl Into<String>) -> Self {
         self.language = Some(value.into());
         self
@@ -542,6 +551,7 @@ impl WidgetConfigResponseBuilder {
             text_contents: self.text_contents,
             styles: self.styles,
             show_resize_button: self.show_resize_button,
+            end_confirmation_enabled: self.end_confirmation_enabled,
             language: self.language.ok_or_else(|| BuildError::missing_field("language"))?,
             supported_language_overrides: self.supported_language_overrides,
             language_presets: self.language_presets,

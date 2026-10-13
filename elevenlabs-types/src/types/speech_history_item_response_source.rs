@@ -16,6 +16,7 @@ pub enum SpeechHistoryItemResponseSource {
     VoiceGeneration,
     InVpc,
     Flows,
+    VoicePreview,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -35,6 +36,7 @@ impl Serialize for SpeechHistoryItemResponseSource {
             Self::VoiceGeneration => serializer.serialize_str("VoiceGeneration"),
             Self::InVpc => serializer.serialize_str("InVPC"),
             Self::Flows => serializer.serialize_str("Flows"),
+            Self::VoicePreview => serializer.serialize_str("VoicePreview"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -55,6 +57,7 @@ impl<'de> Deserialize<'de> for SpeechHistoryItemResponseSource {
             "VoiceGeneration" => Ok(Self::VoiceGeneration),
             "InVPC" => Ok(Self::InVpc),
             "Flows" => Ok(Self::Flows),
+            "VoicePreview" => Ok(Self::VoicePreview),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -74,6 +77,7 @@ impl fmt::Display for SpeechHistoryItemResponseSource {
             Self::VoiceGeneration => write!(f, "VoiceGeneration"),
             Self::InVpc => write!(f, "InVPC"),
             Self::Flows => write!(f, "Flows"),
+            Self::VoicePreview => write!(f, "VoicePreview"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }
