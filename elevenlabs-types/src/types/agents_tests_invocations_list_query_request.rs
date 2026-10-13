@@ -11,6 +11,18 @@ pub struct AgentsTestsInvocationsListQueryRequest {
     /// Filter by branch ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    /// Filter to invocations that include a run of this test id
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_id: Option<String>,
+    /// Inclusive lower bound on created_at, in unix seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<i64>,
+    /// Inclusive upper bound on created_at, in unix seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<i64>,
+    /// Filter by the agent version the tests ran against
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
     /// How many Tests to return at maximum. Can not exceed 100, defaults to 30.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
@@ -33,6 +45,10 @@ impl AgentsTestsInvocationsListQueryRequest {
 pub struct AgentsTestsInvocationsListQueryRequestBuilder {
     agent_id: Option<String>,
     branch_id: Option<String>,
+    test_id: Option<String>,
+    start_time: Option<i64>,
+    end_time: Option<i64>,
+    version_id: Option<String>,
     page_size: Option<i64>,
     search: Option<String>,
     cursor: Option<String>,
@@ -46,6 +62,26 @@ impl AgentsTestsInvocationsListQueryRequestBuilder {
 
     pub fn branch_id(mut self, value: impl Into<String>) -> Self {
         self.branch_id = Some(value.into());
+        self
+    }
+
+    pub fn test_id(mut self, value: impl Into<String>) -> Self {
+        self.test_id = Some(value.into());
+        self
+    }
+
+    pub fn start_time(mut self, value: i64) -> Self {
+        self.start_time = Some(value);
+        self
+    }
+
+    pub fn end_time(mut self, value: i64) -> Self {
+        self.end_time = Some(value);
+        self
+    }
+
+    pub fn version_id(mut self, value: impl Into<String>) -> Self {
+        self.version_id = Some(value.into());
         self
     }
 
@@ -69,6 +105,10 @@ impl AgentsTestsInvocationsListQueryRequestBuilder {
         Ok(AgentsTestsInvocationsListQueryRequest {
             agent_id: self.agent_id,
             branch_id: self.branch_id,
+            test_id: self.test_id,
+            start_time: self.start_time,
+            end_time: self.end_time,
+            version_id: self.version_id,
             page_size: self.page_size,
             search: self.search,
             cursor: self.cursor,

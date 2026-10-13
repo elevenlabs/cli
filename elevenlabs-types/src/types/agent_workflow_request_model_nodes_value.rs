@@ -13,6 +13,8 @@ pub enum AgentWorkflowRequestModelNodesValue {
             position: Option<PositionInput>,
             #[serde(skip_serializing_if = "Option::is_none")]
             edge_order: Option<Vec<String>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            outcome: Option<WorkflowEndNodeOutcome>,
         },
 
         #[serde(rename = "override_agent")]
@@ -66,6 +68,8 @@ pub enum AgentWorkflowRequestModelNodesValue {
             #[serde(skip_serializing_if = "Option::is_none")]
             agent_id: Option<String>,
             #[serde(skip_serializing_if = "Option::is_none")]
+            branch_id: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
             node_id: Option<String>,
             #[serde(skip_serializing_if = "Option::is_none")]
             delay_ms: Option<i64>,
@@ -75,6 +79,8 @@ pub enum AgentWorkflowRequestModelNodesValue {
             enable_transferred_agent_first_message: Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
             preserve_client_tts_overrides: Option<bool>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            preserve_voice_settings: Option<bool>,
         },
 
         #[serde(rename = "start")]
@@ -97,6 +103,43 @@ pub enum AgentWorkflowRequestModelNodesValue {
             tools: Option<Vec<WorkflowToolLocator>>,
         },
 
+        #[serde(rename = "say")]
+        #[non_exhaustive]
+        Say {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            position: Option<PositionInput>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            edge_order: Option<Vec<String>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            additional_prompt: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            additional_tool_ids: Option<Vec<String>>,
+            #[serde(default)]
+            label: String,
+            message: WorkflowSayNodeModelInputMessage,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            wait_for_speech_completion: Option<bool>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            wait_for_user_response: Option<bool>,
+        },
+
+        #[serde(rename = "update_state")]
+        #[non_exhaustive]
+        UpdateState {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            position: Option<PositionInput>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            edge_order: Option<Vec<String>>,
+            #[serde(default)]
+            label: String,
+            #[serde(default)]
+            updates: Vec<WorkflowStateUpdateInput>,
+        },
+
         /// Catch-all variant for unrecognized discriminant values.
         /// If the server sends a discriminant not recognized by the current SDK
         /// version, the raw payload is captured here so callers can still inspect it.
@@ -106,7 +149,7 @@ pub enum AgentWorkflowRequestModelNodesValue {
 
 impl AgentWorkflowRequestModelNodesValue {
     pub fn end() -> Self {
-        Self::End { position: None, edge_order: None }
+        Self::End { position: None, edge_order: None, outcome: None }
     }
 
     pub fn override_agent(label: String) -> Self {
@@ -118,7 +161,7 @@ impl AgentWorkflowRequestModelNodesValue {
     }
 
     pub fn standalone_agent() -> Self {
-        Self::StandaloneAgent { position: None, edge_order: None, agent_id: None, node_id: None, delay_ms: None, transfer_message: None, enable_transferred_agent_first_message: None, preserve_client_tts_overrides: None }
+        Self::StandaloneAgent { position: None, edge_order: None, agent_id: None, branch_id: None, node_id: None, delay_ms: None, transfer_message: None, enable_transferred_agent_first_message: None, preserve_client_tts_overrides: None, preserve_voice_settings: None }
     }
 
     pub fn start() -> Self {
@@ -129,12 +172,24 @@ impl AgentWorkflowRequestModelNodesValue {
         Self::Tool { position: None, edge_order: None, tools: None }
     }
 
-    pub fn end_with_position(position: PositionInput, edge_order: Option<Vec<String>>) -> Self {
-        Self::End { position: Some(position), edge_order }
+    pub fn say(label: String, message: WorkflowSayNodeModelInputMessage) -> Self {
+        Self::Say { position: None, edge_order: None, conversation_config: None, additional_prompt: None, additional_knowledge_base: None, additional_tool_ids: None, label, message, wait_for_speech_completion: None, wait_for_user_response: None }
     }
 
-    pub fn end_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>) -> Self {
-        Self::End { position, edge_order: Some(edge_order) }
+    pub fn update_state(label: String, updates: Vec<WorkflowStateUpdateInput>) -> Self {
+        Self::UpdateState { position: None, edge_order: None, label, updates }
+    }
+
+    pub fn end_with_position(position: PositionInput, edge_order: Option<Vec<String>>, outcome: Option<WorkflowEndNodeOutcome>) -> Self {
+        Self::End { position: Some(position), edge_order, outcome }
+    }
+
+    pub fn end_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, outcome: Option<WorkflowEndNodeOutcome>) -> Self {
+        Self::End { position, edge_order: Some(edge_order), outcome }
+    }
+
+    pub fn end_with_outcome(position: Option<PositionInput>, edge_order: Option<Vec<String>>, outcome: WorkflowEndNodeOutcome) -> Self {
+        Self::End { position, edge_order, outcome: Some(outcome) }
     }
 
     pub fn override_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
@@ -193,36 +248,44 @@ impl AgentWorkflowRequestModelNodesValue {
         Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order: Some(edge_order) }
     }
 
-    pub fn standalone_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position: Some(position), edge_order, agent_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides }
+    pub fn standalone_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position: Some(position), edge_order, agent_id, branch_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, agent_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position, edge_order: Some(edge_order), agent_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides }
+    pub fn standalone_agent_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order: Some(edge_order), agent_id, branch_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_agent_id(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: String, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position, edge_order, agent_id: Some(agent_id), node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides }
+    pub fn standalone_agent_with_agent_id(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: String, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id: Some(agent_id), branch_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_node_id(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position, edge_order, agent_id, node_id: Some(node_id), delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides }
+    pub fn standalone_agent_with_branch_id(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: String, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id: Some(branch_id), node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_delay_ms(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: Option<String>, delay_ms: i64, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position, edge_order, agent_id, node_id, delay_ms: Some(delay_ms), transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides }
+    pub fn standalone_agent_with_node_id(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: String, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id, node_id: Some(node_id), delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_transfer_message(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: String, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position, edge_order, agent_id, node_id, delay_ms, transfer_message: Some(transfer_message), enable_transferred_agent_first_message, preserve_client_tts_overrides }
+    pub fn standalone_agent_with_delay_ms(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: i64, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id, node_id, delay_ms: Some(delay_ms), transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_enable_transferred_agent_first_message(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: bool, preserve_client_tts_overrides: Option<bool>) -> Self {
-        Self::StandaloneAgent { position, edge_order, agent_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message: Some(enable_transferred_agent_first_message), preserve_client_tts_overrides }
+    pub fn standalone_agent_with_transfer_message(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: String, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id, node_id, delay_ms, transfer_message: Some(transfer_message), enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings }
     }
 
-    pub fn standalone_agent_with_preserve_client_tts_overrides(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: bool) -> Self {
-        Self::StandaloneAgent { position, edge_order, agent_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides: Some(preserve_client_tts_overrides) }
+    pub fn standalone_agent_with_enable_transferred_agent_first_message(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: bool, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message: Some(enable_transferred_agent_first_message), preserve_client_tts_overrides, preserve_voice_settings }
+    }
+
+    pub fn standalone_agent_with_preserve_client_tts_overrides(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: bool, preserve_voice_settings: Option<bool>) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides: Some(preserve_client_tts_overrides), preserve_voice_settings }
+    }
+
+    pub fn standalone_agent_with_preserve_voice_settings(position: Option<PositionInput>, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: bool) -> Self {
+        Self::StandaloneAgent { position, edge_order, agent_id, branch_id, node_id, delay_ms, transfer_message, enable_transferred_agent_first_message, preserve_client_tts_overrides, preserve_voice_settings: Some(preserve_voice_settings) }
     }
 
     pub fn start_with_position(position: PositionInput, edge_order: Option<Vec<String>>) -> Self {
@@ -243,6 +306,46 @@ impl AgentWorkflowRequestModelNodesValue {
 
     pub fn tool_with_tools(position: Option<PositionInput>, edge_order: Option<Vec<String>>, tools: Vec<WorkflowToolLocator>) -> Self {
         Self::Tool { position, edge_order, tools: Some(tools) }
+    }
+
+    pub fn say_with_position(position: PositionInput, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position: Some(position), edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, message, wait_for_speech_completion, wait_for_user_response }
+    }
+
+    pub fn say_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position, edge_order: Some(edge_order), conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, message, wait_for_speech_completion, wait_for_user_response }
+    }
+
+    pub fn say_with_conversation_config(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: ConversationalConfigApiModelWorkflowOverrideInput, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position, edge_order, conversation_config: Some(conversation_config), additional_prompt, additional_knowledge_base, additional_tool_ids, label, message, wait_for_speech_completion, wait_for_user_response }
+    }
+
+    pub fn say_with_additional_prompt(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: String, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position, edge_order, conversation_config, additional_prompt: Some(additional_prompt), additional_knowledge_base, additional_tool_ids, label, message, wait_for_speech_completion, wait_for_user_response }
+    }
+
+    pub fn say_with_additional_knowledge_base(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Vec<KnowledgeBaseLocator>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base: Some(additional_knowledge_base), additional_tool_ids, label, message, wait_for_speech_completion, wait_for_user_response }
+    }
+
+    pub fn say_with_additional_tool_ids(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Vec<String>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids: Some(additional_tool_ids), label, message, wait_for_speech_completion, wait_for_user_response }
+    }
+
+    pub fn say_with_wait_for_speech_completion(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: bool, wait_for_user_response: Option<bool>) -> Self {
+        Self::Say { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, message, wait_for_speech_completion: Some(wait_for_speech_completion), wait_for_user_response }
+    }
+
+    pub fn say_with_wait_for_user_response(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, message: WorkflowSayNodeModelInputMessage, wait_for_speech_completion: Option<bool>, wait_for_user_response: bool) -> Self {
+        Self::Say { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, message, wait_for_speech_completion, wait_for_user_response: Some(wait_for_user_response) }
+    }
+
+    pub fn update_state_with_position(position: PositionInput, edge_order: Option<Vec<String>>, label: String, updates: Vec<WorkflowStateUpdateInput>) -> Self {
+        Self::UpdateState { position: Some(position), edge_order, label, updates }
+    }
+
+    pub fn update_state_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, label: String, updates: Vec<WorkflowStateUpdateInput>) -> Self {
+        Self::UpdateState { position, edge_order: Some(edge_order), label, updates }
     }
 
     pub fn unknown(value: serde_json::Value) -> Self {

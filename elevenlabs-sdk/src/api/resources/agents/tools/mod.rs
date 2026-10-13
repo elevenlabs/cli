@@ -28,6 +28,7 @@ impl ToolsClient {
     /// * `types` - If present, the endpoint will return only tools of the given types.
     /// * `sort_direction` - The direction to sort the results
     /// * `sort_by` - The field to sort the results by
+    /// * `used_by_agent_id` - Filter to tools referenced by this agent's main branch: tools attached to the agent, tools on authored workflow nodes, and tools referenced by procedures.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
@@ -58,6 +59,7 @@ impl ToolsClient {
     ///                 types: vec![Some(ToolTypeFilter::Webhook)],
     ///                 sort_direction: Some(SortDirection::Asc),
     ///                 sort_by: Some(ToolSortBy::Name),
+    ///                 used_by_agent_id: Some("used_by_agent_id".to_string()),
     ///                 cursor: Some("cursor".to_string()),
     ///             },
     ///             None,
@@ -86,6 +88,7 @@ impl ToolsClient {
                     .serialize_array("types", request.types.clone())
                     .serialize("sort_direction", request.sort_direction.clone())
                     .serialize("sort_by", request.sort_by.clone())
+                    .string("used_by_agent_id", request.used_by_agent_id.clone())
                     .string("cursor", request.cursor.clone())
                     .build(),
                 options,

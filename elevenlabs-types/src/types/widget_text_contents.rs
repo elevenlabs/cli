@@ -52,6 +52,12 @@ pub struct WidgetTextContents {
     /// Status displayed when the agent is chatting (text only)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chatting_status: Option<String>,
+    /// Status displayed while waiting in the queue for an available agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queue_waiting_status: Option<String>,
+    /// Short status displayed while waiting for an available agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queue_waiting_status_short: Option<String>,
     /// ARIA label for the text message input.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_label: Option<String>,
@@ -76,6 +82,9 @@ pub struct WidgetTextContents {
     /// Text label used when an error occurs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_occurred: Option<String>,
+    /// Error message displayed when the queue wait times out.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queue_timed_out: Option<String>,
     /// Text and ARIA label used for the copy ID button.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub copy_id: Option<String>,
@@ -154,6 +163,9 @@ pub struct WidgetTextContents {
     /// Status text displayed while the agent is typing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub typing_indicator: Option<String>,
+    /// Fallback message displayed when rich content cannot be rendered.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rich_content_unavailable: Option<String>,
 }
 
 impl WidgetTextContents {
@@ -181,6 +193,8 @@ pub struct WidgetTextContentsBuilder {
     speaking_status: Option<String>,
     connecting_status: Option<String>,
     chatting_status: Option<String>,
+    queue_waiting_status: Option<String>,
+    queue_waiting_status_short: Option<String>,
     input_label: Option<String>,
     input_placeholder: Option<String>,
     input_placeholder_text_only: Option<String>,
@@ -189,6 +203,7 @@ pub struct WidgetTextContentsBuilder {
     agent_ended_conversation: Option<String>,
     conversation_id: Option<String>,
     error_occurred: Option<String>,
+    queue_timed_out: Option<String>,
     copy_id: Option<String>,
     initiate_feedback: Option<String>,
     request_follow_up_feedback: Option<String>,
@@ -215,6 +230,7 @@ pub struct WidgetTextContentsBuilder {
     file_too_large: Option<String>,
     file_limit_reached: Option<String>,
     typing_indicator: Option<String>,
+    rich_content_unavailable: Option<String>,
 }
 
 impl WidgetTextContentsBuilder {
@@ -298,6 +314,16 @@ impl WidgetTextContentsBuilder {
         self
     }
 
+    pub fn queue_waiting_status(mut self, value: impl Into<String>) -> Self {
+        self.queue_waiting_status = Some(value.into());
+        self
+    }
+
+    pub fn queue_waiting_status_short(mut self, value: impl Into<String>) -> Self {
+        self.queue_waiting_status_short = Some(value.into());
+        self
+    }
+
     pub fn input_label(mut self, value: impl Into<String>) -> Self {
         self.input_label = Some(value.into());
         self
@@ -335,6 +361,11 @@ impl WidgetTextContentsBuilder {
 
     pub fn error_occurred(mut self, value: impl Into<String>) -> Self {
         self.error_occurred = Some(value.into());
+        self
+    }
+
+    pub fn queue_timed_out(mut self, value: impl Into<String>) -> Self {
+        self.queue_timed_out = Some(value.into());
         self
     }
 
@@ -468,6 +499,11 @@ impl WidgetTextContentsBuilder {
         self
     }
 
+    pub fn rich_content_unavailable(mut self, value: impl Into<String>) -> Self {
+        self.rich_content_unavailable = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`WidgetTextContents`].
     pub fn build(self) -> Result<WidgetTextContents, BuildError> {
         Ok(WidgetTextContents {
@@ -487,6 +523,8 @@ impl WidgetTextContentsBuilder {
             speaking_status: self.speaking_status,
             connecting_status: self.connecting_status,
             chatting_status: self.chatting_status,
+            queue_waiting_status: self.queue_waiting_status,
+            queue_waiting_status_short: self.queue_waiting_status_short,
             input_label: self.input_label,
             input_placeholder: self.input_placeholder,
             input_placeholder_text_only: self.input_placeholder_text_only,
@@ -495,6 +533,7 @@ impl WidgetTextContentsBuilder {
             agent_ended_conversation: self.agent_ended_conversation,
             conversation_id: self.conversation_id,
             error_occurred: self.error_occurred,
+            queue_timed_out: self.queue_timed_out,
             copy_id: self.copy_id,
             initiate_feedback: self.initiate_feedback,
             request_follow_up_feedback: self.request_follow_up_feedback,
@@ -521,6 +560,7 @@ impl WidgetTextContentsBuilder {
             file_too_large: self.file_too_large,
             file_limit_reached: self.file_limit_reached,
             typing_indicator: self.typing_indicator,
+            rich_content_unavailable: self.rich_content_unavailable,
         })
     }
 }

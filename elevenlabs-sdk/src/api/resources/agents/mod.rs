@@ -54,6 +54,8 @@ pub mod deployments;
 pub use deployments::DeploymentsClient;
 pub mod drafts;
 pub use drafts::DraftsClient;
+pub mod merge_proposals;
+pub use merge_proposals::MergeProposalsClient;
 pub mod procedures;
 pub use procedures::ProceduresClient;
 pub mod agents;
@@ -90,6 +92,7 @@ pub struct AgentsClient {
     pub versions: VersionsClient,
     pub deployments: DeploymentsClient,
     pub drafts: DraftsClient,
+    pub merge_proposals: MergeProposalsClient,
     pub procedures: ProceduresClient,
     pub agents: AgentsClient2,
     pub analytics: AnalyticsClient,
@@ -126,6 +129,7 @@ impl AgentsClient {
             versions: VersionsClient::new(config.clone())?,
             deployments: DeploymentsClient::new(config.clone())?,
             drafts: DraftsClient::new(config.clone())?,
+            merge_proposals: MergeProposalsClient::new(config.clone())?,
             procedures: ProceduresClient::new(config.clone())?,
             agents: AgentsClient2::new(config.clone())?,
             analytics: AnalyticsClient::new(config.clone())?,
@@ -432,7 +436,7 @@ impl AgentsClient {
             .await
     }
 
-    /// Create a new agent by duplicating an existing one
+    /// Create a new agent by duplicating an existing one. The new agent gets a copy of every unarchived branch of the source agent, each with the same name and description and starting from the latest version on that branch. Version history, drafts, archived branches and traffic deployments are not copied, so the new agent routes all traffic to its main branch.
     ///
     /// # Arguments
     ///
@@ -483,7 +487,7 @@ impl AgentsClient {
             .await
     }
 
-    /// Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user.
+    /// Deprecated. This endpoint will be removed on 31 Oct 2026. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user.
     ///
     /// # Arguments
     ///
@@ -544,7 +548,7 @@ impl AgentsClient {
             .await
     }
 
-    /// Deprecated. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user and stream back the response. Response is streamed back as partial lists of messages that should be concatenated and once the conversation has complete a single final message with the conversation analysis will be sent.
+    /// Deprecated. This endpoint will be removed on 31 Oct 2026. Use the `/v1/convai/agent-testing/create` and `/v1/convai/agents/:agent_id/run-tests` endpoints to create and run simulations. Run a conversation between the agent and a simulated user and stream back the response. Response is streamed back as partial lists of messages that should be concatenated and once the conversation has complete a single final message with the conversation analysis will be sent.
     ///
     /// # Arguments
     ///

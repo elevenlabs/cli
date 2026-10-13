@@ -15,6 +15,10 @@ elevenlabs say "this came from the terminal"
 Needs credentials: either `elevenlabs auth login` or `ELEVENLABS_API_KEY` in
 the environment.
 
+> If `say` cannot do what the user asked, report it rather than improvising:
+> `elevenlabs feedback missing-capability "<what you needed>"`. It records the
+> gap and returns; it does not fail your task.
+
 ## Reading the text
 
 Three equivalent sources — pick whichever suits the caller:

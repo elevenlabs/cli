@@ -6,6 +6,13 @@ use super::*;
 #[serde(tag = "branch_reason")]
 #[non_exhaustive]
 pub enum TransferToAgentToolResultSuccessModelInputBranchInfo {
+        #[serde(rename = "configured")]
+        #[non_exhaustive]
+        Configured {
+            #[serde(flatten)]
+            data: TransferBranchInfoConfigured,
+        },
+
         #[serde(rename = "defaulting_to_main")]
         #[non_exhaustive]
         DefaultingToMain {
@@ -28,6 +35,10 @@ pub enum TransferToAgentToolResultSuccessModelInputBranchInfo {
 }
 
 impl TransferToAgentToolResultSuccessModelInputBranchInfo {
+    pub fn configured(data: TransferBranchInfoConfigured) -> Self {
+        Self::Configured { data }
+    }
+
     pub fn defaulting_to_main(data: TransferBranchInfoDefaultingToMain) -> Self {
         Self::DefaultingToMain { data }
     }

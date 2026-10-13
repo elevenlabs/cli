@@ -15,6 +15,8 @@ pub enum ReceiveTranscription {
 
         CommittedTranscriptEntitiesPayload(CommittedTranscriptEntitiesPayload),
 
+        EditedTranscript(EditedTranscript),
+
         ScribeWarning(ScribeWarning),
 
         ScribeErrorPayload(ScribeErrorPayload),
@@ -65,6 +67,10 @@ impl ReceiveTranscription {
 
     pub fn is_committed_transcript_entities_payload(&self) -> bool {
         matches!(self, Self::CommittedTranscriptEntitiesPayload(_))
+    }
+
+    pub fn is_edited_transcript(&self) -> bool {
+        matches!(self, Self::EditedTranscript(_))
     }
 
     pub fn is_scribe_warning(&self) -> bool {
@@ -194,6 +200,20 @@ impl ReceiveTranscription {
     pub fn into_committed_transcript_entities_payload(self) -> Option<CommittedTranscriptEntitiesPayload> {
         match self {
                     Self::CommittedTranscriptEntitiesPayload(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_edited_transcript(&self) -> Option<&EditedTranscript> {
+        match self {
+                    Self::EditedTranscript(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_edited_transcript(self) -> Option<EditedTranscript> {
+        match self {
+                    Self::EditedTranscript(value) => Some(value),
                     _ => None,
                 }
     }
@@ -417,6 +437,7 @@ impl fmt::Display for ReceiveTranscription {
             Self::CommittedTranscriptPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptWithTimestampsPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptEntitiesPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::EditedTranscript(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeWarning(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ScribeAuthErrorPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),

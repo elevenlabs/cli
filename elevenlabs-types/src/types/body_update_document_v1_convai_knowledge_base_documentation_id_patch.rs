@@ -7,7 +7,7 @@ pub struct BodyUpdateDocumentV1ConvaiKnowledgeBaseDocumentationIdPatch {
     /// A custom, human-readable name for the document.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Updated content for the document. Only supported for text documents, URL documents with auto-sync disabled, and file documents.
+    /// Updated content for the document. Only supported for text documents, URL documents with auto-sync disabled, and file documents that are not synced from an external source.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
 }

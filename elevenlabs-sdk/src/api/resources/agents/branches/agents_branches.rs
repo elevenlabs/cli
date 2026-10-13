@@ -187,7 +187,7 @@ impl BranchesClient {
             .await
     }
 
-    /// Update agent branch properties such as archiving status and protection level
+    /// Update agent branch properties such as archiving status, protection level, and auto-rebase onto main
     ///
     /// # Arguments
     ///

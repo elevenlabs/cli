@@ -5,6 +5,7 @@
 //! - **History**
 //! - **TextToSoundEffects**
 //! - **AudioIsolation**
+//! - **AudioEffects**
 //! - **Access to your samples.**
 //! - **TextToSpeech**
 //! - **TextToDialogue**
@@ -37,6 +38,7 @@ use crate::{ApiError, ClientConfig};
 
 pub mod agents;
 pub mod assets;
+pub mod audio_effects;
 pub mod audio_isolation;
 pub mod audio_native;
 pub mod dubbing;
@@ -70,6 +72,7 @@ pub struct ApiClient {
     pub history: HistoryClient,
     pub text_to_sound_effects: TextToSoundEffectsClient,
     pub audio_isolation: AudioIsolationClient,
+    pub audio_effects: AudioEffectsClient,
     pub samples: SamplesClient,
     pub text_to_speech: TextToSpeechClient,
     pub text_to_dialogue: TextToDialogueClient,
@@ -106,6 +109,7 @@ impl ApiClient {
             history: HistoryClient::new(config.clone())?,
             text_to_sound_effects: TextToSoundEffectsClient::new(config.clone())?,
             audio_isolation: AudioIsolationClient::new(config.clone())?,
+            audio_effects: AudioEffectsClient::new(config.clone())?,
             samples: SamplesClient::new(config.clone())?,
             text_to_speech: TextToSpeechClient::new(config.clone())?,
             text_to_dialogue: TextToDialogueClient::new(config.clone())?,
@@ -139,6 +143,7 @@ impl ApiClient {
 
 pub use agents::AgentsClient;
 pub use assets::AssetsClient;
+pub use audio_effects::AudioEffectsClient;
 pub use audio_isolation::AudioIsolationClient;
 pub use audio_native::AudioNativeClient;
 pub use dubbing::DubbingClient;

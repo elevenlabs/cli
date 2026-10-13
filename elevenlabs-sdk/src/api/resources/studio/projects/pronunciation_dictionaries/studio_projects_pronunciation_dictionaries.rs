@@ -38,6 +38,7 @@ impl PronunciationDictionariesClient2 {
     ///     client.studio.projects.pronunciation_dictionaries.create(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyCreatePronunciationDictionariesV1StudioProjectsProjectIDPronunciationDictionariesPost {
     ///         pronunciation_dictionary_locators: vec![PronunciationDictionaryVersionLocator {
     ///             pronunciation_dictionary_id: "pronunciation_dictionary_id".to_string(),
+    ///             version_id: None,
     ///             ..Default::default()
     ///         }],
     ///         invalidate_affected_text: None

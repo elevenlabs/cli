@@ -12,6 +12,9 @@ pub struct ConvAiWebhooks {
     /// Format for transcript webhooks.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transcript_format: Option<WebhookTranscriptFormat>,
+    /// When true, JSON post-call transcription webhooks omit the turn-by-turn transcript. Analysis, metadata, and other conversation fields are still sent. Ignored for OpenTelemetry transcript format.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclude_transcript: Option<bool>,
     /// DEPRECATED: Use 'events' field instead. Whether to send audio data with post-call webhooks for ConvAI conversations
     #[serde(skip_serializing_if = "Option::is_none")]
     pub send_audio: Option<bool>,
@@ -29,6 +32,7 @@ pub struct ConvAiWebhooksBuilder {
     post_call_webhook_id: Option<String>,
     events: Option<Vec<WebhookEventType>>,
     transcript_format: Option<WebhookTranscriptFormat>,
+    exclude_transcript: Option<bool>,
     send_audio: Option<bool>,
 }
 
@@ -48,6 +52,11 @@ impl ConvAiWebhooksBuilder {
         self
     }
 
+    pub fn exclude_transcript(mut self, value: bool) -> Self {
+        self.exclude_transcript = Some(value);
+        self
+    }
+
     pub fn send_audio(mut self, value: bool) -> Self {
         self.send_audio = Some(value);
         self
@@ -59,6 +68,7 @@ impl ConvAiWebhooksBuilder {
             post_call_webhook_id: self.post_call_webhook_id,
             events: self.events,
             transcript_format: self.transcript_format,
+            exclude_transcript: self.exclude_transcript,
             send_audio: self.send_audio,
         })
     }

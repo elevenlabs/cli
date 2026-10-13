@@ -19,6 +19,10 @@ impl InvocationsClient {
     ///
     /// * `agent_id` - Filter by agent ID
     /// * `branch_id` - Filter by branch ID
+    /// * `test_id` - Filter to invocations that include a run of this test id
+    /// * `start_time` - Inclusive lower bound on created_at, in unix seconds
+    /// * `end_time` - Inclusive upper bound on created_at, in unix seconds
+    /// * `version_id` - Filter by the agent version the tests ran against
     /// * `page_size` - How many Tests to return at maximum. Can not exceed 100, defaults to 30.
     /// * `search` - Search query to filter tests and folders by name.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
@@ -47,6 +51,10 @@ impl InvocationsClient {
     ///             &AgentsTestsInvocationsListQueryRequest {
     ///                 agent_id: Some("agent_id".to_string()),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 test_id: Some("test_id".to_string()),
+    ///                 start_time: Some(1),
+    ///                 end_time: Some(1),
+    ///                 version_id: Some("version_id".to_string()),
     ///                 page_size: Some(1),
     ///                 search: Some("search".to_string()),
     ///                 cursor: Some("cursor".to_string()),
@@ -70,6 +78,10 @@ impl InvocationsClient {
                 QueryBuilder::new()
                     .string("agent_id", request.agent_id.clone())
                     .string("branch_id", request.branch_id.clone())
+                    .string("test_id", request.test_id.clone())
+                    .int("start_time", request.start_time.clone())
+                    .int("end_time", request.end_time.clone())
+                    .string("version_id", request.version_id.clone())
                     .int("page_size", request.page_size.clone())
                     .string("search", request.search.clone())
                     .string("cursor", request.cursor.clone())
@@ -118,6 +130,52 @@ impl InvocationsClient {
             .execute_request(
                 Method::GET,
                 &format!("v1/convai/test-invocations/{}", test_invocation_id),
+                None,
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Cancels all pending runs in a test invocation.
+    ///
+    /// # Arguments
+    ///
+    /// * `test_invocation_id` - The id of a test invocation. This is returned when tests are run.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .tests
+    ///         .invocations
+    ///         .cancel(&"test_invocation_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn cancel(
+        &self,
+        test_invocation_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<(), ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!("v1/convai/test-invocations/{}/cancel", test_invocation_id),
                 None,
                 None,
                 options,

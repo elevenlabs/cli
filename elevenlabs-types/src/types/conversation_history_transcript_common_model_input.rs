@@ -34,6 +34,8 @@ pub struct ConversationHistoryTranscriptCommonModelInput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ignored_as_backchannel: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform_event: Option<TranscriptPlatformEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub original_message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<Vec<ConversationReasoningModel>>,
@@ -75,6 +77,7 @@ pub struct ConversationHistoryTranscriptCommonModelInputBuilder {
     llm_usage: Option<LlmUsageInput>,
     interrupted: Option<bool>,
     ignored_as_backchannel: Option<bool>,
+    platform_event: Option<TranscriptPlatformEvent>,
     original_message: Option<String>,
     reasoning: Option<Vec<ConversationReasoningModel>>,
     source_medium: Option<ChatSourceMedium>,
@@ -161,6 +164,11 @@ impl ConversationHistoryTranscriptCommonModelInputBuilder {
         self
     }
 
+    pub fn platform_event(mut self, value: TranscriptPlatformEvent) -> Self {
+        self.platform_event = Some(value);
+        self
+    }
+
     pub fn original_message(mut self, value: impl Into<String>) -> Self {
         self.original_message = Some(value.into());
         self
@@ -222,6 +230,7 @@ impl ConversationHistoryTranscriptCommonModelInputBuilder {
             llm_usage: self.llm_usage,
             interrupted: self.interrupted,
             ignored_as_backchannel: self.ignored_as_backchannel,
+            platform_event: self.platform_event,
             original_message: self.original_message,
             reasoning: self.reasoning,
             source_medium: self.source_medium,

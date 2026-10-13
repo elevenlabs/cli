@@ -14,6 +14,8 @@ pub struct WorkflowFeaturesUsageCommonModel {
     pub phone_number_node: Option<FeatureStatusCommonModel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_node: Option<FeatureStatusCommonModel>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub override_agent_node: Option<FeatureStatusCommonModel>,
 }
 
 impl WorkflowFeaturesUsageCommonModel {
@@ -30,6 +32,7 @@ pub struct WorkflowFeaturesUsageCommonModelBuilder {
     standalone_agent_node: Option<FeatureStatusCommonModel>,
     phone_number_node: Option<FeatureStatusCommonModel>,
     end_node: Option<FeatureStatusCommonModel>,
+    override_agent_node: Option<FeatureStatusCommonModel>,
 }
 
 impl WorkflowFeaturesUsageCommonModelBuilder {
@@ -58,6 +61,11 @@ impl WorkflowFeaturesUsageCommonModelBuilder {
         self
     }
 
+    pub fn override_agent_node(mut self, value: FeatureStatusCommonModel) -> Self {
+        self.override_agent_node = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WorkflowFeaturesUsageCommonModel`].
     pub fn build(self) -> Result<WorkflowFeaturesUsageCommonModel, BuildError> {
         Ok(WorkflowFeaturesUsageCommonModel {
@@ -66,6 +74,7 @@ impl WorkflowFeaturesUsageCommonModelBuilder {
             standalone_agent_node: self.standalone_agent_node,
             phone_number_node: self.phone_number_node,
             end_node: self.end_node,
+            override_agent_node: self.override_agent_node,
         })
     }
 }

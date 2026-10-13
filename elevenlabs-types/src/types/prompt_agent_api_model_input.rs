@@ -30,6 +30,9 @@ pub struct PromptAgentApiModelInput {
     /// A list of IDs of tools used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_ids: Option<Vec<String>>,
+    /// Only applies as a conversation override, allowed whenever tool_ids may be overridden. When true, the overridden tool_ids is the full list of tools allowed in the conversation, including tools on workflow nodes. Ignored when set on the agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_ids_strict: Option<bool>,
     /// Built-in system tools to be used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub built_in_tools: Option<BuiltInToolsInput>,
@@ -87,6 +90,7 @@ pub struct PromptAgentApiModelInputBuilder {
     temperature: Option<f64>,
     max_tokens: Option<i64>,
     tool_ids: Option<Vec<String>>,
+    tool_ids_strict: Option<bool>,
     built_in_tools: Option<BuiltInToolsInput>,
     enable_parallel_tool_calls: Option<bool>,
     mcp_server_ids: Option<Vec<String>>,
@@ -139,6 +143,11 @@ impl PromptAgentApiModelInputBuilder {
 
     pub fn tool_ids(mut self, value: Vec<String>) -> Self {
         self.tool_ids = Some(value);
+        self
+    }
+
+    pub fn tool_ids_strict(mut self, value: bool) -> Self {
+        self.tool_ids_strict = Some(value);
         self
     }
 
@@ -213,6 +222,7 @@ impl PromptAgentApiModelInputBuilder {
             temperature: self.temperature,
             max_tokens: self.max_tokens,
             tool_ids: self.tool_ids,
+            tool_ids_strict: self.tool_ids_strict,
             built_in_tools: self.built_in_tools,
             enable_parallel_tool_calls: self.enable_parallel_tool_calls,
             mcp_server_ids: self.mcp_server_ids,

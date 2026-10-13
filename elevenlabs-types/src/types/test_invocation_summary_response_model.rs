@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct TestInvocationSummaryResponseModel {
     /// The ID of the test invocation
     #[serde(default)]
@@ -37,6 +37,9 @@ pub struct TestInvocationSummaryResponseModel {
     /// Number of test runs that are pending
     #[serde(default)]
     pub pending_count: i64,
+    /// Number of test runs that were cancelled
+    #[serde(default)]
+    pub cancelled_count: i64,
     /// Title of the test invocation - the folder name for folder runs, otherwise the single test name or count of tests
     #[serde(default)]
     pub title: String,
@@ -46,6 +49,17 @@ pub struct TestInvocationSummaryResponseModel {
     /// Number of times each test was repeated in this invocation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub repeat_count: Option<i64>,
+    /// Whether this test invocation was cancelled
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancelled: Option<bool>,
+    /// Total credits billed across test runs in this invocation. None when no run has cost data.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credits_used: Option<i64>,
+    /// Total USD price across test runs in this invocation. None when no run has price data.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub total_price: Option<f64>,
 }
 
 impl TestInvocationSummaryResponseModel {
@@ -68,9 +82,13 @@ pub struct TestInvocationSummaryResponseModelBuilder {
     passed_count: Option<i64>,
     failed_count: Option<i64>,
     pending_count: Option<i64>,
+    cancelled_count: Option<i64>,
     title: Option<String>,
     access_info: Option<ResourceAccessInfo>,
     repeat_count: Option<i64>,
+    cancelled: Option<bool>,
+    credits_used: Option<i64>,
+    total_price: Option<f64>,
 }
 
 impl TestInvocationSummaryResponseModelBuilder {
@@ -129,6 +147,11 @@ impl TestInvocationSummaryResponseModelBuilder {
         self
     }
 
+    pub fn cancelled_count(mut self, value: i64) -> Self {
+        self.cancelled_count = Some(value);
+        self
+    }
+
     pub fn title(mut self, value: impl Into<String>) -> Self {
         self.title = Some(value.into());
         self
@@ -144,6 +167,21 @@ impl TestInvocationSummaryResponseModelBuilder {
         self
     }
 
+    pub fn cancelled(mut self, value: bool) -> Self {
+        self.cancelled = Some(value);
+        self
+    }
+
+    pub fn credits_used(mut self, value: i64) -> Self {
+        self.credits_used = Some(value);
+        self
+    }
+
+    pub fn total_price(mut self, value: f64) -> Self {
+        self.total_price = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`TestInvocationSummaryResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`id`](TestInvocationSummaryResponseModelBuilder::id)
@@ -152,6 +190,7 @@ impl TestInvocationSummaryResponseModelBuilder {
     /// - [`passed_count`](TestInvocationSummaryResponseModelBuilder::passed_count)
     /// - [`failed_count`](TestInvocationSummaryResponseModelBuilder::failed_count)
     /// - [`pending_count`](TestInvocationSummaryResponseModelBuilder::pending_count)
+    /// - [`cancelled_count`](TestInvocationSummaryResponseModelBuilder::cancelled_count)
     /// - [`title`](TestInvocationSummaryResponseModelBuilder::title)
     pub fn build(self) -> Result<TestInvocationSummaryResponseModel, BuildError> {
         Ok(TestInvocationSummaryResponseModel {
@@ -166,9 +205,13 @@ impl TestInvocationSummaryResponseModelBuilder {
             passed_count: self.passed_count.ok_or_else(|| BuildError::missing_field("passed_count"))?,
             failed_count: self.failed_count.ok_or_else(|| BuildError::missing_field("failed_count"))?,
             pending_count: self.pending_count.ok_or_else(|| BuildError::missing_field("pending_count"))?,
+            cancelled_count: self.cancelled_count.ok_or_else(|| BuildError::missing_field("cancelled_count"))?,
             title: self.title.ok_or_else(|| BuildError::missing_field("title"))?,
             access_info: self.access_info,
             repeat_count: self.repeat_count,
+            cancelled: self.cancelled,
+            credits_used: self.credits_used,
+            total_price: self.total_price,
         })
     }
 }

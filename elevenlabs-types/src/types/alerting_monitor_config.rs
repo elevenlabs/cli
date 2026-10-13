@@ -12,7 +12,7 @@ pub struct AlertingMonitorConfig {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub threshold: Option<f64>,
-    /// Relative increase over the trailing baseline at which this monitor can notify (0.2 = 20% above baseline, 0 = any failure).
+    /// Relative increase over the trailing baseline at which this monitor can notify (0.2 = 20% above baseline, 0 = any failure). For conversation_volume_drop it is the share of the usual volume that must be missing, between 0.1 and 0.9 (0.5 = half).
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]

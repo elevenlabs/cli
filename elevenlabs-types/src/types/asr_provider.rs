@@ -8,6 +8,7 @@ pub enum AsrProvider {
     /// Deprecated: Use scribe_realtime instead.
     Elevenlabs,
     ScribeRealtime,
+    ScribeV2Turbo,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -18,6 +19,7 @@ impl Serialize for AsrProvider {
         match self {
             Self::Elevenlabs => serializer.serialize_str("elevenlabs"),
             Self::ScribeRealtime => serializer.serialize_str("scribe_realtime"),
+            Self::ScribeV2Turbo => serializer.serialize_str("scribe_v2_turbo"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -29,6 +31,7 @@ impl<'de> Deserialize<'de> for AsrProvider {
         match value.as_str() {
             "elevenlabs" => Ok(Self::Elevenlabs),
             "scribe_realtime" => Ok(Self::ScribeRealtime),
+            "scribe_v2_turbo" => Ok(Self::ScribeV2Turbo),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -39,6 +42,7 @@ impl fmt::Display for AsrProvider {
         match self {
             Self::Elevenlabs => write!(f, "elevenlabs"),
             Self::ScribeRealtime => write!(f, "scribe_realtime"),
+            Self::ScribeV2Turbo => write!(f, "scribe_v2_turbo"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

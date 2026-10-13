@@ -58,6 +58,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
         history: elevenlabs_sdk::api::HistoryClient { http_client: http_client.clone() },
         text_to_sound_effects: elevenlabs_sdk::api::TextToSoundEffectsClient { http_client: http_client.clone() },
         audio_isolation: elevenlabs_sdk::api::AudioIsolationClient { http_client: http_client.clone() },
+        audio_effects: elevenlabs_sdk::api::AudioEffectsClient { http_client: http_client.clone() },
         samples: elevenlabs_sdk::api::SamplesClient { http_client: http_client.clone() },
         text_to_speech: elevenlabs_sdk::api::TextToSpeechClient { http_client: http_client.clone() },
         text_to_dialogue: elevenlabs_sdk::api::TextToDialogueClient { http_client: http_client.clone() },
@@ -72,6 +73,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
         },
         voices: elevenlabs_sdk::api::VoicesClient {
             http_client: http_client.clone(),
+            collections: elevenlabs_sdk::api::resources::voices::CollectionsClient { http_client: http_client.clone() },
             settings: elevenlabs_sdk::api::resources::voices::SettingsClient3 { http_client: http_client.clone() },
             accents: elevenlabs_sdk::api::resources::voices::AccentsClient { http_client: http_client.clone() },
             ivc: elevenlabs_sdk::api::resources::voices::IvcClient { http_client: http_client.clone() },
@@ -234,6 +236,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             versions: elevenlabs_sdk::api::resources::agents::VersionsClient { http_client: http_client.clone() },
             deployments: elevenlabs_sdk::api::resources::agents::DeploymentsClient { http_client: http_client.clone() },
             drafts: elevenlabs_sdk::api::resources::agents::DraftsClient { http_client: http_client.clone() },
+            merge_proposals: elevenlabs_sdk::api::resources::agents::MergeProposalsClient { http_client: http_client.clone() },
             procedures: elevenlabs_sdk::api::resources::agents::ProceduresClient {
                 http_client: http_client.clone(),
                 drafts: elevenlabs_sdk::api::resources::agents::procedures::DraftsClient2 { http_client: http_client.clone() },

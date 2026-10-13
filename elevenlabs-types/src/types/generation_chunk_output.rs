@@ -24,7 +24,7 @@ pub struct GenerationChunkOutput {
     pub conditioning_ref: Option<AudioRefChunk>,
     /// How strongly the model adheres to the conditioning reference. Low strength means the model will be more creative and deviate from the reference. High strength means the model will be more consistent with the reference.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub condition_strength: Option<GenerationChunkOutputConditionStrength>,
+    pub condition_strength: Option<ConditionStrength>,
 }
 
 impl GenerationChunkOutput {
@@ -42,7 +42,7 @@ pub struct GenerationChunkOutputBuilder {
     negative_styles: Option<Vec<String>>,
     context_adherence: Option<GenerationChunkOutputContextAdherence>,
     conditioning_ref: Option<AudioRefChunk>,
-    condition_strength: Option<GenerationChunkOutputConditionStrength>,
+    condition_strength: Option<ConditionStrength>,
 }
 
 impl GenerationChunkOutputBuilder {
@@ -76,7 +76,7 @@ impl GenerationChunkOutputBuilder {
         self
     }
 
-    pub fn condition_strength(mut self, value: GenerationChunkOutputConditionStrength) -> Self {
+    pub fn condition_strength(mut self, value: ConditionStrength) -> Self {
         self.condition_strength = Some(value);
         self
     }

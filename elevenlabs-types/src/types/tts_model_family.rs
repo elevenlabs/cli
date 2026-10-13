@@ -10,6 +10,8 @@ pub enum TtsModelFamily {
     Flash,
     Multilingual,
     V3Conversational,
+    V4,
+    V4Turbo,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -22,6 +24,8 @@ impl Serialize for TtsModelFamily {
             Self::Flash => serializer.serialize_str("flash"),
             Self::Multilingual => serializer.serialize_str("multilingual"),
             Self::V3Conversational => serializer.serialize_str("v3_conversational"),
+            Self::V4 => serializer.serialize_str("v4"),
+            Self::V4Turbo => serializer.serialize_str("v4_turbo"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -35,6 +39,8 @@ impl<'de> Deserialize<'de> for TtsModelFamily {
             "flash" => Ok(Self::Flash),
             "multilingual" => Ok(Self::Multilingual),
             "v3_conversational" => Ok(Self::V3Conversational),
+            "v4" => Ok(Self::V4),
+            "v4_turbo" => Ok(Self::V4Turbo),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -47,6 +53,8 @@ impl fmt::Display for TtsModelFamily {
             Self::Flash => write!(f, "flash"),
             Self::Multilingual => write!(f, "multilingual"),
             Self::V3Conversational => write!(f, "v3_conversational"),
+            Self::V4 => write!(f, "v4"),
+            Self::V4Turbo => write!(f, "v4_turbo"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

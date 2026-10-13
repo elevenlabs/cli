@@ -331,6 +331,7 @@ impl TestsClient {
     /// * `include_folders` - Deprecated. Use the `types` query param and include `folder` instead.
     /// * `sort_mode` - Sort mode for listing tests. Use 'folders_first' to place folders before tests.
     /// * `sharing_mode` - Filter test visibility. Use `shared_with_me` to return only tests/folders shared with the current user that they did not create.
+    /// * `created_by_user_id` - Filter tests and folders by creator user ID. Use '@me' to refer to the authenticated user.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -361,6 +362,7 @@ impl TestsClient {
     ///                 include_folders: Some(true),
     ///                 sort_mode: Some(TestsListRequestSortMode::Default),
     ///                 sharing_mode: Some(TestSharingMode::All),
+    ///                 created_by_user_id: Some("created_by_user_id".to_string()),
     ///             },
     ///             None,
     ///         )
@@ -386,6 +388,7 @@ impl TestsClient {
                     .bool("include_folders", request.include_folders.clone())
                     .serialize("sort_mode", request.sort_mode.clone())
                     .serialize("sharing_mode", request.sharing_mode.clone())
+                    .string("created_by_user_id", request.created_by_user_id.clone())
                     .build(),
                 options,
             )

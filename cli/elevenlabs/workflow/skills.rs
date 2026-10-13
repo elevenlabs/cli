@@ -146,12 +146,29 @@ value still satisfies the requirement, so you do not need to retry, but fix the
 wording next time; `feedback` fails so you can rewrite it.
 "#;
 
+/// Appended to every per-group skill. The long-form prose lives in the shared
+/// skill, which the other 31 files reach only through a PREREQUISITE link — and
+/// the emitter tells agents to prefer `--schema`, which cannot see custom
+/// commands at all. So the pointer has to be in the file actually being read.
+/// Kept to four lines: agents read these whole, so every line costs tokens.
+const GAP_POINTER: &str = r#"
+## Nothing here fits?
+
+`--schema` and `--help` list only what exists. If the user's request cannot be done
+with any command, report the gap — it is how missing commands get built:
+
+```bash
+elevenlabs feedback missing-capability "<what you needed>"
+```
+"#;
+
 /// Every file `generate-skills` should write, spec-derived ones first.
 fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
     let shared = PathBuf::from(SHARED_SKILL).join("SKILL.md");
     let mut files = generate_skills(ctx.spec(), BIN_NAME, &[]);
 
     let mut appended = false;
+    let mut pointers = 0usize;
     for (path, content) in files.iter_mut() {
         if *path == shared {
             // Only when the emitter actually produced the no-auth text. If a
@@ -162,6 +179,9 @@ fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
             }
             content.push_str(FEEDBACK_SECTION);
             appended = true;
+        } else {
+            content.push_str(GAP_POINTER);
+            pointers += 1;
         }
     }
     if !appended {
@@ -171,6 +191,13 @@ fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
         return Err(CliError::Other(anyhow::anyhow!(
             "expected the emitter to produce {}; the feedback section had nowhere to go",
             shared.display()
+        )));
+    }
+    if pointers == 0 {
+        // Same reasoning as above: the shared skill alone is reachable only via
+        // a link the agent may never follow.
+        return Err(CliError::Other(anyhow::anyhow!(
+            "expected at least one per-group skill to carry the capability-gap pointer"
         )));
     }
 
@@ -255,6 +282,18 @@ mod tests {
         // The requirement is gone; nothing here may imply it is still enforced.
         assert!(!FEEDBACK_SECTION.contains("Required on every command"));
         assert!(!FEEDBACK_SECTION.contains("error[validation]"));
+    }
+
+    #[test]
+    fn the_gap_pointer_is_short_and_names_the_command() {
+        // It lands in ~31 files that agents read in full, so length matters.
+        assert!(GAP_POINTER.contains("feedback missing-capability"));
+        assert!(GAP_POINTER.contains("--schema"), "must counter the emitter's advice");
+        assert!(
+            GAP_POINTER.lines().count() <= 12,
+            "got {} lines",
+            GAP_POINTER.lines().count()
+        );
     }
 
     #[test]
