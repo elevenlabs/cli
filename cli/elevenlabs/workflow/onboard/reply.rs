@@ -59,8 +59,9 @@ impl Next {
                  to check it."
             }
             Next::OfferTest => {
-                "End your reply with the question in `say`, as it is, and wait for the answer; run `run` \
-                 only if they say yes."
+                "End your reply with the question in `say`, as it is, and stop there: until they answer, \
+                 don't run the app, its start script or anything else that uses the key. Run `run` only if \
+                 they say yes."
             }
             Next::Done => "Tell the user `say`. There's nothing left to run.",
         }
@@ -75,7 +76,7 @@ const RULES: &[&str] = &[
     "Never run git clean or delete untracked files.",
     "Don't write or change any code until a reply's `next` is `write_code` or `load_key`.",
     "Put anything you download only to read, like a package or an archive, in a temp folder, never in the project.",
-    "Don't run the app or make your own API calls to try the key unless the user says yes. Once the code is written, run `onboard check` before you finish: it verifies the key and the code.",
+    "Never run the app (its start script or anything else that calls ElevenLabs) or make your own API calls with the key until the user says yes to the test request. Once the code is written, run `onboard check` before you finish: it verifies the key and the code.",
 ];
 
 #[derive(Debug, Serialize)]
