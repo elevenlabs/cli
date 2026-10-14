@@ -62,10 +62,17 @@ pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Res
     let key_file = key.file(project).map(|f| project.show(f));
     let wired = declared && imported;
     let file = key_file.as_deref();
-    let reply = match (wired, answered) {
-        (true, _) => offer_test(project, &ending, file),
-        (false, false) => ask_what_to_build(project, &ending, file, "Your key works."),
-        (false, true) => write_code(project, &ending, file)?,
+    // The code uses the SDK, but the key only reaches it if the app loads the file it's in.
+    let unloaded = key.file(project).filter(|f| wired && !project.loads_key_file(f));
+    let reply = match (wired, answered, unloaded) {
+        (true, _, Some(unloaded)) => {
+            let name = project.show(unloaded);
+            let say = format!("Your key works and the code uses the SDK, but nothing in the app loads {name} yet.");
+            load_key(project, &ending, &name, say)
+        }
+        (true, _, None) => offer_test(project, &ending, file),
+        (false, false, _) => ask_what_to_build(project, &ending, file, "Your key works."),
+        (false, true, _) => write_code(project, &ending, file)?,
     };
     Ok(reply
         .detail("api_key_source", key.source_name())
@@ -257,7 +264,7 @@ pub(super) fn key_problem(
                 ),
             )
             .run(&project.next(&format!(
-                "connect --replace --env-file {}",
+                "connect --replace --env-path {}",
                 shell_arg(&project.show(file))
             ))),
         }),

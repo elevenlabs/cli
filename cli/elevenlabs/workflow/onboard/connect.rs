@@ -116,7 +116,7 @@ fn preflight(
                 let file = project.show(path);
                 return Ok(Some(
                     Reply::new(Next::Run, format!("The key is in {file}, so the new one goes there."))
-                        .run(&project.next(&format!("connect --replace --env-file {}", shell_arg(&file)))),
+                        .run(&project.next(&format!("connect --replace --env-path {}", shell_arg(&file)))),
                 ));
             }
             (KeySource::EnvFile, true) => {}

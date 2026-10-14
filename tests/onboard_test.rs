@@ -147,7 +147,7 @@ async fn check_with_nothing_configured_says_to_connect_without_asking_the_api() 
         &["onboard", "check"],
     ));
     assert_eq!(r["next"], "run");
-    assert_eq!(r["run"], "elevenlabs onboard connect --env-file .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env.local");
     assert_eq!(server.received_requests().await.unwrap().len(), 0);
     // `status` is the same command.
     let r = reply(&mut cli(
@@ -156,7 +156,7 @@ async fn check_with_nothing_configured_says_to_connect_without_asking_the_api() 
         &server.uri(),
         &["onboard", "status"],
     ));
-    assert_eq!(r["run"], "elevenlabs onboard connect --env-file .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env.local");
 }
 
 /// While a sign-in for the project is open, `check` and `init` wait on it
@@ -185,7 +185,7 @@ fn check_and_init_wait_on_an_open_sign_in() {
         (r["next"].as_str(), r["run"].as_str()),
         (
             Some("wait"),
-            Some("elevenlabs onboard connect --wait --env-file .env.local")
+            Some("elevenlabs onboard connect --wait --env-path .env.local")
         ),
         "{r}"
     );
@@ -207,7 +207,7 @@ fn check_and_init_wait_on_an_open_sign_in() {
         &["onboard", "check"],
     ));
     assert_eq!(
-        r["run"], "elevenlabs onboard connect --env-file .env.local",
+        r["run"], "elevenlabs onboard connect --env-path .env.local",
         "{r}"
     );
 }
@@ -263,7 +263,7 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
     );
     assert_eq!(
         r["run"],
-        "elevenlabs onboard check --answered --env-file .env.local"
+        "elevenlabs onboard check --answered --env-path .env.local"
     );
     assert!(r["details"].get("skills_dir").is_none(), "{r}");
 
@@ -278,7 +278,7 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
     assert!(r["rules"].as_array().is_some_and(|r| !r.is_empty()), "{r}");
     assert_eq!(
         r["run"],
-        "elevenlabs onboard check --answered --env-file .env.local"
+        "elevenlabs onboard check --answered --env-path .env.local"
     );
     assert!(
         r["details"]["load_key"]
@@ -317,7 +317,8 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
         assert_eq!(mode & 0o777, 0o600);
     }
 
-    // With the SDK declared and imported, the next step is offering the test.
+    // The SDK declared and imported, but nothing in the app loads .env.local: the key
+    // wouldn't reach it, so the next step is loading it, not the test.
     write(
         cwd.path(),
         "package.json",
@@ -334,8 +335,28 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
         &server.uri(),
         &["onboard", "check"],
     ));
+    assert_eq!(r["next"], "load_key", "{r}");
+    assert!(say(&r).ends_with("nothing in the app loads .env.local yet."), "{r}");
+    assert_eq!(r["run"], "elevenlabs onboard check --env-path .env.local");
+    assert!(
+        r["details"]["load_key"].as_str().unwrap().contains("`node --env-file=.env.local`"),
+        "{r}"
+    );
+
+    // Once the start script loads it, the next step is offering the test.
+    write(
+        cwd.path(),
+        "package.json",
+        r#"{"scripts":{"start":"node --env-file=.env.local src/speak.js"},"dependencies":{"@elevenlabs/elevenlabs-js":"^2"}}"#,
+    );
+    let r = reply(&mut cli(
+        home.path(),
+        cwd.path(),
+        &server.uri(),
+        &["onboard", "check"],
+    ));
     assert_eq!(r["next"], "offer_test", "{r}");
-    assert_eq!(r["run"], "elevenlabs onboard test --env-file .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard test --env-path .env.local");
     assert!(say(&r).contains("Want me to send a test request?"), "{r}");
     assert_eq!(r["details"]["fixed"], json!([]), "nothing left to fix");
 }
@@ -454,7 +475,7 @@ async fn check_says_how_to_replace_a_rejected_key_wherever_it_lives() {
     assert_eq!(r["next"], "run", "{r}");
     assert_eq!(
         r["run"],
-        "elevenlabs onboard connect --replace --env-file .env"
+        "elevenlabs onboard connect --replace --env-path .env"
     );
 
     // A rejected shell variable can only be fixed in the shell.
@@ -507,7 +528,7 @@ async fn a_rejected_key_on_a_remote_machine_is_replaced_in_its_own_file() {
         r["run"]
             .as_str()
             .unwrap()
-            .contains(&format!("--env-file {env}")),
+            .contains(&format!("--env-path {env}")),
         "{r}"
     );
 }
@@ -670,7 +691,7 @@ async fn test_reports_missing_credits_and_other_failures_as_done() {
         &["onboard", "test"],
     ));
     assert_eq!(
-        r["run"], "elevenlabs onboard check --env-file .env.local",
+        r["run"], "elevenlabs onboard check --env-path .env.local",
         "no key: nothing is sent"
     );
 }
@@ -688,7 +709,7 @@ async fn init_hands_on_to_sign_in() {
     );
     assert_eq!(r["next"], "run", "{r}");
     assert!(say(&r).contains("approval page in your browser"), "{r}");
-    assert_eq!(r["run"], "elevenlabs onboard connect --env-file .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env.local");
     assert!(r["rules"]
         .to_string()
         .contains("Never open, print or cat the env file"));
@@ -706,7 +727,7 @@ async fn init_hands_on_to_sign_in() {
         .env("CODEX_THREAD_ID", "t"),
     );
     assert_eq!(
-        r["run"], "elevenlabs onboard connect --env-file .env.local --no-browser",
+        r["run"], "elevenlabs onboard connect --env-path .env.local --no-browser",
         "init's flags go on to connect"
     );
 
@@ -717,7 +738,7 @@ async fn init_hands_on_to_sign_in() {
     );
     assert_eq!(
         r["run"],
-        "npx -y @elevenlabs/cli@latest onboard connect --env-file .env.local"
+        "npx -y @elevenlabs/cli@latest onboard connect --env-path .env.local"
     );
 }
 
@@ -811,15 +832,15 @@ async fn init_checks_a_key_that_is_already_there() {
     ));
     assert_eq!(r["next"], "ask_what_to_build", "{r}");
     assert!(say(&r).ends_with("or should I just add the SDK for now?"), "{r}");
-    assert_eq!(r["run"], "elevenlabs onboard check --answered --env-file .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard check --answered --env-path .env.local");
     assert_eq!(r["details"]["env_file"], ".env.local");
     assert!(r["rules"].as_array().is_some_and(|r| !r.is_empty()), "{r}");
 
-    // The SDK already wired in: straight to the test offer.
+    // The SDK already wired in, and the key loaded: straight to the test offer.
     write(
         cwd.path(),
         "package.json",
-        r#"{"dependencies":{"@elevenlabs/elevenlabs-js":"^2"}}"#,
+        r#"{"scripts":{"start":"node --env-file=.env.local index.js"},"dependencies":{"@elevenlabs/elevenlabs-js":"^2"}}"#,
     );
     write(
         cwd.path(),
@@ -844,9 +865,9 @@ fn init_on_a_remote_machine_prepares_the_manual_key() {
             .env("SSH_CONNECTION", "10.0.0.1 22 10.0.0.2 22"),
     );
     assert_eq!(r["next"], "ask_user", "{r}");
-    assert_eq!(r["run"], "elevenlabs onboard check --env-file .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard check --env-path .env.local");
     assert!(
-        say(&r).contains("elevenlabs.io/app/settings/api-keys"),
+        say(&r).contains("https://elevenlabs.io/app/api/api-keys?quickstart=true."),
         "{r}"
     );
     assert!(std::fs::read_to_string(cwd.path().join(".env.local"))
@@ -882,7 +903,7 @@ fn connect_refuses_a_tracked_file_and_a_symlink() {
     assert_eq!(r["next"], "fix", "{r}");
     assert!(say(&r).contains("git rm --cached .env"), "{r}");
     assert_eq!(
-        r["run"], "elevenlabs onboard connect --replace --env-file .env",
+        r["run"], "elevenlabs onboard connect --replace --env-path .env",
         "the fix makes the same step work"
     );
     assert_eq!(
@@ -912,7 +933,7 @@ fn connect_keeps_an_existing_key_unless_told_to_replace_it() {
         (r["next"].as_str(), r["run"].as_str()),
         (
             Some("run"),
-            Some("elevenlabs onboard check --env-file .env.local")
+            Some("elevenlabs onboard check --env-path .env.local")
         ),
         "{r}"
     );
@@ -944,7 +965,7 @@ fn connect_replaces_a_dotenv_key_in_that_file() {
     assert_eq!(r["next"], "run", "{r}");
     let run = r["run"].as_str().unwrap();
     assert!(
-        run.starts_with("elevenlabs onboard connect --replace --env-file ")
+        run.starts_with("elevenlabs onboard connect --replace --env-path ")
             && run.ends_with(".env --no-browser"),
         "{run}"
     );
@@ -958,7 +979,7 @@ fn connect_wait_without_a_sign_in_starts_one() {
         (r["next"].as_str(), r["run"].as_str()),
         (
             Some("run"),
-            Some("elevenlabs onboard connect --env-file .env.local")
+            Some("elevenlabs onboard connect --env-path .env.local")
         ),
         "{r}"
     );
@@ -983,9 +1004,11 @@ fn onboard_lists_its_steps_and_stays_out_of_the_top_level_help() {
     .output()
     .unwrap();
     let help = String::from_utf8_lossy(&out.stdout);
-    for flag in ["--env-file", "--no-browser", "--replace", "--wait"] {
+    for flag in ["--env-path", "--no-browser", "--replace", "--wait"] {
         assert!(help.contains(flag), "connect help lacks {flag}:\n{help}");
     }
+    // The old name still parses, but isn't offered: through npx, Node takes it.
+    assert!(!help.contains("--env-file"), "{help}");
     for hidden in ["--authorize-url", "--worker", "--launch-worker"] {
         assert!(!help.contains(hidden), "{hidden} stays hidden:\n{help}");
     }
@@ -1168,7 +1191,7 @@ async fn connect_signs_in_in_the_background_and_every_waiter_gets_the_result() {
     assert!(say(&r).contains("declined"), "{r}");
     assert_eq!(r["details"]["key_status"], "sign_in_failed");
     assert!(
-        r["run"].as_str().unwrap().contains("--env-file other.env"),
+        r["run"].as_str().unwrap().contains("--env-path other.env"),
         "{r}"
     );
     // The result stays readable until a new sign-in starts.

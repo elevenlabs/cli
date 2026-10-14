@@ -9,7 +9,7 @@ pub(super) const API_KEY_ENV: &str = "ELEVENLABS_API_KEY";
 pub(super) const DEFAULT_ENV_FILE: &str = ".env.local";
 pub(super) const PLACEHOLDER_NOTE: &str =
     "# Paste your ElevenLabs API key after the = below. Create one at \
-     https://elevenlabs.io/app/settings/api-keys if you need to. Never paste it into a chat.";
+     https://elevenlabs.io/app/api/api-keys?quickstart=true if you need to. Never paste it into a chat.";
 
 /// The line without a leading `export`, when it is a key line.
 fn key_line(line: &str) -> Option<&str> {
@@ -196,13 +196,18 @@ pub(super) fn is_tracked(path: &Path) -> bool {
 }
 
 /// Make git ignore the file, adding its name to the `.gitignore` in its
-/// directory unless git already ignores it. `Ok(true)` when it added the line;
-/// `Ok(false)` when nothing was needed (already ignored, or not a repository).
-/// An error when git still doesn't ignore the file afterwards.
+/// directory unless git already ignores it. Outside a repository the line goes
+/// in too, so the key stays out once the developer runs `git init`. `Ok(true)`
+/// when it added the line; `Ok(false)` when nothing was needed (already ignored,
+/// or already listed outside a repository). An error when git still doesn't
+/// ignore the file afterwards.
 pub(super) fn ensure_ignored(path: &Path) -> Result<bool, CliError> {
-    if git(path, &["check-ignore", "-q"]) != Some(false) {
-        return Ok(false);
-    }
+    let in_repo = match git(path, &["check-ignore", "-q"]) {
+        Some(true) => return Ok(false),
+        Some(false) => true,
+        // Not a repository (or no git): nothing to ask, so the line goes in regardless.
+        None => false,
+    };
     let (dir, name) = split(path);
     let gitignore_path = dir.join(".gitignore");
     let not_ignored = || {
@@ -226,6 +231,10 @@ pub(super) fn ensure_ignored(path: &Path) -> Result<bool, CliError> {
             )))
         }
     };
+    let line = format!("/{}", gitignore_pattern(&name));
+    if !in_repo && gitignore.lines().any(|l| l.trim() == line) {
+        return Ok(false);
+    }
     if !gitignore.is_empty() && !gitignore.ends_with('\n') {
         gitignore.push('\n');
     }
@@ -233,12 +242,13 @@ pub(super) fn ensure_ignored(path: &Path) -> Result<bool, CliError> {
     if !gitignore.contains(note) {
         gitignore.push_str(note);
     }
-    gitignore.push_str(&format!("/{}\n", gitignore_pattern(&name)));
+    gitignore.push_str(&format!("{line}\n"));
     std::fs::write(&gitignore_path, gitignore)
         .map_err(|e| CliError::Other(anyhow::anyhow!("write {}: {e}", gitignore_path.display())))?;
-    // Report what git now says, not what was written.
+    // Report what git now says, not what was written; outside a repository, what was written.
     match git(path, &["check-ignore", "-q"]) {
         Some(true) => Ok(true),
+        None if !in_repo => Ok(true),
         _ => Err(not_ignored()),
     }
 }

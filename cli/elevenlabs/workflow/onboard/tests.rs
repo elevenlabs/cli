@@ -226,6 +226,8 @@ fn every_step_parses_its_flags_and_bare_onboard_is_refused() {
     assert_eq!(name, "init");
     assert_eq!(opt_string(sub, "env-file").as_deref(), Some(".env.dev"));
     assert!(sub.get_flag("no-browser"));
+    let m = parse(&["onboard", "check", "--env-path", "config/.env"]).unwrap();
+    assert_eq!(opt_string(m.subcommand().unwrap().1, "env-file").as_deref(), Some("config/.env"));
     assert!(
         parse(&["onboard", "connect", "--product", "music"]).is_err(),
         "one key for every product, so no product to name"
@@ -254,7 +256,7 @@ fn the_env_file_follows_the_stack_and_is_pinned_in_every_next_command() {
         (Stack::Other, ".env.local")
     );
     // Named in every next command, so a later stack change can't move it.
-    assert_eq!(p.next("check"), "check --env-file .env.local");
+    assert_eq!(p.next("check"), "check --env-path .env.local");
     std::fs::write(dir.path().join("requirements.txt"), "elevenlabs==2\n").unwrap();
     let p = project(dir.path());
     assert_eq!((p.stack, p.env_display.as_str()), (Stack::Python, ".env"));
@@ -268,17 +270,17 @@ fn the_env_file_follows_the_stack_and_is_pinned_in_every_next_command() {
     p.no_browser = true;
     assert_eq!(
         p.next("connect --replace"),
-        "connect --replace --env-file 'config/my env' --no-browser"
+        "connect --replace --env-path 'config/my env' --no-browser"
     );
     assert_eq!(
         p.next("init"),
-        "init --env-file 'config/my env' --no-browser"
+        "init --env-path 'config/my env' --no-browser"
     );
     assert_eq!(super::project::shell_arg("it's"), r"'it'\''s'");
     // --no-browser goes on through check, so a later connect keeps it.
     assert_eq!(
         p.next("check"),
-        "check --env-file 'config/my env' --no-browser"
+        "check --env-path 'config/my env' --no-browser"
     );
     // A file up the tree is named from the project, as a command run there needs it.
     let app = dir.path().join("apps/web");
@@ -310,11 +312,76 @@ fn loading_the_key_is_an_instruction_for_the_app_at_hand() {
         "{plain}"
     );
     assert_eq!(pkg(r#""next":"15""#), "Next.js reads it on its own.");
-    assert_eq!(pkg(r#""astro":"5""#), "Vite reads it on its own.");
+    // Vite and what's built on it don't put env files in `process.env`, where the SDK looks.
+    let vite = pkg(r#""vite":"7""#);
+    assert!(vite.contains("`loadEnv(mode, process.cwd(), \"\")` in `vite.config`"), "{vite}");
+    assert!(pkg(r#""astro":"5""#).contains("`apiKey: import.meta.env.ELEVENLABS_API_KEY`"));
+    assert!(pkg(r#""@sveltejs/kit":"2""#).contains("`$env/static/private`"));
     let empty = tempfile::tempdir().unwrap();
     assert!(project(empty.path())
         .loading(".env.local")
         .starts_with("Make the app load it: run plain Node with `node --env-file=.env.local`"));
+}
+
+#[test]
+fn check_knows_whether_the_app_loads_the_key_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let write = |name: &str, text: &str| std::fs::write(dir.path().join(name), text).unwrap();
+    let loads = || {
+        let p = project(dir.path());
+        p.loads_key_file(&p.env_file)
+    };
+    write("package.json", r#"{"scripts":{"start":"node index.js"}}"#);
+    write("index.js", "import { ElevenLabsClient } from \"@elevenlabs/elevenlabs-js\";\n");
+    assert!(!loads(), "plain Node with nothing loading .env.local");
+    write("package.json", r#"{"scripts":{"start":"node --env-file=.env.local index.js"}}"#);
+    assert!(loads(), "the start script loads it");
+    write("package.json", r#"{"scripts":{"start":"node index.js"}}"#);
+    write("index.js", "import \"dotenv/config\";\n");
+    assert!(!loads(), "dotenv with no path reads .env, not .env.local");
+    write("index.js", "require(\"dotenv\").config({ path: \".env.local\" });\n");
+    assert!(loads(), "dotenv given the file");
+    write("index.js", "");
+    write("package.json", r#"{"scripts":{"start":"env-cmd -f .env.local node index.js"}}"#);
+    assert!(loads(), "env-cmd given the file");
+    write("package.json", r#"{"scripts":{"start":"sh start.sh"}}"#);
+    write("start.sh", "set -a; source .env.local; set +a\nnode index.js\n");
+    assert!(loads(), "a start script that sources it");
+    std::fs::remove_file(dir.path().join("start.sh")).unwrap();
+    assert!(!loads());
+    write("bun.lock", "");
+    assert!(loads(), "Bun reads it on its own");
+    std::fs::remove_file(dir.path().join("bun.lock")).unwrap();
+    write("vite.config.ts", "const env = loadEnv(mode, process.cwd(), \"\");\n");
+    assert!(loads(), "Vite's loadEnv");
+    std::fs::remove_file(dir.path().join("vite.config.ts")).unwrap();
+    write("package.json", r#"{"dependencies":{"next":"15"}}"#);
+    assert!(loads(), "Next.js reads it on its own");
+
+    let py = tempfile::tempdir().unwrap();
+    std::fs::write(py.path().join("requirements.txt"), "elevenlabs\n").unwrap();
+    std::fs::write(py.path().join("app.py"), "from elevenlabs.client import ElevenLabs\n").unwrap();
+    let p = project(py.path());
+    assert!(!p.loads_key_file(&p.env_file), "nothing loads .env");
+    std::fs::write(py.path().join("app.py"), "from dotenv import load_dotenv\nload_dotenv()\n").unwrap();
+    assert!(p.loads_key_file(&p.env_file), "python-dotenv");
+}
+
+#[test]
+fn outside_a_repository_the_env_file_still_goes_in_gitignore() {
+    // So a later `git init` and `git add .` don't commit the key.
+    let dir = tempfile::tempdir().unwrap();
+    let env = dir.path().join(".env.local");
+    std::fs::write(&env, "x").unwrap();
+    assert!(super::env_file::ensure_ignored(&env).unwrap(), "added");
+    assert!(!super::env_file::ensure_ignored(&env).unwrap(), "only once");
+    let gitignore = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+    assert_eq!(gitignore.matches("/.env.local").count(), 1, "{gitignore}");
+    git(dir.path(), &["init", "-q"]);
+    assert!(
+        !super::env_file::ensure_ignored(&env).unwrap(),
+        "git ignores it once the folder is a repository"
+    );
 }
 
 #[test]
@@ -584,7 +651,7 @@ fn waiting_gives_the_link_while_the_approval_is_open() {
         (r["next"].as_str(), r["run"].as_str()),
         (
             Some("run"),
-            Some("elevenlabs onboard connect --replace --env-file .env.local")
+            Some("elevenlabs onboard connect --replace --env-path .env.local")
         ),
         "the restart keeps --replace"
     );
@@ -603,7 +670,7 @@ fn waiting_gives_the_link_while_the_approval_is_open() {
         .contains("without ending your turn"));
     assert_eq!(
         r["run"],
-        "elevenlabs onboard connect --wait --env-file .env.local"
+        "elevenlabs onboard connect --wait --env-path .env.local"
     );
     // A line the worker is still writing is not a link yet.
     std::fs::write(dir.path().join("session/worker.log"), "  URL: ").unwrap();
@@ -620,7 +687,7 @@ fn waiting_gives_the_link_while_the_approval_is_open() {
     let r = wait(&s, &p, std::time::Duration::ZERO, true, false);
     assert_eq!(
         r["run"],
-        "elevenlabs onboard connect --replace --wait --env-file .env.local"
+        "elevenlabs onboard connect --replace --wait --env-path .env.local"
     );
 
     // Without a browser, the first reply hands the link over as soon as there is one.
@@ -640,7 +707,7 @@ fn waiting_gives_the_link_while_the_approval_is_open() {
     let r = wait(&s, &p, std::time::Duration::ZERO, true, false);
     assert_eq!(
         r["run"],
-        "elevenlabs onboard connect --replace --env-file .env.local --no-browser"
+        "elevenlabs onboard connect --replace --env-path .env.local --no-browser"
     );
 }
 
@@ -798,13 +865,13 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
     assert_eq!(denied["next"], "ask_user");
     assert_eq!(
         denied["run"],
-        "elevenlabs onboard connect --replace --env-file .env.local --no-browser"
+        "elevenlabs onboard connect --replace --env-path .env.local --no-browser"
     );
     assert!(
         denied["say"]
             .as_str()
             .unwrap()
-            .contains("app/settings/api-keys"),
+            .contains("app/api/api-keys?quickstart=true"),
         "offers the manual path too"
     );
     let late = failed(
@@ -890,7 +957,7 @@ fn every_clipboard_outcome_has_its_reply() {
     );
     assert_eq!(
         stored["run"],
-        "elevenlabs onboard check --answered --env-file .env.local"
+        "elevenlabs onboard check --answered --env-path .env.local"
     );
     assert_eq!(stored["details"]["key_status"], "created");
     assert_eq!(stored["details"]["key_last4"], "4567");
@@ -935,7 +1002,7 @@ fn every_clipboard_outcome_has_its_reply() {
         .contains("The old key (ending in 4567) is still in .env.local"));
     assert_eq!(
         manual["run"],
-        "elevenlabs onboard check --env-file .env.local"
+        "elevenlabs onboard check --env-path .env.local"
     );
 
     // A first key in an app that already uses the SDK has nothing to build,
@@ -985,7 +1052,7 @@ fn every_clipboard_outcome_has_its_reply() {
         (replaced["next"].as_str(), replaced["run"].as_str()),
         (
             Some("run"),
-            Some("elevenlabs onboard check --env-file .env.local")
+            Some("elevenlabs onboard check --env-path .env.local")
         )
     );
     assert_eq!(replaced["details"]["key_status"], "created");
@@ -1003,7 +1070,7 @@ fn the_manual_path_prepares_the_named_file_and_pins_it_for_check() {
     assert_eq!(v["next"], "ask_user");
     assert_eq!(
         v["run"],
-        "elevenlabs onboard check --env-file config/.env.dev"
+        "elevenlabs onboard check --env-path config/.env.dev"
     );
     let say = v["say"].as_str().unwrap();
     assert!(
