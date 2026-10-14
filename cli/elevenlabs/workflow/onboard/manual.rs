@@ -29,7 +29,7 @@ pub(super) fn reply(project: &Project, file: &Path, why: &str) -> Result<Reply, 
              3. Never paste it into this chat. Tell me when it's done."
         ),
     )
-    .run(&project.next(&format!("check --env-file {}", shell_arg(&name))))
+    .run(&project.next(&format!("check --env-path {}", shell_arg(&name))))
     .detail("env_file", name))
 }
 

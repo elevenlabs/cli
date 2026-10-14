@@ -75,7 +75,7 @@ impl Project {
         Ok(project)
     }
 
-    /// The project in `dir`, with `--env-file` when one was given.
+    /// The project in `dir`, with `--env-path` when one was given.
     pub fn at(dir: PathBuf, env_file: Option<String>) -> Self {
         let stack = stack_of(&dir);
         let env_display = env_file.unwrap_or_else(|| {
@@ -101,8 +101,8 @@ impl Project {
     /// the same file even if the project's stack (and so the default) changes.
     pub fn next(&self, step: &str) -> String {
         let mut cmd = step.to_string();
-        if !step.contains("--env-file") {
-            cmd.push_str(&format!(" --env-file {}", shell_arg(&self.env_display)));
+        if !step.contains("--env-path") {
+            cmd.push_str(&format!(" --env-path {}", shell_arg(&self.env_display)));
         }
         if self.no_browser {
             cmd.push_str(" --no-browser");
@@ -241,22 +241,37 @@ impl Project {
                  with `node --env-file={file}` (in its start script too) or call {dotenv} first."
             );
         }
-        match (self.stack, self.env_loading_framework()) {
-            (_, Some(framework)) => format!("{framework} reads it on its own."),
+        match (self.stack, self.framework()) {
+            (_, Some(Framework::Next)) => "Next.js reads it on its own.".into(),
+            // Vite and what's built on it read env files into `import.meta.env`, not
+            // `process.env`, where the SDK looks.
+            (_, Some(Framework::Vite)) => format!(
+                "Vite doesn't put it in `process.env`, where the SDK looks, and only `VITE_` variables \
+                 reach browser code, which must never see the key. Load it in server code: with \
+                 `loadEnv(mode, process.cwd(), \"\")` in `vite.config` for a dev-server endpoint, or \
+                 `node --env-file={file}` for a separate server."
+            ),
+            (_, Some(Framework::Astro)) => "Astro reads it into `import.meta.env`, not `process.env`, where \
+                the SDK looks: in server code, create the client with \
+                `apiKey: import.meta.env.ELEVENLABS_API_KEY`."
+                .into(),
+            (_, Some(Framework::SvelteKit)) => "SvelteKit reads it into `$env/static/private`, not \
+                `process.env`, where the SDK looks: in server code, import `ELEVENLABS_API_KEY` from \
+                there and pass it as the client's `apiKey`."
+                .into(),
             (Stack::Node, None) => format!(
                 "Plain Node doesn't read it on its own, so run the app with `node --env-file={file}` \
                  (in its start script too) or call {dotenv} first."
             ),
             _ => format!(
                 "Make the app load it: run plain Node with `node --env-file={file}` (in its start script \
-                 too) or call {dotenv} first; Next.js and Vite read it on their own."
+                 too) or call {dotenv} first; Next.js reads it on its own."
             ),
         }
     }
 
-    /// The framework in the app's package.json that loads `.env.local` on its
-    /// own, if any: Next.js, or Vite and what's built on it.
-    fn env_loading_framework(&self) -> Option<&'static str> {
+    /// The framework in the app's package.json that reads env files on its own, if any.
+    fn framework(&self) -> Option<Framework> {
         let text = std::fs::read_to_string(self.dir.join("package.json")).ok()?;
         let pkg: serde_json::Value = serde_json::from_str(&text).ok()?;
         let has = |name: &str| {
@@ -265,29 +280,49 @@ impl Project {
                 .any(|d| pkg[d].get(name).is_some())
         };
         if has("next") {
-            Some("Next.js")
-        } else if ["vite", "astro", "@sveltejs/kit"].iter().any(|d| has(d)) {
-            Some("Vite")
+            Some(Framework::Next)
+        } else if has("astro") {
+            Some(Framework::Astro)
+        } else if has("@sveltejs/kit") {
+            Some(Framework::SvelteKit)
+        } else if has("vite") {
+            Some(Framework::Vite)
         } else {
             None
         }
+    }
+
+    /// Whether the app loads the env file the key is in, so the SDK finds the key when the
+    /// app runs: Next.js or Bun on their own, or something in a script or the source that
+    /// loads it (see [`loads_key_in`]). A text check: it can't run the app, only catch the
+    /// common miss of code that uses the SDK while nothing loads the key.
+    pub fn loads_key_file(&self, file: &Path) -> bool {
+        let shown = self.show(file);
+        let bun = ["bun.lock", "bun.lockb"].iter().any(|f| self.dir.join(f).exists());
+        if !shown.starts_with("../") && (bun || self.framework() == Some(Framework::Next)) {
+            return true;
+        }
+        self.any_file(&|path| {
+            (is_source(path) || path.file_name().is_some_and(|n| n == "package.json"))
+                && std::fs::read_to_string(path).is_ok_and(|text| loads_key_in(&text, &shown))
+        })
     }
 
     /// Some manifest in the project declares an ElevenLabs SDK (any
     /// `@elevenlabs/` package but the CLI, or Python's `elevenlabs`), in the
     /// app's folder or one below it, as in a monorepo.
     pub fn sdk_declared(&self) -> bool {
-        self.any_file(declares_sdk)
+        self.any_file(&declares_sdk)
     }
 
     /// Some source file imports an ElevenLabs SDK.
     pub fn sdk_imported(&self) -> bool {
-        self.any_file(imports_sdk)
+        self.any_file(&imports_sdk)
     }
 
     /// Whether `test` holds for a file in the project, skipping hidden folders
     /// and installed dependencies.
-    fn any_file(&self, test: fn(&Path) -> bool) -> bool {
+    fn any_file(&self, test: &dyn Fn(&Path) -> bool) -> bool {
         let mut stack = vec![self.dir.clone()];
         while let Some(dir) = stack.pop() {
             let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -358,8 +393,39 @@ const SKIPPED_DIRS: &[&str] = &[
 /// folder of that name is the app's own code (`app/examples/`).
 const SAMPLE_DIRS: &[&str] = &["examples", "example"];
 
-fn imports_sdk(path: &Path) -> bool {
-    let source = matches!(
+/// A frontend or backend framework that reads env files on its own.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Framework {
+    Next,
+    Vite,
+    Astro,
+    SvelteKit,
+}
+
+/// Something in `text` loads the env file named `file` (as the developer knows it): Node's
+/// `--env-file` or `process.loadEnvFile`, dotenv, env-cmd, a shell's `source`,
+/// python-dotenv, Vite's `loadEnv`, or the key read from Astro's `import.meta.env` or
+/// SvelteKit's `$env/*/private`. dotenv, env-cmd and `loadEnvFile()` read `.env` when given
+/// no path.
+fn loads_key_in(text: &str, file: &str) -> bool {
+    let names = |loader: &str| text.contains(loader) && (text.contains(file) || file == ".env");
+    text.contains(&format!("--env-file={file}"))
+        || text.contains(&format!("--env-file {file}"))
+        || text.contains(&format!("source {file}"))
+        || names("loadEnvFile")
+        || names("dotenv")
+        || names("env-cmd")
+        || text.contains("load_dotenv")
+        || text.contains("dotenv_values")
+        || text.contains("loadEnv(")
+        || text.contains("import.meta.env.ELEVENLABS_API_KEY")
+        || (text.contains("$env/static/private") || text.contains("$env/dynamic/private"))
+            && text.contains("ELEVENLABS_API_KEY")
+}
+
+/// A file the app's code (or a script that starts it) is written in.
+fn is_source(path: &Path) -> bool {
+    matches!(
         path.extension().and_then(|e| e.to_str()),
         Some(
             "js" | "mjs"
@@ -373,8 +439,13 @@ fn imports_sdk(path: &Path) -> bool {
                 | "svelte"
                 | "astro"
                 | "py"
+                | "sh"
         )
-    );
+    )
+}
+
+fn imports_sdk(path: &Path) -> bool {
+    let source = is_source(path) && path.extension().is_some_and(|e| e != "sh");
     source
         && std::fs::read_to_string(path).is_ok_and(|s| {
             imports_js_sdk(&s)

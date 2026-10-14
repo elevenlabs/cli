@@ -55,9 +55,13 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
     }
 }
 
+/// `--env-path`, not `--env-file`: through npx, Node takes `--env-file` for itself (for any
+/// package), so the CLI never sees it and Node fails when the file doesn't exist yet. The old
+/// name still works when the CLI is run directly.
 fn env_file_arg() -> clap::Arg {
     clap::Arg::new("env-file")
-        .long("env-file")
+        .long("env-path")
+        .alias("env-file")
         .value_name("PATH")
         .help("The env file for ELEVENLABS_API_KEY (default: .env for Python projects, else .env.local)")
 }
