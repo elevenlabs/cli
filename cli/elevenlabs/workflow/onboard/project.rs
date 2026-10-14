@@ -406,12 +406,14 @@ enum Framework {
 /// `--env-file` or `process.loadEnvFile`, dotenv, env-cmd, a shell's `source`,
 /// python-dotenv, Vite's `loadEnv`, or the key read from Astro's `import.meta.env` or
 /// SvelteKit's `$env/*/private`. dotenv, env-cmd and `loadEnvFile()` read `.env` when given
-/// no path.
+/// no path. The file is matched by its name, not its path: a script in a monorepo package names
+/// the root's `.env.local` as `../../.env.local`.
 fn loads_key_in(text: &str, file: &str) -> bool {
-    let names = |loader: &str| text.contains(loader) && (text.contains(file) || file == ".env");
-    text.contains(&format!("--env-file={file}"))
-        || text.contains(&format!("--env-file {file}"))
-        || text.contains(&format!("source {file}"))
+    let name = file.rsplit(['/', '\\']).next().unwrap_or(file);
+    let names = |loader: &str| text.contains(loader) && (text.contains(name) || name == ".env");
+    names_file_after(text, "--env-file=", name)
+        || names_file_after(text, "--env-file ", name)
+        || names_file_after(text, "source ", name)
         || names("loadEnvFile")
         || names("dotenv")
         || names("env-cmd")
@@ -421,6 +423,20 @@ fn loads_key_in(text: &str, file: &str) -> bool {
         || text.contains("import.meta.env.ELEVENLABS_API_KEY")
         || (text.contains("$env/static/private") || text.contains("$env/dynamic/private"))
             && text.contains("ELEVENLABS_API_KEY")
+}
+
+/// Some `prefix` in `text` is followed by a path to a file called `name`, quoted or not (in a
+/// package.json script a quote is escaped, `\".env.local\"`).
+fn names_file_after(text: &str, prefix: &str, name: &str) -> bool {
+    text.match_indices(prefix).any(|(at, _)| {
+        let rest = text[at + prefix.len()..].trim_start_matches(['"', '\'', '`', '\\']);
+        let path = rest
+            .split(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '`' | ';' | '&' | '|' | ')' | ','))
+            .next()
+            .unwrap_or("");
+        let path = path.trim_end_matches('\\');
+        path == name || path.ends_with(&format!("/{name}")) || path.ends_with(&format!("\\{name}"))
+    })
 }
 
 /// A file the app's code (or a script that starts it) is written in.

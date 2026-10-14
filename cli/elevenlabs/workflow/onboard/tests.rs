@@ -336,6 +336,20 @@ fn check_knows_whether_the_app_loads_the_key_file() {
     assert!(!loads(), "plain Node with nothing loading .env.local");
     write("package.json", r#"{"scripts":{"start":"node --env-file=.env.local index.js"}}"#);
     assert!(loads(), "the start script loads it");
+    write("package.json", r#"{"scripts":{"start":"node --env-file=\".env.local\" index.js"}}"#);
+    assert!(loads(), "quoted");
+    write("package.json", r#"{"scripts":{"start":"node --env-file=.env index.js"}}"#);
+    assert!(!loads(), "another file");
+    // A monorepo package names the root's key file by its own relative path.
+    std::fs::create_dir_all(dir.path().join("apps/api")).unwrap();
+    write("package.json", r#"{"private":true,"workspaces":["apps/*"]}"#);
+    write("apps/api/package.json", r#"{"scripts":{"start":"node --env-file=../../.env.local server.js"}}"#);
+    assert!(loads(), "from a package in a subfolder");
+    write("apps/api/package.json", r#"{"scripts":{"start":"node --env-file=..\\..\\.env.local server.js"}}"#);
+    assert!(loads(), "a Windows path");
+    write("apps/api/package.json", r#"{"scripts":{"start":"node --env-file=../../.env.local.example server.js"}}"#);
+    assert!(!loads(), "a file with a longer name");
+    std::fs::remove_dir_all(dir.path().join("apps")).unwrap();
     write("package.json", r#"{"scripts":{"start":"node index.js"}}"#);
     write("index.js", "import \"dotenv/config\";\n");
     assert!(!loads(), "dotenv with no path reads .env, not .env.local");
