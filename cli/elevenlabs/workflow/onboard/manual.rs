@@ -11,7 +11,10 @@ use super::env_file::{self, API_KEY_ENV};
 use super::project::{shell_arg, Project};
 use super::reply::{Next, Reply};
 
-pub(super) const API_KEYS_PAGE: &str = "https://elevenlabs.io/app/settings/api-keys";
+/// `quickstart` opens the create drawer with a key that can call the API; the drawer's
+/// default is a restricted key with no permissions, which can't do anything. The older
+/// `/app/settings/api-keys` redirects here but drops the query.
+pub(super) const API_KEYS_PAGE: &str = "https://elevenlabs.io/app/api/api-keys?quickstart=true";
 
 pub(super) const NO_BROWSER: &str = "A browser can't reach this machine (an SSH session, a container or a cloud environment), so the approval page can't hand a key to it.";
 

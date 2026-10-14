@@ -867,7 +867,7 @@ fn init_on_a_remote_machine_prepares_the_manual_key() {
     assert_eq!(r["next"], "ask_user", "{r}");
     assert_eq!(r["run"], "elevenlabs onboard check --env-path .env.local");
     assert!(
-        say(&r).contains("elevenlabs.io/app/settings/api-keys"),
+        say(&r).contains("https://elevenlabs.io/app/api/api-keys?quickstart=true."),
         "{r}"
     );
     assert!(std::fs::read_to_string(cwd.path().join(".env.local"))

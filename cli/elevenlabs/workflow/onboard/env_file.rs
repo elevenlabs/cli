@@ -9,7 +9,7 @@ pub(super) const API_KEY_ENV: &str = "ELEVENLABS_API_KEY";
 pub(super) const DEFAULT_ENV_FILE: &str = ".env.local";
 pub(super) const PLACEHOLDER_NOTE: &str =
     "# Paste your ElevenLabs API key after the = below. Create one at \
-     https://elevenlabs.io/app/settings/api-keys if you need to. Never paste it into a chat.";
+     https://elevenlabs.io/app/api/api-keys?quickstart=true if you need to. Never paste it into a chat.";
 
 /// The line without a leading `export`, when it is a key line.
 fn key_line(line: &str) -> Option<&str> {

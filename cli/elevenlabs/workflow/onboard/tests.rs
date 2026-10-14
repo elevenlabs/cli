@@ -871,7 +871,7 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
         denied["say"]
             .as_str()
             .unwrap()
-            .contains("app/settings/api-keys"),
+            .contains("app/api/api-keys?quickstart=true"),
         "offers the manual path too"
     );
     let late = failed(
