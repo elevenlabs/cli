@@ -72,6 +72,9 @@ const FAKE_CLOCK_ENV: &str = "ELEVENLABS_FLOWS_WAIT_FAKE_CLOCK";
 
 /// Generated flags that make no sense on a single-result polling command, or
 /// that this path cannot honour.
+/// Groups the wait flags apart from the cloned `create` flags in `--help`.
+const WAIT_HEADING: &str = "Wait options";
+
 const SKIPPED_ARGS: &[&str] = &[
     "page-all",
     "page-limit",
@@ -177,6 +180,7 @@ fn sibling_command(target: &Target, create: &clap::Command) -> clap::Command {
     cmd.arg(
         clap::Arg::new("wait-timeout")
             .long("wait-timeout")
+            .help_heading(WAIT_HEADING)
             .value_name("SECONDS")
             .value_parser(clap::value_parser!(f64))
             .help(
@@ -187,6 +191,7 @@ fn sibling_command(target: &Target, create: &clap::Command) -> clap::Command {
     .arg(
         clap::Arg::new("min-poll-interval")
             .long("min-poll-interval")
+            .help_heading(WAIT_HEADING)
             .value_name("SECONDS")
             .value_parser(clap::value_parser!(f64))
             .help(
@@ -708,6 +713,22 @@ fn emit(matches: &clap::ArgMatches, value: &Value) -> Result<(), CliError> {
     out.flush().map_err(|e| CliError::Other(e.into()))
 }
 
+/// `raw` promises the server's bytes and `http` its status line and headers.
+/// The final result here is a decoded body, so neither can be honoured; say so
+/// up front rather than quietly printing compact JSON.
+fn reject_unsupported_format(matches: &clap::ArgMatches) -> Result<(), CliError> {
+    let pipeline = fern_cli_sdk::formatter::OutputPipeline::from_matches(matches, "elevenlabs")
+        .map_err(|e| CliError::Validation(e.to_string()))?;
+    if pipeline.is_raw() || pipeline.is_http() {
+        return Err(CliError::Validation(
+            "create-and-wait does not support --format raw or http; use json, jsonl, yaml, \
+             table or csv, or `get --format http` on the id it prints"
+                .to_string(),
+        ));
+    }
+    Ok(())
+}
+
 fn flag(matches: &clap::ArgMatches, id: &str) -> bool {
     matches
         .try_get_one::<bool>(id)
@@ -727,6 +748,7 @@ fn describe(body: &Value, create: &ApiRequest) -> String {
 
 fn run(target: &Target, matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let opts = WaitOptions::from_matches(matches)?;
+    reject_unsupported_format(matches)?;
     let resource = resource_at(ctx.spec(), target.path).ok_or_else(|| {
         CliError::Discovery(format!(
             "no `{}` resource in the spec",

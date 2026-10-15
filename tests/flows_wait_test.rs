@@ -456,3 +456,30 @@ async fn progress_goes_to_stderr_and_stdout_stays_json() {
     let out = run(image_wait(&server, &[])).await;
     assert!(!stderr(&out).contains("flows: "), "{}", stderr(&out));
 }
+
+#[tokio::test]
+async fn raw_and_http_formats_are_rejected_before_any_request() {
+    let server = MockServer::start().await;
+    for format in ["raw", "http"] {
+        let out = run(cli(
+            &server,
+            &[
+                "flows",
+                "image",
+                "create-and-wait",
+                "--json",
+                IMAGE_BODY,
+                "--format",
+                format,
+            ],
+        ))
+        .await;
+        assert_eq!(out.status.code(), Some(3), "{format}: {}", stderr(&out));
+        let all = format!("{}{}", String::from_utf8_lossy(&out.stdout), stderr(&out));
+        assert!(
+            all.contains("does not support --format raw or http"),
+            "{format}: {all}"
+        );
+    }
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
