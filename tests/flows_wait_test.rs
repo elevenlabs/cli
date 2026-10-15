@@ -269,7 +269,13 @@ async fn terminal_create_response_is_not_polled() {
 async fn failed_result_is_printed_and_exits_1() {
     let server = MockServer::start().await;
     mount_create(&server, reply("pending", None)).await;
-    let failed = json!({"id": "gen_1", "status": "failed", "error": {"message": "moderated"}});
+    // The shape prod returns for a moderated `gpt-image-1` prompt.
+    let failed = json!({
+        "id": "gen_1",
+        "status": "failed",
+        "failure_reason": "moderated",
+        "error_message": "This generation may violate our Terms of Service and has been blocked.",
+    });
     mount_gets(
         &server,
         vec![ResponseTemplate::new(200).set_body_json(failed.clone())],
