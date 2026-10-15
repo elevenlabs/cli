@@ -73,6 +73,14 @@ fn reply(cmd: &mut Command) -> Value {
         !all_output(&output).contains(KEY),
         "the key never appears in the output"
     );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout)
+            .trim_end()
+            .lines()
+            .count(),
+        1,
+        "the reply is one line"
+    );
     serde_json::from_slice(&output.stdout).expect("stdout is JSON")
 }
 
