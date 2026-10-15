@@ -29,7 +29,8 @@ impl Next {
             Next::Run => "Tell the user `say`, then run `run`.",
             Next::Wait => {
                 "Show the user `say`, then run `run` right away, without ending your turn: it waits while they \
-                 approve in the browser."
+                 approve in the browser. Whenever you give them the link, copy it whole, exactly as printed: \
+                 a shortened or edited link doesn't work."
             }
             Next::AskUser => {
                 "Ask the user what `say` says and wait for their answer, then run `run`, unless they said no."
@@ -59,11 +60,15 @@ impl Next {
                  to check it."
             }
             Next::OfferTest => {
-                "End your reply with the question in `say`, as it is, and stop there: until they answer, \
-                 don't run the app, its start script or anything else that uses the key. Run `run` only if \
-                 they say yes."
+                "Say what you set up and anything the user still has to do themselves, like installing the \
+                 packages you added. Then end your reply with the question in `say`, as it is, and stop \
+                 there: until they answer, don't run the app, its start script or anything else that uses \
+                 the key. Run `run` only if they say yes."
             }
-            Next::Done => "Tell the user `say`. There's nothing left to run.",
+            Next::Done => {
+                "Tell the user `say`, then anything they still have to do themselves, like installing the \
+                 packages you added, in one or two concrete steps. There's nothing left to run."
+            }
         }
     }
 }
@@ -142,9 +147,10 @@ pub(super) fn command(args: &str) -> String {
 
 /// Print a reply (or one a background sign-in saved). Always JSON, whatever
 /// stdout is and whatever `--human` or `--format` says: only agents run these
-/// steps, often in pseudo-terminals, and prose would drop the instruction.
+/// steps, often in pseudo-terminals, and prose would drop the instruction. On
+/// one line, so an agent that pipes it through `grep` or `tail` keeps all of it.
 pub(super) fn emit(reply: &Value) -> Result<(), CliError> {
-    let text = serde_json::to_string_pretty(reply)
+    let text = serde_json::to_string(reply)
         .map_err(|e| CliError::Other(anyhow::anyhow!("{e}")))?;
     println!("{text}");
     Ok(())
