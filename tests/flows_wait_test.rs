@@ -448,6 +448,16 @@ async fn progress_goes_to_stderr_and_stdout_stays_json() {
         "{}",
         stderr(&out)
     );
+    // --debug shows each decoded response body, which the executor's dump
+    // leaves out, and never the key.
+    for status in ["pending", "completed"] {
+        assert!(
+            stderr(&out).contains(&format!("<   \"status\": \"{status}\"")),
+            "{}",
+            stderr(&out)
+        );
+    }
+    assert!(!stderr(&out).contains(KEY), "{}", stderr(&out));
 
     // Without --debug, and with stderr not a terminal, there is no progress.
     let server = MockServer::start().await;

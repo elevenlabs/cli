@@ -642,7 +642,7 @@ fn resource_at<'a>(doc: &'a RestDescription, path: &[&str]) -> Option<&'a RestRe
         .try_fold(doc.resources.get(*first)?, |r, name| r.resources.get(*name))
 }
 
-fn send(ctx: &AppContext, req: &ApiRequest) -> Result<Polled, CliError> {
+fn send(ctx: &AppContext, req: &ApiRequest, debug: bool) -> Result<Polled, CliError> {
     let client = crate::sdk::client(ctx);
     let mut opts = elevenlabs_sdk::RequestOptions::new();
     opts.additional_headers.extend(req.headers.iter().cloned());
@@ -660,6 +660,18 @@ fn send(ctx: &AppContext, req: &ApiRequest) -> Result<Polled, CliError> {
         query,
         Some(opts),
     ))?;
+    // The executor's `--debug` dump stops at the headers ("body consumed by
+    // the SDK client"); print the decoded body so each poll's state shows.
+    // Flows responses carry ids, statuses and signed content URLs, the same
+    // fields `get --debug` prints, and no credentials.
+    if debug {
+        eprintln!("< Response body:");
+        let pretty = serde_json::to_string_pretty(&raw.body).unwrap_or_default();
+        for line in pretty.lines() {
+            eprintln!("< {line}");
+        }
+        eprintln!("<");
+    }
     // `execute_request_raw` returns error responses as `Ok`; see `api::raw_request`.
     if raw.status_code >= 400 {
         return Err(CliError::Api {
@@ -773,7 +785,8 @@ fn run(target: &Target, matches: &clap::ArgMatches, ctx: &AppContext) -> Result<
     }
 
     let _scope = super::api::command_scope(target.scope);
-    let show_progress = std::io::stderr().is_terminal() || flag(matches, "debug");
+    let debug = flag(matches, "debug");
+    let show_progress = std::io::stderr().is_terminal() || debug;
     let mut clock: Box<dyn Clock> = if std::env::var_os(FAKE_CLOCK_ENV).is_some() {
         Box::new(FakeClock {
             elapsed: Duration::ZERO,
@@ -784,7 +797,7 @@ fn run(target: &Target, matches: &clap::ArgMatches, ctx: &AppContext) -> Result<
     };
 
     let started = clock.elapsed();
-    let first = send(ctx, &create)?;
+    let first = send(ctx, &create, debug)?;
     let id = first
         .body
         .get("id")
@@ -810,7 +823,7 @@ fn run(target: &Target, matches: &clap::ArgMatches, ctx: &AppContext) -> Result<
     };
     let result = wait_until_terminal(
         first,
-        || send(ctx, &get),
+        || send(ctx, &get, debug),
         &opts,
         started,
         clock.as_mut(),
