@@ -17,6 +17,7 @@ mod agents;
 mod api;
 mod components;
 mod feedback;
+mod flows_wait;
 mod intent;
 mod onboard;
 mod project;
@@ -44,6 +45,7 @@ pub fn register(app: CliApp) -> CliApp {
     let app = residency::register(app);
     let app = feedback::register(app);
     let app = say::register(app);
+    let app = flows_wait::register(app);
     // Shadows the framework's built-in; see that module's docs.
     let app = skills::register(app);
     components::register(app)
