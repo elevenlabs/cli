@@ -51,8 +51,11 @@ impl Next {
                  and `cat` (file search tools may not look there). If one fits what they want, read its \
                  SKILL.md and the `references/` \
                  files it links before writing any code, and write the code the way the skill shows, \
-                 not from the SDK's own files; if none fits, write it without one. Install the SDK, and \
-                 make the app load the key the way `details.load_key` says. Then run `run` to check it."
+                 not from the SDK's own files; if none fits, write it without one. If it needs something \
+                 made in ElevenLabs first, like an agent, make it yourself with the key (load the env \
+                 file in the command, never print it), not a script for the user to run. Install the \
+                 SDK, and make the app load the key the way `details.load_key` says. Then run `run` to \
+                 check it."
             }
             Next::LoadKey => {
                 "Tell the user `say`. The code already uses the SDK, but the app must load the key from \
@@ -62,8 +65,8 @@ impl Next {
             Next::OfferTest => {
                 "Say what you set up and anything the user still has to do themselves, like installing the \
                  packages you added. Then end your reply with the question in `say`, as it is, and stop \
-                 there: until they answer, don't run the app, its start script or anything else that uses \
-                 the key. Run `run` only if they say yes."
+                 there: until they answer, don't run the app or its start script, or make speech to try \
+                 it. Run `run` only if they say yes."
             }
             Next::Done => {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \
@@ -81,7 +84,7 @@ const RULES: &[&str] = &[
     "Never run git clean or delete untracked files.",
     "Don't write or change any code until a reply's `next` is `write_code` or `load_key`.",
     "Put anything you download only to read, like a package or an archive, in a temp folder, never in the project.",
-    "Never run the app (its start script or anything else that calls ElevenLabs) or make your own API calls with the key until the user says yes to the test request. Once the code is written, run `onboard check` before you finish: it verifies the key and the code.",
+    "Don't run the app (or its start script) or make speech to try it until the user says yes to the test request. API calls that what they asked for needs, like creating an agent, are fine. Once the code is written, run `onboard check` before you finish: it verifies the key and the code.",
 ];
 
 #[derive(Debug, Serialize)]
