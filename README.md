@@ -15,6 +15,7 @@ The CLI does two things:
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
 - [Speaking text](#speaking-text)
+- [Waiting for Flows results](#waiting-for-flows-results)
 - [Agents as Code](#agents-as-code)
 - [Data residency](#data-residency)
 - [UI components](#ui-components)
@@ -141,6 +142,29 @@ Defaults are stored in `~/.elevenlabs/config.json` alongside [data residency](#d
 Playback shells out to whichever player is on the box, preferring ones that read stdin so audio starts before the download finishes: `ffplay`, `mpv`, `afplay` (macOS), `paplay`/`aplay` (Linux), `Media.SoundPlayer` (Windows). Install [ffmpeg](https://ffmpeg.org) or [mpv](https://mpv.io) if none are present, or point `--player` at your own.
 
 > `config` is a subcommand, so speaking that exact word needs `elevenlabs say -- config`.
+
+## Waiting for Flows results
+
+Flows image, video and text-to-speech generations, and template runs, finish in the background: `create` returns straight away with `status: pending`. `create-and-wait` takes the same flags as `create`, then polls until the result is `completed` or `failed` and prints it (the same JSON as `get`):
+
+```bash
+elevenlabs flows image create-and-wait \
+  --json '{"model_id": "bytedance-seedream-5-lite", "prompt": "a corgi on a beach"}'
+
+elevenlabs flows templates list                          # find a template and its input ports
+elevenlabs flows templates runs create-and-wait \
+  --template-id <template_id> --inputs '{"prompt": "a corgi"}' --wait-timeout 600
+
+elevenlabs flows video create-and-wait --json - --query content_url < request.json
+```
+
+It waits between checks for as long as the server's `Retry-After` header asks, never less than `--min-poll-interval` (default 3s). Progress is written to stderr when stderr is a terminal or with `--debug`; stdout only carries the final result, so `--format`, `--query` and pipes behave as they do for `get`.
+
+- **`failed`** is printed like any other result, and the command exits `1`.
+- **`--wait-timeout <seconds>`** gives up after that long (default: wait indefinitely). It exits `1` with an error whose `reason` is `waitTimeout`, carrying the id and the `get` command to resume with. The work keeps running on the server.
+- **`--dry-run`** prints the create request and sends nothing, as on `create`.
+
+For production, prefer setting `webhook` on `create` and handling the webhook event over holding a process open.
 
 ## Agents as Code
 
@@ -412,7 +436,10 @@ The generated crates are path dependencies rather than workspace members, so a p
 |-------|----------------|
 | `cargo test --test wire_test` | Generated wire tests: each stands up an in-process mock server, drives one endpoint through the CLI, and asserts the request and rendered response. No network. |
 | `cargo test --bin elevenlabs` | Unit tests for the hand-written workflow (config round-tripping, templates, pull planning, residency, …) |
+| `cargo test --test flows_wait_test` | `flows … create-and-wait` against a mock server: `Retry-After` pacing, timeouts, `failed` exit code, option validation. Sleeps run on a virtual clock. No network. |
 | `cargo test --test e2e_smoke` | Live end-to-end smoke test — **opt-in**, see below |
+
+`flows … create-and-wait` builds its flags from `cli/elevenlabs/workflow/flows_spec.json`, the `/v1/flows/` slice of `cli/elevenlabs/openapi0.json`. After a regeneration changes the Flows spec, `cargo test` fails until you refresh it with `UPDATE_FLOWS_SPEC=1 cargo test --bin elevenlabs flows_spec`.
 
 ### Live end-to-end smoke test
 
