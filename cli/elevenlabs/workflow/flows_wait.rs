@@ -21,9 +21,11 @@
 //!
 //! The sibling's flags are cloned at startup from the generated `create`
 //! command, built by the framework's own `build_cli`, so a field added to the
-//! spec becomes a flag here too. The request is assembled at run time from the
-//! full spec's parameter locations ([`build_request`]), not from hand-written
-//! field lists.
+//! spec becomes a flag here too. The request is built and validated by the
+//! framework's own executor, run as a dry run ([`generated_dry_run`]), so its
+//! body, query, coercion, `@file` expansion, and required-field and schema
+//! checks are the generated `create`'s; only the path and headers are routed
+//! here, from the full spec's parameter locations.
 //!
 //! The commands are built from `flows_spec.json`, the `/v1/flows/` slice of
 //! `openapi0.json` plus every component it references. A second
@@ -221,6 +223,9 @@ impl WaitOptions {
                  {SMALLEST_MIN_POLL_INTERVAL_SECS}; got {min}"
             )));
         }
+        let min_interval = Duration::try_from_secs_f64(min).map_err(|_| {
+            CliError::Validation(format!("--min-poll-interval is too large; got {min:e}"))
+        })?;
         let timeout = match timeout_secs {
             Some(t) if t.is_nan() || t < 0.0 => {
                 return Err(CliError::Validation(format!(
@@ -229,12 +234,16 @@ impl WaitOptions {
             }
             // `inf` means the same as leaving it out.
             Some(t) if t.is_infinite() => None,
-            Some(t) => Some(Duration::from_secs_f64(t)),
+            Some(t) => Some(Duration::try_from_secs_f64(t).map_err(|_| {
+                CliError::Validation(format!(
+                    "--wait-timeout is too large; got {t:e} (use inf to wait indefinitely)"
+                ))
+            })?),
             None => None,
         };
         Ok(Self {
             timeout,
-            min_interval: Duration::from_secs_f64(min),
+            min_interval,
         })
     }
 
@@ -250,12 +259,14 @@ impl WaitOptions {
 
 /// The wait before the next GET: the server's `Retry-After` (delta-seconds or
 /// HTTP date), never below `min`, times `1 + jitter * 20%`. `jitter` is in
-/// `[0, 1)`. A missing, unparseable or `0` header falls back to `min`.
+/// `[0, 1)`. A missing, unparseable or `0` header falls back to `min`. A wait
+/// too long for `Duration` saturates rather than panicking.
 fn poll_delay(retry_after: Option<&str>, min: Duration, now: SystemTime, jitter: f64) -> Duration {
     let server = retry_after
         .and_then(|v| fern_cli_sdk::http::parse_retry_after(v, now))
         .unwrap_or(min);
-    server.max(min).mul_f64(1.0 + jitter * JITTER_FACTOR)
+    let secs = server.max(min).as_secs_f64() * (1.0 + jitter * JITTER_FACTOR);
+    Duration::try_from_secs_f64(secs).unwrap_or(Duration::MAX)
 }
 
 /// Elapsed time and sleeping, swappable so tests don't wait.
@@ -291,7 +302,7 @@ impl Clock for FakeClock {
         if self.log {
             eprintln!("flows-wait: sleep {}ms", d.as_millis());
         }
-        self.elapsed += d;
+        self.elapsed = self.elapsed.saturating_add(d);
     }
 }
 
@@ -345,8 +356,9 @@ fn wait_until_terminal(
             SystemTime::now(),
             jitter(),
         );
-        if let Some(timeout) = opts.timeout {
-            let remaining = (started + timeout).saturating_sub(clock.elapsed());
+        // A deadline past `Duration::MAX` is no deadline.
+        if let Some(deadline) = opts.timeout.and_then(|t| started.checked_add(t)) {
+            let remaining = deadline.saturating_sub(clock.elapsed());
             if remaining.is_zero() {
                 return Err(WaitError::TimedOut(current));
             }
@@ -372,6 +384,8 @@ struct ApiRequest {
     body: Option<Value>,
     /// Path parameter values by wire name, for the follow-up GET.
     path_params: Map<String, Value>,
+    /// What the generated `--dry-run` prints for this request.
+    dry_run: Value,
 }
 
 /// Path segment encoding: everything but RFC 3986 unreserved characters.
@@ -391,64 +405,135 @@ fn arg_id_for(matches: &clap::ArgMatches, name: &str) -> Option<String> {
 }
 
 /// Read one parameter's value from the flags, the way the generated command
-/// does: JSON for object/array parameters, `null` for nullable ones, enum
-/// display names mapped back to wire values, and repeated flags as a list.
+/// does: JSON for object/array parameters (with `@file` references expanded),
+/// `null` for nullable ones, enum display names mapped back to wire values,
+/// and repeated flags as a list.
 fn flag_value(
+    doc: &RestDescription,
     matches: &clap::ArgMatches,
     id: &str,
     param: &fern_cli_sdk::openapi::discovery::MethodParameter,
     skip_defaulted: bool,
-) -> Option<Value> {
+) -> Result<Option<Value>, CliError> {
     let from_default = matches.value_source(id) == Some(clap::parser::ValueSource::DefaultValue);
     if from_default && skip_defaulted {
-        return None;
+        return Ok(None);
     }
     if param.repeated {
+        let Some(values) = matches.get_many::<String>(id) else {
+            return Ok(None);
+        };
         let mut items = Vec::new();
-        for v in matches.get_many::<String>(id)? {
+        for v in values {
             match serde_json::from_str(v) {
                 Ok(Value::Array(elems)) => items.extend(elems),
                 _ => items.push(Value::String(v.clone())),
             }
         }
-        return Some(if param.scalar_or_array && items.len() == 1 {
+        return Ok(Some(if param.scalar_or_array && items.len() == 1 {
             items.remove(0)
         } else {
             Value::Array(items)
-        });
+        }));
     }
-    let raw = matches.get_one::<String>(id)?;
+    let Some(raw) = matches.get_one::<String>(id) else {
+        return Ok(None);
+    };
     if let (true, Some(typed)) = (from_default, &param.default_value) {
-        return Some(typed.clone());
+        return Ok(Some(typed.clone()));
     }
     if param.nullable && raw == "null" {
-        return Some(Value::Null);
+        return Ok(Some(Value::Null));
     }
     if matches!(param.param_type.as_deref(), Some("object" | "array")) {
         if let Ok(parsed) = serde_json::from_str(raw) {
-            return Some(parsed);
+            return expand_file_refs(doc, parsed).map(Some);
         }
     }
-    Some(Value::String(
+    Ok(Some(Value::String(
         param.resolve_enum_display_to_wire(raw).into_owned(),
-    ))
+    )))
 }
 
-/// Insert `value` at a dotted body path (`a.b.c`), creating objects on the way.
-fn insert_dotted(body: &mut Map<String, Value>, name: &str, value: Value) {
-    match name.split_once('.') {
-        None => {
-            body.insert(name.to_string(), value);
-        }
-        Some((head, rest)) => {
-            let child = body
-                .entry(head.to_string())
-                .or_insert_with(|| Value::Object(Map::new()));
-            if let Value::Object(map) = child {
-                insert_dotted(map, rest, value);
-            }
-        }
+/// Run `future` to completion from sync code: on the handler's tokio worker,
+/// or on a throwaway runtime in unit tests.
+fn block_on_local<T>(future: impl std::future::Future<Output = T>) -> T {
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => tokio::task::block_in_place(|| handle.block_on(future)),
+        Err(_) => tokio::runtime::Builder::new_current_thread()
+            .build()
+            .expect("a current-thread tokio runtime")
+            .block_on(future),
     }
+}
+
+/// The request the generated executor would send for `method`, built but not
+/// sent: exactly what `create --dry-run` prints. Going through
+/// `execute_method` gives this command the generated commands' parameter
+/// coercion, `@file` expansion in `--json`, `--json`/flag conflict check,
+/// required-field check and request-schema validation; the helpers behind
+/// them are `pub(crate)` in the framework.
+fn generated_dry_run(
+    doc: &RestDescription,
+    base_url_override: Option<&str>,
+    method: &RestMethod,
+    params: Option<&Map<String, Value>>,
+    body_json: Option<&str>,
+) -> Result<Value, CliError> {
+    use fern_cli_sdk::openapi::executor::{execute_method, PaginationConfig};
+    let params_json = params.map(|p| Value::Object(p.clone()).to_string());
+    // Dry runs never authenticate; credentials are added by `send`.
+    let auth: fern_cli_sdk::auth::DynAuthProvider =
+        std::sync::Arc::new(fern_cli_sdk::auth::AnyAuthProvider::new(Vec::new()));
+    let http = fern_cli_sdk::http::HttpConfig::new("elevenlabs")?;
+    let preview = block_on_local(execute_method(
+        doc,
+        method,
+        params_json.as_deref(),
+        body_json,
+        &auth,
+        None,
+        None,
+        None,
+        None,
+        true, // dry_run
+        &PaginationConfig::default(),
+        &fern_cli_sdk::formatter::OutputPipeline::default(),
+        true, // capture_output
+        base_url_override,
+        &http,
+        false,
+        false,
+        false,
+        false,
+        &[],
+        &[],
+    ))?;
+    preview.ok_or_else(|| {
+        CliError::Other(anyhow::anyhow!(
+            "the executor's dry run returned no request"
+        ))
+    })
+}
+
+/// Expand `@file`, `@file://` and `@data://` references (and `\@` escapes)
+/// in an object or array flag's JSON, as the generated commands do. The
+/// framework's resolver is `pub(crate)`, so the value goes through the
+/// executor as the `--json` body of a bare method, which has no parameters
+/// or schema to check it against.
+fn expand_file_refs(doc: &RestDescription, value: Value) -> Result<Value, CliError> {
+    let bare = RestMethod {
+        http_method: "POST".to_string(),
+        ..RestMethod::default()
+    };
+    let preview = generated_dry_run(
+        doc,
+        Some("http://localhost"),
+        &bare,
+        None,
+        Some(&value.to_string()),
+    )?;
+    Ok(preview["body"].clone())
 }
 
 fn scalar_string(v: &Value) -> String {
@@ -458,10 +543,11 @@ fn scalar_string(v: &Value) -> String {
     }
 }
 
-/// Assemble `method`'s request from the flags, routing each spec parameter to
-/// its location. `--json` supplies the whole body; `--params` overrides
-/// individual flags, as on the generated commands.
+/// Assemble `method`'s request from the flags. `--json` supplies the whole
+/// body; `--params` overrides individual flags, as on the generated commands.
 fn build_request(
+    doc: &RestDescription,
+    base_url_override: Option<&str>,
     method: &RestMethod,
     matches: &clap::ArgMatches,
     body_json: Option<&str>,
@@ -472,7 +558,7 @@ fn build_request(
             continue;
         };
         let is_body = param.location.as_deref() == Some("body");
-        if let Some(v) = flag_value(matches, &id, param, is_body && body_json.is_some()) {
+        if let Some(v) = flag_value(doc, matches, &id, param, is_body && body_json.is_some())? {
             params.insert(name.clone(), v);
         }
     }
@@ -481,21 +567,26 @@ fn build_request(
             .map_err(|e| CliError::Validation(format!("Invalid --params JSON: {e}")))?;
         params.extend(overrides);
     }
-    params_to_request(method, params, body_json)
+    params_to_request(doc, base_url_override, method, params, body_json)
 }
 
+/// Validate and build the request with the generated executor (see
+/// [`generated_dry_run`]), which supplies the body and query. The path and
+/// headers are taken from `params` here, since `send` needs the path
+/// relative to the base URL and the real header values, which the dry run
+/// redacts.
 fn params_to_request(
+    doc: &RestDescription,
+    base_url_override: Option<&str>,
     method: &RestMethod,
     params: Map<String, Value>,
     body_json: Option<&str>,
 ) -> Result<ApiRequest, CliError> {
-    let mut path = method.path.trim_start_matches('/').to_string();
-    let mut query = Vec::new();
-    let mut headers = Vec::new();
-    let mut body_fields = Map::new();
-    let mut body_flags = Vec::new();
-    let mut path_params = Map::new();
+    let dry_run = generated_dry_run(doc, base_url_override, method, Some(&params), body_json)?;
 
+    let mut path = method.path.trim_start_matches('/').to_string();
+    let mut headers = Vec::new();
+    let mut path_params = Map::new();
     for (name, value) in params {
         let location = method
             .parameters
@@ -508,45 +599,23 @@ fn params_to_request(
                 path_params.insert(name, value);
             }
             Some("header") => headers.push((name, scalar_string(&value))),
-            Some("body") => {
-                body_flags.push(format!("--{}", name.replace('_', "-")));
-                insert_dotted(&mut body_fields, &name, value);
-            }
-            // Query, and unknown `--params` keys, which the generated
-            // executor also sends as query parameters.
-            _ => query.push((name, scalar_string(&value))),
+            _ => {}
         }
     }
 
-    if let Some(missing) = method
-        .parameters
-        .iter()
-        .find(|(name, p)| p.location.as_deref() == Some("path") && !path_params.contains_key(*name))
-    {
-        return Err(CliError::Validation(format!(
-            "Missing required path parameter '{}': pass --{}",
-            missing.0,
-            missing.0.replace('_', "-")
-        )));
-    }
-
-    let body = match body_json {
-        Some(raw) => {
-            if !body_flags.is_empty() {
-                body_flags.sort();
-                return Err(CliError::Validation(format!(
-                    "Cannot combine --json with per-field body flags ({}). Use one or the other.",
-                    body_flags.join(", ")
-                )));
-            }
-            Some(
-                serde_json::from_str(raw)
-                    .map_err(|e| CliError::Validation(format!("Invalid --json body: {e}")))?,
-            )
-        }
-        None if !body_fields.is_empty() => Some(Value::Object(body_fields)),
-        None if method.http_method.eq_ignore_ascii_case("post") => Some(json!({})),
-        None => None,
+    let query = dry_run["query_params"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|pair| match pair.as_array().map(Vec::as_slice) {
+            Some([Value::String(k), Value::String(v)]) => Some((k.clone(), v.clone())),
+            _ => None,
+        })
+        .collect();
+    let body = match &dry_run["body"] {
+        Value::Null if method.http_method.eq_ignore_ascii_case("post") => Some(json!({})),
+        Value::Null => None,
+        body => Some(body.clone()),
     };
 
     Ok(ApiRequest {
@@ -559,12 +628,18 @@ fn params_to_request(
         headers,
         body,
         path_params,
+        dry_run,
     })
 }
 
 /// The GET for the created resource: its path parameters come from the
 /// create's (`template_id`) and, for the one the create didn't have, the new id.
-fn get_request(get: &RestMethod, create: &ApiRequest, id: &str) -> Result<ApiRequest, CliError> {
+fn get_request(
+    doc: &RestDescription,
+    get: &RestMethod,
+    create: &ApiRequest,
+    id: &str,
+) -> Result<ApiRequest, CliError> {
     let mut params = Map::new();
     for (name, param) in &get.parameters {
         match param.location.as_deref() {
@@ -585,7 +660,7 @@ fn get_request(get: &RestMethod, create: &ApiRequest, id: &str) -> Result<ApiReq
             _ => {}
         }
     }
-    params_to_request(get, params, None)
+    params_to_request(doc, None, get, params, None)
 }
 
 /// The `get` command that resumes waiting, with its path parameters in the
@@ -694,27 +769,6 @@ fn send(ctx: &AppContext, req: &ApiRequest, debug: bool) -> Result<Polled, CliEr
     })
 }
 
-fn base_url(ctx: &AppContext) -> String {
-    ctx.base_url_override()
-        .map(str::to_string)
-        .unwrap_or_else(|| elevenlabs_sdk::ClientConfig::default().base_url)
-}
-
-/// Mirrors the generated `--dry-run` output for the create request.
-fn dry_run_value(ctx: &AppContext, req: &ApiRequest) -> Value {
-    json!({
-        "dry_run": true,
-        "method": req.method.as_str(),
-        "url": format!("{}/{}", base_url(ctx).trim_end_matches('/'), req.path),
-        "query_params": req.query,
-        // Header values can be credentials (`xi-api-key`); show names only.
-        "headers": req.headers.iter().map(|(name, _)| json!([name, "<redacted>"])).collect::<Vec<_>>(),
-        "body": req.body,
-        "content_type": "application/json",
-        "is_multipart_upload": false,
-    })
-}
-
 fn emit(matches: &clap::ArgMatches, value: &Value) -> Result<(), CliError> {
     let pipeline = fern_cli_sdk::formatter::OutputPipeline::from_matches(matches, "elevenlabs")
         .map_err(|e| CliError::Validation(e.to_string()))?;
@@ -777,11 +831,17 @@ fn run(target: &Target, matches: &clap::ArgMatches, ctx: &AppContext) -> Result<
     };
 
     let body_json = fern_cli_sdk::cli_args::resolve_body_json(matches)?;
-    let create = build_request(create_method, matches, body_json.as_deref())?;
+    let create = build_request(
+        ctx.spec(),
+        ctx.base_url_override(),
+        create_method,
+        matches,
+        body_json.as_deref(),
+    )?;
 
     // `--dry-run` behaves as on `create`: show the request, send nothing.
     if super::util::dry_run_flag(matches) {
-        return emit(matches, &dry_run_value(ctx, &create));
+        return emit(matches, &create.dry_run);
     }
 
     let _scope = super::api::command_scope(target.scope);
@@ -809,7 +869,7 @@ fn run(target: &Target, matches: &clap::ArgMatches, ctx: &AppContext) -> Result<
             ))
         })?
         .to_string();
-    let get = get_request(get_method, &create, &id)?;
+    let get = get_request(ctx.spec(), get_method, &create, &id)?;
 
     let mut progress = |body: &Value, next: Duration| {
         if show_progress {
@@ -912,6 +972,21 @@ mod tests {
     }
 
     #[test]
+    fn delays_past_the_duration_range_saturate() {
+        let now = SystemTime::now();
+        let huge = Duration::from_secs(u64::MAX);
+        assert_eq!(poll_delay(None, huge, now, 1.0), Duration::MAX);
+        let max = WaitOptions::new(Some(1.8e19), None).unwrap();
+        let (result, sleeps, _) = simulate(
+            polled("pending", None),
+            vec![polled("completed", None)],
+            max,
+        );
+        assert_eq!(result.unwrap()["status"], "completed");
+        assert_eq!(sleeps, vec![MIN]);
+    }
+
+    #[test]
     fn options_are_validated() {
         let ok = WaitOptions::new(None, None).unwrap();
         assert_eq!(ok.min_interval, MIN);
@@ -934,6 +1009,9 @@ mod tests {
             (None, Some(-1.0)),
             (Some(-1.0), None),
             (Some(f64::NAN), None),
+            // Finite, but past `Duration`'s range.
+            (Some(1e100), None),
+            (None, Some(1e100)),
         ] {
             assert!(
                 matches!(WaitOptions::new(timeout, min), Err(CliError::Validation(_))),
@@ -1193,7 +1271,7 @@ mod tests {
             ])
             .unwrap();
         let resource = resource_at(&doc, target.path).unwrap();
-        let req = build_request(&resource.methods["create"], &matches, None).unwrap();
+        let req = build_request(&doc, None, &resource.methods["create"], &matches, None).unwrap();
         assert_eq!(req.method, reqwest::Method::POST);
         assert_eq!(req.path, "v1/flows/templates/tpl%2F1/runs");
         assert_eq!(
@@ -1201,7 +1279,7 @@ mod tests {
             Some(json!({"inputs": {"prompt": "a corgi"}, "version_id": "latest"}))
         );
 
-        let get = get_request(&resource.methods["get"], &req, "run_9").unwrap();
+        let get = get_request(&doc, &resource.methods["get"], &req, "run_9").unwrap();
         assert_eq!(get.method, reqwest::Method::GET);
         assert_eq!(get.path, "v1/flows/templates/tpl%2F1/runs/run_9");
         assert_eq!(get.body, None);
@@ -1211,10 +1289,108 @@ mod tests {
         );
 
         let conflict = build_request(
+            &doc,
+            None,
             &resource.methods["create"],
             &matches,
             Some(r#"{"inputs":{}}"#),
         );
         assert!(matches!(conflict, Err(CliError::Validation(m)) if m.contains("--inputs")));
+    }
+
+    /// Parse `args` with the `templates runs create-and-wait` command and
+    /// build its create request.
+    fn run_request(args: &[&str], body_json: Option<&str>) -> Result<ApiRequest, CliError> {
+        let doc = embedded_spec();
+        let tree = fern_cli_sdk::openapi::commands::build_cli(&doc);
+        let target = &TARGETS[3];
+        let create_cmd = find_command(&tree, target.path)
+            .and_then(|g| g.find_subcommand("create"))
+            .unwrap();
+        let matches = sibling_command(target, create_cmd)
+            .try_get_matches_from(std::iter::once("create-and-wait").chain(args.iter().copied()))
+            .unwrap();
+        let resource = resource_at(&doc, target.path).unwrap();
+        build_request(&doc, None, &resource.methods["create"], &matches, body_json)
+    }
+
+    #[test]
+    fn params_object_strings_are_decoded_like_create() {
+        let req = run_request(
+            &[
+                "--template-id",
+                "tpl",
+                "--params",
+                r#"{"inputs":"{\"prompt\":\"a corgi\"}"}"#,
+            ],
+            None,
+        )
+        .unwrap();
+        assert_eq!(req.body, Some(json!({"inputs": {"prompt": "a corgi"}})));
+    }
+
+    #[test]
+    fn file_references_are_expanded_like_create() {
+        let dir = std::env::temp_dir().join(format!("flows-wait-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let prompt = dir.join("prompt.txt");
+        std::fs::write(&prompt, "a corgi").unwrap();
+        let prompt = prompt.to_str().unwrap();
+
+        // An object flag.
+        let inputs = format!(
+            r#"{{"prompt":"@file://{prompt}","image":"@data://{prompt}","note":"\\@literal"}}"#
+        );
+        let req = run_request(&["--template-id", "tpl", "--inputs", &inputs], None).unwrap();
+        assert_eq!(
+            req.body,
+            Some(
+                json!({"inputs": {"prompt": "a corgi", "image": "YSBjb3JnaQ==", "note": "@literal"}})
+            )
+        );
+        assert_eq!(req.dry_run["body"], req.body.clone().unwrap());
+
+        // The whole `--json` body.
+        let body = format!(r#"{{"inputs":{{"prompt":"@file://{prompt}"}}}}"#);
+        let req = run_request(&["--template-id", "tpl"], Some(&body)).unwrap();
+        assert_eq!(req.body, Some(json!({"inputs": {"prompt": "a corgi"}})));
+
+        // A missing file fails before anything is sent.
+        let missing = run_request(
+            &[
+                "--template-id",
+                "tpl",
+                "--inputs",
+                r#"{"prompt":"@file:///no/such/file"}"#,
+            ],
+            None,
+        );
+        assert!(
+            matches!(missing, Err(CliError::Validation(_))),
+            "{missing:?}"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn required_body_fields_are_checked_like_create() {
+        for (args, body) in [
+            (&["--template-id", "tpl"][..], None),
+            (
+                &["--template-id", "tpl"][..],
+                Some(r#"{"version_id":"latest"}"#),
+            ),
+        ] {
+            let err = run_request(args, body).unwrap_err();
+            assert!(
+                matches!(&err, CliError::Validation(m) if m.contains("inputs")),
+                "{args:?} {body:?}: {err:?}"
+            );
+        }
+        let err = run_request(&["--inputs", "{}"], None).unwrap_err();
+        assert!(
+            matches!(&err, CliError::Validation(m) if m.contains("template_id")),
+            "{err:?}"
+        );
     }
 }
