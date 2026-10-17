@@ -126,6 +126,7 @@ impl Session {
         }
         std::fs::write(self.path("request"), request).map_err(io(&self.path("request")))?;
         self.stop_others();
+        keep_stdio_from_children();
         let status = this_program()?
             .args(worker_args(LAUNCH_FLAG))
             .stdin(Stdio::null())
@@ -293,6 +294,34 @@ fn this_program() -> Result<Command, CliError> {
     }
     Ok(command)
 }
+
+/// On Windows a started program inherits every inheritable handle this one
+/// holds, not just the ones it is given. This process's stdin, stdout and
+/// stderr are the agent's, so the worker (and the browser it opens) would
+/// keep the agent's output open, and the agent's command wouldn't finish
+/// until they exit. This process still uses them; only children stop getting them.
+#[cfg(windows)]
+fn keep_stdio_from_children() {
+    use std::ffi::c_void;
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetStdHandle(std_handle: u32) -> *mut c_void;
+        fn SetHandleInformation(handle: *mut c_void, mask: u32, flags: u32) -> i32;
+    }
+    const STD_INPUT_HANDLE: u32 = -10i32 as u32;
+    const STD_OUTPUT_HANDLE: u32 = -11i32 as u32;
+    const STD_ERROR_HANDLE: u32 = -12i32 as u32;
+    const HANDLE_FLAG_INHERIT: u32 = 0x1;
+    for id in [STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE] {
+        // A missing or invalid handle only makes the call fail, which changes nothing.
+        unsafe {
+            SetHandleInformation(GetStdHandle(id), HANDLE_FLAG_INHERIT, 0);
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn keep_stdio_from_children() {}
 
 #[cfg(unix)]
 fn detach(command: &mut Command) {
