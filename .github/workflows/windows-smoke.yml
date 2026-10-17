@@ -1,50 +1,107 @@
 name: windows-smoke
 
-# Runs the published CLI on Windows the way the ElevenLabs Home prompt has a
-# coding agent run it: `npx -y @elevenlabs/cli@latest onboard init`, then each
-# reply's `run`, in Git Bash as Claude Code does. No one is there to sign in,
-# so it goes as far as a machine can alone: the sign-in starts in the
-# background and hands back the approval link. It then answers the way the
-# approval page does when the developer clicks Deny, which shows the sign-in
-# outlived the command that started it and that the browser's callback
-# reaches it.
+# Runs `onboard` on Windows the way the ElevenLabs Home prompt has a coding
+# agent run it: `onboard init`, then each reply's `run`, in Git Bash as Claude
+# Code does, reading each reply through a pipe. On a pull request it runs the
+# CLI built from the PR; run by hand, the published one through npx.
+#
+# No one is there to sign in, so it goes as far as a machine can alone: the
+# sign-in starts in the background and hands back the approval link. It then
+# answers the way the approval page does when the developer clicks Deny, which
+# shows the sign-in outlived the command that started it and that the
+# browser's callback reaches it.
 on:
   workflow_dispatch:
   pull_request:
     paths:
+      - cli/elevenlabs/workflow/onboard/**
       - .github/workflows/windows-smoke.yml
 
 jobs:
   onboard:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
     steps:
+      - name: Checkout repo
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v6
+
+      - name: Cache cargo registry and build artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-smoke-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-smoke-
+
+      - name: Build the CLI
+        if: github.event_name == 'pull_request'
+        run: |
+          cargo build --bin elevenlabs
+          cygpath -w "$PWD/target/debug" >> "$GITHUB_PATH"
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "lts/Krypton"
 
-      - name: Diagnose connect (temporary)
+      - name: Onboard up to the approval page
+        env:
+          CLI: ${{ github.event_name == 'pull_request' && 'elevenlabs' || 'npx -y @elevenlabs/cli@latest' }}
         run: |
-          set -uo pipefail
-          procs() { tasklist | grep -i -E "elevenlabs|msedge" | awk '{print $1}' | sort | uniq -c || true; }
-          for mode in no-browser browser; do
-            echo "=== $mode ==="
-            cd "$(mktemp -d)"
-            npm init -y > /dev/null
-            flag=""; [[ $mode == no-browser ]] && flag=" --no-browser"
-            npx -y @elevenlabs/cli@latest onboard init$flag 2> init.err | tail -n 1 > init.json
-            run=$(jq -r .run init.json)
-            # The first connect, which starts the sign-in, through a pipe as an agent reads it.
-            echo "+ $run | tail -n 1"
-            start=$SECONDS
-            timeout 90 bash -c "$run 2> connect.err | tail -n 1 > connect.json"
-            echo "connect through a pipe: exit=$? after $((SECONDS - start))s"
-            cut -c1-120 connect.json
-            procs
-            taskkill //F //IM elevenlabs.exe > /dev/null 2>&1 || true
-            taskkill //F //IM msedge.exe > /dev/null 2>&1 || true
-          done
+          set -euo pipefail
+          out=$(mktemp)
+          cd "$(mktemp -d)"
+          npm init -y > /dev/null
+          $CLI --version
+
+          # Run a command as an agent would, reading its reply (one line of
+          # JSON) through a pipe, and stop unless the reply comes back in time
+          # with the `next` expected.
+          step() {
+            echo "+ $1"
+            if ! timeout 90 bash -o pipefail -c "$1 | tail -n 1 > '$out'"; then
+              echo "::error::No reply within 90 s: the command failed, or something it started kept its output open"
+              exit 1
+            fi
+            reply=$(< "$out")
+            echo "$reply"
+            local next
+            next=$(jq -r .next <<< "$reply")
+            if [[ "$next" != "$2" ]]; then
+              echo "::error::Expected next=$2, got next=$next"
+              exit 1
+            fi
+          }
+
+          step "$CLI onboard init" run
+          # Starts the sign-in, waits for an approval that never comes, then says to keep waiting.
+          step "$(jq -r .run <<< "$reply")" wait
+
+          url=$(jq -r .say <<< "$reply" | grep -o 'https://[^ ]*')
+          if [[ "$url" != https://elevenlabs.io/app/oauth/authorize\?*key_handoff=clipboard* ]]; then
+            echo "::error::Unexpected approval link: $url"
+            exit 1
+          fi
+
+          # What the approval page does when the developer clicks Deny.
+          callback=$(node -p 'new URL(process.argv[1]).searchParams.get("redirect_uri")' "$url")
+          curl -sS -o /dev/null -w "Callback answered %{http_code}\n" "$callback?error=access_denied"
+
+          step "$(jq -r .run <<< "$reply")" ask_user
+          if ! jq -e '.say | contains("declined")' <<< "$reply" > /dev/null; then
+            echo "::error::The sign-in didn't report the Deny"
+            exit 1
+          fi
+
+      - name: Show the sign-in log
+        if: failure()
+        run: cat ~/.elevenlabs/onboard/*/worker.log || true
