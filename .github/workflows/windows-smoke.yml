@@ -30,29 +30,21 @@ jobs:
       - name: Diagnose connect (temporary)
         run: |
           set -uo pipefail
-          procs() { tasklist | grep -i -E "elevenlabs|node|msedge|chrome" || true; }
-          for mode in browser no-browser; do
+          procs() { tasklist | grep -i -E "elevenlabs|msedge" | awk '{print $1}' | sort | uniq -c || true; }
+          for mode in no-browser browser; do
             echo "=== $mode ==="
             cd "$(mktemp -d)"
             npm init -y > /dev/null
             flag=""; [[ $mode == no-browser ]] && flag=" --no-browser"
             npx -y @elevenlabs/cli@latest onboard init$flag 2> init.err | tail -n 1 > init.json
             run=$(jq -r .run init.json)
-            echo "+ $run"
-            start=$SECONDS
-            # Output to files: the shell waits only for the command itself.
-            timeout 120 bash -c "$run" > connect.json 2> connect.err
-            echo "to a file: exit=$? after $((SECONDS - start))s"
-            cut -c1-200 connect.json; cat connect.err
-            procs
-            echo "--- worker.log"; cat ~/.elevenlabs/onboard/*/worker.log 2>/dev/null | cut -c1-200
-            # Through a pipe, as an agent reads it.
-            run=$(jq -r .run connect.json)
+            # The first connect, which starts the sign-in, through a pipe as an agent reads it.
             echo "+ $run | tail -n 1"
             start=$SECONDS
-            timeout 90 bash -c "$run 2> wait.err | tail -n 1 > wait.json"
-            echo "through a pipe: exit=$? after $((SECONDS - start))s"
-            cut -c1-200 wait.json
+            timeout 90 bash -c "$run 2> connect.err | tail -n 1 > connect.json"
+            echo "connect through a pipe: exit=$? after $((SECONDS - start))s"
+            cut -c1-120 connect.json
             procs
             taskkill //F //IM elevenlabs.exe > /dev/null 2>&1 || true
+            taskkill //F //IM msedge.exe > /dev/null 2>&1 || true
           done
