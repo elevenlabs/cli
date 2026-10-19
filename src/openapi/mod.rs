@@ -4,6 +4,7 @@ pub mod commands;
 mod help;
 pub mod executor;
 pub mod overlay;
+mod pagination;
 mod parser;
 pub mod discovery;
 pub mod skill_emitter;

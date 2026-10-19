@@ -40,6 +40,7 @@ tests/e2e_smoke.rs
 tests/say_test.rs
 tests/onboard_test.rs
 tests/flows_wait_test.rs
+tests/pagination_test.rs
 .fern/replay.lock
 .fern/replay.yml
 .gitattributes
