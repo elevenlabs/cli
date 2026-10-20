@@ -7,6 +7,7 @@ use super::*;
 pub enum AgentSortBy {
     Name,
     CreatedAt,
+    UpdatedAt,
     CallCount7D,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
@@ -18,6 +19,7 @@ impl Serialize for AgentSortBy {
         match self {
             Self::Name => serializer.serialize_str("name"),
             Self::CreatedAt => serializer.serialize_str("created_at"),
+            Self::UpdatedAt => serializer.serialize_str("updated_at"),
             Self::CallCount7D => serializer.serialize_str("call_count_7d"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
@@ -30,6 +32,7 @@ impl<'de> Deserialize<'de> for AgentSortBy {
         match value.as_str() {
             "name" => Ok(Self::Name),
             "created_at" => Ok(Self::CreatedAt),
+            "updated_at" => Ok(Self::UpdatedAt),
             "call_count_7d" => Ok(Self::CallCount7D),
             _ => Ok(Self::__Unknown(value)),
         }
@@ -41,6 +44,7 @@ impl fmt::Display for AgentSortBy {
         match self {
             Self::Name => write!(f, "name"),
             Self::CreatedAt => write!(f, "created_at"),
+            Self::UpdatedAt => write!(f, "updated_at"),
             Self::CallCount7D => write!(f, "call_count_7d"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }

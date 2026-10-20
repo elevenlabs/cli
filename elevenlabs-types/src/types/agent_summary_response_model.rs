@@ -19,6 +19,9 @@ pub struct AgentSummaryResponseModel {
     /// The creation time of the agent in unix seconds
     #[serde(default)]
     pub created_at_unix_secs: i64,
+    /// The last time the agent's main branch or agent-level settings were updated, in unix seconds
+    #[serde(default)]
+    pub updated_at_unix_secs: i64,
     /// The access information of the agent
     pub access_info: ResourceAccessInfo,
     /// The time of the most recent call in unix seconds, null if no calls have been made
@@ -43,6 +46,7 @@ pub struct AgentSummaryResponseModelBuilder {
     voice_id: Option<String>,
     tags: Option<Vec<String>>,
     created_at_unix_secs: Option<i64>,
+    updated_at_unix_secs: Option<i64>,
     access_info: Option<ResourceAccessInfo>,
     last_call_time_unix_secs: Option<i64>,
     archived: Option<bool>,
@@ -74,6 +78,11 @@ impl AgentSummaryResponseModelBuilder {
         self
     }
 
+    pub fn updated_at_unix_secs(mut self, value: i64) -> Self {
+        self.updated_at_unix_secs = Some(value);
+        self
+    }
+
     pub fn access_info(mut self, value: ResourceAccessInfo) -> Self {
         self.access_info = Some(value);
         self
@@ -96,6 +105,7 @@ impl AgentSummaryResponseModelBuilder {
     /// - [`voice_id`](AgentSummaryResponseModelBuilder::voice_id)
     /// - [`tags`](AgentSummaryResponseModelBuilder::tags)
     /// - [`created_at_unix_secs`](AgentSummaryResponseModelBuilder::created_at_unix_secs)
+    /// - [`updated_at_unix_secs`](AgentSummaryResponseModelBuilder::updated_at_unix_secs)
     /// - [`access_info`](AgentSummaryResponseModelBuilder::access_info)
     pub fn build(self) -> Result<AgentSummaryResponseModel, BuildError> {
         Ok(AgentSummaryResponseModel {
@@ -104,6 +114,7 @@ impl AgentSummaryResponseModelBuilder {
             voice_id: self.voice_id.ok_or_else(|| BuildError::missing_field("voice_id"))?,
             tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,
             created_at_unix_secs: self.created_at_unix_secs.ok_or_else(|| BuildError::missing_field("created_at_unix_secs"))?,
+            updated_at_unix_secs: self.updated_at_unix_secs.ok_or_else(|| BuildError::missing_field("updated_at_unix_secs"))?,
             access_info: self.access_info.ok_or_else(|| BuildError::missing_field("access_info"))?,
             last_call_time_unix_secs: self.last_call_time_unix_secs,
             archived: self.archived,

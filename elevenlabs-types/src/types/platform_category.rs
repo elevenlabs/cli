@@ -12,6 +12,9 @@ pub enum PlatformCategory {
     Asr,
     TextMessage,
     Reception,
+    V3Addon,
+    V4Addon,
+    RagAddon,
     Other,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
@@ -27,6 +30,9 @@ impl Serialize for PlatformCategory {
             Self::Asr => serializer.serialize_str("asr"),
             Self::TextMessage => serializer.serialize_str("text_message"),
             Self::Reception => serializer.serialize_str("reception"),
+            Self::V3Addon => serializer.serialize_str("v3_addon"),
+            Self::V4Addon => serializer.serialize_str("v4_addon"),
+            Self::RagAddon => serializer.serialize_str("rag_addon"),
             Self::Other => serializer.serialize_str("other"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
@@ -43,6 +49,9 @@ impl<'de> Deserialize<'de> for PlatformCategory {
             "asr" => Ok(Self::Asr),
             "text_message" => Ok(Self::TextMessage),
             "reception" => Ok(Self::Reception),
+            "v3_addon" => Ok(Self::V3Addon),
+            "v4_addon" => Ok(Self::V4Addon),
+            "rag_addon" => Ok(Self::RagAddon),
             "other" => Ok(Self::Other),
             _ => Ok(Self::__Unknown(value)),
         }
@@ -58,6 +67,9 @@ impl fmt::Display for PlatformCategory {
             Self::Asr => write!(f, "asr"),
             Self::TextMessage => write!(f, "text_message"),
             Self::Reception => write!(f, "reception"),
+            Self::V3Addon => write!(f, "v3_addon"),
+            Self::V4Addon => write!(f, "v4_addon"),
+            Self::RagAddon => write!(f, "rag_addon"),
             Self::Other => write!(f, "other"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }

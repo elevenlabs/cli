@@ -41,6 +41,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents phone-numbers`](#elevenlabs-agents-phone-numbers)
 - [`elevenlabs agents procedures`](#elevenlabs-agents-procedures)
 - [`elevenlabs agents procedures drafts`](#elevenlabs-agents-procedures-drafts)
+- [`elevenlabs agents realtime`](#elevenlabs-agents-realtime)
 - [`elevenlabs agents secrets`](#elevenlabs-agents-secrets)
 - [`elevenlabs agents settings`](#elevenlabs-agents-settings)
 - [`elevenlabs agents sip-trunk`](#elevenlabs-agents-sip-trunk)
@@ -76,6 +77,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs dubbing transcript`](#elevenlabs-dubbing-transcript)
 - [`elevenlabs dubbing transcripts`](#elevenlabs-dubbing-transcripts)
 - [`elevenlabs environment-variables`](#elevenlabs-environment-variables)
+- [`elevenlabs environments`](#elevenlabs-environments)
 - [`elevenlabs flows image`](#elevenlabs-flows-image)
 - [`elevenlabs flows templates`](#elevenlabs-flows-templates)
 - [`elevenlabs flows templates runs`](#elevenlabs-flows-templates-runs)
@@ -181,6 +183,7 @@ Delete an agent
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--force` | `boolean` | No | If set to true, the agent is deleted even if other agents use it as a subagent, and it is removed from those agents and their branches. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents delete-document-rag-index`
@@ -218,6 +221,7 @@ Retrieve config for an agent
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--version-id` | `string` | No | The ID of the agent version to use |
 | `--branch-id` | `string` | No | The ID of the branch to use |
+| `--include-procedure-generated-workflow-elements` | `boolean` | No | Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents get-document-rag-indexes`
@@ -307,6 +311,7 @@ Patches an Agent settings
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--enable-versioning-if-not-enabled` | `boolean` | No | Deprecated: all agents are versioned. This parameter is ignored. |
 | `--branch-id` | `string` | No | The ID of the branch to use |
+| `--include-procedure-generated-workflow-elements` | `boolean` | No | Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -494,11 +499,12 @@ Returns the result of merging the source branch into the target branch without p
 | `--source-branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
 | `--target-branch-id` | `string` | Yes | The ID of the target branch to merge into. |
 | `--force` | `boolean` | No | When true, source branch changes always win conflicts regardless of timestamps |
+| `--include-procedure-generated-workflow-elements` | `boolean` | No | Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents branches preview-rebase`
 
-Returns the result of rebasing the branch onto main without performing the rebase. Useful for showing an accurate diff before confirming.
+Returns the result of pulling changes from a source branch (defaults to main) into the given branch without performing it, preserving the given branch's own changes. Useful for showing an accurate diff before confirming.
 
 `GET /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview`
 
@@ -506,11 +512,13 @@ Returns the result of rebasing the branch onto main without performing the rebas
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
+| `--source-branch-id` | `string` | No | The ID of the branch to pull changes from. Defaults to the agent's main branch. |
+| `--include-procedure-generated-workflow-elements` | `boolean` | No | Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents branches rebase`
 
-Rebase a branch onto the latest main branch, incorporating main's changes while preserving the branch's own changes.
+Pull changes from a source branch (defaults to main) into this branch as a new version, preserving this branch's own changes on conflicts.
 
 `POST /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase`
 
@@ -518,11 +526,12 @@ Rebase a branch onto the latest main branch, incorporating main's changes while 
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
+| `--source-branch-id` | `string` | No | The ID of the branch to pull changes from. Defaults to the agent's main branch. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents branches update`
 
-Update agent branch properties such as archiving status, protection level, and auto-rebase onto main
+Update agent branch properties such as name, description, archiving status, protection level, and auto-rebase onto main
 
 `PATCH /v1/convai/agents/{agent_id}/branches/{branch_id}`
 
@@ -743,7 +752,7 @@ Send the feedback for the given conversation
 
 #### `elevenlabs agents conversations files create`
 
-Upload an image or PDF file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
+Upload an image, PDF, or text file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
 
 `POST /v1/convai/conversations/{conversation_id}/files`
 
@@ -1951,6 +1960,21 @@ Create or update user's draft for a procedure
 | `--procedure-id` | `string` | Yes | The procedure ID |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents realtime`
+
+#### `elevenlabs agents realtime create-client-secret`
+
+Create an ephemeral client secret for authenticating browser-based Realtime API sessions.
+
+`POST /v1/convai/realtime/client_secrets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
 ---
 
@@ -3440,7 +3464,7 @@ List all environment variables for the workspace with optional filtering
 
 #### `elevenlabs environment-variables update`
 
-Replace an environment variable's values. Use null to remove an environment (except production).
+Replace an environment variable's values. Use null to remove its value for an environment (except production); delete an environment with DELETE /v1/convai/environments/{environment}.
 
 `PATCH /v1/convai/environment-variables/{env_var_id}`
 
@@ -3449,6 +3473,42 @@ Replace an environment variable's values. Use null to remove an environment (exc
 | `--env-var-id` | `string` | Yes |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs environments`
+
+#### `elevenlabs environments create`
+
+Create a workspace environment. Variables without a value for it fall back to their production value.
+
+`POST /v1/convai/environments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs environments delete`
+
+Delete a workspace environment and remove its values from all environment variables. 'production' cannot be deleted.
+
+`DELETE /v1/convai/environments/{environment}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--environment` | `string` | Yes | Name of the environment to delete, e.g. 'staging'. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs environments list`
+
+List the workspace environments, including 'production'.
+
+`GET /v1/convai/environments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 
@@ -3751,6 +3811,7 @@ Compose a song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3763,6 +3824,7 @@ Compose a song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3775,6 +3837,7 @@ Stream a song and its detailed metadata using Server-Sent Events (SSE).
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3787,6 +3850,7 @@ Separate an audio file into individual stems. This endpoint might have high late
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `AllowedOutputFormats` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -3799,6 +3863,7 @@ Stream a composed song from a prompt or a composition plan.
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `auto | mp3_48000_128 | mp3_48000_192 | mp3_48000_240 | mp3_48000_320 | mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.  |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -3822,6 +3887,7 @@ Generate background music from one or more video files. Videos are combined in o
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--output-format` | `AllowedOutputFormats` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -3837,6 +3903,7 @@ Create a composition plan for music generation. Usage of this endpoint does not 
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
@@ -4237,6 +4304,18 @@ Create a new API key for a service account
 Delete an existing API key for a service account
 
 `DELETE /v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--service-account-user-id` | `string` | Yes |  |
+| `--api-key-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs service-accounts api-keys disable`
+
+Disable an existing API key for a service account without changing its other settings. This stays available after a workspace downgrades off a plan that includes service accounts. Turning the key back on still requires that plan.
+
+`POST /v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}/disable`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
@@ -4806,7 +4885,8 @@ Turn text into sound effects for your videos, voice-overs or video games using t
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
-| `--output-format` | `AllowedOutputFormats` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
+| `--output-format` | `alaw_8000 | mp3_22050_32 | mp3_24000_48 | mp3_44100_128 | mp3_44100_192 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | opus_48000_128 | opus_48000_192 | opus_48000_32 | opus_48000_64 | opus_48000_96 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | pcm_8000 | ulaw_8000 | wav_16000 | wav_22050 | wav_24000 | wav_32000 | wav_44100 | wav_48000 | wav_8000` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM and WAV formats with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
+| `--enable-logging` | `boolean` | No | When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 

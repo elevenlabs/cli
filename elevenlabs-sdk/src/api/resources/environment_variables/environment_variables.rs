@@ -172,7 +172,7 @@ impl EnvironmentVariablesClient {
             .await
     }
 
-    /// Replace an environment variable's values. Use null to remove an environment (except production).
+    /// Replace an environment variable's values. Use null to remove its value for an environment (except production); delete an environment with DELETE /v1/convai/environments/{environment}.
     ///
     /// # Arguments
     ///

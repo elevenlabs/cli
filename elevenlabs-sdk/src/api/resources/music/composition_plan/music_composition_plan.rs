@@ -1,5 +1,5 @@
 use crate::api::*;
-use crate::{ApiError, ClientConfig, HttpClient, RequestOptions};
+use crate::{ApiError, ClientConfig, HttpClient, QueryBuilder, RequestOptions};
 use reqwest::Method;
 
 pub struct CompositionPlanClient {
@@ -17,6 +17,7 @@ impl CompositionPlanClient {
     ///
     /// # Arguments
     ///
+    /// * `enable_logging` - When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -39,6 +40,7 @@ impl CompositionPlanClient {
     ///         .composition_plan
     ///         .create(
     ///             &BodyGenerateCompositionPlanV1MusicPlanPost {
+    ///                 enable_logging: Some(true),
     ///                 prompt: "prompt".to_string(),
     ///                 music_length_ms: None,
     ///                 source_composition_plan: None,
@@ -59,7 +61,9 @@ impl CompositionPlanClient {
                 Method::POST,
                 "v1/music/plan",
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
-                None,
+                QueryBuilder::new()
+                    .bool("enable_logging", request.enable_logging.clone())
+                    .build(),
                 options,
             )
             .await

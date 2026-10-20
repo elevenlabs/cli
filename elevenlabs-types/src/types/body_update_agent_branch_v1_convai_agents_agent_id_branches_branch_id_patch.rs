@@ -7,6 +7,9 @@ pub struct BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
     /// New name for the branch. Must be unique within the agent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// New description for the branch. Pass an empty string to clear it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// Whether the branch should be archived
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_archived: Option<bool>,
@@ -28,6 +31,7 @@ impl BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
 #[non_exhaustive]
 pub struct BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilder {
     name: Option<String>,
+    description: Option<String>,
     is_archived: Option<bool>,
     protection_status: Option<BranchProtectionStatus>,
     auto_rebase: Option<bool>,
@@ -36,6 +40,11 @@ pub struct BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilde
 impl BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilder {
     pub fn name(mut self, value: impl Into<String>) -> Self {
         self.name = Some(value.into());
+        self
+    }
+
+    pub fn description(mut self, value: impl Into<String>) -> Self {
+        self.description = Some(value.into());
         self
     }
 
@@ -58,6 +67,7 @@ impl BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatchBuilder {
     pub fn build(self) -> Result<BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch, BuildError> {
         Ok(BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
             name: self.name,
+            description: self.description,
             is_archived: self.is_archived,
             protection_status: self.protection_status,
             auto_rebase: self.auto_rebase,

@@ -31,6 +31,9 @@ pub struct BodyStreamComposedMusicV1MusicStreamPost {
     /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. Use "auto" (the default) to let the API pick the best format for the selected model: mp3_44100_128 for v1 models and mp3_48000_192 for v2 models.
     #[serde(skip)]
     pub output_format: Option<MusicStreamRequestOutputFormat>,
+    /// When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
+    #[serde(skip)]
+    pub enable_logging: Option<bool>,
 }
 
 impl BodyStreamComposedMusicV1MusicStreamPost {
@@ -51,6 +54,7 @@ pub struct BodyStreamComposedMusicV1MusicStreamPostBuilder {
     finetune_id: Option<String>,
     store_for_inpainting: Option<bool>,
     output_format: Option<MusicStreamRequestOutputFormat>,
+    enable_logging: Option<bool>,
 }
 
 impl BodyStreamComposedMusicV1MusicStreamPostBuilder {
@@ -99,6 +103,11 @@ impl BodyStreamComposedMusicV1MusicStreamPostBuilder {
         self
     }
 
+    pub fn enable_logging(mut self, value: bool) -> Self {
+        self.enable_logging = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyStreamComposedMusicV1MusicStreamPost`].
     pub fn build(self) -> Result<BodyStreamComposedMusicV1MusicStreamPost, BuildError> {
         Ok(BodyStreamComposedMusicV1MusicStreamPost {
@@ -111,6 +120,7 @@ impl BodyStreamComposedMusicV1MusicStreamPostBuilder {
             finetune_id: self.finetune_id,
             store_for_inpainting: self.store_for_inpainting,
             output_format: self.output_format,
+            enable_logging: self.enable_logging,
         })
     }
 }

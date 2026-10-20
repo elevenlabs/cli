@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct UpdateEnvironmentVariableRequest {
-    /// Values to replace. Set to null to remove an environment (except 'production').
+    /// Values to replace. Set to null to remove the value for an environment (except 'production').
     #[serde(default)]
     pub values: HashMap<String, Option<UpdateEnvironmentVariableRequestValuesValue>>,
 }
