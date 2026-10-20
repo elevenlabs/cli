@@ -2176,6 +2176,7 @@ impl AppContext {
                 .unwrap_or_else(|| "nextPageToken".to_string()),
             no_pager: true,
             cli_name: String::new(),
+            inferred: None,
         };
 
         let pipeline = formatter::OutputPipeline {
@@ -2268,6 +2269,7 @@ impl AppContext {
                 .unwrap_or_else(|| "nextPageToken".to_string()),
             no_pager: true,
             cli_name: String::new(),
+            inferred: None,
         };
 
         let extra_headers = self.extra_headers_for_entry(entry, method, params_json)?;
@@ -2888,6 +2890,7 @@ pub(crate) fn build_pagination_config(
             .unwrap_or_else(|| "nextPageToken".to_string()),
         no_pager: matches.get_flag("no-pager"),
         cli_name: cli_name.to_string(),
+        inferred: None,
     }
 }
 
