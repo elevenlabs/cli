@@ -31,9 +31,6 @@ pub struct EffectsSpecInput {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub pan: Option<f64>,
-    /// Has no effect.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seed: Option<i64>,
 }
 
 impl EffectsSpecInput {
@@ -51,7 +48,6 @@ pub struct EffectsSpecInputBuilder {
     background_noise_id: Option<String>,
     send_level: Option<f64>,
     pan: Option<f64>,
-    seed: Option<i64>,
 }
 
 impl EffectsSpecInputBuilder {
@@ -85,11 +81,6 @@ impl EffectsSpecInputBuilder {
         self
     }
 
-    pub fn seed(mut self, value: i64) -> Self {
-        self.seed = Some(value);
-        self
-    }
-
     /// Consumes the builder and constructs a [`EffectsSpecInput`].
     pub fn build(self) -> Result<EffectsSpecInput, BuildError> {
         Ok(EffectsSpecInput {
@@ -99,7 +90,6 @@ impl EffectsSpecInputBuilder {
             background_noise_id: self.background_noise_id,
             send_level: self.send_level,
             pan: self.pan,
-            seed: self.seed,
         })
     }
 }

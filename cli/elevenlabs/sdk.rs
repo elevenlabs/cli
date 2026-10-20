@@ -241,6 +241,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
                 http_client: http_client.clone(),
                 drafts: elevenlabs_sdk::api::resources::agents::procedures::DraftsClient2 { http_client: http_client.clone() },
             },
+            realtime: elevenlabs_sdk::api::resources::agents::RealtimeClient { http_client: http_client.clone() },
             agents: elevenlabs_sdk::api::resources::agents::AgentsClient2 {
                 http_client: http_client.clone(),
                 llm_usage: elevenlabs_sdk::api::resources::agents::agents::LlmUsageClient2 { http_client: http_client.clone() },
@@ -256,6 +257,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
         },
         speech_engine: elevenlabs_sdk::api::SpeechEngineClient { http_client: http_client.clone() },
         environment_variables: elevenlabs_sdk::api::EnvironmentVariablesClient { http_client: http_client.clone() },
+        environments: elevenlabs_sdk::api::EnvironmentsClient { http_client: http_client.clone() },
         assets: elevenlabs_sdk::api::AssetsClient { http_client: http_client.clone() },
         flows: elevenlabs_sdk::api::FlowsClient {
             http_client: http_client.clone(),

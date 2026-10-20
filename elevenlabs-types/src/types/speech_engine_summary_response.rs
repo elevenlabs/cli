@@ -16,6 +16,9 @@ pub struct SpeechEngineSummaryResponse {
     /// Creation time in Unix seconds
     #[serde(default)]
     pub created_at_unix_secs: i64,
+    /// Last update time in Unix seconds
+    #[serde(default)]
+    pub updated_at_unix_secs: i64,
     /// Arbitrary tags for categorization and filtering
     #[serde(default)]
     pub tags: Vec<String>,
@@ -36,6 +39,7 @@ pub struct SpeechEngineSummaryResponseBuilder {
     name: Option<String>,
     voice_id: Option<String>,
     created_at_unix_secs: Option<i64>,
+    updated_at_unix_secs: Option<i64>,
     tags: Option<Vec<String>>,
     access_info: Option<ResourceAccessInfo>,
 }
@@ -61,6 +65,11 @@ impl SpeechEngineSummaryResponseBuilder {
         self
     }
 
+    pub fn updated_at_unix_secs(mut self, value: i64) -> Self {
+        self.updated_at_unix_secs = Some(value);
+        self
+    }
+
     pub fn tags(mut self, value: Vec<String>) -> Self {
         self.tags = Some(value);
         self
@@ -77,6 +86,7 @@ impl SpeechEngineSummaryResponseBuilder {
     /// - [`name`](SpeechEngineSummaryResponseBuilder::name)
     /// - [`voice_id`](SpeechEngineSummaryResponseBuilder::voice_id)
     /// - [`created_at_unix_secs`](SpeechEngineSummaryResponseBuilder::created_at_unix_secs)
+    /// - [`updated_at_unix_secs`](SpeechEngineSummaryResponseBuilder::updated_at_unix_secs)
     /// - [`tags`](SpeechEngineSummaryResponseBuilder::tags)
     /// - [`access_info`](SpeechEngineSummaryResponseBuilder::access_info)
     pub fn build(self) -> Result<SpeechEngineSummaryResponse, BuildError> {
@@ -85,6 +95,7 @@ impl SpeechEngineSummaryResponseBuilder {
             name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
             voice_id: self.voice_id.ok_or_else(|| BuildError::missing_field("voice_id"))?,
             created_at_unix_secs: self.created_at_unix_secs.ok_or_else(|| BuildError::missing_field("created_at_unix_secs"))?,
+            updated_at_unix_secs: self.updated_at_unix_secs.ok_or_else(|| BuildError::missing_field("updated_at_unix_secs"))?,
             tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,
             access_info: self.access_info.ok_or_else(|| BuildError::missing_field("access_info"))?,
         })

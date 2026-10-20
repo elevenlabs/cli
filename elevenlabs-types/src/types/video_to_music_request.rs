@@ -13,9 +13,17 @@ pub struct VideoToMusicRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<MusicModelId>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub add_sfx: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub separate_tracks: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub use_audio_as_reference: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sign_with_c2pa: Option<bool>,
     #[serde(skip)]
     pub output_format: Option<AllowedOutputFormats>,
+    #[serde(skip)]
+    pub enable_logging: Option<bool>,
 }
 impl VideoToMusicRequest {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
@@ -48,6 +56,24 @@ impl VideoToMusicRequest {
         }
     }
 
+    if let Some(ref value) = self.add_sfx {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("add_sfx", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.separate_tracks {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("separate_tracks", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.use_audio_as_reference {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("use_audio_as_reference", json_str);
+        }
+    }
+
     if let Some(ref value) = self.sign_with_c2pa {
         if let Ok(json_str) = serde_json::to_string(value) {
             form = form.text("sign_with_c2pa", json_str);
@@ -71,8 +97,12 @@ pub struct VideoToMusicRequestBuilder {
     description: Option<String>,
     tags: Option<Vec<String>>,
     model_id: Option<MusicModelId>,
+    add_sfx: Option<bool>,
+    separate_tracks: Option<bool>,
+    use_audio_as_reference: Option<bool>,
     sign_with_c2pa: Option<bool>,
     output_format: Option<AllowedOutputFormats>,
+    enable_logging: Option<bool>,
 }
 
 impl VideoToMusicRequestBuilder {
@@ -96,6 +126,21 @@ impl VideoToMusicRequestBuilder {
         self
     }
 
+    pub fn add_sfx(mut self, value: bool) -> Self {
+        self.add_sfx = Some(value);
+        self
+    }
+
+    pub fn separate_tracks(mut self, value: bool) -> Self {
+        self.separate_tracks = Some(value);
+        self
+    }
+
+    pub fn use_audio_as_reference(mut self, value: bool) -> Self {
+        self.use_audio_as_reference = Some(value);
+        self
+    }
+
     pub fn sign_with_c2pa(mut self, value: bool) -> Self {
         self.sign_with_c2pa = Some(value);
         self
@@ -103,6 +148,11 @@ impl VideoToMusicRequestBuilder {
 
     pub fn output_format(mut self, value: AllowedOutputFormats) -> Self {
         self.output_format = Some(value);
+        self
+    }
+
+    pub fn enable_logging(mut self, value: bool) -> Self {
+        self.enable_logging = Some(value);
         self
     }
 
@@ -115,8 +165,12 @@ impl VideoToMusicRequestBuilder {
             description: self.description,
             tags: self.tags,
             model_id: self.model_id,
+            add_sfx: self.add_sfx,
+            separate_tracks: self.separate_tracks,
+            use_audio_as_reference: self.use_audio_as_reference,
             sign_with_c2pa: self.sign_with_c2pa,
             output_format: self.output_format,
+            enable_logging: self.enable_logging,
         })
     }
 }

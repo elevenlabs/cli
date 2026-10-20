@@ -205,4 +205,56 @@ impl ApiKeysClient {
             )
             .await
     }
+
+    /// Disable an existing API key for a service account without changing its other settings. This stays available after a workspace downgrades off a plan that includes service accounts. Turning the key back on still requires that plan.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .service_accounts
+    ///         .api_keys
+    ///         .disable(
+    ///             &"service_account_user_id".to_string(),
+    ///             &"api_key_id".to_string(),
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn disable(
+        &self,
+        service_account_user_id: &str,
+        api_key_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<serde_json::Value, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!(
+                    "v1/service-accounts/{}/api-keys/{}/disable",
+                    service_account_user_id, api_key_id
+                ),
+                None,
+                None,
+                options,
+            )
+            .await
+    }
 }

@@ -12,6 +12,10 @@ pub struct WhatsAppConversationInfo {
     pub whatsapp_user_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub awaiting_first_user_message: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recipient: Option<WhatsAppRecipient>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_permission_request: Option<WhatsAppCallPermissionRequest>,
 }
 
 impl WhatsAppConversationInfo {
@@ -27,6 +31,8 @@ pub struct WhatsAppConversationInfoBuilder {
     whatsapp_phone_number_id: Option<String>,
     whatsapp_user_id: Option<String>,
     awaiting_first_user_message: Option<bool>,
+    recipient: Option<WhatsAppRecipient>,
+    call_permission_request: Option<WhatsAppCallPermissionRequest>,
 }
 
 impl WhatsAppConversationInfoBuilder {
@@ -50,6 +56,16 @@ impl WhatsAppConversationInfoBuilder {
         self
     }
 
+    pub fn recipient(mut self, value: WhatsAppRecipient) -> Self {
+        self.recipient = Some(value);
+        self
+    }
+
+    pub fn call_permission_request(mut self, value: WhatsAppCallPermissionRequest) -> Self {
+        self.call_permission_request = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WhatsAppConversationInfo`].
     /// This method will fail if any of the following fields are not set:
     /// - [`whatsapp_user_id`](WhatsAppConversationInfoBuilder::whatsapp_user_id)
@@ -59,6 +75,8 @@ impl WhatsAppConversationInfoBuilder {
             whatsapp_phone_number_id: self.whatsapp_phone_number_id,
             whatsapp_user_id: self.whatsapp_user_id.ok_or_else(|| BuildError::missing_field("whatsapp_user_id"))?,
             awaiting_first_user_message: self.awaiting_first_user_message,
+            recipient: self.recipient,
+            call_permission_request: self.call_permission_request,
         })
     }
 }

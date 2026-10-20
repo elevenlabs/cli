@@ -17,6 +17,12 @@ pub struct WorkspaceGroupResponseModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group_pvc_limit: Option<WorkspaceGroupResponseModelGroupPvcLimit>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_concurrency_limit: Option<WorkspaceGroupResponseModelGroupConcurrencyLimit>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_dubbing_concurrency_limit: Option<WorkspaceGroupResponseModelGroupDubbingConcurrencyLimit>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_music_concurrency_limit: Option<WorkspaceGroupResponseModelGroupMusicConcurrencyLimit>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub character_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_scim_synced: Option<bool>,
@@ -41,6 +47,9 @@ pub struct WorkspaceGroupResponseModelBuilder {
     permissions: Option<Vec<WorkspaceGroupPermission>>,
     group_usage_limit: Option<WorkspaceGroupResponseModelGroupUsageLimit>,
     group_pvc_limit: Option<WorkspaceGroupResponseModelGroupPvcLimit>,
+    group_concurrency_limit: Option<WorkspaceGroupResponseModelGroupConcurrencyLimit>,
+    group_dubbing_concurrency_limit: Option<WorkspaceGroupResponseModelGroupDubbingConcurrencyLimit>,
+    group_music_concurrency_limit: Option<WorkspaceGroupResponseModelGroupMusicConcurrencyLimit>,
     character_count: Option<i64>,
     is_scim_synced: Option<bool>,
     scim_group: Option<ScimGroupResponseModel>,
@@ -78,6 +87,21 @@ impl WorkspaceGroupResponseModelBuilder {
         self
     }
 
+    pub fn group_concurrency_limit(mut self, value: WorkspaceGroupResponseModelGroupConcurrencyLimit) -> Self {
+        self.group_concurrency_limit = Some(value);
+        self
+    }
+
+    pub fn group_dubbing_concurrency_limit(mut self, value: WorkspaceGroupResponseModelGroupDubbingConcurrencyLimit) -> Self {
+        self.group_dubbing_concurrency_limit = Some(value);
+        self
+    }
+
+    pub fn group_music_concurrency_limit(mut self, value: WorkspaceGroupResponseModelGroupMusicConcurrencyLimit) -> Self {
+        self.group_music_concurrency_limit = Some(value);
+        self
+    }
+
     pub fn character_count(mut self, value: i64) -> Self {
         self.character_count = Some(value);
         self
@@ -111,6 +135,9 @@ impl WorkspaceGroupResponseModelBuilder {
             permissions: self.permissions,
             group_usage_limit: self.group_usage_limit,
             group_pvc_limit: self.group_pvc_limit,
+            group_concurrency_limit: self.group_concurrency_limit,
+            group_dubbing_concurrency_limit: self.group_dubbing_concurrency_limit,
+            group_music_concurrency_limit: self.group_music_concurrency_limit,
             character_count: self.character_count,
             is_scim_synced: self.is_scim_synced,
             scim_group: self.scim_group,
