@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct FileInputConfig {
-    /// When enabled, users may attach images or PDFs in chat when the LLM supports multimodal input.
+    /// When enabled, users may attach images, PDFs, or text files in chat when the LLM supports multimodal input.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     /// Number of most-recent files kept in memory during a conversation. Older files are summarized and their bytes freed.

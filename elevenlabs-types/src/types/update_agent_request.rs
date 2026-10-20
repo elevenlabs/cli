@@ -31,6 +31,9 @@ pub struct UpdateAgentRequest {
     /// The ID of the branch to use
     #[serde(skip)]
     pub branch_id: Option<String>,
+    /// Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements.
+    #[serde(skip)]
+    pub include_procedure_generated_workflow_elements: Option<bool>,
 }
 
 impl UpdateAgentRequest {
@@ -51,6 +54,7 @@ pub struct UpdateAgentRequestBuilder {
     procedures: Option<HashMap<String, Option<ProcedureVersionRef>>>,
     enable_versioning_if_not_enabled: Option<bool>,
     branch_id: Option<String>,
+    include_procedure_generated_workflow_elements: Option<bool>,
 }
 
 impl UpdateAgentRequestBuilder {
@@ -99,6 +103,11 @@ impl UpdateAgentRequestBuilder {
         self
     }
 
+    pub fn include_procedure_generated_workflow_elements(mut self, value: bool) -> Self {
+        self.include_procedure_generated_workflow_elements = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`UpdateAgentRequest`].
     pub fn build(self) -> Result<UpdateAgentRequest, BuildError> {
         Ok(UpdateAgentRequest {
@@ -111,6 +120,7 @@ impl UpdateAgentRequestBuilder {
             procedures: self.procedures,
             enable_versioning_if_not_enabled: self.enable_versioning_if_not_enabled,
             branch_id: self.branch_id,
+            include_procedure_generated_workflow_elements: self.include_procedure_generated_workflow_elements,
         })
     }
 }

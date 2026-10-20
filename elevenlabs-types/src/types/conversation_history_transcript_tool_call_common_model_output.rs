@@ -10,6 +10,9 @@ pub struct ConversationHistoryTranscriptToolCallCommonModelOutput {
     pub request_id: String,
     #[serde(default)]
     pub tool_name: String,
+    /// ID of the called tool. Not set for tools without an ID, such as system tools.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_id: Option<String>,
     #[serde(default)]
     pub params_as_json: String,
     #[serde(default)]
@@ -30,6 +33,7 @@ pub struct ConversationHistoryTranscriptToolCallCommonModelOutputBuilder {
     r#type: Option<ToolType>,
     request_id: Option<String>,
     tool_name: Option<String>,
+    tool_id: Option<String>,
     params_as_json: Option<String>,
     tool_has_been_called: Option<bool>,
     tool_details: Option<ConversationHistoryTranscriptToolCallCommonModelOutputToolDetails>,
@@ -48,6 +52,11 @@ impl ConversationHistoryTranscriptToolCallCommonModelOutputBuilder {
 
     pub fn tool_name(mut self, value: impl Into<String>) -> Self {
         self.tool_name = Some(value.into());
+        self
+    }
+
+    pub fn tool_id(mut self, value: impl Into<String>) -> Self {
+        self.tool_id = Some(value.into());
         self
     }
 
@@ -77,6 +86,7 @@ impl ConversationHistoryTranscriptToolCallCommonModelOutputBuilder {
             r#type: self.r#type,
             request_id: self.request_id.ok_or_else(|| BuildError::missing_field("request_id"))?,
             tool_name: self.tool_name.ok_or_else(|| BuildError::missing_field("tool_name"))?,
+            tool_id: self.tool_id,
             params_as_json: self.params_as_json.ok_or_else(|| BuildError::missing_field("params_as_json"))?,
             tool_has_been_called: self.tool_has_been_called.ok_or_else(|| BuildError::missing_field("tool_has_been_called"))?,
             tool_details: self.tool_details,

@@ -28,9 +28,6 @@ pub struct EffectsSpecOutput {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers")]
     pub pan: f64,
-    /// Has no effect.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seed: Option<i64>,
 }
 
 impl EffectsSpecOutput {
@@ -48,7 +45,6 @@ pub struct EffectsSpecOutputBuilder {
     background_noise_id: Option<String>,
     send_level: Option<f64>,
     pan: Option<f64>,
-    seed: Option<i64>,
 }
 
 impl EffectsSpecOutputBuilder {
@@ -82,11 +78,6 @@ impl EffectsSpecOutputBuilder {
         self
     }
 
-    pub fn seed(mut self, value: i64) -> Self {
-        self.seed = Some(value);
-        self
-    }
-
     /// Consumes the builder and constructs a [`EffectsSpecOutput`].
     /// This method will fail if any of the following fields are not set:
     /// - [`distance`](EffectsSpecOutputBuilder::distance)
@@ -100,7 +91,6 @@ impl EffectsSpecOutputBuilder {
             background_noise_id: self.background_noise_id,
             send_level: self.send_level.ok_or_else(|| BuildError::missing_field("send_level"))?,
             pan: self.pan.ok_or_else(|| BuildError::missing_field("pan"))?,
-            seed: self.seed,
         })
     }
 }

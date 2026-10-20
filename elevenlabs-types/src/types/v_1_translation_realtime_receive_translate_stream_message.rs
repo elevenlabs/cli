@@ -32,6 +32,12 @@ pub enum ReceiveTranslateStreamMessage {
         TranslateTranslationError(TranslateTranslationError),
 
         TranslateAudioOutputError(TranslateAudioOutputError),
+
+        TranslateQuotaExceededError(TranslateQuotaExceededError),
+
+        TranslatePaymentIssueError(TranslatePaymentIssueError),
+
+        TranslateUnacceptedTermsError(TranslateUnacceptedTermsError),
 }
 
 impl ReceiveTranslateStreamMessage {
@@ -89,6 +95,18 @@ impl ReceiveTranslateStreamMessage {
 
     pub fn is_translate_audio_output_error(&self) -> bool {
         matches!(self, Self::TranslateAudioOutputError(_))
+    }
+
+    pub fn is_translate_quota_exceeded_error(&self) -> bool {
+        matches!(self, Self::TranslateQuotaExceededError(_))
+    }
+
+    pub fn is_translate_payment_issue_error(&self) -> bool {
+        matches!(self, Self::TranslatePaymentIssueError(_))
+    }
+
+    pub fn is_translate_unaccepted_terms_error(&self) -> bool {
+        matches!(self, Self::TranslateUnacceptedTermsError(_))
     }
 
 
@@ -287,6 +305,48 @@ impl ReceiveTranslateStreamMessage {
                     _ => None,
                 }
     }
+
+    pub fn as_translate_quota_exceeded_error(&self) -> Option<&TranslateQuotaExceededError> {
+        match self {
+                    Self::TranslateQuotaExceededError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_translate_quota_exceeded_error(self) -> Option<TranslateQuotaExceededError> {
+        match self {
+                    Self::TranslateQuotaExceededError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_translate_payment_issue_error(&self) -> Option<&TranslatePaymentIssueError> {
+        match self {
+                    Self::TranslatePaymentIssueError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_translate_payment_issue_error(self) -> Option<TranslatePaymentIssueError> {
+        match self {
+                    Self::TranslatePaymentIssueError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_translate_unaccepted_terms_error(&self) -> Option<&TranslateUnacceptedTermsError> {
+        match self {
+                    Self::TranslateUnacceptedTermsError(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_translate_unaccepted_terms_error(self) -> Option<TranslateUnacceptedTermsError> {
+        match self {
+                    Self::TranslateUnacceptedTermsError(value) => Some(value),
+                    _ => None,
+                }
+    }
 }
 
 impl fmt::Display for ReceiveTranslateStreamMessage {
@@ -306,6 +366,9 @@ impl fmt::Display for ReceiveTranslateStreamMessage {
             Self::TranslateTranscriberError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::TranslateTranslationError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::TranslateAudioOutputError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::TranslateQuotaExceededError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::TranslatePaymentIssueError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::TranslateUnacceptedTermsError(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
         }
     }
 }

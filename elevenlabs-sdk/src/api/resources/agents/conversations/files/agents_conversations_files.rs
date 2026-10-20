@@ -13,7 +13,7 @@ impl FilesClient {
         })
     }
 
-    /// Upload an image or PDF file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
+    /// Upload an image, PDF, or text file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
     ///
     /// # Arguments
     ///

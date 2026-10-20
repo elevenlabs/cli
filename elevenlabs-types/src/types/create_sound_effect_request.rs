@@ -23,9 +23,12 @@ pub struct CreateSoundEffectRequest {
     /// The model ID to use for the sound generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<SfxModelId>,
-    /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
+    /// Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM and WAV formats with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
     #[serde(skip)]
-    pub output_format: Option<AllowedOutputFormats>,
+    pub output_format: Option<TextToSoundEffectsConvertRequestOutputFormat>,
+    /// When enable_logging is set to false zero retention mode will be used for the request. Zero retention mode may only be used by enterprise customers.
+    #[serde(skip)]
+    pub enable_logging: Option<bool>,
 }
 
 impl CreateSoundEffectRequest {
@@ -42,7 +45,8 @@ pub struct CreateSoundEffectRequestBuilder {
     duration_seconds: Option<f64>,
     prompt_influence: Option<f64>,
     model_id: Option<SfxModelId>,
-    output_format: Option<AllowedOutputFormats>,
+    output_format: Option<TextToSoundEffectsConvertRequestOutputFormat>,
+    enable_logging: Option<bool>,
 }
 
 impl CreateSoundEffectRequestBuilder {
@@ -71,8 +75,13 @@ impl CreateSoundEffectRequestBuilder {
         self
     }
 
-    pub fn output_format(mut self, value: AllowedOutputFormats) -> Self {
+    pub fn output_format(mut self, value: TextToSoundEffectsConvertRequestOutputFormat) -> Self {
         self.output_format = Some(value);
+        self
+    }
+
+    pub fn enable_logging(mut self, value: bool) -> Self {
+        self.enable_logging = Some(value);
         self
     }
 
@@ -87,6 +96,7 @@ impl CreateSoundEffectRequestBuilder {
             prompt_influence: self.prompt_influence,
             model_id: self.model_id,
             output_format: self.output_format,
+            enable_logging: self.enable_logging,
         })
     }
 }

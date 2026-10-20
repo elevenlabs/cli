@@ -58,6 +58,8 @@ pub mod merge_proposals;
 pub use merge_proposals::MergeProposalsClient;
 pub mod procedures;
 pub use procedures::ProceduresClient;
+pub mod realtime;
+pub use realtime::RealtimeClient;
 pub mod agents;
 pub use agents::AgentsClient2;
 pub mod analytics;
@@ -94,6 +96,7 @@ pub struct AgentsClient {
     pub drafts: DraftsClient,
     pub merge_proposals: MergeProposalsClient,
     pub procedures: ProceduresClient,
+    pub realtime: RealtimeClient,
     pub agents: AgentsClient2,
     pub analytics: AnalyticsClient,
     pub dashboard: DashboardClient,
@@ -131,6 +134,7 @@ impl AgentsClient {
             drafts: DraftsClient::new(config.clone())?,
             merge_proposals: MergeProposalsClient::new(config.clone())?,
             procedures: ProceduresClient::new(config.clone())?,
+            realtime: RealtimeClient::new(config.clone())?,
             agents: AgentsClient2::new(config.clone())?,
             analytics: AnalyticsClient::new(config.clone())?,
             dashboard: DashboardClient::new(config.clone())?,
@@ -202,6 +206,7 @@ impl AgentsClient {
     /// * `agent_id` - The id of an agent. This is returned on agent creation.
     /// * `version_id` - The ID of the agent version to use
     /// * `branch_id` - The ID of the branch to use
+    /// * `include_procedure_generated_workflow_elements` - Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -226,6 +231,7 @@ impl AgentsClient {
     ///             &AgentsGetQueryRequest {
     ///                 version_id: Some("version_id".to_string()),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 include_procedure_generated_workflow_elements: Some(true),
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -247,6 +253,12 @@ impl AgentsClient {
                 QueryBuilder::new()
                     .string("version_id", request.version_id.clone())
                     .string("branch_id", request.branch_id.clone())
+                    .bool(
+                        "include_procedure_generated_workflow_elements",
+                        request
+                            .include_procedure_generated_workflow_elements
+                            .clone(),
+                    )
                     .build(),
                 options,
             )
@@ -258,6 +270,7 @@ impl AgentsClient {
     /// # Arguments
     ///
     /// * `agent_id` - The id of an agent. This is returned on agent creation.
+    /// * `force` - If set to true, the agent is deleted even if other agents use it as a subagent, and it is removed from those agents and their branches.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -277,13 +290,21 @@ impl AgentsClient {
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
     ///     client
     ///         .agents
-    ///         .delete(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), None)
+    ///         .delete(
+    ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
+    ///             &AgentsDeleteQueryRequest {
+    ///                 force: Some(true),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
     ///         .await;
     /// }
     /// ```
     pub async fn delete(
         &self,
         agent_id: &str,
+        request: &AgentsDeleteQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<(), ApiError> {
         self.http_client
@@ -291,7 +312,9 @@ impl AgentsClient {
                 Method::DELETE,
                 &format!("v1/convai/agents/{}", agent_id),
                 None,
-                None,
+                QueryBuilder::new()
+                    .bool("force", request.force.clone())
+                    .build(),
                 options,
             )
             .await
@@ -304,6 +327,7 @@ impl AgentsClient {
     /// * `agent_id` - The id of an agent. This is returned on agent creation.
     /// * `enable_versioning_if_not_enabled` - Deprecated: all agents are versioned. This parameter is ignored.
     /// * `branch_id` - The ID of the branch to use
+    /// * `include_procedure_generated_workflow_elements` - Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -328,6 +352,7 @@ impl AgentsClient {
     ///             &UpdateAgentRequest {
     ///                 enable_versioning_if_not_enabled: Some(true),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 include_procedure_generated_workflow_elements: Some(true),
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -352,6 +377,12 @@ impl AgentsClient {
                         request.enable_versioning_if_not_enabled.clone(),
                     )
                     .string("branch_id", request.branch_id.clone())
+                    .bool(
+                        "include_procedure_generated_workflow_elements",
+                        request
+                            .include_procedure_generated_workflow_elements
+                            .clone(),
+                    )
                     .build(),
                 options,
             )

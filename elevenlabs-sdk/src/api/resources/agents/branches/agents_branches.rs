@@ -187,7 +187,7 @@ impl BranchesClient {
             .await
     }
 
-    /// Update agent branch properties such as archiving status, protection level, and auto-rebase onto main
+    /// Update agent branch properties such as name, description, archiving status, protection level, and auto-rebase onto main
     ///
     /// # Arguments
     ///
@@ -250,6 +250,7 @@ impl BranchesClient {
     /// * `source_branch_id` - Unique identifier for the source branch to merge from.
     /// * `target_branch_id` - The ID of the target branch to merge into.
     /// * `force` - When true, source branch changes always win conflicts regardless of timestamps
+    /// * `include_procedure_generated_workflow_elements` - Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -276,6 +277,7 @@ impl BranchesClient {
     ///             &PreviewMergeQueryRequest {
     ///                 target_branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
     ///                 force: Some(true),
+    ///                 include_procedure_generated_workflow_elements: Some(true),
     ///             },
     ///             None,
     ///         )
@@ -300,6 +302,12 @@ impl BranchesClient {
                 QueryBuilder::new()
                     .string("target_branch_id", request.target_branch_id.clone())
                     .bool("force", request.force.clone())
+                    .bool(
+                        "include_procedure_generated_workflow_elements",
+                        request
+                            .include_procedure_generated_workflow_elements
+                            .clone(),
+                    )
                     .build(),
                 options,
             )
@@ -360,12 +368,14 @@ impl BranchesClient {
             .await
     }
 
-    /// Returns the result of rebasing the branch onto main without performing the rebase. Useful for showing an accurate diff before confirming.
+    /// Returns the result of pulling changes from a source branch (defaults to main) into the given branch without performing it, preserving the given branch's own changes. Useful for showing an accurate diff before confirming.
     ///
     /// # Arguments
     ///
     /// * `agent_id` - The id of an agent. This is returned on agent creation.
     /// * `branch_id` - Unique identifier for the source branch to merge from.
+    /// * `source_branch_id` - The ID of the branch to pull changes from. Defaults to the agent's main branch.
+    /// * `include_procedure_generated_workflow_elements` - Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -389,6 +399,11 @@ impl BranchesClient {
     ///         .preview_rebase(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///             &PreviewRebaseQueryRequest {
+    ///                 source_branch_id: Some("source_branch_id".to_string()),
+    ///                 include_procedure_generated_workflow_elements: Some(true),
+    ///                 ..Default::default()
+    ///             },
     ///             None,
     ///         )
     ///         .await;
@@ -398,6 +413,7 @@ impl BranchesClient {
         &self,
         agent_id: &str,
         branch_id: &str,
+        request: &PreviewRebaseQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<MergePreviewResponseModel, ApiError> {
         self.http_client
@@ -408,18 +424,27 @@ impl BranchesClient {
                     agent_id, branch_id
                 ),
                 None,
-                None,
+                QueryBuilder::new()
+                    .string("source_branch_id", request.source_branch_id.clone())
+                    .bool(
+                        "include_procedure_generated_workflow_elements",
+                        request
+                            .include_procedure_generated_workflow_elements
+                            .clone(),
+                    )
+                    .build(),
                 options,
             )
             .await
     }
 
-    /// Rebase a branch onto the latest main branch, incorporating main's changes while preserving the branch's own changes.
+    /// Pull changes from a source branch (defaults to main) into this branch as a new version, preserving this branch's own changes on conflicts.
     ///
     /// # Arguments
     ///
     /// * `agent_id` - The id of an agent. This is returned on agent creation.
     /// * `branch_id` - Unique identifier for the source branch to merge from.
+    /// * `source_branch_id` - The ID of the branch to pull changes from. Defaults to the agent's main branch.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -443,6 +468,10 @@ impl BranchesClient {
     ///         .rebase(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
+    ///             &RebaseQueryRequest {
+    ///                 source_branch_id: Some("source_branch_id".to_string()),
+    ///                 ..Default::default()
+    ///             },
     ///             None,
     ///         )
     ///         .await;
@@ -452,6 +481,7 @@ impl BranchesClient {
         &self,
         agent_id: &str,
         branch_id: &str,
+        request: &RebaseQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<serde_json::Value, ApiError> {
         self.http_client
@@ -462,7 +492,9 @@ impl BranchesClient {
                     agent_id, branch_id
                 ),
                 None,
-                None,
+                QueryBuilder::new()
+                    .string("source_branch_id", request.source_branch_id.clone())
+                    .build(),
                 options,
             )
             .await

@@ -10,7 +10,7 @@ pub struct AgentConfigApiModelWorkflowOverrideOutput {
     /// Language of the agent - used for ASR and TTS
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
-    /// When enabled and language is Hindi, the agent will respond in Hinglish
+    /// When enabled, the agent mixes English words and phrases into responses in Hindi, Malayalam, Telugu, or Kannada.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hinglish_mode: Option<bool>,
     /// Configuration for dynamic variables

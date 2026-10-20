@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FieldConflict {
-    /// Identifier of the conflicting field relative to its section: a dot-path within conversation_config/platform_settings, or a procedure id.
+    /// Identifier of the conflicting field relative to its section: a dot-path within conversation_config/platform_settings (e.g. `tts.voice_id`), a procedure id, or a workflow path: `nodes.<id>`, `edges.<id>`, or the name of a top-level workflow setting.
     #[serde(default)]
     pub path: String,
     /// Which config section this path belongs to.

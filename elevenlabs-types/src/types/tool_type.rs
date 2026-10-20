@@ -11,7 +11,6 @@ pub enum ToolType {
     Mcp,
     Workflow,
     ApiIntegrationWebhook,
-    ApiIntegrationMcp,
     Smb,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
@@ -27,7 +26,6 @@ impl Serialize for ToolType {
             Self::Mcp => serializer.serialize_str("mcp"),
             Self::Workflow => serializer.serialize_str("workflow"),
             Self::ApiIntegrationWebhook => serializer.serialize_str("api_integration_webhook"),
-            Self::ApiIntegrationMcp => serializer.serialize_str("api_integration_mcp"),
             Self::Smb => serializer.serialize_str("smb"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
@@ -44,7 +42,6 @@ impl<'de> Deserialize<'de> for ToolType {
             "mcp" => Ok(Self::Mcp),
             "workflow" => Ok(Self::Workflow),
             "api_integration_webhook" => Ok(Self::ApiIntegrationWebhook),
-            "api_integration_mcp" => Ok(Self::ApiIntegrationMcp),
             "smb" => Ok(Self::Smb),
             _ => Ok(Self::__Unknown(value)),
         }
@@ -60,7 +57,6 @@ impl fmt::Display for ToolType {
             Self::Mcp => write!(f, "mcp"),
             Self::Workflow => write!(f, "workflow"),
             Self::ApiIntegrationWebhook => write!(f, "api_integration_webhook"),
-            Self::ApiIntegrationMcp => write!(f, "api_integration_mcp"),
             Self::Smb => write!(f, "smb"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }

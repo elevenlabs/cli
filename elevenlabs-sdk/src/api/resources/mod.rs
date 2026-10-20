@@ -28,6 +28,7 @@
 //! - **Agents**
 //! - **Speech Engine**
 //! - **EnvironmentVariables**
+//! - **Environments**
 //! - **Assets**
 //! - **Flows**
 //! - **Productions**
@@ -43,6 +44,7 @@ pub mod audio_isolation;
 pub mod audio_native;
 pub mod dubbing;
 pub mod environment_variables;
+pub mod environments;
 pub mod flows;
 pub mod forced_alignment;
 pub mod history;
@@ -95,6 +97,7 @@ pub struct ApiClient {
     pub agents: AgentsClient,
     pub speech_engine: SpeechEngineClient,
     pub environment_variables: EnvironmentVariablesClient,
+    pub environments: EnvironmentsClient,
     pub assets: AssetsClient,
     pub flows: FlowsClient,
     pub productions: ProductionsClient,
@@ -132,6 +135,7 @@ impl ApiClient {
             agents: AgentsClient::new(config.clone())?,
             speech_engine: SpeechEngineClient::new(config.clone())?,
             environment_variables: EnvironmentVariablesClient::new(config.clone())?,
+            environments: EnvironmentsClient::new(config.clone())?,
             assets: AssetsClient::new(config.clone())?,
             flows: FlowsClient::new(config.clone())?,
             productions: ProductionsClient::new(config.clone())?,
@@ -148,6 +152,7 @@ pub use audio_isolation::AudioIsolationClient;
 pub use audio_native::AudioNativeClient;
 pub use dubbing::DubbingClient;
 pub use environment_variables::EnvironmentVariablesClient;
+pub use environments::EnvironmentsClient;
 pub use flows::FlowsClient;
 pub use forced_alignment::ForcedAlignmentClient;
 pub use history::HistoryClient;
