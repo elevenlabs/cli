@@ -1,0 +1,56 @@
+name: windows-loopback-probe
+
+# Temporary: where does the approval page's redirect go on Windows when it
+# doesn't reach `onboard`? Runs only on pushes to the fix branch.
+on:
+  push:
+    branches: [paul/windows-loopback-probe]
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "lts/Krypton"
+
+      - name: Install the published CLI and the probe's driver
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/cli-published" --no-save @elevenlabs/cli-win32-x64@1.7.0 > /dev/null
+          exe=$(find "$RUNNER_TEMP/cli-published/node_modules/@elevenlabs" -name 'elevenlabs.exe' | head -n 1)
+          echo "PUBLISHED_CLI=$(cygpath -w "$exe")" >> "$GITHUB_ENV"
+          "$exe" --version
+          cd .github/loopback-probe
+          npm install --no-save playwright-core@1.56.1 > /dev/null
+
+      - name: Probe the published CLI
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: CLI_BIN="$PUBLISHED_CLI" LABEL=1.7.0 node .github/loopback-probe/probe.mjs
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-smoke-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-smoke-
+
+      - name: Build this branch's CLI
+        run: cargo build --bin elevenlabs
+
+      - name: Probe this branch's CLI
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: CLI_BIN="$(cygpath -w "$PWD/target/debug/elevenlabs.exe")" OLDER_CLI_BIN="$PUBLISHED_CLI" LABEL=branch node .github/loopback-probe/probe.mjs
