@@ -9,12 +9,14 @@ name: windows-smoke
 # sign-in starts in the background and hands back the approval link. It then
 # answers the way the approval page does when the developer clicks Deny, which
 # shows the sign-in outlived the command that started it and that the
-# browser's callback reaches it.
+# browser's callback reaches it, even with another program on one loopback
+# address of the first callback port.
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - cli/elevenlabs/workflow/onboard/**
+      - cli/elevenlabs/workflow/loopback.rs
       - .github/workflows/windows-smoke.yml
 
 jobs:
@@ -82,6 +84,19 @@ jobs:
             fi
           }
 
+          # Another program on one loopback address of the first callback
+          # port. Browsers dial [::1] first for `localhost`, so a sign-in that
+          # left [::1]:8484 to it would never get the callback.
+          node -e "require('http').createServer((q, s) => s.end('another program')).listen(8484, '::1')" > /dev/null 2>&1 &
+          for _ in $(seq 1 50); do
+            [[ "$(curl -sg http://[::1]:8484/ || true)" == "another program" ]] && break
+            sleep 0.2
+          done
+          if [[ "$(curl -sg http://[::1]:8484/ || true)" != "another program" ]]; then
+            echo "::error::The other program didn't start on [::1]:8484"
+            exit 1
+          fi
+
           step "$CLI onboard init" run
           # Starts the sign-in, waits for an approval that never comes, then says to keep waiting.
           step "$(jq -r .run <<< "$reply")" wait
@@ -94,6 +109,10 @@ jobs:
 
           # What the approval page does when the developer clicks Deny.
           callback=$(node -p 'new URL(process.argv[1]).searchParams.get("redirect_uri")' "$url")
+          if [[ "$callback" != "http://localhost:8483/callback" ]]; then
+            echo "::error::The sign-in should have moved off 8484, it listens at $callback"
+            exit 1
+          fi
           curl -sS -o /dev/null -w "Callback answered %{http_code}\n" "$callback?error=access_denied"
 
           step "$(jq -r .run <<< "$reply")" ask_user

@@ -15,8 +15,8 @@
 //! command's process tree; it also runs in its own process group.
 //!
 //! One session per project folder, under `~/.elevenlabs/onboard/`, and one
-//! sign-in waiting for the browser on the machine at a time: two would share
-//! the callback port.
+//! sign-in waiting for the browser on the machine at a time, so the tab the
+//! developer approves is the one for the project they're in.
 
 use std::ffi::OsString;
 use std::fs::{File, OpenOptions};
@@ -32,7 +32,7 @@ use super::clipboard::Clipboard;
 use super::env_file;
 use super::reply::{Next, Reply};
 
-/// How long the sign-in waits for the approval page: the framework's callback timeout.
+/// How long the sign-in waits for the approval page, as `auth login` does.
 pub(super) const SIGN_IN_MINUTES: u64 = 5;
 /// How long a new worker may take to take its lock before starting counts as failed.
 const STARTUP: Duration = Duration::from_secs(10);
@@ -152,9 +152,9 @@ impl Session {
     }
 
     /// Stop any other project's sign-in still waiting for the browser. Only
-    /// one may listen for the browser's callback: two can hold the same port
-    /// (one on IPv4, one on IPv6), and the callback then reaches the wrong one.
-    /// One past the browser no longer listens, and is left to store its key.
+    /// one waits at a time, so the tab the developer approves is the one for
+    /// the project they're in. One past the browser no longer listens, and is
+    /// left to store its key.
     /// The stopped one's agent is told why, so it asks before signing in again.
     pub(super) fn stop_others(&self) {
         let Some(root) = self.dir.parent() else {
@@ -197,10 +197,7 @@ impl Session {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(log);
-        detach(&mut command);
-        command
-            .spawn()
-            .map(drop)
+        spawn_detached(&mut command)
             .map_err(|e| CliError::Other(anyhow::anyhow!("start the sign-in worker: {e}")))
     }
 
@@ -324,17 +321,31 @@ fn keep_stdio_from_children() {
 fn keep_stdio_from_children() {}
 
 #[cfg(unix)]
-fn detach(command: &mut Command) {
+fn spawn_detached(command: &mut Command) -> std::io::Result<()> {
     use std::os::unix::process::CommandExt;
-    command.process_group(0);
+    command.process_group(0).spawn().map(drop)
 }
 
+/// Some agents run each command in a Job Object and end the job, and every
+/// process in it, when the command is stopped or times out. The worker
+/// leaves the job when the job allows it; otherwise it starts in the job.
 #[cfg(windows)]
-fn detach(command: &mut Command) {
+fn spawn_detached(command: &mut Command) -> std::io::Result<()> {
     use std::os::windows::process::CommandExt;
     const DETACHED_PROCESS: u32 = 0x0000_0008;
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
-    command.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+    const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
+    const ERROR_ACCESS_DENIED: i32 = 5;
+    let detached = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
+    match command
+        .creation_flags(detached | CREATE_BREAKAWAY_FROM_JOB)
+        .spawn()
+    {
+        Err(e) if e.raw_os_error() == Some(ERROR_ACCESS_DENIED) => {
+            command.creation_flags(detached).spawn().map(drop)
+        }
+        spawned => spawned.map(drop),
+    }
 }
 
 /// End a worker and wait briefly for it to let go of its port. Only ever one
