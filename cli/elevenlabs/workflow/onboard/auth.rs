@@ -10,6 +10,7 @@ use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
 
 use super::super::loopback;
+use super::super::platform;
 use super::super::say::run_async as block_on;
 use super::super::settings;
 use super::session::SIGN_IN_MINUTES;
@@ -98,6 +99,7 @@ pub(super) fn sign_in(
         .and_then(loopback)
         .unwrap_or_else(|| config.token_url.trim_end_matches("/v1/oauth/token").into());
     let token_url = format!("{oauth_base}/v1/oauth/token");
+    let params = authorize_params(platform::detect());
     block_on(loopback::sign_in(loopback::Login {
         cli_name: CLI_NAME,
         scheme: &config.scheme,
@@ -109,10 +111,23 @@ pub(super) fn sign_in(
         redirect_ports: &config.redirect_ports,
         success_url: &config.success_url,
         error_url: &config.error_url,
-        params: &[("key_handoff", "clipboard")],
+        params: &params,
         no_browser,
         timeout: Duration::from_secs(SIGN_IN_MINUTES * 60),
     }))
+}
+
+/// What the sign-in adds to the approval link: the page should hand over a
+/// key, and where the CLI runs, which the page records for a sign-in that
+/// never gets to make an API call.
+pub(super) fn authorize_params(
+    (os, env): (&'static str, Option<&'static str>),
+) -> Vec<(&'static str, &'static str)> {
+    let mut params = vec![("key_handoff", "clipboard"), ("cli_os", os)];
+    if let Some(env) = env {
+        params.push(("cli_env", env));
+    }
+    params
 }
 
 /// `Err` when the signed-in account itself cannot be identified; `Ok(false)` only

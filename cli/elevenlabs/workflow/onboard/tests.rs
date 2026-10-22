@@ -1157,3 +1157,15 @@ async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
     // Any other token opens no account here, so nothing vouches for the key.
     assert!(key_matches_sign_in(&client, &server.uri(), "other", KEY).is_err());
 }
+
+#[test]
+fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
+    assert_eq!(
+        authorize_params(("linux", Some("wsl"))),
+        [("key_handoff", "clipboard"), ("cli_os", "linux"), ("cli_env", "wsl")]
+    );
+    assert_eq!(
+        authorize_params(("windows", None)),
+        [("key_handoff", "clipboard"), ("cli_os", "windows")]
+    );
+}
