@@ -58,7 +58,8 @@ fn advance_cursor(resp: &Value, seen: &mut std::collections::HashSet<String>) ->
 /// The tag is **always a static string** chosen by the caller. It must never be
 /// derived from argv: positional tokens carry user data (`agents test my-agent`
 /// would put the agent's name in the User-Agent and from there into request
-/// logs).
+/// logs). The platform tags after it come from a fixed set (see
+/// [`super::platform`]).
 ///
 /// Appends rather than replaces, so a consumer's own `ELEVENLABS_VIA` survives.
 /// Restores the previous value on drop, so one command cannot leak its tag into
@@ -82,7 +83,7 @@ fn suffix_env_key() -> String {
 pub fn command_scope(command: &'static str) -> CommandScope {
     let key = suffix_env_key();
     let previous = std::env::var(&key).ok();
-    let tag = format!("cmd/{command}");
+    let tag = format!("cmd/{command} {}", super::platform::tags());
     let combined = match previous.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         Some(existing) => format!("{existing} {tag}"),
         None => tag,
@@ -607,7 +608,8 @@ mod tests {
         with_env(|key| {
             {
                 let _scope = command_scope("agents.push");
-                assert_eq!(std::env::var(key).as_deref(), Ok("cmd/agents.push"));
+                let tag = std::env::var(key).unwrap();
+                assert!(tag.starts_with("cmd/agents.push os/"), "{tag}");
             }
             // Restored to absent, so one command cannot leak its tag into the next.
             assert!(std::env::var(key).is_err());
@@ -620,9 +622,10 @@ mod tests {
             std::env::set_var(key, "partner-app/3.1");
             {
                 let _scope = command_scope("tools.pull");
-                assert_eq!(
-                    std::env::var(key).as_deref(),
-                    Ok("partner-app/3.1 cmd/tools.pull")
+                let tag = std::env::var(key).unwrap();
+                assert!(
+                    tag.starts_with("partner-app/3.1 cmd/tools.pull os/"),
+                    "{tag}"
                 );
             }
             assert_eq!(std::env::var(key).as_deref(), Ok("partner-app/3.1"));
@@ -634,7 +637,8 @@ mod tests {
         with_env(|key| {
             std::env::set_var(key, "   ");
             let _scope = command_scope("tests.add");
-            assert_eq!(std::env::var(key).as_deref(), Ok("cmd/tests.add"));
+            let tag = std::env::var(key).unwrap();
+            assert!(tag.starts_with("cmd/tests.add os/"), "{tag}");
         });
     }
 

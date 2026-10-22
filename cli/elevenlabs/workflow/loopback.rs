@@ -62,7 +62,8 @@ pub(super) struct Login<'a> {
 }
 
 /// Sign in through the browser and store the token where `auth login` does.
-pub(super) async fn sign_in(login: Login<'_>) -> Result<(), CliError> {
+/// Returns the access token, which works even when the store refused it.
+pub(super) async fn sign_in(login: Login<'_>) -> Result<String, CliError> {
     let verifier = random_token();
     let state = random_token();
     let (listeners, port) = bind(login.redirect_ports).await?;
@@ -75,22 +76,29 @@ pub(super) async fn sign_in(login: Login<'_>) -> Result<(), CliError> {
     }
     let (code, mut browser) =
         wait_for_callback(listeners, &state, login.error_url, login.timeout).await?;
-    // The browser waits on the result page until the token is stored.
-    let stored = async {
-        let token = exchange(
-            login.token_url,
-            login.client_id,
-            &code,
-            &verifier,
-            &redirect_uri,
-        )
-        .await?;
-        active_store().set(login.cli_name, login.scheme, &token.to_keyring_value()?)
-    };
-    match stored.await {
-        Ok(()) => {
+    // The browser waits on the result page until the code is exchanged.
+    let token = exchange(
+        login.token_url,
+        login.client_id,
+        &code,
+        &verifier,
+        &redirect_uri,
+    )
+    .await;
+    match token {
+        Ok(token) => {
+            // A keychain that refuses this binary, or a sandbox. The sign-in
+            // still worked, but commands that read the stored sign-in won't
+            // see it: they keep whatever was stored before, which may be
+            // another account's token.
+            let stored = token
+                .to_keyring_value()
+                .and_then(|value| active_store().set(login.cli_name, login.scheme, &value));
+            if let Err(e) = stored {
+                eprintln!("Signed in, but the sign-in couldn't be saved for later commands: {e}");
+            }
             let _ = redirect(&mut browser, login.success_url).await;
-            Ok(())
+            Ok(token.access_token)
         }
         Err(e) => {
             let page = error_page(login.error_url, "server_error", Some(AFTER_CALLBACK_FAILED));

@@ -21,6 +21,7 @@ mod flows_wait;
 mod intent;
 mod loopback;
 mod onboard;
+mod platform;
 mod project;
 mod residency;
 mod say;
