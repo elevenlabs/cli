@@ -119,8 +119,9 @@ function newProject() {
   return { home, dir };
 }
 
-function cliEnv(home) {
-  const env = { ...process.env, HOME: home, USERPROFILE: home, ELEVENLABS_ONBOARD_NO_CLIPBOARD: "1" };
+function cliEnv(home, { clipboard = false } = {}) {
+  const env = { ...process.env, HOME: home, USERPROFILE: home };
+  if (!clipboard) env.ELEVENLABS_ONBOARD_NO_CLIPBOARD = "1";
   for (const k of ["ELEVENLABS_API_KEY", "ELEVENLABS_BASE_URL", "XDG_CONFIG_HOME"]) delete env[k];
   return env;
 }
@@ -146,10 +147,10 @@ function parseReply(stdout) {
 }
 
 // `connect` the way an agent runs it: returns once the approval link is known.
-function connect(p, extra = [], wrap = null, cli = CLI) {
+function connect(p, extra = [], wrap = null, cli = CLI, opts = {}) {
   const args = connectArgs(extra);
   const [cmd, argv] = wrap ? wrap(cli, args) : [cli, args];
-  const r = spawnSync(cmd, argv, { cwd: p.dir, env: cliEnv(p.home), encoding: "utf8", timeout: 60000 });
+  const r = spawnSync(cmd, argv, { cwd: p.dir, env: cliEnv(p.home, opts), encoding: "utf8", timeout: 60000 });
   const parsed = parseReply(r.stdout ?? "");
   if (!parsed.url) parsed.error = `${r.status} ${(r.stderr ?? "").slice(-400)}`;
   return parsed;
@@ -273,12 +274,12 @@ function record(scenario, browserName, bind, r, worker, note = "") {
 }
 
 // One sign-in: optional setup, `connect`, one or more approvals, teardown.
-async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup, teardown, params = {}, click = false, public: pub = false, timeoutMs, during, wrap } = {}) {
+async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup, teardown, params = {}, click = false, public: pub = false, timeoutMs, during, wrap, clipboard = false, beforeNav, settleMs = 1500 } = {}) {
   for (const name of names) {
     await killCli();
     const ctx = setup ? await setup() : {};
     const p = newProject();
-    const c = connect(p, [], wrap);
+    const c = connect(p, [], wrap, CLI, { clipboard });
     if (wrap) await sleep(1000);
     const bind = listeners();
     if (!c.url) {
@@ -286,8 +287,9 @@ async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup,
     } else {
       let url = withProbe(c.url, { probe_click: click ? "1" : "0", ...params });
       if (pub) url = url.replace("http://127.0.0.1:9000", "https://elevenlabs.io/app/oauth");
+      if (beforeNav) await beforeNav();
       const r = await nav(name, url, { timeoutMs, click, during: during ? () => during(bind) : null });
-      await sleep(1500);
+      await sleep(settleMs);
       record(scenario, name, bind, r, workerResult(p), r.outcome === "cli" ? "" : workerLog(p).slice(0, 300));
     }
     if (teardown) await teardown(ctx);
@@ -295,7 +297,40 @@ async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup,
   }
 }
 
+// Another program has the clipboard open when onboard reads the key, the way
+// a clipboard manager or remote desktop holds it for a moment.
+const FAKE_KEY = "sk_0123456789abcdef0123456789abcdef01234567";
+function clip(...args) {
+  return spawnSync("python", [path.join(HERE, "clip.py"), ...args], { encoding: "utf8", timeout: 15000 });
+}
+function holdClipboard(seconds) {
+  const holder = spawn("python", [path.join(HERE, "clip.py"), "hold", String(seconds)]);
+  return new Promise((resolve) => {
+    holder.stdout.on("data", (d) => d.toString().includes("held") && resolve(holder));
+    holder.on("exit", () => resolve(holder));
+  });
+}
+
 const scenarios = {
+  async clipboard() {
+    for (const seconds of [0, 1.5, 4]) {
+      await signIn(`clipboard held ${seconds}s`, {
+        browsers: ["chrome"],
+        clipboard: true,
+        settleMs: 6000,
+        beforeNav: async () => {
+          clip("set", FAKE_KEY);
+          if (seconds) await holdClipboard(seconds);
+        },
+        teardown: async () => {
+          const left = (clip("get").stdout ?? "").trim();
+          console.log(`  clipboard afterwards: ${left === FAKE_KEY ? "key still there" : left ? "something else" : "cleared"}`);
+          clip("set", "");
+        },
+      });
+    }
+  },
+
   async env() {
     console.log("## environment");
     console.log(ps("[System.Environment]::OSVersion.VersionString; (Get-CimInstance Win32_OperatingSystem).Caption"));
