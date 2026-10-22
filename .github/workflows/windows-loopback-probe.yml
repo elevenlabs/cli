@@ -33,7 +33,7 @@ jobs:
       - name: Probe the published CLI
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
-        run: CLI_BIN="$PUBLISHED_CLI" LABEL=1.7.0 node .github/loopback-probe/probe.mjs clipboard
+        run: CLI_BIN="$PUBLISHED_CLI" LABEL=1.7.0 node .github/loopback-probe/probe.mjs 'clipboard|junk'
 
       - name: Cache cargo registry and build artifacts
         uses: actions/cache@v4
@@ -53,4 +53,4 @@ jobs:
       - name: Probe this branch's CLI
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
-        run: CLI_BIN="$(cygpath -w "$PWD/target/debug/elevenlabs.exe")" OLDER_CLI_BIN="$PUBLISHED_CLI" LABEL=branch node .github/loopback-probe/probe.mjs
+        run: CLI_BIN="$(cygpath -w "$PWD/target/debug/elevenlabs.exe")" OLDER_CLI_BIN="$PUBLISHED_CLI" LABEL=branch node .github/loopback-probe/probe.mjs 'clipboard|junk'

@@ -316,6 +316,7 @@ const scenarios = {
     for (const seconds of [0, 1.5, 4]) {
       await signIn(`clipboard held ${seconds}s`, {
         browsers: ["chrome"],
+        params: { probe_mode: "approve" },
         clipboard: true,
         settleMs: 6000,
         beforeNav: async () => {
@@ -477,6 +478,7 @@ const scenarios = {
     }
     await sleep(500);
     const r = await nav("chrome", withProbe(c.url, { probe_click: "0" }));
+    await sleep(1500);
     record("8 empty connections, then the browser", "chrome", bind, r, workerResult(p), workerLog(p).slice(0, 300));
   },
 
