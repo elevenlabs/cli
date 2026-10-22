@@ -135,19 +135,31 @@ async fn bind_both(port: u16) -> std::io::Result<Vec<TcpListener>> {
     ] {
         match TcpListener::bind(SocketAddr::new(ip, port)).await {
             Ok(listener) => listeners.push(listener),
-            // In use, or reserved: Windows reports a port in an excluded range
-            // (Hyper-V, WSL, Docker) as access denied.
-            Err(e) if matches!(e.kind(), ErrorKind::AddrInUse | ErrorKind::PermissionDenied) => {
-                return Err(e)
-            }
-            // No such loopback address here (IPv6 turned off), so no browser dials it.
-            Err(e) => missing = Some(e),
+            // No such loopback address or family here (IPv6 turned off), so
+            // no browser dials it.
+            Err(e) if family_missing(&e) => missing = Some(e),
+            // Anything else and this port won't do: in use, reserved (Windows
+            // reports a port in an excluded range as access denied), or out of
+            // file handles, which says nothing about who holds the port.
+            Err(e) => return Err(e),
         }
     }
     match missing {
         Some(e) if listeners.is_empty() => Err(e),
         _ => Ok(listeners),
     }
+}
+
+/// The error for an address family the OS doesn't have.
+#[cfg(unix)]
+const NO_FAMILY: i32 = libc::EAFNOSUPPORT;
+#[cfg(windows)]
+const NO_FAMILY: i32 = 10047; // WSAEAFNOSUPPORT
+
+/// This machine has no such loopback address or family at all, as opposed to
+/// the port being taken or the bind failing for some other reason.
+fn family_missing(e: &std::io::Error) -> bool {
+    e.kind() == ErrorKind::AddrNotAvailable || e.raw_os_error() == Some(NO_FAMILY)
 }
 
 /// What a request to the listener turned out to be.
@@ -470,6 +482,22 @@ mod tests {
         let mut response = String::new();
         stream.read_to_string(&mut response).unwrap();
         response
+    }
+
+    #[test]
+    fn only_a_missing_address_or_family_lets_the_listener_use_one_address() {
+        use super::{family_missing, NO_FAMILY};
+        use std::io::{Error, ErrorKind};
+        assert!(family_missing(&Error::from(ErrorKind::AddrNotAvailable)));
+        assert!(family_missing(&Error::from_raw_os_error(NO_FAMILY)));
+        // Out of file handles, say: the port might still be someone else's.
+        for other in [
+            ErrorKind::AddrInUse,
+            ErrorKind::PermissionDenied,
+            ErrorKind::Other,
+        ] {
+            assert!(!family_missing(&Error::from(other)), "{other:?}");
+        }
     }
 
     #[test]
