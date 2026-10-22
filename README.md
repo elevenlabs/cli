@@ -137,7 +137,7 @@ elevenlabs say "one off" --voice JBFqnCBsd6RMkjVDRZzb --model eleven_flash_v2_5 
 elevenlabs say "save it" --output out.mp3                # write a file, skip playback
 ```
 
-Defaults are stored in `~/.elevenlabs/config.json` alongside [data residency](#data-residency). Out of the box `say` uses `eleven_v3` — the most expressive model, and the only family that reads [audio tags](https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices#audio-tags) like `elevenlabs say "[whispers] it worked"` as delivery rather than as words. The audio format follows the player unless `--output-format` or an `--output` filename says otherwise.
+Defaults are stored in `~/.elevenlabs/config.json` alongside [data residency](#data-residency). Out of the box `say` uses `eleven_v4` — the most expressive model, and (with v3) the only family that reads [audio tags](https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices#audio-tags) like `elevenlabs say "[whispers] it worked"` as delivery rather than as words. The audio format follows the player unless `--output-format` or an `--output` filename says otherwise.
 
 Playback shells out to whichever player is on the box, preferring ones that read stdin so audio starts before the download finishes: `ffplay`, `mpv`, `afplay` (macOS), `paplay`/`aplay` (Linux), `Media.SoundPlayer` (Windows). Install [ffmpeg](https://ffmpeg.org) or [mpv](https://mpv.io) if none are present, or point `--player` at your own.
 

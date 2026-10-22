@@ -1,6 +1,6 @@
 ---
 name: elevenlabs-say
-description: Speak text aloud from the terminal with `elevenlabs say`. Use when asked to say/speak/read something out loud, announce or narrate a result, play text as audio, generate a quick voiceover or MP3 from text, make spoken output sound excited/whispered/emotional via v3 audio tags, or set a default voice/model/player for the CLI.
+description: Speak text aloud from the terminal with `elevenlabs say`. Use when asked to say/speak/read something out loud, announce or narrate a result, play text as audio, generate a quick voiceover or MP3 from text, make spoken output sound excited/whispered/emotional via v4 audio tags, or set a default voice/model/player for the CLI.
 ---
 
 # `elevenlabs say`
@@ -54,13 +54,14 @@ elevenlabs say config voice --unset                   # back to the built-in
 | Key | Config field | Built-in default |
 |---|---|---|
 | `voice` | `say.voice_id` | `JBFqnCBsd6RMkjVDRZzb` (George) |
-| `model` | `say.model_id` | `eleven_v3` |
+| `model` | `say.model_id` | `eleven_v4` |
 | `output-format` | `say.output_format` | follows the player |
 | `player` | `say.player` | first one found on `PATH` |
 
-`eleven_v3` is the most expressive model and the only family that understands
-the audio tags below. `eleven_flash_v2_5` is the swap when latency matters
-more than delivery — roughly a second quicker to first audio.
+`eleven_v4` is the most expressive model, and the v4 and v3 families are the
+only ones that understand the audio tags below. `eleven_v4_turbo` is the swap
+when latency matters more than delivery — it is built for real time and still
+reads tags. `eleven_flash_v2_5` is quicker still, but reads tags as words.
 
 Find voice IDs with `elevenlabs voices search`, and model IDs with
 `elevenlabs models list`.
@@ -79,10 +80,10 @@ elevenlabs say "one off" \
 
 Precedence is always **flag > config file > built-in default**.
 
-## Audio tags (v3 only)
+## Audio tags (v4 and v3 only)
 
-`eleven_v3` reads inline square-bracket directions as stage directions rather
-than as words, which is what makes a line land as speech instead of narration:
+`eleven_v4` (like `eleven_v4_turbo` and `eleven_v3`) reads inline
+square-bracket directions as stage directions rather than as words, which is what makes a line land as speech instead of narration:
 
 ```bash
 elevenlabs say "[excited] The build passed!"
@@ -99,7 +100,7 @@ Three rough families:
 - **Experimental** — `[strong French accent]`, `[sings]`, and effects such as
   `[applause]` or `[gunshot]`
 
-Tags belong to the v3 family. On `eleven_flash_v2_5`, `eleven_turbo_v2_5` or
+Tags belong to the v4 and v3 families. On `eleven_flash_v2_5`, `eleven_turbo_v2_5` or
 `eleven_multilingual_v2` they are not directions — they get read out as
 literal text, so `[excited] hello` is spoken as the word "excited" followed by
 "hello".

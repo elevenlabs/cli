@@ -39,7 +39,7 @@ const DEFAULT_TEMPLATE_JSON: &str = r##"{
     "asr": { "quality": "high", "provider": "scribe_realtime", "user_input_audio_format": "pcm_16000", "keywords": [] },
     "turn": { "turn_timeout": 7.0, "silence_end_call_timeout": -1.0, "mode": "turn" },
     "tts": {
-      "model_id": "eleven_flash_v2",
+      "model_id": "eleven_v4_turbo",
       "voice_id": "cjVigY5qzO86Huf0OWal",
       "supported_voices": [],
       "agent_output_audio_format": "pcm_16000",
@@ -174,7 +174,7 @@ fn minimal_template(name: &str) -> Value {
                 "text_only": false
             },
             "tts": {
-                "model_id": "eleven_flash_v2",
+                "model_id": "eleven_v4_turbo",
                 "voice_id": "cjVigY5qzO86Huf0OWal"
             }
         },
