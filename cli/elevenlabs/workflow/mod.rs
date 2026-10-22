@@ -19,6 +19,7 @@ mod components;
 mod feedback;
 mod flows_wait;
 mod intent;
+mod loopback;
 mod onboard;
 mod project;
 mod residency;

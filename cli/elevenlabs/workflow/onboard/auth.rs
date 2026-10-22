@@ -3,14 +3,17 @@
 //! that a key on the clipboard has to pass.
 
 use std::sync::OnceLock;
+use std::time::Duration;
 
-use fern_cli_sdk::auth::{active_store, LoginContext, LoginFlow, PkceLoginFlow, TokenBundle};
+use fern_cli_sdk::auth::{active_store, TokenBundle};
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
 
+use super::super::loopback;
 use super::super::say::run_async as block_on;
 use super::super::settings;
+use super::session::SIGN_IN_MINUTES;
 
 pub(super) const CLI_NAME: &str = "elevenlabs";
 
@@ -96,21 +99,21 @@ pub(super) fn sign_in(
         .and_then(loopback)
         .unwrap_or_else(|| config.token_url.trim_end_matches("/v1/oauth/token").into());
     let token_url = format!("{oauth_base}/v1/oauth/token");
-    PkceLoginFlow::new(&config.scheme)
-        .client_id(&config.client_id)
-        .authorization_url(authorize_url)
-        .token_url(&token_url)
-        .scopes(&config.scopes)
-        .redirect_host(&config.redirect_host)
-        .redirect_ports(config.redirect_ports.iter().copied())
-        .success_redirect_url(&config.success_url)
-        .error_redirect_url(&config.error_url)
-        .authorization_params(vec![("key_handoff", "clipboard".to_string())])
-        .run(&LoginContext {
-            cli_name: CLI_NAME.to_string(),
-            no_browser,
-        })?;
-    Ok(())
+    block_on(loopback::sign_in(loopback::Login {
+        cli_name: CLI_NAME,
+        scheme: &config.scheme,
+        client_id: &config.client_id,
+        authorize_url,
+        token_url: &token_url,
+        scopes: &config.scopes,
+        redirect_host: &config.redirect_host,
+        redirect_ports: &config.redirect_ports,
+        success_url: &config.success_url,
+        error_url: &config.error_url,
+        params: &[("key_handoff", "clipboard")],
+        no_browser,
+        timeout: Duration::from_secs(SIGN_IN_MINUTES * 60),
+    }))
 }
 
 pub(super) fn stored_access_token() -> Option<String> {
