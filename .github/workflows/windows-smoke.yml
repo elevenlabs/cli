@@ -113,7 +113,8 @@ jobs:
             echo "::error::The sign-in should have moved off 8484, it listens at $callback"
             exit 1
           fi
-          curl -sS -o /dev/null -w "Callback answered %{http_code}\n" "$callback?error=access_denied"
+          state=$(node -p 'new URL(process.argv[1]).searchParams.get("state")' "$url")
+          curl -sS -o /dev/null -w "Callback answered %{http_code}\n" "$callback?error=access_denied&state=$state"
 
           step "$(jq -r .run <<< "$reply")" ask_user
           if ! jq -e '.say | contains("declined")' <<< "$reply" > /dev/null; then
