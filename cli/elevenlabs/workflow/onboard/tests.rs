@@ -1135,3 +1135,25 @@ fn gitignore_entries_match_only_the_env_file() {
         "{status}"
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+    const KEY: &str = "sk_0123456789abcdef0123456789abcdef01234567";
+    let server = MockServer::start().await;
+    for (name, value) in [("authorization", "Bearer token"), ("xi-api-key", KEY)] {
+        Mock::given(method("GET"))
+            .and(path("/v1/user"))
+            .and(header(name, value))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"user_id": "user"})),
+            )
+            .mount(&server)
+            .await;
+    }
+    let client = reqwest::Client::new();
+    assert!(key_matches_sign_in(&client, &server.uri(), "token", KEY).unwrap());
+    // Any other token opens no account here, so nothing vouches for the key.
+    assert!(key_matches_sign_in(&client, &server.uri(), "other", KEY).is_err());
+}

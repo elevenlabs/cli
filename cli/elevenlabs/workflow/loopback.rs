@@ -87,8 +87,10 @@ pub(super) async fn sign_in(login: Login<'_>) -> Result<String, CliError> {
     .await;
     match token {
         Ok(token) => {
-            // A keychain that refuses this binary or a sandbox, say. The
-            // sign-in still worked; only `auth` commands run later won't see it.
+            // A keychain that refuses this binary, or a sandbox. The sign-in
+            // still worked, but commands that read the stored sign-in won't
+            // see it: they keep whatever was stored before, which may be
+            // another account's token.
             let stored = token
                 .to_keyring_value()
                 .and_then(|value| active_store().set(login.cli_name, login.scheme, &value));
