@@ -5,7 +5,6 @@
 use std::sync::OnceLock;
 use std::time::Duration;
 
-use fern_cli_sdk::auth::{active_store, TokenBundle};
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
@@ -86,12 +85,12 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
     })
 }
 
-/// Sign in through the browser, asking the page for a key.
+/// Sign in through the browser, asking the page for a key. Returns the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
-) -> Result<(), CliError> {
+) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
     let oauth_base = ctx
@@ -116,18 +115,13 @@ pub(super) fn sign_in(
     }))
 }
 
-pub(super) fn stored_access_token() -> Option<String> {
-    let scheme = &sign_in_config().ok()?.scheme;
-    let raw = active_store().get(CLI_NAME, scheme).ok().flatten()?;
-    let token = TokenBundle::parse_or_raw(&raw).access_token;
-    (!token.is_empty()).then_some(token)
-}
-
 /// `Err` when the signed-in account itself cannot be identified; `Ok(false)` only
-/// when it can and the key does not belong to it.
+/// when it can and the key does not belong to it. `token` is the sign-in's
+/// access token.
 pub(super) fn key_matches_sign_in(
     client: &reqwest::Client,
     base: &str,
+    token: &str,
     key: &str,
 ) -> Result<bool, CliError> {
     let unknown = || {
@@ -135,7 +129,6 @@ pub(super) fn key_matches_sign_in(
             "the signed-in account could not be identified"
         ))
     };
-    let token = stored_access_token().ok_or_else(unknown)?;
     let bearer = format!("Bearer {token}");
     let signed_in = account_for(client, base, "authorization", &bearer)?.ok_or_else(unknown)?;
     Ok(account_for(client, base, "xi-api-key", key)? == Some(signed_in))

@@ -235,17 +235,19 @@ fn sign_in_and_store(
     on_signed_in: impl FnOnce(),
 ) -> Result<Reply, CliError> {
     let client = ctx.http_config().build_client()?;
-    let signed_in = auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser);
-    if let Err(error) = signed_in {
-        // The page may have copied a key before the callback failed; nothing
-        // can vouch for it now, so it is cleared, not stored.
-        Clipboard::open().discard_key();
-        return Ok(failed(
-            project,
-            &error.to_string(),
-            matches.get_flag("replace"),
-        ));
-    }
+    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser) {
+        Ok(token) => token,
+        Err(error) => {
+            // The page may have copied a key before the callback failed; nothing
+            // can vouch for it now, so it is cleared, not stored.
+            Clipboard::open().discard_key();
+            return Ok(failed(
+                project,
+                &error.to_string(),
+                matches.get_flag("replace"),
+            ));
+        }
+    };
     on_signed_in();
     let mut clipboard = Clipboard::open();
     let clip = clipboard.read();
@@ -255,7 +257,7 @@ fn sign_in_and_store(
         Clip::Nothing => String::new(),
     };
     let outcome = outcome_of(clip, |key| {
-        auth::key_matches_sign_in(&client, &auth::api_base(ctx), key)
+        auth::key_matches_sign_in(&client, &auth::api_base(ctx), &token, key)
     });
     let reply = reply_for(project, &outcome);
     // Whatever the outcome, and even if storing failed, a key never stays on the clipboard.

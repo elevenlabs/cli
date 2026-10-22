@@ -1066,11 +1066,12 @@ fn decline(url: &str) {
 }
 
 /// The browser's side of an approval: the page sends the code to the callback.
-fn approve(url: &str) {
-    callback(url, "code=approved");
+/// Returns what the sign-in answered the browser.
+fn approve(url: &str) -> String {
+    callback(url, "code=approved")
 }
 
-fn callback(url: &str, params: &str) {
+fn callback(url: &str, params: &str) -> String {
     let redirect = reqwest::Url::parse(&query(url, "redirect_uri")).unwrap();
     let authority = format!(
         "{}:{}",
@@ -1088,10 +1089,12 @@ fn callback(url: &str, params: &str) {
     for _ in 0..10 {
         let sent = std::net::TcpStream::connect(&authority).and_then(|mut stream| {
             stream.write_all(request.as_bytes())?;
-            std::io::Read::read_to_end(&mut stream, &mut Vec::new())
+            let mut answer = Vec::new();
+            std::io::Read::read_to_end(&mut stream, &mut answer)?;
+            Ok(answer)
         });
         match sent {
-            Ok(_) => return,
+            Ok(answer) => return String::from_utf8_lossy(&answer).into_owned(),
             Err(e) => last = Some(e),
         }
         std::thread::sleep(Duration::from_millis(300));
@@ -1276,4 +1279,72 @@ async fn a_projects_env_cannot_reach_the_git_the_sign_in_runs() {
         !trace.exists(),
         "the .env's GIT_TRACE reached the worker's git"
     );
+}
+
+/// Where the file credential store keeps sign-ins for a `HOME` of `home`.
+fn credential_store(home: &Path) -> PathBuf {
+    if cfg!(target_os = "macos") {
+        home.join("Library/Application Support/elevenlabs")
+    } else if cfg!(windows) {
+        home.join("AppData").join("Roaming").join("elevenlabs")
+    } else {
+        home.join(".config/elevenlabs")
+    }
+}
+
+#[tokio::test]
+async fn a_sign_in_the_credential_store_refuses_still_finishes() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v1/oauth/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "refresh_token": "refresh"
+        })))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    // A file where the store keeps its folder, so saving the sign-in fails, as
+    // a keychain that refuses the CLI does.
+    let store = credential_store(home.path());
+    std::fs::create_dir_all(store.parent().unwrap()).unwrap();
+    std::fs::write(&store, "").unwrap();
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    let first = reply(&mut cli(
+        home.path(),
+        cwd.path(),
+        &server.uri(),
+        &[
+            "onboard",
+            "connect",
+            "--no-browser",
+            "--authorize-url",
+            &authorize,
+        ],
+    ));
+    assert_eq!(first["next"], "wait", "{first}");
+    let (session, url) = approval(home.path());
+    let page = approve(&url);
+    assert!(
+        page.contains("Location: https://elevenlabs.io/app/oauth/cli/success\r\n"),
+        "{page}"
+    );
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let done = loop {
+        let r = connect(home.path(), cwd.path(), &["--wait", "--no-browser"]);
+        if r["next"] != "wait" || Instant::now() >= deadline {
+            break r;
+        }
+    };
+    // Signed in: no key reached the clipboard, so the env file was prepared for one.
+    assert_eq!(done["details"]["key_status"], "no_key", "{done}");
+    let log = std::fs::read_to_string(session.join("worker.log")).unwrap();
+    assert!(log.contains("couldn't be saved"), "{log}");
 }
