@@ -1,7 +1,7 @@
 //! Whether a browser this process opens lands on this machine, so the
 //! approval page's redirect and clipboard can reach the CLI.
 
-use std::path::Path;
+use super::super::platform::in_container;
 
 /// False over SSH, in a container, or on Linux with no display.
 pub(super) fn reachable_in(
@@ -20,15 +20,9 @@ pub(super) fn reachable_in(
 }
 
 pub(super) fn reachable() -> bool {
-    let in_container = Path::new("/.dockerenv").exists()
-        || std::fs::read_to_string("/proc/1/cgroup").is_ok_and(|c| {
-            ["docker", "containerd", "kubepods"]
-                .iter()
-                .any(|m| c.contains(m))
-        });
     reachable_in(
         std::env::consts::OS,
         &|n| std::env::var(n).ok(),
-        in_container,
+        in_container(),
     )
 }

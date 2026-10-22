@@ -1135,3 +1135,15 @@ fn gitignore_entries_match_only_the_env_file() {
         "{status}"
     );
 }
+
+#[test]
+fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
+    assert_eq!(
+        authorize_params(("linux", Some("wsl"))),
+        [("key_handoff", "clipboard"), ("cli_os", "linux"), ("cli_env", "wsl")]
+    );
+    assert_eq!(
+        authorize_params(("windows", None)),
+        [("key_handoff", "clipboard"), ("cli_os", "windows")]
+    );
+}
