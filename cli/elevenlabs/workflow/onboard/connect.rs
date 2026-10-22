@@ -224,6 +224,11 @@ pub(super) fn outcome_of(
             status: "no_key",
             why: "no key reached this command",
         },
+        Clip::Unreadable => Outcome::Manual {
+            status: "clipboard_unreadable",
+            why: "this command couldn't read your clipboard. If it still holds the key \
+                  the approval page copied (it starts with sk_), skip step 1",
+        },
     }
 }
 
@@ -250,17 +255,17 @@ fn sign_in_and_store(
     };
     on_signed_in();
     let mut clipboard = Clipboard::open();
-    let clip = clipboard.read();
+    let clip = clipboard.read_handoff();
     let copied = match &clip {
         Clip::Key(key) => key.clone(),
         Clip::Marker(m) => m.text(),
-        Clip::Nothing => String::new(),
+        Clip::Nothing | Clip::Unreadable => String::new(),
     };
     let outcome = outcome_of(clip, |key| {
         auth::key_matches_sign_in(&client, &auth::api_base(ctx), &token, key)
     });
     let reply = reply_for(project, &outcome);
-    // Whatever the outcome, and even if storing failed, a key never stays on the clipboard.
+    // Whatever the outcome, even if storing failed, a key read here never stays on the clipboard.
     clipboard.clear_if(&copied);
     reply
 }

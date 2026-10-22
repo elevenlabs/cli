@@ -1,7 +1,7 @@
 use super::super::util::opt_string;
 use super::auth::*;
 use super::browser::reachable_in;
-use super::clipboard::{classify, Clip, Marker};
+use super::clipboard::{classify, clip_of, retry_read, Clip, Marker};
 use super::env_file::{file_key, with_key, PLACEHOLDER_NOTE};
 use super::onboard_command;
 use super::project::last4;
@@ -51,6 +51,47 @@ fn the_clipboard_is_a_key_a_marker_or_nothing() {
         );
     }
     assert!(matches!(classify(None), Clip::Nothing));
+    assert_eq!(clip_of(Ok(format!("{key}\n"))), Clip::Key(key.into()));
+    assert_eq!(
+        clip_of(Err(arboard::Error::ContentNotAvailable)),
+        Clip::Nothing
+    );
+    assert_eq!(
+        clip_of(Err(arboard::Error::ClipboardOccupied)),
+        Clip::Unreadable
+    );
+}
+
+#[test]
+fn the_hand_off_read_waits_out_a_busy_or_late_clipboard() {
+    use std::time::Duration;
+    let key = "sk_0123456789abcdef0123456789abcdef";
+    let run = |reads: Vec<Clip>| {
+        let mut reads = reads.into_iter();
+        let mut count = 0;
+        let clip = retry_read(Duration::from_millis(50), Duration::from_millis(1), || {
+            count += 1;
+            reads.next().unwrap_or(Clip::Unreadable)
+        });
+        (clip, count)
+    };
+    // Another program held the clipboard, then the key was there.
+    assert_eq!(
+        run(vec![
+            Clip::Unreadable,
+            Clip::Unreadable,
+            Clip::Key(key.into())
+        ]),
+        (Clip::Key(key.into()), 3)
+    );
+    // The browser's copy landed late.
+    assert_eq!(
+        run(vec![Clip::Nothing, Clip::Marker(Marker::Failed)]),
+        (Clip::Marker(Marker::Failed), 2)
+    );
+    // Never readable, versus read but empty.
+    assert_eq!(run(vec![]).0, Clip::Unreadable);
+    assert_eq!(run(vec![Clip::Nothing]).0, Clip::Nothing);
 }
 
 #[test]
@@ -950,6 +991,13 @@ fn every_clipboard_outcome_has_its_reply() {
         outcome_of(Clip::Nothing, ok),
         Outcome::Manual {
             status: "no_key",
+            ..
+        }
+    ));
+    assert!(matches!(
+        outcome_of(Clip::Unreadable, ok),
+        Outcome::Manual {
+            status: "clipboard_unreadable",
             ..
         }
     ));

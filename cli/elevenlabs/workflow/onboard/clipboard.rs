@@ -1,5 +1,7 @@
 //! What the approval page left on the clipboard.
 
+use std::time::{Duration, Instant};
+
 /// The page's answer when it did not copy a key, written as `elevenlabs:<status>`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Marker {
@@ -29,12 +31,14 @@ impl Marker {
     }
 }
 
-/// A key, one of the page's markers, or noise.
+/// A key, one of the page's markers, noise, or no answer at all.
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum Clip {
     Key(String),
     Marker(Marker),
     Nothing,
+    /// The clipboard couldn't be read, so a key may still be on it.
+    Unreadable,
 }
 
 pub(super) fn classify(text: Option<String>) -> Clip {
@@ -65,6 +69,49 @@ fn is_key(text: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
+pub(super) fn clip_of(text: Result<String, arboard::Error>) -> Clip {
+    match text {
+        Ok(text) => classify(Some(text)),
+        Err(e) if unreadable(&e) => Clip::Unreadable,
+        Err(_) => Clip::Nothing,
+    }
+}
+
+/// The clipboard didn't open, as opposed to holding no text (or text that
+/// isn't UTF-8, which no key is).
+fn unreadable(error: &arboard::Error) -> bool {
+    !matches!(
+        error,
+        arboard::Error::ContentNotAvailable | arboard::Error::ConversionFailure
+    )
+}
+
+/// How long the hand-off read keeps trying, and how often.
+const HANDOFF_WAIT: Duration = Duration::from_secs(2);
+const HANDOFF_POLL: Duration = Duration::from_millis(100);
+
+/// `read` until it finds a key or a marker, or `budget` runs out.
+/// `Unreadable` only when no read got through.
+pub(super) fn retry_read(budget: Duration, poll: Duration, mut read: impl FnMut() -> Clip) -> Clip {
+    let deadline = Instant::now() + budget;
+    let mut readable = false;
+    loop {
+        match read() {
+            Clip::Unreadable => {}
+            Clip::Nothing => readable = true,
+            found => return found,
+        }
+        if Instant::now() + poll > deadline {
+            return if readable {
+                Clip::Nothing
+            } else {
+                Clip::Unreadable
+            };
+        }
+        std::thread::sleep(poll);
+    }
+}
+
 /// Set to keep the system clipboard out of the CLI's own end-to-end tests.
 pub(super) const NO_CLIPBOARD_ENV: &str = "ELEVENLABS_ONBOARD_NO_CLIPBOARD";
 
@@ -80,16 +127,40 @@ impl Clipboard {
     }
 
     pub(super) fn read(&mut self) -> Clip {
-        classify(self.0.as_mut().and_then(|c| c.get_text().ok()))
+        match self.0.as_mut() {
+            Some(c) => clip_of(c.get_text()),
+            None => Clip::Nothing,
+        }
+    }
+
+    /// What the approval page copied. On Windows another program (a
+    /// clipboard manager, a remote desktop) can hold the clipboard for a
+    /// moment, and a read gives up after a few milliseconds; the browser's
+    /// copy can also land late. So the read is tried again for a while.
+    pub(super) fn read_handoff(&mut self) -> Clip {
+        if self.0.is_none() {
+            return Clip::Nothing;
+        }
+        retry_read(HANDOFF_WAIT, HANDOFF_POLL, || self.read())
     }
 
     /// Clear the clipboard if it still holds `value`; the user may have copied
-    /// something else since.
+    /// something else since. Tried again while the clipboard won't open, as
+    /// the hand-off read is.
     pub(super) fn clear_if(&mut self, value: &str) {
-        if let Some(c) = self.0.as_mut() {
-            if c.get_text().is_ok_and(|t| t.trim() == value) {
-                let _ = c.clear();
+        let Some(c) = self.0.as_mut().filter(|_| !value.is_empty()) else {
+            return;
+        };
+        let deadline = Instant::now() + HANDOFF_WAIT;
+        loop {
+            let done = match c.get_text() {
+                Ok(text) => text.trim() != value || c.clear().is_ok(),
+                Err(e) => !unreadable(&e),
+            };
+            if done || Instant::now() + HANDOFF_POLL > deadline {
+                return;
             }
+            std::thread::sleep(HANDOFF_POLL);
         }
     }
 
