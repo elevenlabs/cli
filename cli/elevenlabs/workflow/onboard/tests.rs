@@ -180,10 +180,6 @@ fn a_browser_reaches_a_laptop_but_not_a_remote_box() {
     assert!(reachable_in("linux", &only("WSL_DISTRO_NAME"), false));
     assert!(!reachable_in("linux", &only("DISPLAY"), true), "container");
     assert!(!reachable_in("linux", &only("CODESPACES"), false));
-    assert!(
-        !reachable_in("linux", &only("KUBERNETES_SERVICE_HOST"), false),
-        "a pod"
-    );
 }
 
 /// The developer's own git config (a global excludes file, say) must not

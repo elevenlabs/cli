@@ -1170,10 +1170,11 @@ async fn connect_signs_in_in_the_background_and_every_waiter_gets_the_result() {
     assert!(url.starts_with(&authorize), "{url}");
     assert_eq!(query(&url, "key_handoff"), "clipboard");
     // The approval page records where the CLI runs.
-    assert!(
-        ["windows", "macos", "linux", "other"].contains(&query(&url, "cli_os").as_str()),
-        "{url}"
-    );
+    let this_os = match std::env::consts::OS {
+        os @ ("windows" | "macos" | "linux") => os,
+        _ => "other",
+    };
+    assert_eq!(query(&url, "cli_os"), this_os, "{url}");
     assert!(
         !url.contains("product="),
         "one key for every product: {url}"

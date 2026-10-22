@@ -16,10 +16,17 @@ pub(super) fn tags() -> String {
 /// The OS (`windows`, `macos`, `linux` or `other`), and how the CLI is
 /// reached there when not directly (`ssh`, `container` or `wsl`).
 pub(super) fn detect() -> (&'static str, Option<&'static str>) {
+    // Podman and Kubernetes count here, but not for whether a browser can
+    // reach the CLI: toolbox and distrobox are Podman containers that share
+    // the host's network and display, and telepresence copies a pod's
+    // environment onto a laptop.
+    let in_container = in_container()
+        || Path::new("/run/.containerenv").exists()
+        || std::env::var_os("KUBERNETES_SERVICE_HOST").is_some();
     detect_for(
         std::env::consts::OS,
         &|name| std::env::var(name).ok(),
-        in_container(),
+        in_container,
     )
 }
 
@@ -37,11 +44,7 @@ pub(super) fn detect_for(
     };
     let env = if set("SSH_CONNECTION") || set("SSH_TTY") || set("SSH_CLIENT") {
         Some("ssh")
-    } else if in_container
-        || set("CODESPACES")
-        || set("REMOTE_CONTAINERS")
-        || set("KUBERNETES_SERVICE_HOST")
-    {
+    } else if in_container || set("CODESPACES") || set("REMOTE_CONTAINERS") {
         Some("container")
     } else if os == "linux" && set("WSL_DISTRO_NAME") {
         Some("wsl")
@@ -51,11 +54,9 @@ pub(super) fn detect_for(
     (os, env)
 }
 
-/// `/.dockerenv`, Podman's `/run/.containerenv`, or a container runtime in
-/// PID 1's cgroup.
+/// `/.dockerenv`, or a container runtime in PID 1's cgroup.
 pub(super) fn in_container() -> bool {
     Path::new("/.dockerenv").exists()
-        || Path::new("/run/.containerenv").exists()
         || std::fs::read_to_string("/proc/1/cgroup").is_ok_and(|c| {
             ["docker", "containerd", "kubepods"]
                 .iter()
@@ -93,10 +94,6 @@ mod tests {
         );
         assert_eq!(
             detect_for("linux", &vars(&["REMOTE_CONTAINERS"]), false),
-            ("linux", Some("container"))
-        );
-        assert_eq!(
-            detect_for("linux", &vars(&["KUBERNETES_SERVICE_HOST"]), false),
             ("linux", Some("container"))
         );
         // SSH into WSL is still a remote shell.
