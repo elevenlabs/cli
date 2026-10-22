@@ -1169,6 +1169,11 @@ async fn connect_signs_in_in_the_background_and_every_waiter_gets_the_result() {
     let worker = std::fs::read_to_string(session.join("worker.pid")).unwrap();
     assert!(url.starts_with(&authorize), "{url}");
     assert_eq!(query(&url, "key_handoff"), "clipboard");
+    // The approval page records where the CLI runs.
+    assert!(
+        ["windows", "macos", "linux", "other"].contains(&query(&url, "cli_os").as_str()),
+        "{url}"
+    );
     assert!(
         !url.contains("product="),
         "one key for every product: {url}"

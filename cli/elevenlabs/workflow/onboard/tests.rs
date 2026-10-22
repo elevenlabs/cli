@@ -180,6 +180,10 @@ fn a_browser_reaches_a_laptop_but_not_a_remote_box() {
     assert!(reachable_in("linux", &only("WSL_DISTRO_NAME"), false));
     assert!(!reachable_in("linux", &only("DISPLAY"), true), "container");
     assert!(!reachable_in("linux", &only("CODESPACES"), false));
+    assert!(
+        !reachable_in("linux", &only("KUBERNETES_SERVICE_HOST"), false),
+        "a pod"
+    );
 }
 
 /// The developer's own git config (a global excludes file, say) must not
@@ -1162,7 +1166,11 @@ async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
 fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
     assert_eq!(
         authorize_params(("linux", Some("wsl"))),
-        [("key_handoff", "clipboard"), ("cli_os", "linux"), ("cli_env", "wsl")]
+        [
+            ("key_handoff", "clipboard"),
+            ("cli_os", "linux"),
+            ("cli_env", "wsl")
+        ]
     );
     assert_eq!(
         authorize_params(("windows", None)),
