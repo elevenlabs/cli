@@ -53,4 +53,4 @@ jobs:
       - name: Probe this branch's CLI
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
-        run: CLI_BIN="$(cygpath -w "$PWD/target/debug/elevenlabs.exe")" OLDER_CLI_BIN="$PUBLISHED_CLI" LABEL=branch node .github/loopback-probe/probe.mjs
+        run: CLI_BIN="$(cygpath -w "$PWD/target/debug/elevenlabs.exe")" OLDER_CLI_BIN="$PUBLISHED_CLI" LABEL=branch node .github/loopback-probe/probe.mjs tokenRetry

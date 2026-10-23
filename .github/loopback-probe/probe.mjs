@@ -319,7 +319,7 @@ function holdClipboard(seconds) {
 
 const scenarios = {
   // The token endpoint is down when the browser's callback arrives, and up
-  // 400 ms later.
+  // 3 s later: Windows itself keeps retrying a refused connect for about 2 s.
   async tokenRetry() {
     let late = null;
     await signIn("token endpoint down at first", {
@@ -328,7 +328,7 @@ const scenarios = {
       base: "http://127.0.0.1:9101",
       timeoutMs: 30000,
       onCallback: () => {
-        if (!late) setTimeout(() => (late = stubApi(9101)), 400);
+        if (!late) setTimeout(() => (late = stubApi(9101)), 3000);
       },
       teardown: async () => {
         late?.closeAllConnections();
