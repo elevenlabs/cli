@@ -137,23 +137,23 @@ pub(super) fn authorize_params(
     params
 }
 
-/// `Err` when the signed-in account itself cannot be identified; `Ok(false)` only
-/// when it can and the key does not belong to it. `token` is the sign-in's
-/// access token.
+/// `Ok(false)` only when the key opens a different account than the sign-in.
+/// `Err` when either account can't be identified: a key without `user_read`
+/// is refused here, yet may work for everything else. `token` is the
+/// sign-in's access token.
 pub(super) fn key_matches_sign_in(
     client: &reqwest::Client,
     base: &str,
     token: &str,
     key: &str,
 ) -> Result<bool, CliError> {
-    let unknown = || {
-        CliError::Other(anyhow::anyhow!(
-            "the signed-in account could not be identified"
-        ))
-    };
+    let unknown = |whose: &str| CliError::Other(anyhow::anyhow!("{whose} could not be identified"));
     let bearer = format!("Bearer {token}");
-    let signed_in = account_for(client, base, "authorization", &bearer)?.ok_or_else(unknown)?;
-    Ok(account_for(client, base, "xi-api-key", key)? == Some(signed_in))
+    let signed_in = account_for(client, base, "authorization", &bearer)?
+        .ok_or_else(|| unknown("the signed-in account"))?;
+    let owner = account_for(client, base, "xi-api-key", key)?
+        .ok_or_else(|| unknown("the key's account"))?;
+    Ok(owner == signed_in)
 }
 
 /// The `user_id` a credential opens; `Ok(None)` when the API rejects it.

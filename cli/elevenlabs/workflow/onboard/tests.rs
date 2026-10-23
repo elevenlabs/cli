@@ -931,12 +931,12 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
     );
     let late = failed(
         &p,
-        "Timed out waiting for the OAuth callback after 300s.",
+        "Timed out waiting for the OAuth callback after 1800s.",
         false,
     )
     .to_value();
     assert_eq!(late["next"], "run");
-    assert!(late["say"].as_str().unwrap().contains("5 minutes"));
+    assert!(late["say"].as_str().unwrap().contains("30 minutes"));
     let other = failed(&p, "state mismatch", false).to_value();
     assert!(other["say"].as_str().unwrap().contains("state mismatch"));
     assert_eq!(other["details"]["key_status"], "sign_in_failed");
@@ -1189,19 +1189,35 @@ async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
     use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
     const KEY: &str = "sk_0123456789abcdef0123456789abcdef01234567";
+    const OTHER_ACCOUNTS_KEY: &str = "sk_1123456789abcdef0123456789abcdef01234567";
+    const LIMITED_KEY: &str = "sk_2123456789abcdef0123456789abcdef01234567";
     let server = MockServer::start().await;
-    for (name, value) in [("authorization", "Bearer token"), ("xi-api-key", KEY)] {
+    for (name, value, user) in [
+        ("authorization", "Bearer token", "user"),
+        ("xi-api-key", KEY, "user"),
+        ("xi-api-key", OTHER_ACCOUNTS_KEY, "someone-else"),
+    ] {
         Mock::given(method("GET"))
             .and(path("/v1/user"))
             .and(header(name, value))
             .respond_with(
-                ResponseTemplate::new(200).set_body_json(serde_json::json!({"user_id": "user"})),
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"user_id": user})),
             )
             .mount(&server)
             .await;
     }
+    // A key without `user_read` can't read the account.
+    Mock::given(method("GET"))
+        .and(path("/v1/user"))
+        .and(header("xi-api-key", LIMITED_KEY))
+        .respond_with(ResponseTemplate::new(403))
+        .mount(&server)
+        .await;
     let client = reqwest::Client::new();
     assert!(key_matches_sign_in(&client, &server.uri(), "token", KEY).unwrap());
+    assert!(!key_matches_sign_in(&client, &server.uri(), "token", OTHER_ACCOUNTS_KEY).unwrap());
+    // Refused is not another account: it just can't be checked.
+    assert!(key_matches_sign_in(&client, &server.uri(), "token", LIMITED_KEY).is_err());
     // Any other token opens no account here, so nothing vouches for the key.
     assert!(key_matches_sign_in(&client, &server.uri(), "other", KEY).is_err());
 }
