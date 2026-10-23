@@ -82,15 +82,18 @@ http
   })
   .listen(9000, "127.0.0.1");
 
-http
-  .createServer((req, res) => {
-    res.setHeader("content-type", "application/json");
-    if (req.url.startsWith("/v1/oauth/token")) {
-      return res.end(JSON.stringify({ access_token: "probe-token", token_type: "Bearer", expires_in: 3600 }));
-    }
-    res.end(JSON.stringify({ user_id: "probe", subscription: { tier: "free" } }));
-  })
-  .listen(9100, "127.0.0.1");
+function stubApi(port) {
+  return http
+    .createServer((req, res) => {
+      res.setHeader("content-type", "application/json");
+      if (req.url.startsWith("/v1/oauth/token")) {
+        return res.end(JSON.stringify({ access_token: "probe-token", token_type: "Bearer", expires_in: 3600 }));
+      }
+      res.end(JSON.stringify({ user_id: "probe", subscription: { tier: "free" } }));
+    })
+    .listen(port, "127.0.0.1");
+}
+stubApi(9100);
 
 // A process that is not this CLI, holding a loopback port.
 let onDecoyHit = null;
@@ -126,9 +129,9 @@ function cliEnv(home, { clipboard = false } = {}) {
   return env;
 }
 
-function connectArgs(extra = []) {
+function connectArgs(extra = [], base = "http://127.0.0.1:9100") {
   return [
-    "--base-url", "http://127.0.0.1:9100",
+    "--base-url", base,
     "onboard", "connect", "--no-browser",
     "--authorize-url", "http://127.0.0.1:9000/authorize",
     ...extra,
@@ -148,7 +151,7 @@ function parseReply(stdout) {
 
 // `connect` the way an agent runs it: returns once the approval link is known.
 function connect(p, extra = [], wrap = null, cli = CLI, opts = {}) {
-  const args = connectArgs(extra);
+  const args = connectArgs(extra, opts.base);
   const [cmd, argv] = wrap ? wrap(cli, args) : [cli, args];
   const r = spawnSync(cmd, argv, { cwd: p.dir, env: cliEnv(p.home, opts), encoding: "utf8", timeout: 60000 });
   const parsed = parseReply(r.stdout ?? "");
@@ -217,7 +220,7 @@ async function browser(name) {
 
 // Open `url` the way the approval page is opened, and report where its
 // redirect to the loopback callback lands.
-async function nav(name, url, { timeoutMs = 15000, click = false, during = null } = {}) {
+async function nav(name, url, { timeoutMs = 15000, click = false, during = null, onCallback = null } = {}) {
   const { b } = await browser(name);
   const context = b.contexts()[0];
   const page = await within(15000, context.newPage(), "new page");
@@ -244,6 +247,9 @@ async function nav(name, url, { timeoutMs = 15000, click = false, during = null 
     if (!location) return finish("cli?", `HTTP ${r.status()}`);
     const u = new URL(location);
     finish("cli", `${u.pathname.split("/").pop()}${u.searchParams.get("error") ? `:${u.searchParams.get("error")}` : ""}`);
+  });
+  page.on("request", (r) => {
+    if (/^http:\/\/localhost:\d+\/callback/.test(r.url())) onCallback?.();
   });
   page.on("requestfailed", (r) => {
     if (r.isNavigationRequest() && /^https?:\/\/localhost/.test(r.url())) finish("neterr", r.failure()?.errorText ?? "");
@@ -274,12 +280,12 @@ function record(scenario, browserName, bind, r, worker, note = "") {
 }
 
 // One sign-in: optional setup, `connect`, one or more approvals, teardown.
-async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup, teardown, params = {}, click = false, public: pub = false, timeoutMs, during, wrap, clipboard = false, beforeNav, settleMs = 1500 } = {}) {
+async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup, teardown, params = {}, click = false, public: pub = false, timeoutMs, during, wrap, clipboard = false, beforeNav, settleMs = 1500, base, onCallback } = {}) {
   for (const name of names) {
     await killCli();
     const ctx = setup ? await setup() : {};
     const p = newProject();
-    const c = connect(p, [], wrap, CLI, { clipboard });
+    const c = connect(p, [], wrap, CLI, { clipboard, base });
     if (wrap) await sleep(1000);
     const bind = listeners();
     if (!c.url) {
@@ -288,7 +294,7 @@ async function signIn(scenario, { browsers: names = ["chrome", "msedge"], setup,
       let url = withProbe(c.url, { probe_click: click ? "1" : "0", ...params });
       if (pub) url = url.replace("http://127.0.0.1:9000", "https://elevenlabs.io/app/oauth");
       if (beforeNav) await beforeNav();
-      const r = await nav(name, url, { timeoutMs, click, during: during ? () => during(bind) : null });
+      const r = await nav(name, url, { timeoutMs, click, during: during ? () => during(bind) : null, onCallback });
       await sleep(settleMs);
       record(scenario, name, bind, r, workerResult(p), r.outcome === "cli" ? "" : workerLog(p).slice(0, 300));
     }
@@ -312,6 +318,25 @@ function holdClipboard(seconds) {
 }
 
 const scenarios = {
+  // The token endpoint is down when the browser's callback arrives, and up
+  // 400 ms later.
+  async tokenRetry() {
+    let late = null;
+    await signIn("token endpoint down at first", {
+      browsers: ["chrome"],
+      params: { probe_mode: "approve" },
+      base: "http://127.0.0.1:9101",
+      timeoutMs: 30000,
+      onCallback: () => {
+        if (!late) setTimeout(() => (late = stubApi(9101)), 400);
+      },
+      teardown: async () => {
+        late?.closeAllConnections();
+        await new Promise((r) => (late ? late.close(r) : r()));
+      },
+    });
+  },
+
   async clipboard() {
     for (const seconds of [0, 1.5, 4]) {
       await signIn(`clipboard held ${seconds}s`, {
