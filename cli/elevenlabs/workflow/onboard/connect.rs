@@ -206,10 +206,14 @@ pub(super) fn outcome_of(
                 status: "clipboard_invalid",
                 why: "the key on the clipboard belongs to a different account",
             },
-            Err(_) => Outcome::Manual {
-                status: "could_not_verify",
-                why: "the key couldn't be checked, so it wasn't stored",
-            },
+            Err(e) => {
+                // The worker's log is the only place the reason is kept.
+                eprintln!("The key on the clipboard couldn't be checked: {e}");
+                Outcome::Manual {
+                    status: "could_not_verify",
+                    why: "the key couldn't be checked, so it wasn't stored",
+                }
+            }
         },
         Clip::Marker(Marker::NotPermitted) => Outcome::NotPermitted,
         Clip::Marker(Marker::NotAvailable) => Outcome::Manual {
