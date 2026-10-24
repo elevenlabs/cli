@@ -9,7 +9,9 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
+use super::util::{
+    downcast_ctx, dry_run_flag, opt_string, plan_pull_action, warn_format_ignored, PullAction,
+};
 use super::{api, project, verify};
 
 /// Register the `tools` command group.
@@ -305,6 +307,7 @@ fn push_command() -> clap::Command {
 
 fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("tools.push");
+    warn_format_ignored(matches, "tools push");
     let tool_filter = opt_string(matches, "tool");
     let dry_run = dry_run_flag(matches);
 
@@ -432,6 +435,7 @@ fn pull_command() -> clap::Command {
 
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("tools.pull");
+    warn_format_ignored(matches, "tools pull");
     let tool_filter = opt_string(matches, "tool");
     let output_dir =
         opt_string(matches, "output-dir").unwrap_or_else(|| "tool_configs".to_string());

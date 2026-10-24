@@ -15,7 +15,9 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
+use super::util::{
+    downcast_ctx, dry_run_flag, opt_string, plan_pull_action, warn_format_ignored, PullAction,
+};
 use super::{api, project, settings, templates, verify};
 
 /// Register the `agents` command group.
@@ -612,6 +614,7 @@ fn push_command() -> clap::Command {
 
 fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("agents.push");
+    warn_format_ignored(matches, "agents push");
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
     let version_description = opt_string(matches, "version-description");
@@ -842,6 +845,7 @@ fn pull_command() -> clap::Command {
 
 fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("agents.pull");
+    warn_format_ignored(matches, "agents pull");
     let agent = opt_string(matches, "agent");
     let branch = opt_string(matches, "branch");
     let all_branches = matches.get_flag("all-branches");
