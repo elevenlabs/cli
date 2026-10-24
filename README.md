@@ -265,6 +265,28 @@ elevenlabs tests delete --all
 
 `tests push` also **auto-discovers** untracked configs: it scans `--config-dir` recursively for `.json` files that look like tests (a `chat_history` array or a `success_condition` string) and registers them in `tests.json` before pushing, so you can drop a config in and push without editing the index by hand.
 
+### Workflow diagrams
+
+`elevenlabs agents workflow diagram <config-path>` prints the `workflow` of a local agent config as a [Mermaid](https://mermaid.js.org/) flowchart. It reads the file only: no API key and no network. GitHub renders Mermaid in Markdown, so you can paste the output into a `mermaid` code fence in a PR or doc.
+
+```bash
+elevenlabs agents workflow diagram agent_configs/support_bot.json
+```
+
+```
+flowchart TD
+    n_greet["Greet"]:::wf_say
+    n_start_node["Start"]:::wf_start
+    n_start_node -->|"Caller wants support"| n_greet
+    classDef wf_start fill:#d4edda,stroke:#28a745
+    classDef wf_say fill:#d1ecf1,stroke:#17a2b8
+```
+
+- Nodes and edges are sorted by id, so the output diffs cleanly.
+- Each node type (`start`, `end`, `say`, `tool`, `update_state`, `override_agent`, `standalone_agent`, `phone_number`) has its own `classDef`, emitted with a `wf_` prefix (`wf_start`, `wf_end`, …) because `end` is a Mermaid flowchart keyword and an unsafe class name. A type the CLI does not know renders with the `wf_other` class.
+- An edge label is the forward condition's `label`, or its `condition` text, cut at 40 characters. Unconditional edges have no label.
+- A config without a `workflow` key exits with an error.
+
 ### Templates
 
 Pre-built starting configurations for `agents add`, listed by `elevenlabs agents templates list` (inspect one with `agents templates show <template>`):
