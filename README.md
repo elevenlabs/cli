@@ -168,7 +168,7 @@ For production, prefer setting `webhook` on `create` and handling the webhook ev
 
 ## Agents as Code
 
-Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live as JSON on disk and sync to ElevenLabs. Pulled configs are stored as raw wire JSON and pushed back verbatim, so they round-trip losslessly.
+Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live as JSON on disk and sync to ElevenLabs. Pulled configs are stored as raw wire JSON and pushed back verbatim, so they round-trip losslessly. The global `--format` flag styles printed API responses only; configs are always stored as JSON.
 
 ### Project structure
 

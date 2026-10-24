@@ -926,7 +926,7 @@ impl CliApp {
             .arg(
                 clap::Arg::new("format")
                     .long("format")
-                    .help("Output format: json, table, yaml, csv, raw, jsonl, http. Default: table when stdout is a TTY, json when piped. Override default with <NAME>_OUTPUT env var. raw emits unmodified server response bytes. jsonl emits one compact JSON value per line (NDJSON); arrays are flattened. http emits the full HTTP response (status line + headers + body) like curl -i (OpenAPI only).")
+                    .help("Output format for printed API responses. Does not change files written to disk. Formats: json, table, yaml, csv, raw, jsonl, http. Default: table when stdout is a TTY, json when piped. Override default with <NAME>_OUTPUT env var. raw emits unmodified server response bytes. jsonl emits one compact JSON value per line (NDJSON); arrays are flattened. http emits the full HTTP response (status line + headers + body) like curl -i (OpenAPI only).")
                     .value_name("FORMAT")
                     .global(true),
             )
