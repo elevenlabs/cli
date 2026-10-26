@@ -13,6 +13,8 @@
 //! - A callback for another sign-in (a tab left open by an earlier one) is
 //!   answered with the error page, and the wait goes on: an old tab can't end
 //!   the sign-in the newest one is for.
+//! - A token endpoint that can't be reached is tried once more: the code never
+//!   got there, so it is still good.
 
 use std::io::ErrorKind;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
@@ -32,6 +34,8 @@ use tokio::task::JoinSet;
 const CALLBACK_PATH: &str = "/callback";
 /// How long one connection may take to send its request.
 const READ_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long to wait before trying an unreachable token endpoint again.
+const EXCHANGE_RETRY_DELAY: Duration = Duration::from_secs(1);
 /// What the error page says when the login failed after the callback; the
 /// reason is in the worker's log.
 const AFTER_CALLBACK_FAILED: &str =
@@ -100,10 +104,16 @@ pub(super) async fn sign_in(login: Login<'_>) -> Result<String, CliError> {
             let _ = redirect(&mut browser, login.success_url).await;
             Ok(token.access_token)
         }
-        Err(e) => {
-            let page = error_page(login.error_url, "server_error", Some(AFTER_CALLBACK_FAILED));
+        Err(failure) => {
+            // Its own OAuth code, so the analytics can tell these apart.
+            let code = if failure.unreachable {
+                "temporarily_unavailable"
+            } else {
+                "server_error"
+            };
+            let page = error_page(login.error_url, code, Some(AFTER_CALLBACK_FAILED));
             let _ = redirect(&mut browser, &page).await;
-            Err(e)
+            Err(failure.error)
         }
     }
 }
@@ -361,39 +371,64 @@ fn challenge(verifier: &str) -> String {
         .encode(sha2::Sha256::digest(verifier.as_bytes()))
 }
 
-/// Trade the code for a token, as `auth login` does.
+/// Why a code couldn't be traded for a token.
+struct ExchangeFailed {
+    error: CliError,
+    /// The token endpoint was never reached, so the code is still unused.
+    unreachable: bool,
+}
+
+/// Trade the code for a token, as `auth login` does. A token endpoint that
+/// can't be reached is tried once more.
 async fn exchange(
     token_url: &str,
     client_id: &str,
     code: &str,
     verifier: &str,
     redirect_uri: &str,
-) -> Result<TokenBundle, CliError> {
+) -> Result<TokenBundle, ExchangeFailed> {
     #[derive(Deserialize)]
     struct Token {
         access_token: String,
         refresh_token: Option<String>,
         expires_in: Option<u64>,
     }
-    let failed = |e: String| CliError::Auth(format!("PKCE token exchange failed: {e}"));
-    let response = reqwest::Client::builder()
+    let failed = |e: String, unreachable: bool| ExchangeFailed {
+        error: CliError::Auth(format!("PKCE token exchange failed: {e}")),
+        unreachable,
+    };
+    let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(30))
         .build()
-        .map_err(|e| failed(e.to_string()))?
-        .post(token_url)
-        .form(&[
-            ("grant_type", "authorization_code"),
-            ("code", code),
-            ("code_verifier", verifier),
-            ("client_id", client_id),
-            ("redirect_uri", redirect_uri),
-        ])
-        .send()
-        .await
-        .map_err(|e| failed(e.to_string()))?;
+        .map_err(|e| failed(e.to_string(), false))?;
+    let send = || {
+        client
+            .post(token_url)
+            .form(&[
+                ("grant_type", "authorization_code"),
+                ("code", code),
+                ("code_verifier", verifier),
+                ("client_id", client_id),
+                ("redirect_uri", redirect_uri),
+            ])
+            .send()
+    };
+    // Only a request that never connected is sent again: once the endpoint
+    // has the code, a second try could only be refused.
+    let response = match send().await {
+        Err(e) if e.is_connect() => {
+            tokio::time::sleep(EXCHANGE_RETRY_DELAY).await;
+            send().await
+        }
+        sent => sent,
+    }
+    .map_err(|e| failed(e.to_string(), e.is_connect()))?;
     let status = response.status();
-    let body = response.text().await.map_err(|e| failed(e.to_string()))?;
+    let body = response
+        .text()
+        .await
+        .map_err(|e| failed(e.to_string(), false))?;
     if !status.is_success() {
         let detail = serde_json::from_str::<serde_json::Value>(&body)
             .ok()
@@ -403,10 +438,10 @@ async fn exchange(
                     .and_then(|d| d.as_str().map(str::to_string))
             })
             .unwrap_or_else(|| body.chars().take(200).collect());
-        return Err(failed(format!("HTTP {status}: {detail}")));
+        return Err(failed(format!("HTTP {status}: {detail}"), false));
     }
     let token: Token =
-        serde_json::from_str(&body).map_err(|e| failed(format!("token response: {e}")))?;
+        serde_json::from_str(&body).map_err(|e| failed(format!("token response: {e}"), false))?;
     Ok(TokenBundle::from_token_response(
         &token.access_token,
         token.refresh_token.as_deref(),
@@ -417,10 +452,10 @@ async fn exchange(
 #[cfg(test)]
 mod tests {
     use std::io::{Read, Write};
-    use std::net::{Ipv6Addr, TcpListener, TcpStream};
+    use std::net::{Ipv4Addr, Ipv6Addr, TcpListener, TcpStream};
     use std::time::Duration;
 
-    use super::{bind, classify, wait_for_callback, Callback};
+    use super::{bind, classify, exchange, wait_for_callback, Callback, EXCHANGE_RETRY_DELAY};
 
     const ERROR_PAGE: &str = "https://example.test/error";
 
@@ -633,5 +668,128 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("Timed out waiting"), "{err}");
+    }
+
+    const CALLBACK: &str = "http://localhost:8484/callback";
+
+    /// What a stand-in token endpoint does with each request.
+    #[derive(Clone, Copy)]
+    enum Answer {
+        Token,
+        Refuse,
+        /// Read the request, then close without a response.
+        Hang,
+    }
+
+    /// Answers every connection to `listener` with `answer`; the count is of
+    /// connections that sent a request.
+    fn token_endpoint(
+        listener: tokio::net::TcpListener,
+        answer: Answer,
+    ) -> std::sync::Arc<std::sync::atomic::AtomicUsize> {
+        use std::sync::atomic::Ordering;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let requests = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let count = requests.clone();
+        tokio::spawn(async move {
+            while let Ok((mut socket, _)) = listener.accept().await {
+                let mut buf = [0u8; 4096];
+                if !matches!(socket.read(&mut buf).await, Ok(n) if n > 0) {
+                    continue;
+                }
+                count.fetch_add(1, Ordering::SeqCst);
+                let (status, body) = match answer {
+                    Answer::Token => ("200 OK", r#"{"access_token":"token","expires_in":3600}"#),
+                    Answer::Refuse => ("400 Bad Request", r#"{"error":"invalid_grant"}"#),
+                    Answer::Hang => continue,
+                };
+                let response = format!(
+                    "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = socket.write_all(response.as_bytes()).await;
+            }
+        });
+        requests
+    }
+
+    /// A port nothing listened on a moment ago. Another test may take it
+    /// before it's used, so the tests below try again with a new one.
+    fn closed_port() -> u16 {
+        TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port()
+    }
+
+    fn token_url(port: u16) -> String {
+        format!("http://127.0.0.1:{port}/v1/oauth/token")
+    }
+
+    #[tokio::test]
+    async fn a_token_endpoint_that_was_unreachable_gets_the_code_on_the_second_try() {
+        for _ in 0..5 {
+            let port = closed_port();
+            // The endpoint starts listening only after the first try was refused.
+            let up = tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(300)).await;
+                let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, port))
+                    .await
+                    .ok()?;
+                Some(token_endpoint(listener, Answer::Token))
+            });
+            let started = std::time::Instant::now();
+            let token = exchange(&token_url(port), "client", "code", "verifier", CALLBACK).await;
+            let Some(requests) = up.await.unwrap() else {
+                continue; // another test took the port
+            };
+            assert!(
+                started.elapsed() >= EXCHANGE_RETRY_DELAY,
+                "it waited, then tried again"
+            );
+            assert_eq!(token.ok().map(|t| t.access_token).as_deref(), Some("token"));
+            assert_eq!(requests.load(std::sync::atomic::Ordering::SeqCst), 1);
+            return;
+        }
+        panic!("no port stayed free for the test");
+    }
+
+    #[tokio::test]
+    async fn a_token_endpoint_that_stays_unreachable_is_reported_as_unreachable() {
+        for _ in 0..5 {
+            let started = std::time::Instant::now();
+            let url = token_url(closed_port());
+            let Err(failure) = exchange(&url, "client", "code", "verifier", CALLBACK).await else {
+                continue; // another test took the port
+            };
+            if failure.unreachable {
+                assert!(started.elapsed() >= EXCHANGE_RETRY_DELAY, "it tried again");
+                return;
+            }
+        }
+        panic!("a closed port was never reported as unreachable");
+    }
+
+    /// Once the endpoint has the code, sending it again could only be refused,
+    /// whether the endpoint answered or not.
+    #[tokio::test]
+    async fn a_code_that_reached_the_endpoint_is_never_sent_again() {
+        for answer in [Answer::Refuse, Answer::Hang] {
+            let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+                .await
+                .unwrap();
+            let port = listener.local_addr().unwrap().port();
+            let requests = token_endpoint(listener, answer);
+            let Err(failure) =
+                exchange(&token_url(port), "client", "code", "verifier", CALLBACK).await
+            else {
+                panic!("the endpoint never handed out a token");
+            };
+            assert!(!failure.unreachable);
+            // Time for a second try to arrive, if there were one.
+            tokio::time::sleep(EXCHANGE_RETRY_DELAY * 2).await;
+            assert_eq!(requests.load(std::sync::atomic::Ordering::SeqCst), 1);
+        }
     }
 }

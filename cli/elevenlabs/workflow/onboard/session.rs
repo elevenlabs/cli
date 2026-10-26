@@ -32,8 +32,9 @@ use super::clipboard::Clipboard;
 use super::env_file;
 use super::reply::{Next, Reply};
 
-/// How long the sign-in waits for the approval page, as `auth login` does.
-pub(super) const SIGN_IN_MINUTES: u64 = 5;
+/// How long the sign-in waits for the approval page. `auth login` waits 5
+/// minutes, but some people approve 10 to 30 minutes after the page opens.
+pub(super) const SIGN_IN_MINUTES: u64 = 30;
 /// How long a new worker may take to take its lock before starting counts as failed.
 const STARTUP: Duration = Duration::from_secs(10);
 const POLL: Duration = Duration::from_millis(250);
