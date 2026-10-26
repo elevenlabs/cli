@@ -27,6 +27,7 @@ mod residency;
 mod say;
 mod settings;
 mod skills;
+mod telemetry;
 mod templates;
 mod tests;
 mod tools;
@@ -39,6 +40,9 @@ pub fn register(app: CliApp) -> CliApp {
     // and the environment, which has to happen before `CliApp::run` parses
     // anything (see that module's docs).
     let app = intent::register(app);
+    // Also before `run`: the platform tags go into the User-Agent suffix env
+    // var, which the generated commands read when their client is built.
+    let app = telemetry::register(app);
     let app = onboard::register(app);
     let app = agents::register(app);
     let app = templates::register(app);

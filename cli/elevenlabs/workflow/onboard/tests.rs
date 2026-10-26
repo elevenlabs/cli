@@ -1209,15 +1209,25 @@ async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
 #[test]
 fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
     assert_eq!(
-        authorize_params(("linux", Some("wsl"))),
+        authorize_params(Some((("linux", Some("wsl")), "npx"))),
         [
             ("key_handoff", "clipboard"),
             ("cli_os", "linux"),
-            ("cli_env", "wsl")
+            ("cli_env", "wsl"),
+            ("cli_install", "npx")
         ]
     );
     assert_eq!(
-        authorize_params(("windows", None)),
-        [("key_handoff", "clipboard"), ("cli_os", "windows")]
+        authorize_params(Some((("windows", None), "scoop"))),
+        [
+            ("key_handoff", "clipboard"),
+            ("cli_os", "windows"),
+            ("cli_install", "scoop")
+        ]
     );
+}
+
+#[test]
+fn with_telemetry_off_the_approval_link_only_asks_for_a_key() {
+    assert_eq!(authorize_params(None), [("key_handoff", "clipboard")]);
 }

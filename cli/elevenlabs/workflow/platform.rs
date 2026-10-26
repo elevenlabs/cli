@@ -1,15 +1,26 @@
-//! Roughly where the CLI runs: the OS, and whether it is over SSH, in a
-//! container or in WSL. The API is told in the User-Agent (see
-//! [`super::api::command_scope`]), so sign-in and request problems can be
-//! counted per platform. Nothing else about the machine is sent.
+//! Roughly where the CLI runs: the OS, whether it is over SSH, in a
+//! container or in WSL, and how it was installed. The API is told in the
+//! User-Agent (see [`super::telemetry`]), so sign-in and request problems
+//! can be counted per platform, and npx runs told apart from installs.
+//! Nothing else about the machine is sent, and `--telemetry off` sends none
+//! of it.
 
 use std::path::Path;
 
-/// `os/<os>`, then `env/<env>` when one applies: the User-Agent tags.
+/// The prefixes of the tags below, so an inherited User-Agent suffix can be
+/// cleared of them (see [`super::telemetry`]).
+pub(super) const TAG_PREFIXES: &[&str] = &["os/", "env/", "install/"];
+
+/// `os/<os>`, `env/<env>` when one applies, then `install/<source>`: the
+/// User-Agent tags.
 pub(super) fn tags() -> String {
-    match detect() {
-        (os, Some(env)) => format!("os/{os} env/{env}"),
-        (os, None) => format!("os/{os}"),
+    tags_for(detect(), install_source())
+}
+
+pub(super) fn tags_for((os, env): (&str, Option<&str>), install: &str) -> String {
+    match env {
+        Some(env) => format!("os/{os} env/{env} install/{install}"),
+        None => format!("os/{os} install/{install}"),
     }
 }
 
@@ -64,9 +75,46 @@ pub(super) fn in_container() -> bool {
         })
 }
 
+/// How this binary got onto the machine, read from where it sits: each
+/// package manager unpacks it somewhere recognisable. Only the label leaves
+/// the machine, never the path.
+pub(super) fn install_source() -> &'static str {
+    match std::env::current_exe().and_then(std::fs::canonicalize) {
+        Ok(exe) => install_source_for(&exe.to_string_lossy().replace('\\', "/")),
+        Err(_) => "unknown",
+    }
+}
+
+/// `path` uses `/` separators. The one-off runners come before `npm`
+/// because they unpack into a `node_modules` folder too.
+pub(super) fn install_source_for(path: &str) -> &'static str {
+    let has = |part: &str| path.contains(part);
+    if has("/_npx/") {
+        "npx"
+    } else if has("/pnpm/dlx/") {
+        "pnpm-dlx"
+    } else if has("/bunx-") {
+        "bunx"
+    } else if has("/dlx-") {
+        "yarn-dlx"
+    } else if has("/node_modules/@elevenlabs/cli-") {
+        "npm"
+    } else if has("/Cellar/elevenlabs/") {
+        "homebrew"
+    } else if has("/scoop/apps/elevenlabs/") {
+        "scoop"
+    } else if has("/.cargo/bin/") {
+        // The shell and PowerShell installers put it in CARGO_HOME, and so
+        // does `cargo install`; the path cannot tell them apart.
+        "installer"
+    } else {
+        "other"
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::detect_for;
+    use super::{detect_for, install_source_for, tags_for};
 
     fn vars(set: &'static [&'static str]) -> impl Fn(&str) -> Option<String> {
         move |name| set.contains(&name).then(|| "1".to_string())
@@ -108,5 +156,59 @@ mod tests {
     fn a_blank_variable_is_not_set() {
         let blank = |name: &str| (name == "SSH_TTY").then(|| "  ".to_string());
         assert_eq!(detect_for("macos", &blank, false), ("macos", None));
+    }
+
+    #[test]
+    fn the_install_source_from_where_the_binary_sits() {
+        let cases = [
+            (
+                "/Users/a/.npm/_npx/6c1d/node_modules/@elevenlabs/cli-darwin-arm64/elevenlabs",
+                "npx",
+            ),
+            (
+                "C:/Users/a/AppData/Local/npm-cache/_npx/6c1d/node_modules/@elevenlabs/cli-win32-x64/elevenlabs.exe",
+                "npx",
+            ),
+            (
+                "/Users/a/Library/Caches/pnpm/dlx/abc/node_modules/.pnpm/@elevenlabs+cli-darwin-arm64@1.7.1/node_modules/@elevenlabs/cli-darwin-arm64/elevenlabs",
+                "pnpm-dlx",
+            ),
+            (
+                "/tmp/bunx-501-@elevenlabs/cli@latest/node_modules/@elevenlabs/cli-linux-x64/elevenlabs",
+                "bunx",
+            ),
+            (
+                "/tmp/xfs-1a2b/dlx-4242/node_modules/@elevenlabs/cli-linux-x64/elevenlabs",
+                "yarn-dlx",
+            ),
+            (
+                "/opt/homebrew/lib/node_modules/@elevenlabs/cli/node_modules/@elevenlabs/cli-darwin-arm64/elevenlabs",
+                "npm",
+            ),
+            (
+                "C:/Users/a/AppData/Roaming/npm/node_modules/@elevenlabs/cli/node_modules/@elevenlabs/cli-win32-x64/elevenlabs.exe",
+                "npm",
+            ),
+            ("/opt/homebrew/Cellar/elevenlabs/1.7.1/bin/elevenlabs", "homebrew"),
+            (
+                "/home/linuxbrew/.linuxbrew/Cellar/elevenlabs/1.7.1/bin/elevenlabs",
+                "homebrew",
+            ),
+            ("C:/Users/a/scoop/apps/elevenlabs/1.7.1/elevenlabs.exe", "scoop"),
+            ("/home/a/.cargo/bin/elevenlabs", "installer"),
+            ("/home/a/code/cli/target/debug/elevenlabs", "other"),
+        ];
+        for (path, want) in cases {
+            assert_eq!(install_source_for(path), want, "{path}");
+        }
+    }
+
+    #[test]
+    fn the_install_tag_follows_the_platform_tags() {
+        assert_eq!(tags_for(("macos", None), "npx"), "os/macos install/npx");
+        assert_eq!(
+            tags_for(("linux", Some("ssh")), "homebrew"),
+            "os/linux env/ssh install/homebrew"
+        );
     }
 }
