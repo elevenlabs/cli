@@ -13,6 +13,7 @@ use super::super::loopback;
 use super::super::platform;
 use super::super::say::run_async as block_on;
 use super::super::settings;
+use super::super::telemetry;
 use super::session::SIGN_IN_MINUTES;
 
 pub(super) const CLI_NAME: &str = "elevenlabs";
@@ -99,7 +100,9 @@ pub(super) fn sign_in(
         .and_then(loopback)
         .unwrap_or_else(|| config.token_url.trim_end_matches("/v1/oauth/token").into());
     let token_url = format!("{oauth_base}/v1/oauth/token");
-    let params = authorize_params(platform::detect());
+    let params = authorize_params(
+        telemetry::enabled().then(|| (platform::detect(), platform::install_source())),
+    );
     block_on(loopback::sign_in(loopback::Login {
         cli_name: CLI_NAME,
         scheme: &config.scheme,
@@ -118,14 +121,18 @@ pub(super) fn sign_in(
 }
 
 /// What the sign-in adds to the approval link: the page should hand over a
-/// key, and where the CLI runs, which the page records for a sign-in that
-/// never gets to make an API call.
+/// key, and, with telemetry on, where the CLI runs and how it was installed,
+/// which the page records for a sign-in that never gets to make an API call.
 pub(super) fn authorize_params(
-    (os, env): (&'static str, Option<&'static str>),
+    platform: Option<((&'static str, Option<&'static str>), &'static str)>,
 ) -> Vec<(&'static str, &'static str)> {
-    let mut params = vec![("key_handoff", "clipboard"), ("cli_os", os)];
-    if let Some(env) = env {
-        params.push(("cli_env", env));
+    let mut params = vec![("key_handoff", "clipboard")];
+    if let Some(((os, env), install)) = platform {
+        params.push(("cli_os", os));
+        if let Some(env) = env {
+            params.push(("cli_env", env));
+        }
+        params.push(("cli_install", install));
     }
     params
 }

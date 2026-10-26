@@ -25,6 +25,7 @@ The CLI does two things:
   - [Common flags](#common-flags)
   - [Environment variables](#environment-variables)
   - [Telling us what you are doing](#telling-us-what-you-are-doing)
+  - [Telemetry](#telemetry)
   - [Output formats](#output-formats)
   - [Shell completion](#shell-completion)
 - [Development](#development)
@@ -338,6 +339,7 @@ These flags are available on every operation:
 | `--page-limit <N>` | Max pages to fetch when auto-paginating (default `10`) |
 | `-q, --quiet` | Suppress stdout output on success (errors still go to stderr) |
 | `--intent <TEXT>` | Optional one-sentence description of what you are trying to do (see [Telling us what you are doing](#telling-us-what-you-are-doing)) |
+| `--telemetry <on\|off>` | Whether requests carry the anonymous platform tags (see [Telemetry](#telemetry)) |
 
 ### Environment variables
 
@@ -348,6 +350,7 @@ These flags are available on every operation:
 | `ELEVENLABS_INSECURE=1` | Skip TLS verification (debugging only) |
 | `ELEVENLABS_PROXY` | HTTP(S) proxy URL |
 | `ELEVENLABS_TIMEOUT_SECS` | Total request timeout in seconds |
+| `ELEVENLABS_TELEMETRY=off` | Turn off the anonymous platform tags (see [Telemetry](#telemetry)) |
 
 Standard environment variables (`HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` / `SSL_CERT_FILE`) are also honored.
 
@@ -396,6 +399,28 @@ support capability gaps cannot be described without them.
 
 Free text is withheld entirely server-side for zero-retention and enterprise
 workspaces, which is the boundary that actually holds.
+
+### Telemetry
+
+Every request's `User-Agent` says, anonymously, roughly where the CLI runs and
+how it was installed, so we can see which platforms need work and how many
+people try the CLI with `npx` before installing it:
+
+```
+elevenlabs-cli/1.7.1 os/macos install/npx
+```
+
+`os/` is `macos`, `linux`, `windows` or `other`; `env/`, when present, is `ssh`,
+`container` or `wsl`; `install/` is read from where the binary sits (`npx`,
+`bunx`, `pnpm-dlx`, `yarn-dlx`, `npm`, `homebrew`, `scoop`, `installer` or
+`other`). Nothing else about the machine is sent: no paths, hostnames or ids.
+`onboard` puts the same values on the sign-in's approval link.
+
+To turn it off, pass `--telemetry off` to any command, or set
+`ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.
+`--telemetry on` turns it back on for one command. Turning it off does not
+remove the `cmd/<command>` tag the workflow commands add, or an `--intent` you
+pass yourself.
 
 ### Output formats
 
