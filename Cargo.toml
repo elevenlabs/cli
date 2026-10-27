@@ -48,6 +48,9 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
 
 [dependencies]
 anyhow = "1"
+# Reads the API key the approval page copied for `elevenlabs onboard`; no image
+# support, so the musl targets link without an image stack.
+arboard = { version = "3", default-features = false, features = ["wayland-data-control"] }
 base64 = "0.22"
 bytes = "1"
 clap = { version = "4", features = ["derive", "string", "env"] }
@@ -100,6 +103,7 @@ serde_yaml = "0.9.34"
 secrecy = "0.10"
 serde_qs = "1.1.1"
 sha2 = "0.10"
+tempfile = "3"
 thiserror = "2"
 webbrowser = "1"
 rand = "0.8"
@@ -148,6 +152,5 @@ serde_yaml = "0.9.34"
 
 [dev-dependencies]
 serial_test = "3.4.0"
-tempfile = "3"
 wiremock = "0.6"
 tokio = { version = "1", features = ["full"] }
