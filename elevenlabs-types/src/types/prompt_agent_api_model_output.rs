@@ -13,6 +13,9 @@ pub struct PromptAgentApiModelOutput {
     /// Reasoning effort of the model. Only available for some models.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<LlmReasoningEffort>,
+    /// Service tier of the model, trading a per-token price premium for higher token throughput. Only available for some models.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<LlmServiceTier>,
     /// Max number of tokens used for thinking. Use 0 to turn off if supported by the model.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thinking_budget: Option<i64>,
@@ -85,6 +88,7 @@ pub struct PromptAgentApiModelOutputBuilder {
     prompt: Option<String>,
     llm: Option<Llm>,
     reasoning_effort: Option<LlmReasoningEffort>,
+    service_tier: Option<LlmServiceTier>,
     thinking_budget: Option<i64>,
     enable_reasoning_summary: Option<bool>,
     temperature: Option<f64>,
@@ -118,6 +122,11 @@ impl PromptAgentApiModelOutputBuilder {
 
     pub fn reasoning_effort(mut self, value: LlmReasoningEffort) -> Self {
         self.reasoning_effort = Some(value);
+        self
+    }
+
+    pub fn service_tier(mut self, value: LlmServiceTier) -> Self {
+        self.service_tier = Some(value);
         self
     }
 
@@ -217,6 +226,7 @@ impl PromptAgentApiModelOutputBuilder {
             prompt: self.prompt,
             llm: self.llm,
             reasoning_effort: self.reasoning_effort,
+            service_tier: self.service_tier,
             thinking_budget: self.thinking_budget,
             enable_reasoning_summary: self.enable_reasoning_summary,
             temperature: self.temperature,

@@ -86,7 +86,8 @@ impl ApiKeysClient {
     ///         third_party_disable_allowed: None,
     ///         tts_concurrency_limit: None,
     ///         dubbing_concurrency_limit: None,
-    ///         music_concurrency_limit: None
+    ///         music_concurrency_limit: None,
+    ///         expires_at_unix: None
     ///     }, None).await;
     /// }
     /// ```

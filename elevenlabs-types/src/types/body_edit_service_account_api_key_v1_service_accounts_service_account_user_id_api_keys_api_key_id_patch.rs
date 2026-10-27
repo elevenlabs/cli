@@ -31,6 +31,9 @@ pub struct BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiK
     /// Maximum concurrent music generation requests for this API key. Only available for enterprise customers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchMusicConcurrencyLimit>,
+    /// Unix timestamp (in seconds) after which this API key stops working. When set, it must be at least 15 minutes and at most 90 days in the future. On create, omit or pass null for a key that never expires. On update, omit to leave it unchanged, or pass "clear" to remove the expiry (never expires).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at_unix: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchExpiresAtUnix>,
 }
 
 impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch {
@@ -51,6 +54,7 @@ pub struct BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiK
     tts_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchTtsConcurrencyLimit>,
     dubbing_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchDubbingConcurrencyLimit>,
     music_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchMusicConcurrencyLimit>,
+    expires_at_unix: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchExpiresAtUnix>,
 }
 
 impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchBuilder {
@@ -99,6 +103,11 @@ impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApi
         self
     }
 
+    pub fn expires_at_unix(mut self, value: BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchExpiresAtUnix) -> Self {
+        self.expires_at_unix = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch`].
     pub fn build(self) -> Result<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch, BuildError> {
         Ok(BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatch {
@@ -111,6 +120,7 @@ impl BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApi
             tts_concurrency_limit: self.tts_concurrency_limit,
             dubbing_concurrency_limit: self.dubbing_concurrency_limit,
             music_concurrency_limit: self.music_concurrency_limit,
+            expires_at_unix: self.expires_at_unix,
         })
     }
 }

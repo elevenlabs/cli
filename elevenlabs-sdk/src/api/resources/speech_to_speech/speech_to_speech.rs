@@ -74,7 +74,7 @@ impl SpeechToSpeechClient {
         self.http_client
             .execute_multipart_stream_request(
                 Method::POST,
-                &format!("v1/speech-to-speech/{}", voice_id),
+                &format!("v1/voice-changer/{}", voice_id),
                 request.clone().to_multipart(),
                 QueryBuilder::new()
                     .bool("enable_logging", request.enable_logging.clone())
@@ -150,7 +150,7 @@ impl SpeechToSpeechClient {
         self.http_client
             .execute_multipart_stream_request(
                 Method::POST,
-                &format!("v1/speech-to-speech/{}/stream", voice_id),
+                &format!("v1/voice-changer/{}/stream", voice_id),
                 request.clone().to_multipart(),
                 QueryBuilder::new()
                     .bool("enable_logging", request.enable_logging.clone())

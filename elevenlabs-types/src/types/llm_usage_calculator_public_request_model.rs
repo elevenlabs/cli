@@ -13,6 +13,9 @@ pub struct LlmUsageCalculatorPublicRequestModel {
     /// Whether RAG is enabled.
     #[serde(default)]
     pub rag_enabled: bool,
+    /// Service tier to price against. Only affects models that offer the tier; others fall back to their standard price.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<LlmServiceTier>,
 }
 
 impl LlmUsageCalculatorPublicRequestModel {
@@ -27,6 +30,7 @@ pub struct LlmUsageCalculatorPublicRequestModelBuilder {
     prompt_length: Option<i64>,
     number_of_pages: Option<i64>,
     rag_enabled: Option<bool>,
+    service_tier: Option<LlmServiceTier>,
 }
 
 impl LlmUsageCalculatorPublicRequestModelBuilder {
@@ -45,6 +49,11 @@ impl LlmUsageCalculatorPublicRequestModelBuilder {
         self
     }
 
+    pub fn service_tier(mut self, value: LlmServiceTier) -> Self {
+        self.service_tier = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`LlmUsageCalculatorPublicRequestModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`prompt_length`](LlmUsageCalculatorPublicRequestModelBuilder::prompt_length)
@@ -55,6 +64,7 @@ impl LlmUsageCalculatorPublicRequestModelBuilder {
             prompt_length: self.prompt_length.ok_or_else(|| BuildError::missing_field("prompt_length"))?,
             number_of_pages: self.number_of_pages.ok_or_else(|| BuildError::missing_field("number_of_pages"))?,
             rag_enabled: self.rag_enabled.ok_or_else(|| BuildError::missing_field("rag_enabled"))?,
+            service_tier: self.service_tier,
         })
     }
 }

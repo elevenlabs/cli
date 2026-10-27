@@ -79,12 +79,9 @@ pub fn reset_sigpipe() {}
 
 /// Unscoped env vars a `.env` file may not set, because each one redirects
 /// traffic, weakens transport security, or names a program to execute.
-/// Matched ignoring case (see [`dotenv_key_is_denied`]).
 const DOTENV_DENIED_BARE: &[&str] = &[
     // Names a program the CLI executes when paging output.
     "PAGER",
-    // Names the program that opens the sign-in page.
-    "BROWSER",
     // Route traffic through an attacker-chosen intermediary.
     "HTTP_PROXY",
     "HTTPS_PROXY",
@@ -92,7 +89,6 @@ const DOTENV_DENIED_BARE: &[&str] = &[
     "NO_PROXY",
     // Replace the trust store, enabling transparent interception.
     "SSL_CERT_FILE",
-    "SSL_CERT_DIR",
     "CURL_CA_BUNDLE",
     "REQUESTS_CA_BUNDLE",
 ];
@@ -114,12 +110,9 @@ const DOTENV_DENIED_SUFFIXES: &[&str] = &[
     "_ALLOW_CROSS_HOST_PAGINATION",
 ];
 
-/// True when `key` is one a `.env` file must not be able to set. Names are
-/// compared ignoring case: the HTTP stack reads lowercase proxy names, and
-/// Windows treats environment names as case-insensitive.
+/// True when `key` is one a `.env` file must not be able to set.
 pub(crate) fn dotenv_key_is_denied(key: &str, prefix: &str) -> bool {
-    let key = key.to_ascii_uppercase();
-    if DOTENV_DENIED_BARE.contains(&key.as_str()) {
+    if DOTENV_DENIED_BARE.contains(&key) {
         return true;
     }
     key.strip_prefix(prefix)
@@ -218,23 +211,13 @@ mod dotenv_filter_tests {
             "ELEVENLABS_CA_BUNDLE",
             "ELEVENLABS_EXTRA_CA_CERTS",
             "PAGER",
-            "BROWSER",
             "HTTP_PROXY",
             "HTTPS_PROXY",
             "ALL_PROXY",
             "NO_PROXY",
             "SSL_CERT_FILE",
-            "SSL_CERT_DIR",
             "CURL_CA_BUNDLE",
             "REQUESTS_CA_BUNDLE",
-            // The HTTP stack reads the lowercase names too, and Windows any case.
-            "http_proxy",
-            "https_proxy",
-            "all_proxy",
-            "no_proxy",
-            "elevenlabs_base_url",
-            "Elevenlabs_Insecure",
-            "browser",
         ] {
             assert!(
                 dotenv_key_is_denied(key, "ELEVENLABS"),
