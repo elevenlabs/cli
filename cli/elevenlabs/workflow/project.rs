@@ -245,6 +245,14 @@ fn symlink_refused(path: &Path) -> CliError {
     ))
 }
 
+/// The top-level `name` of a config named by an index file, or `None` when it
+/// is unreadable or has none.
+pub fn config_name(path_str: &str) -> Option<String> {
+    read_value_in_project(path_str)
+        .ok()
+        .and_then(|v| v.get("name").and_then(Value::as_str).map(String::from))
+}
+
 /// Read a config file named by an index file, with containment + symlink checks.
 pub fn read_value_in_project(path_str: &str) -> Result<Value, CliError> {
     let path = resolve_in_project(path_str)?;

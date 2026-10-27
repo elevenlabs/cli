@@ -60,7 +60,8 @@ hmac = "0.12"
 # Draws `agents workflow diagram` in the terminal: Mermaid in, box-drawing text
 # out, in pure Rust. The default `cli` feature is mmdflux's own binary.
 mmdflux = { version = "2.6.1", default-features = false }
-# The terminal's width, so diagrams can shorten long IDs to fit it.
+# The terminal's width, so diagrams and `agents graph` can shorten long IDs
+# to fit it.
 terminal_size = "0.4"
 dotenvy = "0.15"
 futures-util = "0.3"

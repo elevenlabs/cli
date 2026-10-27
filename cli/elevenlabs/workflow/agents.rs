@@ -111,6 +111,46 @@ pub(super) fn find_agent<'a>(
         })
 }
 
+/// One config file registered in `agents.json`: an agent's main config, or
+/// one of its registered branches.
+pub(super) struct AgentConfigEntry {
+    /// The agent's display name, plus the branch for a branch config.
+    pub(super) title: String,
+    pub(super) config_path: String,
+    pub(super) agent_id: Option<String>,
+    /// The branch ID: the registered branch's, or for the main config the
+    /// `branch_id` agents.json recorded for it, if any.
+    pub(super) branch_id: Option<String>,
+    /// Set for a registered branch: its name in agents.json.
+    pub(super) branch_name: Option<String>,
+}
+
+/// Every config in `agents.json`: each agent in file order, followed by its
+/// registered branches by name. Both orders are stable.
+pub(super) fn config_entries(registry: &project::AgentsConfig) -> Vec<AgentConfigEntry> {
+    let mut entries = Vec::new();
+    for agent in &registry.agents {
+        let name = agent_display_name(&agent.config);
+        entries.push(AgentConfigEntry {
+            title: name.clone(),
+            config_path: agent.config.clone(),
+            agent_id: agent.id.clone(),
+            branch_id: agent.branch_id.clone(),
+            branch_name: None,
+        });
+        for (branch, def) in agent.branches.iter().flatten() {
+            entries.push(AgentConfigEntry {
+                title: format!("{name} (branch '{branch}')"),
+                config_path: def.config.clone(),
+                agent_id: agent.id.clone(),
+                branch_id: Some(def.branch_id.clone()),
+                branch_name: Some(branch.clone()),
+            });
+        }
+    }
+    entries
+}
+
 // ── init ────────────────────────────────────────────────────────────
 
 #[derive(clap::Args)]

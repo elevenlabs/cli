@@ -19,7 +19,9 @@ mod components;
 mod diagram;
 mod feedback;
 mod flows_wait;
+mod graph;
 mod intent;
+mod mermaid;
 mod loopback;
 mod onboard;
 mod platform;
@@ -48,6 +50,7 @@ pub fn register(app: CliApp) -> CliApp {
     let app = agents::register(app);
     let app = templates::register(app);
     let app = diagram::register(app);
+    let app = graph::register(app);
     let app = tools::register(app);
     let app = tests::register(app);
     let app = residency::register(app);
