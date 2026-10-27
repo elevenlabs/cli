@@ -337,6 +337,10 @@ pub struct PaginationConfig {
     pub no_pager: bool,
     /// CLI binary name, used for the `<NAME>_PAGER` env var lookup.
     pub cli_name: String,
+    /// Continuation derived from this operation's query parameters and
+    /// response schema. `None` keeps the document heuristic
+    /// (`token_response_path` / `token_query_param`).
+    pub inferred: Option<super::pagination::InferredPagination>,
 }
 
 impl Default for PaginationConfig {
@@ -349,6 +353,7 @@ impl Default for PaginationConfig {
             token_response_path: "nextPageToken".to_string(),
             no_pager: false,
             cli_name: String::new(),
+            inferred: None,
         }
     }
 }
@@ -886,6 +891,7 @@ fn endpoint_metadata_for(
 ///
 /// - [`PageState::Cursor`] — token threaded through a request query param
 /// - [`PageState::Offset`] — running offset counter sent as a query param
+/// - [`PageState::Page`] — page index incremented by one each request
 /// - [`PageState::NextUrl`] — server-returned absolute URL (uri form) or
 ///   resolved relative path (path form) used verbatim for the next page
 /// - [`PageState::Custom`] — single-shot; the executor never continues
@@ -896,6 +902,10 @@ fn endpoint_metadata_for(
 enum PageState {
     Cursor(Option<String>),
     Offset(u64),
+    /// `None` on the first request (the server applies its default, or the
+    /// user-supplied flag is already on the query string). `Some(n)` is the
+    /// page index to send on this request.
+    Page(Option<u64>),
     /// `None` on the first page, `Some(url)` once the previous response
     /// supplied a next URL/path. The string is always a fully-qualified
     /// URL — relative `next_path` values are resolved against the
@@ -956,7 +966,9 @@ impl PageState {
                 };
                 Some((name, n.to_string()))
             }
-            // Uri / Path embed the cursor in the URL itself.
+            PageState::Page(None) => None,
+            PageState::Page(Some(n)) => Some((heuristic_param.to_string(), n.to_string())),
+            // Uri / Path embed the token in the URL itself.
             PageState::NextUrl(_) | PageState::Custom => None,
         }
     }
@@ -996,6 +1008,11 @@ async fn build_http_request(
         if let Some((name, value)) =
             page_state.injection(method.pagination.as_ref(), &pagination.token_query_param)
         {
+            // The user may already have passed the same flag for the first
+            // page (`--next-page-token`, `--page`, `--offset`). The value
+            // from the previous response replaces it; leaving both sends
+            // the parameter twice and the server keeps the stale one.
+            all_query_params.retain(|(param, _)| param != &name);
             all_query_params.push((name, value));
         }
         // Upload operations carry `uploadType=multipart`; route it through the
@@ -1480,12 +1497,48 @@ async fn handle_json_response(
                 // it issues exactly one request, surfaces the `results`
                 // selection like the others, and stops.
                 Some(EndpointPagination::Custom { .. }) => false,
-                None => match get_nested_str(&json_val, &pagination.token_response_path) {
-                    Some(token) if !token.is_empty() => {
-                        *page_state = PageState::Cursor(Some(token.to_string()));
-                        true
+                None => match pagination.inferred.as_ref() {
+                    Some(inferred) => {
+                        let requested = match page_state {
+                            PageState::Page(n) => super::pagination::RequestedPage {
+                                injected_page: *n,
+                                injected_offset: None,
+                            },
+                            PageState::Offset(0) => super::pagination::RequestedPage::default(),
+                            PageState::Offset(n) => super::pagination::RequestedPage {
+                                injected_page: None,
+                                injected_offset: Some(*n),
+                            },
+                            _ => super::pagination::RequestedPage::default(),
+                        };
+                        match super::pagination::next_step(
+                            inferred,
+                            &json_val,
+                            requested,
+                            request_query_params,
+                        )? {
+                            super::pagination::PageStep::Stop => false,
+                            super::pagination::PageStep::Cursor(token) => {
+                                *page_state = PageState::Cursor(Some(token));
+                                true
+                            }
+                            super::pagination::PageStep::Page(n) => {
+                                *page_state = PageState::Page(Some(n));
+                                true
+                            }
+                            super::pagination::PageStep::Offset(n) => {
+                                *page_state = PageState::Offset(n);
+                                true
+                            }
+                        }
                     }
-                    _ => false,
+                    None => match get_nested_str(&json_val, &pagination.token_response_path) {
+                        Some(token) if !token.is_empty() => {
+                            *page_state = PageState::Cursor(Some(token.to_string()));
+                            true
+                        }
+                        _ => false,
+                    },
                 },
             };
 
@@ -1988,6 +2041,48 @@ fn decode_line_lossy(bytes: Vec<u8>) -> String {
 /// 4. Sending the HTTP request (GET/POST/etc).
 /// 5. Handling various response types (JSON, binary).
 /// 6. Auto-pagination for list endpoints.
+
+/// Attach the page count when a later page fails after one or more pages
+/// were already fetched. Those pages are not the full result.
+fn note_incomplete_page(
+    err: CliError,
+    pagination: &PaginationConfig,
+    pages_fetched: u32,
+) -> CliError {
+    if pagination.page_all && pages_fetched > 0 {
+        incomplete_pagination(err, pages_fetched)
+    } else {
+        err
+    }
+}
+
+fn incomplete_pagination(err: CliError, pages_fetched: u32) -> CliError {
+    let note = format!(
+        "pagination stopped after {pages_fetched} page(s) and the results are incomplete"
+    );
+    match err {
+        CliError::Api {
+            code,
+            message,
+            reason,
+            details,
+            help,
+        } => CliError::Api {
+            code,
+            message: format!("{message} ({note})"),
+            reason,
+            details,
+            help,
+        },
+        CliError::Validation(msg) => CliError::Validation(format!("{msg} ({note})")),
+        CliError::Auth(msg) => CliError::Auth(format!("{msg} ({note})")),
+        CliError::Discovery(msg) => CliError::Discovery(format!("{msg} ({note})")),
+        CliError::Network(msg) => CliError::Network(format!("{msg} ({note})")),
+        CliError::Other(err) => CliError::Other(anyhow::anyhow!("{err} ({note})")),
+        other => other,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn execute_method(
     doc: &RestDescription,
@@ -2164,8 +2259,23 @@ pub async fn execute_method(
         return Ok(None);
     }
 
+    // Own a copy so `--page-all` can follow the fields this operation
+    // documents when the spec has no `x-fern-pagination`.
+    let mut pagination_owned = pagination.clone();
+    if pagination_owned.page_all && method.pagination.is_none() {
+        if let Some(inferred) = super::pagination::infer_pagination(method, &doc.schemas) {
+            pagination_owned.token_query_param = inferred.query_param().to_string();
+            pagination_owned.inferred = Some(inferred);
+        }
+    }
+    let pagination = &pagination_owned;
+
     let endpoint_pag = method.pagination.as_ref();
-    let mut page_state: PageState = PageState::initial(endpoint_pag);
+    let mut page_state: PageState = match pagination.inferred.as_ref() {
+        Some(super::pagination::InferredPagination::Page { .. }) => PageState::Page(None),
+        Some(super::pagination::InferredPagination::Offset { .. }) => PageState::Offset(0),
+        _ => PageState::initial(endpoint_pag),
+    };
     let mut pages_fetched: u32 = 0;
     let mut captured_values = Vec::new();
     let auth_metadata = endpoint_metadata_for(method, base_url_override);
@@ -2367,7 +2477,7 @@ pub async fn execute_method(
                     // blip: retrying re-issues a request that will be refused
                     // identically. Classify and return before `decide_retry`.
                     if let Some(err) = crate::http::redirect_refusal_error(&e) {
-                        return Err(err);
+                        return Err(note_incomplete_page(err, pagination, pages_fetched));
                     }
                     if let Some(cfg) = retries_cfg {
                         let outcome = RetryOutcome {
@@ -2404,10 +2514,14 @@ pub async fn execute_method(
                     // HTTP status to put in `error.code`. The chain is walked
                     // because reqwest's own Display stops at "error sending
                     // request" — "Connection refused" is the actionable part.
-                    return Err(CliError::Network(format!(
-                        "HTTP request failed: {}",
-                        crate::error::error_chain(&e)
-                    )));
+                    return Err(note_incomplete_page(
+                        CliError::Network(format!(
+                            "HTTP request failed: {}",
+                            crate::error::error_chain(&e)
+                        )),
+                        pagination,
+                        pages_fetched,
+                    ));
                 }
             }
         };
@@ -2472,7 +2586,8 @@ pub async fn execute_method(
                 &error_body,
                 auth_provider.as_ref(),
                 &auth_metadata,
-            );
+            )
+            .map_err(|err| note_incomplete_page(err, pagination, pages_fetched));
         }
 
         tracing::debug!(
@@ -2684,7 +2799,9 @@ pub async fn execute_method(
                 &method_descriptor,
                 &mut pager_handle,
             )
-            .await?;
+            .await;
+            let should_continue = should_continue
+                .map_err(|err| note_incomplete_page(err, pagination, pages_fetched))?;
 
             if should_continue {
                 continue;
