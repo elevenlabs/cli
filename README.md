@@ -291,6 +291,13 @@ Both read local files only: no API key, no network, so they also run in CI on fo
   3  success
 ```
 
+A few things keep a busy workflow readable, so lines don't cross or run together:
+
+- A step back (a backward condition) ends in a stub, such as `6 ↩`. The legend says where it goes: `6  Changes topic (back to 'Ask for the order number')`.
+- An ending that several paths lead to (an end, or an agent or phone transfer) is drawn once for each path.
+- When a node's branches would still cross, its box is widened or the branches are reordered, whichever draws without crossings.
+- When the drawing is wider than the terminal (or `COLUMNS`), long IDs are shortened, as in `tool_01j…sfb67`. If it still doesn't fit, a note says so; `export` has the full IDs.
+
 `export` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
 
 ```mermaid

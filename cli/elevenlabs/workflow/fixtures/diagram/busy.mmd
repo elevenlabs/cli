@@ -1,0 +1,43 @@
+flowchart TD
+    n_gave_up(["End (failure)"])
+    n_lookup[["Tool · tool_01jxcrhpk0ehdvnxw3mw4sfb67, tool_7201m0hwz3xkf6…"]]
+    n_refund_tool[["Tool · tool_01jxcrhpk3er4ve8nxcfprz04x"]]
+    n_refunds["Subagent · Refund desk"]
+    n_resolved(["End (success)"])
+    n_save_order[/"Update state · Remember order status"/]
+    n_sorry("Say · Apologise and offer a callback")
+    n_start_node(["Start"])
+    n_to_billing_beta{{"Agent transfer · agent_7801k5billing3x9q2m4 (agtbrch_4401k9…"}}
+    n_to_human{{"Phone transfer · +15550100"}}
+    n_to_tech{{"Agent transfer · agent_7801k5techsupp7w2e6r1"}}
+    n_triage["Subagent · Triage (intent)"]
+    n_verify("Say · Ask for the order number")
+    n_triage -->|"Beta billing customer"| n_to_billing_beta
+    n_save_order -->|"The caller has what they need."| n_resolved
+    n_lookup -->|"success"| n_save_order
+    n_triage -->|"The caller asks for a person, or is ver…"| n_to_human
+    n_lookup -->|"failure"| n_sorry
+    n_triage -->|"Order question"| n_verify
+    n_refunds -->|"The caller confirmed the refund amount."| n_refund_tool
+    n_refund_tool -->|"failure"| n_to_human
+    n_save_order -->|"The caller wants a refund."| n_refunds
+    n_refund_tool -->|"success"| n_resolved
+    n_sorry --> n_gave_up
+    n_start_node --> n_triage
+    n_triage -->|"The caller can't log in or the app isn'…"| n_to_tech
+    n_verify -->|"The caller has given an order number."| n_lookup
+    n_lookup -.->|"Changes topic"| n_verify
+    classDef t_start fill:#d1fae5,stroke:#059669,color:#064e3b
+    class n_start_node t_start
+    classDef t_end fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class n_gave_up,n_resolved t_end
+    classDef t_say fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    class n_sorry,n_verify t_say
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_lookup,n_refund_tool t_tool
+    classDef t_state fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class n_save_order t_state
+    classDef t_subagent fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_refunds,n_triage t_subagent
+    classDef t_transfer fill:#fce7f3,stroke:#db2777,color:#831843
+    class n_to_billing_beta,n_to_human,n_to_tech t_transfer

@@ -1,0 +1,248 @@
+{
+  "name": "Acme Concierge",
+  "workflow": {
+    "nodes": {
+      "start_node": {
+        "type": "start",
+        "edge_order": [
+          "e_start"
+        ]
+      },
+      "triage": {
+        "type": "override_agent",
+        "label": "Triage (intent)",
+        "additional_prompt": "Work out what the caller needs.",
+        "additional_tool_ids": [
+          "tool_01jxcrhpk5ehftmr24qxs2y20x"
+        ],
+        "additional_knowledge_base": [
+          {
+            "type": "file",
+            "id": "Hn5sQ2wE8rTy4uI7oP3a",
+            "name": "Troubleshooting FAQ",
+            "usage_mode": "auto"
+          }
+        ]
+      },
+      "verify": {
+        "type": "say",
+        "label": "Ask for the order number",
+        "message": {
+          "type": "prompt",
+          "prompt": "Ask for the order number and confirm it back."
+        }
+      },
+      "lookup": {
+        "type": "tool",
+        "tools": [
+          {
+            "tool_id": "tool_01jxcrhpk0ehdvnxw3mw4sfb67"
+          },
+          {
+            "tool_id": "tool_7201m0hwz3xkf6c2bq9rj5yg8n4t"
+          }
+        ]
+      },
+      "save_order": {
+        "type": "update_state",
+        "label": "Remember order status",
+        "updates": []
+      },
+      "refunds": {
+        "type": "override_agent",
+        "label": "Refund desk",
+        "additional_tool_ids": [
+          "tool_01jxcrhpk3er4ve8nxcfprz04x"
+        ],
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "tool_ids": [
+                "tool_01jxcrhpk7ej4b7sjt8xqmwsec"
+              ],
+              "knowledge_base": [
+                {
+                  "type": "file",
+                  "id": "F7wzgVuiIUIKYAH2JH5s",
+                  "name": "Returns policy",
+                  "usage_mode": "auto"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "refund_tool": {
+        "type": "tool",
+        "tools": [
+          {
+            "tool_id": "tool_01jxcrhpk3er4ve8nxcfprz04x"
+          }
+        ]
+      },
+      "sorry": {
+        "type": "say",
+        "label": "Apologise and offer a callback",
+        "message": {
+          "type": "literal",
+          "text": "Sorry, I couldn't find that order (yet)."
+        }
+      },
+      "to_billing_beta": {
+        "type": "standalone_agent",
+        "agent_id": "agent_7801k5billing3x9q2m4",
+        "branch_id": "agtbrch_4401k9betabilling6t3",
+        "transfer_message": "Connecting you to billing."
+      },
+      "to_tech": {
+        "type": "standalone_agent",
+        "agent_id": "agent_7801k5techsupp7w2e6r1"
+      },
+      "to_human": {
+        "type": "phone_number",
+        "transfer_destination": {
+          "type": "phone",
+          "phone_number": "+15550100"
+        },
+        "transfer_type": "conference"
+      },
+      "resolved": {
+        "type": "end",
+        "outcome": "success"
+      },
+      "gave_up": {
+        "type": "end",
+        "outcome": "failure"
+      }
+    },
+    "edges": {
+      "e_start": {
+        "source": "start_node",
+        "target": "triage",
+        "forward_condition": {
+          "type": "unconditional"
+        }
+      },
+      "e_order": {
+        "source": "triage",
+        "target": "verify",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller asks about an existing order, a delivery or a return.",
+          "label": "Order question"
+        }
+      },
+      "e_billing": {
+        "source": "triage",
+        "target": "to_billing_beta",
+        "forward_condition": {
+          "type": "expression",
+          "label": "Beta billing customer",
+          "expression": {
+            "type": "eq_operator",
+            "left": {
+              "type": "dynamic_variable",
+              "name": "plan"
+            },
+            "right": {
+              "type": "string_literal",
+              "value": "beta"
+            }
+          }
+        }
+      },
+      "e_tech": {
+        "source": "triage",
+        "target": "to_tech",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller can't log in or the app isn't working."
+        }
+      },
+      "e_human": {
+        "source": "triage",
+        "target": "to_human",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller asks for a person, or is very upset."
+        }
+      },
+      "e_verify": {
+        "source": "verify",
+        "target": "lookup",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller has given an order number."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "condition": "The caller wants to talk about something else.",
+          "label": "Changes topic"
+        }
+      },
+      "e_found": {
+        "source": "lookup",
+        "target": "save_order",
+        "forward_condition": {
+          "type": "result",
+          "successful": true
+        }
+      },
+      "e_missing": {
+        "source": "lookup",
+        "target": "sorry",
+        "forward_condition": {
+          "type": "result",
+          "successful": false
+        }
+      },
+      "e_refund_q": {
+        "source": "save_order",
+        "target": "refunds",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller wants a refund."
+        }
+      },
+      "e_done": {
+        "source": "save_order",
+        "target": "resolved",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller has what they need."
+        }
+      },
+      "e_refund": {
+        "source": "refunds",
+        "target": "refund_tool",
+        "forward_condition": {
+          "type": "llm",
+          "condition": "The caller confirmed the refund amount."
+        }
+      },
+      "e_refunded": {
+        "source": "refund_tool",
+        "target": "resolved",
+        "forward_condition": {
+          "type": "result",
+          "successful": true
+        }
+      },
+      "e_refund_fail": {
+        "source": "refund_tool",
+        "target": "to_human",
+        "forward_condition": {
+          "type": "result",
+          "successful": false
+        }
+      },
+      "e_sorry": {
+        "source": "sorry",
+        "target": "gave_up",
+        "forward_condition": {
+          "type": "unconditional"
+        }
+      }
+    }
+  }
+}
