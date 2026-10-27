@@ -356,12 +356,12 @@ fn build(workflow: &Value, target: Target) -> Built {
         let node_type = str_field(node, "type").unwrap_or("unknown");
         let style = style_for(node_type, target);
         let label = node_label(id, node_type, node).render(target);
-        out.push_str(&format!(
-            "    {}{}{}{}\n",
+        out.push_str(&node_line(
             ids.get(id),
             style.open,
-            label,
-            style.close
+            &label,
+            style.close,
+            target,
         ));
         classes.entry(style.class).or_default().push(ids.get(id));
     }
@@ -482,6 +482,22 @@ fn flow_order<'a>(
         (source.copied().unwrap_or(usize::MAX), *id)
     });
     ordered.into_iter().map(|(_, edge)| edge).collect()
+}
+
+/// One node's line: `id`, then `label` (already quoted) inside the shape's
+/// delimiters.
+///
+/// mmdflux ends a round `( )` node at the first `)`, even inside the quoted
+/// label, and then fails to parse the rest ("Say · Confirm (booking)"). Other
+/// shapes are unaffected, and so is mermaid.js. So in the terminal, a round
+/// node's brackets become same-width lookalikes.
+fn node_line(id: &str, open: &str, label: &str, close: &str, target: Target) -> String {
+    let label = if target == Target::Terminal && open == "(" {
+        label.replace('(', "❨").replace(')', "❩")
+    } else {
+        label.to_string()
+    };
+    format!("    {id}{open}{label}{close}\n")
 }
 
 /// A node's label: the kind of node (absent for start/end, which say it
@@ -1027,6 +1043,27 @@ mod tests {
             }
         }));
         assert_eq!(built.legend, ["  1  go", "  2  failure", "  3  success"]);
+    }
+
+    #[test]
+    fn brackets_in_a_say_node_still_draw_in_the_terminal() {
+        let workflow = json!({
+            "nodes": {
+                "a": { "type": "start" },
+                "b": { "type": "say", "label": "Confirm (booking) details" },
+                "c": { "type": "say", "label": "a ) b" }
+            },
+            "edges": { "e": { "source": "a", "target": "b" } }
+        });
+        let built = build(&workflow, Target::Terminal);
+        assert!(
+            built.source.contains("Confirm ❨booking❩"),
+            "{}",
+            built.source
+        );
+        render_terminal(&workflow, false).expect("draws");
+        // mermaid.js handles brackets, so export keeps them.
+        assert!(render_mermaid(&workflow).contains("Confirm (booking)"));
     }
 
     #[test]
