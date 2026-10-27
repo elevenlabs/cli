@@ -468,7 +468,7 @@ impl BranchesClient {
     ///         .rebase(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
-    ///             &RebaseQueryRequest {
+    ///             &BodyRebaseABranchOntoMainV1ConvaiAgentsAgentIDBranchesBranchIDRebasePost {
     ///                 source_branch_id: Some("source_branch_id".to_string()),
     ///                 ..Default::default()
     ///             },
@@ -481,7 +481,7 @@ impl BranchesClient {
         &self,
         agent_id: &str,
         branch_id: &str,
-        request: &RebaseQueryRequest,
+        request: &BodyRebaseABranchOntoMainV1ConvaiAgentsAgentIdBranchesBranchIdRebasePost,
         options: Option<RequestOptions>,
     ) -> Result<serde_json::Value, ApiError> {
         self.http_client
@@ -491,7 +491,7 @@ impl BranchesClient {
                     "v1/convai/agents/{}/branches/{}/rebase",
                     agent_id, branch_id
                 ),
-                None,
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
                 QueryBuilder::new()
                     .string("source_branch_id", request.source_branch_id.clone())
                     .build(),

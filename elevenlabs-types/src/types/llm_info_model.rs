@@ -27,6 +27,9 @@ pub struct LlmInfoModel {
     /// Available reasoning effort levels for this model. Null if the model does not support configurable reasoning.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub available_reasoning_efforts: Option<Vec<LlmReasoningEffort>>,
+    /// Available service tiers for this model. Always includes at least the standard tier.
+    #[serde(default)]
+    pub available_service_tiers: Vec<LlmServiceTier>,
     /// Deprecation information if this model is deprecated or scheduled for deprecation. Null if the model is not affected.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deprecation_info: Option<LlmDeprecationInfoModel>,
@@ -52,6 +55,7 @@ pub struct LlmInfoModelBuilder {
     supports_document_input: Option<bool>,
     supports_parallel_tool_calls: Option<bool>,
     available_reasoning_efforts: Option<Vec<LlmReasoningEffort>>,
+    available_service_tiers: Option<Vec<LlmServiceTier>>,
     deprecation_info: Option<LlmDeprecationInfoModel>,
     regional_processing_surcharge: Option<RegionalProcessingSurchargeInfo>,
 }
@@ -97,6 +101,11 @@ impl LlmInfoModelBuilder {
         self
     }
 
+    pub fn available_service_tiers(mut self, value: Vec<LlmServiceTier>) -> Self {
+        self.available_service_tiers = Some(value);
+        self
+    }
+
     pub fn deprecation_info(mut self, value: LlmDeprecationInfoModel) -> Self {
         self.deprecation_info = Some(value);
         self
@@ -116,6 +125,7 @@ impl LlmInfoModelBuilder {
     /// - [`supports_image_input`](LlmInfoModelBuilder::supports_image_input)
     /// - [`supports_document_input`](LlmInfoModelBuilder::supports_document_input)
     /// - [`supports_parallel_tool_calls`](LlmInfoModelBuilder::supports_parallel_tool_calls)
+    /// - [`available_service_tiers`](LlmInfoModelBuilder::available_service_tiers)
     pub fn build(self) -> Result<LlmInfoModel, BuildError> {
         Ok(LlmInfoModel {
             llm: self.llm.ok_or_else(|| BuildError::missing_field("llm"))?,
@@ -126,6 +136,7 @@ impl LlmInfoModelBuilder {
             supports_document_input: self.supports_document_input.ok_or_else(|| BuildError::missing_field("supports_document_input"))?,
             supports_parallel_tool_calls: self.supports_parallel_tool_calls.ok_or_else(|| BuildError::missing_field("supports_parallel_tool_calls"))?,
             available_reasoning_efforts: self.available_reasoning_efforts,
+            available_service_tiers: self.available_service_tiers.ok_or_else(|| BuildError::missing_field("available_service_tiers"))?,
             deprecation_info: self.deprecation_info,
             regional_processing_surcharge: self.regional_processing_surcharge,
         })

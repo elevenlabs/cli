@@ -27,6 +27,11 @@ pub struct VoiceSettings {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub speed: Option<f64>,
+    /// Controls how closely the voice matches the professional voice clone samples, from 0 (low) to 1 (high). We recommend 0 for most use cases. Increase this value only if you experience issues with the default settings. Only applies to professional voice clones fine-tuned for the selected v4 model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub clone_strength: Option<f64>,
 }
 
 impl VoiceSettings {
@@ -43,6 +48,7 @@ pub struct VoiceSettingsBuilder {
     similarity_boost: Option<f64>,
     style: Option<f64>,
     speed: Option<f64>,
+    clone_strength: Option<f64>,
 }
 
 impl VoiceSettingsBuilder {
@@ -71,6 +77,11 @@ impl VoiceSettingsBuilder {
         self
     }
 
+    pub fn clone_strength(mut self, value: f64) -> Self {
+        self.clone_strength = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`VoiceSettings`].
     pub fn build(self) -> Result<VoiceSettings, BuildError> {
         Ok(VoiceSettings {
@@ -79,6 +90,7 @@ impl VoiceSettingsBuilder {
             similarity_boost: self.similarity_boost,
             style: self.style,
             speed: self.speed,
+            clone_strength: self.clone_strength,
         })
     }
 }

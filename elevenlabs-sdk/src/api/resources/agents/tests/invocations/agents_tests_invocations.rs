@@ -137,6 +137,59 @@ impl InvocationsClient {
             .await
     }
 
+    /// Updates the user-provided name of a test invocation.
+    ///
+    /// # Arguments
+    ///
+    /// * `test_invocation_id` - The id of a test invocation. This is returned when tests are run.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .tests
+    ///         .invocations
+    ///         .update(
+    ///             &"test_invocation_id".to_string(),
+    ///             &UpdateTestSuiteInvocationRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn update(
+        &self,
+        test_invocation_id: &str,
+        request: &UpdateTestSuiteInvocationRequestModel,
+        options: Option<RequestOptions>,
+    ) -> Result<GetTestSuiteInvocationResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::PATCH,
+                &format!("v1/convai/test-invocations/{}", test_invocation_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
     /// Cancels all pending runs in a test invocation.
     ///
     /// # Arguments

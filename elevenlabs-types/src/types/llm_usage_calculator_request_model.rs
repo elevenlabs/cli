@@ -13,6 +13,9 @@ pub struct LlmUsageCalculatorRequestModel {
     /// Whether RAG is enabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rag_enabled: Option<bool>,
+    /// Service tier to price against. Only affects models that offer the tier; others fall back to their standard price.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<LlmServiceTier>,
 }
 
 impl LlmUsageCalculatorRequestModel {
@@ -27,6 +30,7 @@ pub struct LlmUsageCalculatorRequestModelBuilder {
     prompt_length: Option<i64>,
     number_of_pages: Option<i64>,
     rag_enabled: Option<bool>,
+    service_tier: Option<LlmServiceTier>,
 }
 
 impl LlmUsageCalculatorRequestModelBuilder {
@@ -45,12 +49,18 @@ impl LlmUsageCalculatorRequestModelBuilder {
         self
     }
 
+    pub fn service_tier(mut self, value: LlmServiceTier) -> Self {
+        self.service_tier = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`LlmUsageCalculatorRequestModel`].
     pub fn build(self) -> Result<LlmUsageCalculatorRequestModel, BuildError> {
         Ok(LlmUsageCalculatorRequestModel {
             prompt_length: self.prompt_length,
             number_of_pages: self.number_of_pages,
             rag_enabled: self.rag_enabled,
+            service_tier: self.service_tier,
         })
     }
 }

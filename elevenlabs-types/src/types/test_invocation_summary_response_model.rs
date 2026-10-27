@@ -7,6 +7,9 @@ pub struct TestInvocationSummaryResponseModel {
     /// The ID of the test invocation
     #[serde(default)]
     pub id: String,
+    /// The user-provided name of the test invocation, if one was set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// The ID of the agent this test invocation belongs to
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
@@ -40,7 +43,7 @@ pub struct TestInvocationSummaryResponseModel {
     /// Number of test runs that were cancelled
     #[serde(default)]
     pub cancelled_count: i64,
-    /// Title of the test invocation - the folder name for folder runs, otherwise the single test name or count of tests
+    /// Display title of the test invocation: the user-provided name when set, otherwise the folder name, single test name, or test count.
     #[serde(default)]
     pub title: String,
     /// The access information of the test invocation
@@ -72,6 +75,7 @@ impl TestInvocationSummaryResponseModel {
 #[non_exhaustive]
 pub struct TestInvocationSummaryResponseModelBuilder {
     id: Option<String>,
+    name: Option<String>,
     agent_id: Option<String>,
     branch_id: Option<String>,
     version_id: Option<String>,
@@ -94,6 +98,11 @@ pub struct TestInvocationSummaryResponseModelBuilder {
 impl TestInvocationSummaryResponseModelBuilder {
     pub fn id(mut self, value: impl Into<String>) -> Self {
         self.id = Some(value.into());
+        self
+    }
+
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
         self
     }
 
@@ -195,6 +204,7 @@ impl TestInvocationSummaryResponseModelBuilder {
     pub fn build(self) -> Result<TestInvocationSummaryResponseModel, BuildError> {
         Ok(TestInvocationSummaryResponseModel {
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,
+            name: self.name,
             agent_id: self.agent_id,
             branch_id: self.branch_id,
             version_id: self.version_id,

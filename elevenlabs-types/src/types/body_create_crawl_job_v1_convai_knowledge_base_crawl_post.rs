@@ -16,6 +16,9 @@ pub struct BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPost {
     /// If set, only URLs that match this pattern are included.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
+    /// If set, URLs that match any of these patterns are skipped, even if they match `pattern`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclude_patterns: Option<Vec<String>>,
     /// List of URLs to crawl from sitemap (optional, overrides automatic URL discovery).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sitemap_urls: Option<Vec<String>>,
@@ -49,6 +52,7 @@ pub struct BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPostBuilder {
     max_depth: Option<i64>,
     max_pages: Option<i64>,
     pattern: Option<String>,
+    exclude_patterns: Option<Vec<String>>,
     sitemap_urls: Option<Vec<String>>,
     parent_folder_id: Option<String>,
     enable_auto_sync: Option<bool>,
@@ -75,6 +79,11 @@ impl BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPostBuilder {
 
     pub fn pattern(mut self, value: impl Into<String>) -> Self {
         self.pattern = Some(value.into());
+        self
+    }
+
+    pub fn exclude_patterns(mut self, value: Vec<String>) -> Self {
+        self.exclude_patterns = Some(value);
         self
     }
 
@@ -117,6 +126,7 @@ impl BodyCreateCrawlJobV1ConvaiKnowledgeBaseCrawlPostBuilder {
             max_depth: self.max_depth,
             max_pages: self.max_pages,
             pattern: self.pattern,
+            exclude_patterns: self.exclude_patterns,
             sitemap_urls: self.sitemap_urls,
             parent_folder_id: self.parent_folder_id,
             enable_auto_sync: self.enable_auto_sync,

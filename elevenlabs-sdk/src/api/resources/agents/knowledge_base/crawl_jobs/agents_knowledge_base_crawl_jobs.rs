@@ -103,6 +103,7 @@ impl CrawlJobsClient {
     ///                 max_depth: None,
     ///                 max_pages: None,
     ///                 pattern: None,
+    ///                 exclude_patterns: None,
     ///                 sitemap_urls: None,
     ///                 parent_folder_id: None,
     ///                 enable_auto_sync: None,

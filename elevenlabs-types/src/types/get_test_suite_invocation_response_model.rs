@@ -6,6 +6,9 @@ use super::*;
 pub struct GetTestSuiteInvocationResponseModel {
     #[serde(default)]
     pub id: String,
+    /// The user-provided name of the test invocation, if one was set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -41,6 +44,7 @@ impl GetTestSuiteInvocationResponseModel {
 #[non_exhaustive]
 pub struct GetTestSuiteInvocationResponseModelBuilder {
     id: Option<String>,
+    name: Option<String>,
     agent_id: Option<String>,
     branch_id: Option<String>,
     version_id: Option<String>,
@@ -57,6 +61,11 @@ pub struct GetTestSuiteInvocationResponseModelBuilder {
 impl GetTestSuiteInvocationResponseModelBuilder {
     pub fn id(mut self, value: impl Into<String>) -> Self {
         self.id = Some(value.into());
+        self
+    }
+
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
         self
     }
 
@@ -122,6 +131,7 @@ impl GetTestSuiteInvocationResponseModelBuilder {
     pub fn build(self) -> Result<GetTestSuiteInvocationResponseModel, BuildError> {
         Ok(GetTestSuiteInvocationResponseModel {
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,
+            name: self.name,
             agent_id: self.agent_id,
             branch_id: self.branch_id,
             version_id: self.version_id,

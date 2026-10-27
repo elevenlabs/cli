@@ -7,6 +7,7 @@ use super::*;
 pub enum AgentDeploymentSource {
     Manual,
     BranchMerge,
+    Duplicate,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -17,6 +18,7 @@ impl Serialize for AgentDeploymentSource {
         match self {
             Self::Manual => serializer.serialize_str("manual"),
             Self::BranchMerge => serializer.serialize_str("branch_merge"),
+            Self::Duplicate => serializer.serialize_str("duplicate"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -28,6 +30,7 @@ impl<'de> Deserialize<'de> for AgentDeploymentSource {
         match value.as_str() {
             "manual" => Ok(Self::Manual),
             "branch_merge" => Ok(Self::BranchMerge),
+            "duplicate" => Ok(Self::Duplicate),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -38,6 +41,7 @@ impl fmt::Display for AgentDeploymentSource {
         match self {
             Self::Manual => write!(f, "manual"),
             Self::BranchMerge => write!(f, "branch_merge"),
+            Self::Duplicate => write!(f, "duplicate"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

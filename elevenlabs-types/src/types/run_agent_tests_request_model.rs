@@ -4,6 +4,9 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RunAgentTestsRequestModel {
+    /// Optional name for the test invocation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// List of tests to run on the agent
     #[serde(default)]
     pub tests: Vec<SingleTestRunRequestModel>,
@@ -27,6 +30,7 @@ impl RunAgentTestsRequestModel {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct RunAgentTestsRequestModelBuilder {
+    name: Option<String>,
     tests: Option<Vec<SingleTestRunRequestModel>>,
     agent_config_override: Option<AdhocAgentConfigOverrideForTestRequestModel>,
     branch_id: Option<String>,
@@ -34,6 +38,11 @@ pub struct RunAgentTestsRequestModelBuilder {
 }
 
 impl RunAgentTestsRequestModelBuilder {
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.name = Some(value.into());
+        self
+    }
+
     pub fn tests(mut self, value: Vec<SingleTestRunRequestModel>) -> Self {
         self.tests = Some(value);
         self
@@ -59,6 +68,7 @@ impl RunAgentTestsRequestModelBuilder {
     /// - [`tests`](RunAgentTestsRequestModelBuilder::tests)
     pub fn build(self) -> Result<RunAgentTestsRequestModel, BuildError> {
         Ok(RunAgentTestsRequestModel {
+            name: self.name,
             tests: self.tests.ok_or_else(|| BuildError::missing_field("tests"))?,
             agent_config_override: self.agent_config_override,
             branch_id: self.branch_id,

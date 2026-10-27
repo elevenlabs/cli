@@ -142,6 +142,9 @@ pub struct WidgetConfig {
     /// Whether to ask the user to confirm before ending a chat or call
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_confirmation_enabled: Option<bool>,
+    /// Whether the widget opens fullscreen on mobile
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mobile_fullscreen: Option<bool>,
     /// Whether to show the language selector
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_selector: Option<bool>,
@@ -211,6 +214,7 @@ pub struct WidgetConfigBuilder {
     styles: Option<WidgetStyles>,
     show_resize_button: Option<bool>,
     end_confirmation_enabled: Option<bool>,
+    mobile_fullscreen: Option<bool>,
     language_selector: Option<bool>,
     supports_text_only: Option<bool>,
     custom_avatar_path: Option<String>,
@@ -448,6 +452,11 @@ impl WidgetConfigBuilder {
         self
     }
 
+    pub fn mobile_fullscreen(mut self, value: bool) -> Self {
+        self.mobile_fullscreen = Some(value);
+        self
+    }
+
     pub fn language_selector(mut self, value: bool) -> Self {
         self.language_selector = Some(value);
         self
@@ -517,6 +526,7 @@ impl WidgetConfigBuilder {
             styles: self.styles,
             show_resize_button: self.show_resize_button,
             end_confirmation_enabled: self.end_confirmation_enabled,
+            mobile_fullscreen: self.mobile_fullscreen,
             language_selector: self.language_selector,
             supports_text_only: self.supports_text_only,
             custom_avatar_path: self.custom_avatar_path,

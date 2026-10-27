@@ -172,6 +172,49 @@ impl EnvironmentVariablesClient {
             .await
     }
 
+    /// Delete an environment variable and its values in all environments. WARNING: Agents are not checked. A variable that an agent still uses (custom LLM, webhooks or cloud storage export, on any branch or version) is deleted anyway, and that agent's conversations then fail. The delete is only rejected while tools, MCP servers or the workspace conversation initiation webhook use the variable.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// Empty response
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .environment_variables
+    ///         .delete(&"env_var_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn delete(
+        &self,
+        env_var_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<(), ApiError> {
+        self.http_client
+            .execute_request(
+                Method::DELETE,
+                &format!("v1/convai/environment-variables/{}", env_var_id),
+                None,
+                None,
+                options,
+            )
+            .await
+    }
+
     /// Replace an environment variable's values. Use null to remove its value for an environment (except production); delete an environment with DELETE /v1/convai/environments/{environment}.
     ///
     /// # Arguments

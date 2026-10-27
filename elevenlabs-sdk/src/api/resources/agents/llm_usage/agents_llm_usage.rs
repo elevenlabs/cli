@@ -42,6 +42,7 @@ impl LlmUsageClient {
     ///                 prompt_length: 1,
     ///                 number_of_pages: 1,
     ///                 rag_enabled: true,
+    ///                 service_tier: None,
     ///             },
     ///             None,
     ///         )

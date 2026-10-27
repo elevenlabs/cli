@@ -10,6 +10,9 @@ pub struct GetCrawlJobResponseModel {
     pub seed_url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
+    /// URLs matching any of these patterns are skipped, even if they match `pattern`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclude_patterns: Option<Vec<String>>,
     #[serde(default)]
     pub max_pages: i64,
     /// Whether to automatically discover and enqueue additional pages found while crawling.
@@ -47,6 +50,7 @@ pub struct GetCrawlJobResponseModelBuilder {
     r#type: Option<CrawlType>,
     seed_url: Option<String>,
     pattern: Option<String>,
+    exclude_patterns: Option<Vec<String>>,
     max_pages: Option<i64>,
     auto_discover: Option<bool>,
     status: Option<CrawlStatus>,
@@ -73,6 +77,11 @@ impl GetCrawlJobResponseModelBuilder {
 
     pub fn pattern(mut self, value: impl Into<String>) -> Self {
         self.pattern = Some(value.into());
+        self
+    }
+
+    pub fn exclude_patterns(mut self, value: Vec<String>) -> Self {
+        self.exclude_patterns = Some(value);
         self
     }
 
@@ -144,6 +153,7 @@ impl GetCrawlJobResponseModelBuilder {
             r#type: self.r#type,
             seed_url: self.seed_url.ok_or_else(|| BuildError::missing_field("seed_url"))?,
             pattern: self.pattern,
+            exclude_patterns: self.exclude_patterns,
             max_pages: self.max_pages.ok_or_else(|| BuildError::missing_field("max_pages"))?,
             auto_discover: self.auto_discover,
             status: self.status,
