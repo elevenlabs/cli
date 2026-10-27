@@ -57,6 +57,9 @@ clap = { version = "4", features = ["derive", "string", "env"] }
 clap_complete = "4"
 clap_mangen = "0.2"
 hmac = "0.12"
+# Draws `agents workflow diagram` in the terminal: Mermaid in, box-drawing text
+# out, in pure Rust. The default `cli` feature is mmdflux's own binary.
+mmdflux = { version = "2.6.1", default-features = false }
 dotenvy = "0.15"
 futures-util = "0.3"
 httpdate = "1"

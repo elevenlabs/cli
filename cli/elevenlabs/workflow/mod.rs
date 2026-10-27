@@ -16,6 +16,7 @@ use fern_cli_sdk::app::CliApp;
 mod agents;
 mod api;
 mod components;
+mod diagram;
 mod feedback;
 mod flows_wait;
 mod intent;
@@ -46,6 +47,7 @@ pub fn register(app: CliApp) -> CliApp {
     let app = onboard::register(app);
     let app = agents::register(app);
     let app = templates::register(app);
+    let app = diagram::register(app);
     let app = tools::register(app);
     let app = tests::register(app);
     let app = residency::register(app);

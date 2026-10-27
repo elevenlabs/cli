@@ -1,0 +1,22 @@
+{
+  "name": "Linear greeter",
+  "conversation_config": {},
+  "platform_settings": {},
+  "tags": [],
+  "workflow": {
+    "nodes": {
+      "start_node": { "type": "start", "position": { "x": 0, "y": 0 }, "edge_order": ["start_to_greet"] },
+      "greet": {
+        "type": "say",
+        "label": "Greet caller",
+        "message": { "type": "literal", "text": "Hi, thanks for calling!" },
+        "edge_order": ["greet_to_end"]
+      },
+      "end_node": { "type": "end", "outcome": "success" }
+    },
+    "edges": {
+      "start_to_greet": { "source": "start_node", "target": "greet", "forward_condition": { "type": "unconditional" } },
+      "greet_to_end": { "source": "greet", "target": "end_node", "forward_condition": { "type": "unconditional" } }
+    }
+  }
+}
