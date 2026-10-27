@@ -1,4 +1,4 @@
-//! Integration tests for `elevenlabs agents workflow diagram` and `export`.
+//! Integration tests for `elevenlabs agents workflow diagram` and its formats.
 //!
 //! The renderer itself is unit-tested in `cli/elevenlabs/workflow/diagram.rs`;
 //! these cover what only the binary can: resolving an agent through
@@ -81,7 +81,14 @@ fn a_file_an_id_and_a_name_render_the_same_diagram() {
     let dir = project();
     let by_file = cli(
         dir.path(),
-        &["agents", "workflow", "export", "agent_configs/support.json"],
+        &[
+            "agents",
+            "workflow",
+            "diagram",
+            "agent_configs/support.json",
+            "--format",
+            "mermaid",
+        ],
     );
     assert!(by_file.status.success(), "{by_file:?}");
     let diagram = stdout(&by_file);
@@ -90,7 +97,12 @@ fn a_file_an_id_and_a_name_render_the_same_diagram() {
     assert!(diagram.contains("n_start_node --> n_greet"), "{diagram}");
 
     for target in ["agent_support", "Support"] {
-        let out = cli(dir.path(), &["agents", "workflow", "export", target]);
+        let out = cli(
+            dir.path(),
+            &[
+                "agents", "workflow", "diagram", target, "--format", "mermaid",
+            ],
+        );
         assert!(out.status.success(), "{target}: {out:?}");
         assert_eq!(stdout(&out), diagram, "{target}");
     }
@@ -101,7 +113,14 @@ fn markdown_wraps_the_diagram_in_a_mermaid_fence() {
     let dir = project();
     let out = cli(
         dir.path(),
-        &["agents", "workflow", "export", "Support", "--markdown"],
+        &[
+            "agents",
+            "workflow",
+            "diagram",
+            "Support",
+            "--format",
+            "mermaid-md",
+        ],
     );
     assert!(out.status.success(), "{out:?}");
     let text = stdout(&out);
@@ -114,7 +133,14 @@ fn all_renders_every_agent_and_branch_with_a_workflow() {
     let dir = project();
     let out = cli(
         dir.path(),
-        &["agents", "workflow", "export", "--all", "--markdown"],
+        &[
+            "agents",
+            "workflow",
+            "diagram",
+            "--all",
+            "--format",
+            "mermaid-md",
+        ],
     );
     assert!(out.status.success(), "{out:?}");
     let text = stdout(&out);
@@ -130,7 +156,7 @@ fn all_renders_every_agent_and_branch_with_a_workflow() {
 #[test]
 fn an_agent_without_a_workflow_is_an_error() {
     let dir = project();
-    let out = cli(dir.path(), &["agents", "workflow", "export", "Plain"]);
+    let out = cli(dir.path(), &["agents", "workflow", "diagram", "Plain"]);
     assert!(!out.status.success(), "{out:?}");
     // Errors are reported as JSON on stdout, like every other command's.
     let err = stdout(&out);
@@ -140,7 +166,7 @@ fn an_agent_without_a_workflow_is_an_error() {
 #[test]
 fn an_unknown_target_is_an_error() {
     let dir = project();
-    let out = cli(dir.path(), &["agents", "workflow", "export", "nobody"]);
+    let out = cli(dir.path(), &["agents", "workflow", "diagram", "nobody"]);
     assert!(!out.status.success(), "{out:?}");
     // Errors are reported as JSON on stdout, like every other command's.
     let err = stdout(&out);
@@ -150,7 +176,7 @@ fn an_unknown_target_is_an_error() {
 #[test]
 fn a_target_or_all_is_required() {
     let dir = project();
-    let out = cli(dir.path(), &["agents", "workflow", "export"]);
+    let out = cli(dir.path(), &["agents", "workflow", "diagram"]);
     assert!(!out.status.success(), "{out:?}");
 }
 
@@ -182,4 +208,16 @@ fn diagram_all_draws_each_agent_under_a_heading() {
         text.contains("── Support (branch 'beta') (agent_configs/support.beta.json)"),
         "{text}"
     );
+}
+
+#[test]
+fn an_unknown_format_is_an_error() {
+    let dir = project();
+    let out = cli(
+        dir.path(),
+        &[
+            "agents", "workflow", "diagram", "Support", "--format", "svg",
+        ],
+    );
+    assert!(!out.status.success(), "{out:?}");
 }

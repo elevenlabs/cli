@@ -1,11 +1,11 @@
-//! `agents workflow diagram` / `export`: an agent's workflow as a flowchart,
-//! drawn in the terminal or printed as Mermaid source.
+//! `agents workflow diagram`: an agent's workflow as a flowchart, drawn in
+//! the terminal or printed as Mermaid source (`--format`).
 //!
 //! Workflows are stored as raw wire JSON (`workflow.nodes` / `workflow.edges`,
 //! both maps keyed by ID), which round-trips losslessly but is unreadable in
 //! a diff. GitHub and most docs tooling render Mermaid natively, so this gives
 //! reviewers a picture of the conversation flow with no extra tooling.
-//! `diagram` draws the same flowchart in the terminal via mmdflux, a pure-Rust
+//! By default it draws the flowchart in the terminal via mmdflux, a pure-Rust
 //! Mermaid renderer, so a workflow can be read without leaving the shell.
 //!
 //! Local files only: no API key and no network, so it runs in CI on forks.
@@ -32,16 +32,10 @@ use super::{api, project};
 pub fn register(app: CliApp) -> CliApp {
     app.command_under_typed_with(
         &["agents", "workflow"],
-        clap::Command::new("diagram")
-            .about("Draw an agent's workflow in the terminal (local files only)"),
-        handle_diagram,
-    )
-    .command_under_typed_with(
-        &["agents", "workflow"],
-        clap::Command::new("export").about(
-            "Print an agent's workflow as Mermaid source, to save or paste (local files only)",
+        clap::Command::new("diagram").about(
+            "Draw an agent's workflow in the terminal, or print it as Mermaid (local files only)",
         ),
-        handle_export,
+        handle_diagram,
     )
 }
 
@@ -53,70 +47,65 @@ struct DiagramArgs {
     /// Draw every agent (and registered branch) in agents.json.
     #[arg(long, conflicts_with = "target")]
     all: bool,
+    /// What to print: a drawing for the terminal, Mermaid source, or Mermaid
+    /// in a ```mermaid fence, ready to paste into Markdown.
+    #[arg(long, value_enum, default_value_t = Format::Ascii)]
+    format: Format,
+}
+
+#[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
+enum Format {
+    /// Boxes and arrows drawn with box-drawing characters.
+    Ascii,
+    /// Mermaid source, which GitHub and most docs tools render.
+    Mermaid,
+    /// Mermaid source in a ```mermaid fence.
+    MermaidMd,
 }
 
 fn handle_diagram(args: DiagramArgs, _ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("agents.workflow.diagram");
-    let color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
-    let width = terminal_width();
     let Some(target) = &args.target else {
-        for (i, workflow) in load_all()?.iter().enumerate() {
-            if i > 0 {
-                println!();
-            }
-            println!("── {} ({})\n", workflow.title, workflow.config_path);
-            print!("{}", render_terminal(&workflow.workflow, color, width)?);
+        return diagram_all(args.format);
+    };
+    let workflow = load_one(target)?;
+    match args.format {
+        Format::Ascii => {
+            let color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
+            print!(
+                "{}",
+                render_terminal(&workflow.workflow, color, terminal_width())?
+            );
         }
-        return Ok(());
-    };
-    let workflow = load_one(target)?;
-    print!("{}", render_terminal(&workflow.workflow, color, width)?);
-    Ok(())
-}
-
-#[derive(clap::Args)]
-struct ExportArgs {
-    /// An agent config file, or an agent ID or name from agents.json.
-    #[arg(required_unless_present = "all")]
-    target: Option<String>,
-    /// Export every agent (and registered branch) in agents.json.
-    #[arg(long, conflicts_with = "target")]
-    all: bool,
-    /// Wrap each diagram in a ```mermaid fence, ready to paste into Markdown.
-    #[arg(long)]
-    markdown: bool,
-}
-
-fn handle_export(args: ExportArgs, _ctx: &AppContext) -> Result<(), CliError> {
-    let _scope = api::command_scope("agents.workflow.export");
-    let Some(target) = &args.target else {
-        return export_all(args.markdown);
-    };
-    let workflow = load_one(target)?;
-    let diagram = render_mermaid(&workflow.workflow);
-    if args.markdown {
-        print!("{}", fence(&diagram));
-    } else {
-        print!("{diagram}");
+        Format::Mermaid => print!("{}", render_mermaid(&workflow.workflow)),
+        Format::MermaidMd => print!("{}", fence(&render_mermaid(&workflow.workflow))),
     }
     Ok(())
 }
 
-fn export_all(markdown: bool) -> Result<(), CliError> {
+fn diagram_all(format: Format) -> Result<(), CliError> {
+    let color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
+    let width = terminal_width();
     for (i, workflow) in load_all()?.iter().enumerate() {
-        let diagram = render_mermaid(&workflow.workflow);
         if i > 0 {
             println!();
         }
-        if markdown {
-            println!("### {}\n", workflow.title);
-            print!("{}", fence(&diagram));
-        } else {
-            // Several flowcharts in one stream are not one Mermaid document;
-            // the comment marks where each starts. --markdown is the form
-            // meant for this.
-            println!("%% {} ({})", workflow.title, workflow.config_path);
-            print!("{diagram}");
+        match format {
+            Format::Ascii => {
+                println!("── {} ({})\n", workflow.title, workflow.config_path);
+                print!("{}", render_terminal(&workflow.workflow, color, width)?);
+            }
+            Format::Mermaid => {
+                // Several flowcharts in one stream are not one Mermaid
+                // document; the comment marks where each starts. mermaid-md
+                // is the form meant for this.
+                println!("%% {} ({})", workflow.title, workflow.config_path);
+                print!("{}", render_mermaid(&workflow.workflow));
+            }
+            Format::MermaidMd => {
+                println!("### {}\n", workflow.title);
+                print!("{}", fence(&render_mermaid(&workflow.workflow)));
+            }
         }
     }
     Ok(())
@@ -334,7 +323,7 @@ fn render_terminal(
         if text_width(&out) > width {
             eprintln!(
                 "This diagram is {} columns wide, more than the {width} available. \
-                 'elevenlabs agents workflow export' prints it as Mermaid instead.",
+                 'elevenlabs agents workflow diagram --format mermaid' prints it as Mermaid instead.",
                 text_width(&out)
             );
         }
@@ -467,7 +456,7 @@ fn draw(source: &str, color: bool) -> Result<String, CliError> {
     mmdflux::render_diagram(source, mmdflux::OutputFormat::Text, &config).map_err(|e| {
         CliError::Other(anyhow::anyhow!(
             "Could not draw this workflow in the terminal ({e}). \
-             'elevenlabs agents workflow export' prints it as Mermaid instead."
+             'elevenlabs agents workflow diagram --format mermaid' prints it as Mermaid instead."
         ))
     })
 }
