@@ -6,6 +6,9 @@ use super::*;
 pub struct CreateAssetParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smb_tool_type: Option<String>,
+    /// Whether to offer an available_hours timezone, set from the workspace's enable_per_resource_timezones.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub per_resource_timezones: Option<bool>,
 }
 
 impl CreateAssetParams {
@@ -18,6 +21,7 @@ impl CreateAssetParams {
 #[non_exhaustive]
 pub struct CreateAssetParamsBuilder {
     smb_tool_type: Option<String>,
+    per_resource_timezones: Option<bool>,
 }
 
 impl CreateAssetParamsBuilder {
@@ -26,10 +30,16 @@ impl CreateAssetParamsBuilder {
         self
     }
 
+    pub fn per_resource_timezones(mut self, value: bool) -> Self {
+        self.per_resource_timezones = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`CreateAssetParams`].
     pub fn build(self) -> Result<CreateAssetParams, BuildError> {
         Ok(CreateAssetParams {
             smb_tool_type: self.smb_tool_type,
+            per_resource_timezones: self.per_resource_timezones,
         })
     }
 }

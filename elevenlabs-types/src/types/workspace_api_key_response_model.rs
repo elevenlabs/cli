@@ -35,6 +35,9 @@ pub struct WorkspaceApiKeyResponseModel {
     /// Per-API-key concurrency limits (TTS/dubbing/music). Enterprise-only.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub platform_limits: Option<PlatformLimits>,
+    /// Unix timestamp (seconds) after which this API key stops working. Null means the key never expires.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at_unix: Option<i64>,
 }
 
 impl WorkspaceApiKeyResponseModel {
@@ -60,6 +63,7 @@ pub struct WorkspaceApiKeyResponseModelBuilder {
     allowed_ips: Option<Vec<String>>,
     third_party_disable_allowed: Option<bool>,
     platform_limits: Option<PlatformLimits>,
+    expires_at_unix: Option<i64>,
 }
 
 impl WorkspaceApiKeyResponseModelBuilder {
@@ -133,6 +137,11 @@ impl WorkspaceApiKeyResponseModelBuilder {
         self
     }
 
+    pub fn expires_at_unix(mut self, value: i64) -> Self {
+        self.expires_at_unix = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WorkspaceApiKeyResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`name`](WorkspaceApiKeyResponseModelBuilder::name)
@@ -156,6 +165,7 @@ impl WorkspaceApiKeyResponseModelBuilder {
             allowed_ips: self.allowed_ips,
             third_party_disable_allowed: self.third_party_disable_allowed,
             platform_limits: self.platform_limits,
+            expires_at_unix: self.expires_at_unix,
         })
     }
 }

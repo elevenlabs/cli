@@ -16,7 +16,7 @@ pub struct ConversationInitiationClientDataConfigOutput {
     /// Whether clients may pass starting_workflow_node_id in initiation client data; if false, sending it fails conversation start.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enable_starting_workflow_node_id_from_client: Option<bool>,
-    /// Whether clients may pass procedure_ids in initiation client data to select which of the agent's procedures are available for the conversation; if false, sending it fails conversation start.
+    /// Whether clients may pass procedure_ids and start_procedure_ids in initiation client data. procedure_ids selects which of the agent's procedures are available. start_procedure_ids starts free-form procedures when the conversation starts. If false, sending either field fails conversation start.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enable_procedure_ids_from_client: Option<bool>,
 }

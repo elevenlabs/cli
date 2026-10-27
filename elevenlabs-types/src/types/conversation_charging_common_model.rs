@@ -42,6 +42,9 @@ pub struct ConversationChargingCommonModel {
     pub asr_usage: Option<ConversationAsrUsageModel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub analysis: Option<AnalysisCharging>,
+    /// Credits charged as the voice actor reward for the Voice Library voices this conversation used. It is not included in `cost`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_surcharge_charge: Option<i64>,
 }
 
 impl ConversationChargingCommonModel {
@@ -68,6 +71,7 @@ pub struct ConversationChargingCommonModelBuilder {
     tts_usage: Option<ConversationTtsUsageModel>,
     asr_usage: Option<ConversationAsrUsageModel>,
     analysis: Option<AnalysisCharging>,
+    voice_surcharge_charge: Option<i64>,
 }
 
 impl ConversationChargingCommonModelBuilder {
@@ -146,6 +150,11 @@ impl ConversationChargingCommonModelBuilder {
         self
     }
 
+    pub fn voice_surcharge_charge(mut self, value: i64) -> Self {
+        self.voice_surcharge_charge = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationChargingCommonModel`].
     pub fn build(self) -> Result<ConversationChargingCommonModel, BuildError> {
         Ok(ConversationChargingCommonModel {
@@ -164,6 +173,7 @@ impl ConversationChargingCommonModelBuilder {
             tts_usage: self.tts_usage,
             asr_usage: self.asr_usage,
             analysis: self.analysis,
+            voice_surcharge_charge: self.voice_surcharge_charge,
         })
     }
 }

@@ -26,6 +26,9 @@ pub struct BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdAp
     /// Maximum concurrent music generation requests for this API key. Only available for enterprise customers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music_concurrency_limit: Option<i64>,
+    /// Unix timestamp (in seconds) after which this API key stops working. When set, it must be at least 15 minutes and at most 90 days in the future. On create, omit or pass null for a key that never expires. On update, omit to leave it unchanged, or pass "clear" to remove the expiry (never expires).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at_unix: Option<i64>,
 }
 
 impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPost {
@@ -45,6 +48,7 @@ pub struct BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdAp
     tts_concurrency_limit: Option<i64>,
     dubbing_concurrency_limit: Option<i64>,
     music_concurrency_limit: Option<i64>,
+    expires_at_unix: Option<i64>,
 }
 
 impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPostBuilder {
@@ -88,6 +92,11 @@ impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysP
         self
     }
 
+    pub fn expires_at_unix(mut self, value: i64) -> Self {
+        self.expires_at_unix = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPost`].
     /// This method will fail if any of the following fields are not set:
     /// - [`name`](BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysPostBuilder::name)
@@ -102,6 +111,7 @@ impl BodyCreateServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysP
             tts_concurrency_limit: self.tts_concurrency_limit,
             dubbing_concurrency_limit: self.dubbing_concurrency_limit,
             music_concurrency_limit: self.music_concurrency_limit,
+            expires_at_unix: self.expires_at_unix,
         })
     }
 }

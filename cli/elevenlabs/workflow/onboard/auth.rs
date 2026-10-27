@@ -3,14 +3,18 @@
 //! that a key on the clipboard has to pass.
 
 use std::sync::OnceLock;
+use std::time::Duration;
 
-use fern_cli_sdk::auth::{active_store, LoginContext, LoginFlow, PkceLoginFlow, TokenBundle};
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
 
+use super::super::loopback;
+use super::super::platform;
 use super::super::say::run_async as block_on;
 use super::super::settings;
+use super::super::telemetry;
+use super::session::SIGN_IN_MINUTES;
 
 pub(super) const CLI_NAME: &str = "elevenlabs";
 
@@ -83,12 +87,12 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
     })
 }
 
-/// Sign in through the browser, asking the page for a key.
+/// Sign in through the browser, asking the page for a key. Returns the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
-) -> Result<(), CliError> {
+) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
     let oauth_base = ctx
@@ -96,35 +100,50 @@ pub(super) fn sign_in(
         .and_then(loopback)
         .unwrap_or_else(|| config.token_url.trim_end_matches("/v1/oauth/token").into());
     let token_url = format!("{oauth_base}/v1/oauth/token");
-    PkceLoginFlow::new(&config.scheme)
-        .client_id(&config.client_id)
-        .authorization_url(authorize_url)
-        .token_url(&token_url)
-        .scopes(&config.scopes)
-        .redirect_host(&config.redirect_host)
-        .redirect_ports(config.redirect_ports.iter().copied())
-        .success_redirect_url(&config.success_url)
-        .error_redirect_url(&config.error_url)
-        .authorization_params(vec![("key_handoff", "clipboard".to_string())])
-        .run(&LoginContext {
-            cli_name: CLI_NAME.to_string(),
-            no_browser,
-        })?;
-    Ok(())
+    let params = authorize_params(
+        telemetry::enabled().then(|| (platform::detect(), platform::install_source())),
+    );
+    block_on(loopback::sign_in(loopback::Login {
+        cli_name: CLI_NAME,
+        scheme: &config.scheme,
+        client_id: &config.client_id,
+        authorize_url,
+        token_url: &token_url,
+        scopes: &config.scopes,
+        redirect_host: &config.redirect_host,
+        redirect_ports: &config.redirect_ports,
+        success_url: &config.success_url,
+        error_url: &config.error_url,
+        params: &params,
+        no_browser,
+        timeout: Duration::from_secs(SIGN_IN_MINUTES * 60),
+    }))
 }
 
-pub(super) fn stored_access_token() -> Option<String> {
-    let scheme = &sign_in_config().ok()?.scheme;
-    let raw = active_store().get(CLI_NAME, scheme).ok().flatten()?;
-    let token = TokenBundle::parse_or_raw(&raw).access_token;
-    (!token.is_empty()).then_some(token)
+/// What the sign-in adds to the approval link: the page should hand over a
+/// key, and, with telemetry on, where the CLI runs and how it was installed,
+/// which the page records for a sign-in that never gets to make an API call.
+pub(super) fn authorize_params(
+    platform: Option<((&'static str, Option<&'static str>), &'static str)>,
+) -> Vec<(&'static str, &'static str)> {
+    let mut params = vec![("key_handoff", "clipboard")];
+    if let Some(((os, env), install)) = platform {
+        params.push(("cli_os", os));
+        if let Some(env) = env {
+            params.push(("cli_env", env));
+        }
+        params.push(("cli_install", install));
+    }
+    params
 }
 
 /// `Err` when the signed-in account itself cannot be identified; `Ok(false)` only
-/// when it can and the key does not belong to it.
+/// when it can and the key does not belong to it. `token` is the sign-in's
+/// access token.
 pub(super) fn key_matches_sign_in(
     client: &reqwest::Client,
     base: &str,
+    token: &str,
     key: &str,
 ) -> Result<bool, CliError> {
     let unknown = || {
@@ -132,7 +151,6 @@ pub(super) fn key_matches_sign_in(
             "the signed-in account could not be identified"
         ))
     };
-    let token = stored_access_token().ok_or_else(unknown)?;
     let bearer = format!("Bearer {token}");
     let signed_in = account_for(client, base, "authorization", &bearer)?.ok_or_else(unknown)?;
     Ok(account_for(client, base, "xi-api-key", key)? == Some(signed_in))

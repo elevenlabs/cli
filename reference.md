@@ -200,7 +200,7 @@ Delete RAG index for the knowledgebase document.
 
 #### `elevenlabs agents duplicate`
 
-Create a new agent by duplicating an existing one. The new agent gets a copy of every unarchived branch of the source agent, each with the same name and description and starting from the latest version on that branch. Version history, drafts, archived branches and traffic deployments are not copied, so the new agent routes all traffic to its main branch.
+Create a new agent by duplicating an existing one. The new agent gets a copy of every unarchived branch of the source agent, each with the same name and description and starting from the latest version on that branch. The live traffic split is copied onto the new branches, with any share held by a branch that was not copied moved to main. Version history, drafts, archived branches, past traffic splits and experiments are not copied.
 
 `POST /v1/convai/agents/{agent_id}/duplicate`
 
@@ -528,6 +528,7 @@ Pull changes from a source branch (defaults to main) into this branch as a new v
 | `--branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
 | `--source-branch-id` | `string` | No | The ID of the branch to pull changes from. Defaults to the agent's main branch. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
 #### `elevenlabs agents branches update`
 
@@ -2305,6 +2306,18 @@ Resubmits specific test runs from a test invocation.
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
+#### `elevenlabs agents tests invocations update`
+
+Updates the user-provided name of a test invocation.
+
+`PATCH /v1/convai/test-invocations/{test_invocation_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--test-invocation-id` | `string` | Yes | The id of a test invocation. This is returned when tests are run. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 ---
 
 ### `elevenlabs agents tools`
@@ -2555,7 +2568,7 @@ Merge other open tickets of the same agent into this pending, in-progress, or re
 
 #### `elevenlabs agents triage-tickets update`
 
-Update a ticket's title, comment, status, priority, and/or assignee. Requires editor access to the ticket's agent.
+Update a ticket's title, comment, status, priority, and/or assignee. Requires viewer access to the ticket's agent.
 
 `PATCH /v1/convai/triage-tickets/{agentqa_ticket_id}`
 
@@ -2904,7 +2917,7 @@ Finds an AudioNative project matching the provided URL, extracts content from th
 
 ### `elevenlabs dubbing`
 
-#### `elevenlabs dubbing create`
+#### `elevenlabs dubbing create` `[DEPRECATED]`
 
 Dubs a provided audio or video file into given language.
 
@@ -2915,7 +2928,7 @@ Dubs a provided audio or video file into given language.
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
-#### `elevenlabs dubbing delete`
+#### `elevenlabs dubbing delete` `[DEPRECATED]`
 
 Deletes a dubbing project.
 
@@ -2926,7 +2939,7 @@ Deletes a dubbing project.
 | `--dubbing-id` | `string` | Yes | ID of the dubbing project. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
-#### `elevenlabs dubbing get`
+#### `elevenlabs dubbing get` `[DEPRECATED]`
 
 Returns metadata about a dubbing project, including whether it's still in progress or not
 
@@ -2937,7 +2950,7 @@ Returns metadata about a dubbing project, including whether it's still in progre
 | `--dubbing-id` | `string` | Yes | ID of the dubbing project. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
-#### `elevenlabs dubbing list`
+#### `elevenlabs dubbing list` `[DEPRECATED]`
 
 List the dubs you have access to.
 
@@ -2961,7 +2974,7 @@ List the dubs you have access to.
 
 ### `elevenlabs dubbing audio`
 
-#### `elevenlabs dubbing audio get`
+#### `elevenlabs dubbing audio get` `[DEPRECATED]`
 
 Returns dub as a streamed MP3 or MP4 file. If this dub has been edited using Dubbing Studio you need to use the resource render endpoint as this endpoint only returns the original automatic dub result.
 
@@ -3408,7 +3421,7 @@ Returns transcript for the dub as an SRT or WEBVTT file.
 
 ### `elevenlabs dubbing transcripts`
 
-#### `elevenlabs dubbing transcripts get`
+#### `elevenlabs dubbing transcripts get` `[DEPRECATED]`
 
 Fetch the transcript for one of the languages in a dub.
 
@@ -3435,6 +3448,17 @@ Create a new environment variable for the workspace
 |------|------|----------|-------------|
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs environment-variables delete`
+
+Delete an environment variable and its values in all environments. WARNING: Agents are not checked. A variable that an agent still uses (custom LLM, webhooks or cloud storage export, on any branch or version) is deleted anyway, and that agent's conversations then fail. The delete is only rejected while tools, MCP servers or the workspace conversation initiation webhook use the variable.
+
+`DELETE /v1/convai/environment-variables/{env_var_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--env-var-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs environment-variables get`
 
@@ -4431,7 +4455,7 @@ Update a Speech Engine resource (partial update)
 
 Transform audio from one voice to another. Maintain full control over emotion, timing and delivery.
 
-`POST /v1/speech-to-speech/{voice_id}`
+`POST /v1/voice-changer/{voice_id}`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
@@ -4454,7 +4478,7 @@ Defaults to None.
 
 Stream audio from one voice to another. Maintain full control over emotion, timing and delivery.
 
-`POST /v1/speech-to-speech/{voice_id}/stream`
+`POST /v1/voice-changer/{voice_id}/stream`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|

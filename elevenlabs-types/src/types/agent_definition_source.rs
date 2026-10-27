@@ -9,6 +9,7 @@ pub enum AgentDefinitionSource {
     Ui,
     Api,
     Template,
+    Architect,
     Unknown,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
@@ -22,6 +23,7 @@ impl Serialize for AgentDefinitionSource {
             Self::Ui => serializer.serialize_str("ui"),
             Self::Api => serializer.serialize_str("api"),
             Self::Template => serializer.serialize_str("template"),
+            Self::Architect => serializer.serialize_str("architect"),
             Self::Unknown => serializer.serialize_str("unknown"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
@@ -36,6 +38,7 @@ impl<'de> Deserialize<'de> for AgentDefinitionSource {
             "ui" => Ok(Self::Ui),
             "api" => Ok(Self::Api),
             "template" => Ok(Self::Template),
+            "architect" => Ok(Self::Architect),
             "unknown" => Ok(Self::Unknown),
             _ => Ok(Self::__Unknown(value)),
         }
@@ -49,6 +52,7 @@ impl fmt::Display for AgentDefinitionSource {
             Self::Ui => write!(f, "ui"),
             Self::Api => write!(f, "api"),
             Self::Template => write!(f, "template"),
+            Self::Architect => write!(f, "architect"),
             Self::Unknown => write!(f, "unknown"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }

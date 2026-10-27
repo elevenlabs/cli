@@ -162,6 +162,32 @@ elevenlabs feedback missing-capability "<what you needed>"
 ```
 "#;
 
+/// Appended to the named group skills, keyed by their emitted directory. Left
+/// out, `model_id` falls to the API's default (`eleven_multilingual_v2` for
+/// speech, `eleven_v3` for dialogue), which trails the model we recommend, and
+/// the spec-derived files never name a model for an agent to choose instead.
+const MODEL_HINTS: &[(&str, &str)] = &[
+    (
+        "elevenlabs-text-to-speech",
+        r#"
+## Model
+
+Pass `--model-id eleven_v4`, the most expressive model, which also reads audio
+tags like `[whispers]` as delivery. Without it the API falls back to an older
+default. For real-time streaming, use `eleven_v4_turbo` instead.
+"#,
+    ),
+    (
+        "elevenlabs-text-to-dialogue",
+        r#"
+## Model
+
+Pass `--model-id eleven_v4`, the most expressive model, which also reads audio
+tags like `[laughs]` as delivery. Without it the API falls back to `eleven_v3`.
+"#,
+    ),
+];
+
 /// Every file `generate-skills` should write, spec-derived ones first.
 fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
     let shared = PathBuf::from(SHARED_SKILL).join("SKILL.md");
@@ -169,6 +195,7 @@ fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
 
     let mut appended = false;
     let mut pointers = 0usize;
+    let mut hinted = 0usize;
     for (path, content) in files.iter_mut() {
         if *path == shared {
             // Only when the emitter actually produced the no-auth text. If a
@@ -180,6 +207,13 @@ fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
             content.push_str(FEEDBACK_SECTION);
             appended = true;
         } else {
+            if let Some((_, hint)) = MODEL_HINTS
+                .iter()
+                .find(|(dir, _)| path.starts_with(dir))
+            {
+                content.push_str(hint);
+                hinted += 1;
+            }
             content.push_str(GAP_POINTER);
             pointers += 1;
         }
@@ -198,6 +232,15 @@ fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
         // a link the agent may never follow.
         return Err(CliError::Other(anyhow::anyhow!(
             "expected at least one per-group skill to carry the capability-gap pointer"
+        )));
+    }
+
+    if hinted != MODEL_HINTS.len() {
+        // A group was renamed upstream, and its skill would silently go back
+        // to recommending nothing.
+        return Err(CliError::Other(anyhow::anyhow!(
+            "expected {} skills to carry a model hint, found {hinted}",
+            MODEL_HINTS.len()
         )));
     }
 
@@ -294,6 +337,14 @@ mod tests {
             "got {} lines",
             GAP_POINTER.lines().count()
         );
+    }
+
+    #[test]
+    fn model_hints_recommend_v4() {
+        for (dir, hint) in MODEL_HINTS {
+            assert!(dir.starts_with(&format!("{BIN_NAME}-")), "{dir}");
+            assert!(hint.contains("--model-id eleven_v4"), "{dir}");
+        }
     }
 
     #[test]

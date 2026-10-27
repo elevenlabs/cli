@@ -10,9 +10,6 @@ pub struct AutoSyncInfo {
     /// Whether to remove the document if the URL becomes unavailable
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_remove: Option<bool>,
-    /// Deprecated. This field no longer has any effect and will be removed in a future release.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auto_discover: Option<bool>,
     /// Number of consecutive sync failures
     #[serde(skip_serializing_if = "Option::is_none")]
     pub consec_failures: Option<i64>,
@@ -32,7 +29,6 @@ impl AutoSyncInfo {
 pub struct AutoSyncInfoBuilder {
     minimum_frequency_days: Option<i64>,
     auto_remove: Option<bool>,
-    auto_discover: Option<bool>,
     consec_failures: Option<i64>,
     next_refresh_by: Option<i64>,
 }
@@ -45,11 +41,6 @@ impl AutoSyncInfoBuilder {
 
     pub fn auto_remove(mut self, value: bool) -> Self {
         self.auto_remove = Some(value);
-        self
-    }
-
-    pub fn auto_discover(mut self, value: bool) -> Self {
-        self.auto_discover = Some(value);
         self
     }
 
@@ -68,7 +59,6 @@ impl AutoSyncInfoBuilder {
         Ok(AutoSyncInfo {
             minimum_frequency_days: self.minimum_frequency_days,
             auto_remove: self.auto_remove,
-            auto_discover: self.auto_discover,
             consec_failures: self.consec_failures,
             next_refresh_by: self.next_refresh_by,
         })

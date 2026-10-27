@@ -1,7 +1,7 @@
 use super::super::util::opt_string;
 use super::auth::*;
 use super::browser::reachable_in;
-use super::clipboard::{classify, Clip, Marker};
+use super::clipboard::{classify, clip_of, retry_read, Clip, Marker};
 use super::env_file::{file_key, with_key, PLACEHOLDER_NOTE};
 use super::onboard_command;
 use super::project::last4;
@@ -51,6 +51,47 @@ fn the_clipboard_is_a_key_a_marker_or_nothing() {
         );
     }
     assert!(matches!(classify(None), Clip::Nothing));
+    assert_eq!(clip_of(Ok(format!("{key}\n"))), Clip::Key(key.into()));
+    assert_eq!(
+        clip_of(Err(arboard::Error::ContentNotAvailable)),
+        Clip::Nothing
+    );
+    assert_eq!(
+        clip_of(Err(arboard::Error::ClipboardOccupied)),
+        Clip::Unreadable
+    );
+}
+
+#[test]
+fn the_hand_off_read_waits_out_a_busy_or_late_clipboard() {
+    use std::time::Duration;
+    let key = "sk_0123456789abcdef0123456789abcdef";
+    let run = |reads: Vec<Clip>| {
+        let mut reads = reads.into_iter();
+        let mut count = 0;
+        let clip = retry_read(Duration::from_millis(50), Duration::from_millis(1), || {
+            count += 1;
+            reads.next().unwrap_or(Clip::Unreadable)
+        });
+        (clip, count)
+    };
+    // Another program held the clipboard, then the key was there.
+    assert_eq!(
+        run(vec![
+            Clip::Unreadable,
+            Clip::Unreadable,
+            Clip::Key(key.into())
+        ]),
+        (Clip::Key(key.into()), 3)
+    );
+    // The browser's copy landed late.
+    assert_eq!(
+        run(vec![Clip::Nothing, Clip::Marker(Marker::Failed)]),
+        (Clip::Marker(Marker::Failed), 2)
+    );
+    // Never readable, versus read but empty.
+    assert_eq!(run(vec![]).0, Clip::Unreadable);
+    assert_eq!(run(vec![Clip::Nothing]).0, Clip::Nothing);
 }
 
 #[test]
@@ -953,6 +994,13 @@ fn every_clipboard_outcome_has_its_reply() {
             ..
         }
     ));
+    assert!(matches!(
+        outcome_of(Clip::Unreadable, ok),
+        Outcome::Manual {
+            status: "clipboard_unreadable",
+            ..
+        }
+    ));
 
     let dir = tempfile::tempdir().unwrap();
     git(dir.path(), &["init", "-q"]);
@@ -1134,4 +1182,52 @@ fn gitignore_entries_match_only_the_env_file() {
         status.contains("keysd.env") && !status.contains("keys[dev].env"),
         "{status}"
     );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+    const KEY: &str = "sk_0123456789abcdef0123456789abcdef01234567";
+    let server = MockServer::start().await;
+    for (name, value) in [("authorization", "Bearer token"), ("xi-api-key", KEY)] {
+        Mock::given(method("GET"))
+            .and(path("/v1/user"))
+            .and(header(name, value))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"user_id": "user"})),
+            )
+            .mount(&server)
+            .await;
+    }
+    let client = reqwest::Client::new();
+    assert!(key_matches_sign_in(&client, &server.uri(), "token", KEY).unwrap());
+    // Any other token opens no account here, so nothing vouches for the key.
+    assert!(key_matches_sign_in(&client, &server.uri(), "other", KEY).is_err());
+}
+
+#[test]
+fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
+    assert_eq!(
+        authorize_params(Some((("linux", Some("wsl")), "npx"))),
+        [
+            ("key_handoff", "clipboard"),
+            ("cli_os", "linux"),
+            ("cli_env", "wsl"),
+            ("cli_install", "npx")
+        ]
+    );
+    assert_eq!(
+        authorize_params(Some((("windows", None), "scoop"))),
+        [
+            ("key_handoff", "clipboard"),
+            ("cli_os", "windows"),
+            ("cli_install", "scoop")
+        ]
+    );
+}
+
+#[test]
+fn with_telemetry_off_the_approval_link_only_asks_for_a_key() {
+    assert_eq!(authorize_params(None), [("key_handoff", "clipboard")]);
 }

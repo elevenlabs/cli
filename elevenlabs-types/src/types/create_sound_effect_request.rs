@@ -7,7 +7,7 @@ pub struct CreateSoundEffectRequest {
     /// The text that will get converted into a sound effect.
     #[serde(default)]
     pub text: String,
-    /// Whether to create a sound effect that loops smoothly. Only available for the 'eleven_text_to_sound_v2 model'.
+    /// Whether to create a sound effect that loops smoothly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#loop: Option<bool>,
     /// The duration of the sound which will be generated in seconds. Must be at least 0.5 and at most 30. If set to None we will guess the optimal duration using the prompt. Defaults to None.

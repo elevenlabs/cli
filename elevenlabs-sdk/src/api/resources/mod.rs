@@ -12,14 +12,14 @@
 //! - **SpeechToSpeech**
 //! - **TextToVoice**
 //! - **User**
-//! - **Voices**
+//! - **Access to voices created either by you or ElevenLabs.**
 //! - **Access, create and convert Studio Projects programmatically.**
 //! - **Dub audio and video content into other languages while preserving the original speaker's voice.**
 //! - **Access the different models of the platform.**
 //! - **AudioNative**
 //! - **Usage**
 //! - **PronunciationDictionaries**
-//! - **Workspace**
+//! - **workspace**
 //! - **ServiceAccounts**
 //! - **Webhooks**
 //! - **Music**

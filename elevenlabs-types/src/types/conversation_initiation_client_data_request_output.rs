@@ -25,6 +25,9 @@ pub struct ConversationInitiationClientDataRequestOutput {
     /// If set, only these procedures are available to the starting agent. Each ID must be attached to that agent; unknown IDs fail conversation start. An empty list disables all of that agent's procedures. Not applied after an agent transfer. Requires enable_procedure_ids_from_client.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub procedure_ids: Option<Vec<String>>,
+    /// If set, these free-form procedures start when the conversation starts. Accepts at most five IDs. Each ID must be available after procedure_ids is applied. Unknown IDs and structured procedures fail conversation start. Requires enable_procedure_ids_from_client.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_procedure_ids: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic_variables: Option<HashMap<String, serde_json::Value>>,
 }
@@ -46,6 +49,7 @@ pub struct ConversationInitiationClientDataRequestOutputBuilder {
     environment: Option<String>,
     starting_workflow_node_id: Option<String>,
     procedure_ids: Option<Vec<String>>,
+    start_procedure_ids: Option<Vec<String>>,
     dynamic_variables: Option<HashMap<String, serde_json::Value>>,
 }
 
@@ -90,6 +94,11 @@ impl ConversationInitiationClientDataRequestOutputBuilder {
         self
     }
 
+    pub fn start_procedure_ids(mut self, value: Vec<String>) -> Self {
+        self.start_procedure_ids = Some(value);
+        self
+    }
+
     pub fn dynamic_variables(mut self, value: HashMap<String, serde_json::Value>) -> Self {
         self.dynamic_variables = Some(value);
         self
@@ -106,6 +115,7 @@ impl ConversationInitiationClientDataRequestOutputBuilder {
             environment: self.environment,
             starting_workflow_node_id: self.starting_workflow_node_id,
             procedure_ids: self.procedure_ids,
+            start_procedure_ids: self.start_procedure_ids,
             dynamic_variables: self.dynamic_variables,
         })
     }
