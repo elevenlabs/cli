@@ -45,6 +45,9 @@ struct CliCommand {
     path: Vec<String>,
     cmd: clap::Command,
     handler: CliCommandHandler,
+    /// Set by [`CliApp::ignores_format`]: `(noun, verb)` for the warning
+    /// dispatch prints when `--format` is passed to this command.
+    format_ignored: Option<(String, String)>,
 }
 
 /// Outcome of the dispatch pipeline — separates success from
@@ -316,6 +319,7 @@ impl CliApp {
             path: Vec::new(),
             cmd,
             handler,
+            format_ignored: None,
         });
         self
     }
@@ -401,6 +405,7 @@ impl CliApp {
             path: Vec::new(),
             cmd: augmented,
             handler: erased,
+            format_ignored: None,
         });
         self
     }
@@ -431,6 +436,7 @@ impl CliApp {
             path: path.iter().map(|s| s.to_string()).collect(),
             cmd,
             handler,
+            format_ignored: None,
         });
         self
     }
@@ -489,7 +495,32 @@ impl CliApp {
             path: path.iter().map(|s| s.to_string()).collect(),
             cmd: augmented,
             handler: erased,
+            format_ignored: None,
         });
+        self
+    }
+
+    /// Declare that the custom command at `path` (parent path plus its own
+    /// name) does not print an API response, so the global `--format` flag
+    /// has no effect on it. Dispatch then warns on stderr when `--format` is
+    /// passed: "... <noun> are always <verb> as JSON."
+    ///
+    /// ```rust,ignore
+    /// app.ignores_format(&["agents", "pull"], "agent configs", "written")
+    /// ```
+    pub fn ignores_format(mut self, path: &[&str], noun: &str, verb: &str) -> Self {
+        let cc = self
+            .cli_commands
+            .iter_mut()
+            .find(|cc| {
+                cc.path
+                    .iter()
+                    .map(String::as_str)
+                    .chain([cc.cmd.get_name()])
+                    .eq(path.iter().copied())
+            })
+            .unwrap_or_else(|| panic!("ignores_format: no custom command at `{}`", path.join(" ")));
+        cc.format_ignored = Some((noun.to_string(), verb.to_string()));
         self
     }
 
@@ -1127,6 +1158,25 @@ impl CliApp {
             if let Some(target) = crate::custom_commands::walk_matches_to_custom(
                 &matches, &cc.path, cc.cmd.get_name(),
             ) {
+                if let Some((noun, verb)) = &cc.format_ignored {
+                    if target
+                        .try_get_one::<String>("format")
+                        .ok()
+                        .flatten()
+                        .is_some()
+                    {
+                        let command: Vec<&str> = cc
+                            .path
+                            .iter()
+                            .map(String::as_str)
+                            .chain([cc.cmd.get_name()])
+                            .collect();
+                        eprintln!(
+                            "--format controls how API responses are printed and has no effect on {}; {noun} are always {verb} as JSON.",
+                            command.join(" "),
+                        );
+                    }
+                }
                 // Collect contexts from ALL bindings so the handler can
                 // invoke operations from any binding transparently.
                 let mut ctx: Option<Box<dyn Any + Send + Sync>> = None;

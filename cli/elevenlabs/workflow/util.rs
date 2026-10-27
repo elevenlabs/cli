@@ -22,28 +22,6 @@ pub fn dry_run_flag(matches: &clap::ArgMatches) -> bool {
         .unwrap_or(false)
 }
 
-/// Read the framework's global `--format` flag (declared `global(true)`),
-/// returning the requested format when passed.
-pub fn format_flag(matches: &clap::ArgMatches) -> Option<String> {
-    matches
-        .try_get_one::<String>("format")
-        .ok()
-        .flatten()
-        .cloned()
-}
-
-/// Warn when `--format` is passed to a command that writes local files
-/// instead of printing an API response. `--format` is a global flag, so clap
-/// still accepts it on those commands; warn on stderr and continue rather
-/// than fail.
-pub fn warn_format_ignored(matches: &clap::ArgMatches, command: &str) {
-    if format_flag(matches).is_some() {
-        eprintln!(
-            "--format controls how API responses are printed and has no effect on {command}; agent configs are always written as JSON."
-        );
-    }
-}
-
 /// Read an optional string argument.
 pub fn opt_string(matches: &clap::ArgMatches, id: &str) -> Option<String> {
     matches.get_one::<String>(id).cloned()
@@ -83,7 +61,6 @@ mod tests {
                     .long("dry-run")
                     .action(clap::ArgAction::SetTrue),
             )
-            .arg(clap::Arg::new("format").long("format").global(true))
             .arg(clap::Arg::new("agent").long("agent"))
             .get_matches_from(args)
     }
@@ -99,27 +76,6 @@ mod tests {
         // Commands that never declare the flag must not panic.
         let m = clap::Command::new("test").get_matches_from(["test"]);
         assert!(!dry_run_flag(&m));
-    }
-
-    #[test]
-    fn format_flag_reads_the_global_flag() {
-        assert_eq!(
-            format_flag(&matches_from(&["test", "--format", "yaml"])),
-            Some("yaml".to_string())
-        );
-        assert_eq!(format_flag(&matches_from(&["test"])), None);
-    }
-
-    #[test]
-    fn format_flag_reads_the_flag_before_the_subcommand() {
-        // `--format` is global, so a value placed before the subcommand still
-        // lands in the subcommand's matches — which is what a handler reads.
-        let m = clap::Command::new("test")
-            .arg(clap::Arg::new("format").long("format").global(true))
-            .subcommand(clap::Command::new("pull"))
-            .get_matches_from(["test", "--format", "yaml", "pull"]);
-        let sub = m.subcommand_matches("pull").unwrap();
-        assert_eq!(format_flag(&sub), Some("yaml".to_string()));
     }
 
     #[test]
