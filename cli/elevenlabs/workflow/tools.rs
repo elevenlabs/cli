@@ -35,6 +35,9 @@ pub fn register(app: CliApp) -> CliApp {
         pull_command(),
         Box::new(|matches, ctx| handle_pull(matches, downcast_ctx(ctx)?)),
     )
+    // Push and pull read and write local JSON files, not printed responses.
+    .ignores_format(&["tools", "push"], "tool configs", "read")
+    .ignores_format(&["tools", "pull"], "tool configs", "written")
 }
 
 // ── shared helpers ──────────────────────────────────────────────────

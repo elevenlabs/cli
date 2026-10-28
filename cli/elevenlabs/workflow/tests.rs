@@ -36,6 +36,9 @@ pub fn register(app: CliApp) -> CliApp {
         pull_command(),
         Box::new(|matches, ctx| handle_pull(matches, downcast_ctx(ctx)?)),
     )
+    // Push and pull read and write local JSON files, not printed responses.
+    .ignores_format(&["tests", "push"], "test configs", "read")
+    .ignores_format(&["tests", "pull"], "test configs", "written")
     .command_under_typed_with(
         &["tests", "templates"],
         clap::Command::new("list").about("List available test templates"),

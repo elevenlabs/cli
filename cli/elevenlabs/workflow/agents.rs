@@ -48,6 +48,9 @@ pub fn register(app: CliApp) -> CliApp {
         pull_command(),
         Box::new(|matches, ctx| handle_pull(matches, downcast_ctx(ctx)?)),
     )
+    // Push and pull read and write local JSON files, not printed responses.
+    .ignores_format(&["agents", "push"], "agent configs", "read")
+    .ignores_format(&["agents", "pull"], "agent configs", "written")
     // Nested under the generated `agents widget` subgroup rather than
     // replacing it: `widget get` (config) and `widget avatar` are API
     // commands, and a custom leaf named `widget` would shadow the whole group.
