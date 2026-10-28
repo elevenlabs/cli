@@ -7338,75 +7338,6 @@ patches:
         tokio = { version = "1", features = ["full"] }
     user_owned: true
     status: unresolved
-  - id: patch-3324bcc8
-    content_hash: sha256:5b706a9be215c490d56de74d7e44ac7051685d909e2e9cbdd5ff378df54bc43c
-    original_commit: 3324bcc8a81566c3164c58a1f4b2b626ac9f8906
-    original_message: "build: publish prereleases to homebrew and scoop"
-    original_author: Paul Asjes <paul.asjes@elevenlabs.io>
-    base_generation: 07f84712469133172a0365b22a9ae9fb6c7bcd51
-    files:
-      - dist-workspace.toml
-    patch_content: |
-      diff --git a/dist-workspace.toml b/dist-workspace.toml
-      index 2c57c25..bcf57ff 100644
-      --- a/dist-workspace.toml
-      +++ b/dist-workspace.toml
-      @@ -22,6 +22,10 @@ targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "aarch64-unknown
-       pr-run-mode = "plan"
-       # Publish jobs to run (npm publishing deferred until pipeline is validated)
-       publish-jobs = ["homebrew"]
-      +# Alpha testers install via brew/scoop before public launch, so prereleases
-      +# must actually publish. A tap/bucket has no prerelease channel: whatever is
-      +# published is what `brew install` serves.
-      +publish-prereleases = true
-       # Don't overwrite release.yml on `dist init` (preserves customizations)
-       allow-dirty = ["ci"]
-       # The archive format to use for windows builds (defaults .zip)
-    theirs_snapshot:
-      dist-workspace.toml: |
-        [workspace]
-        members = ["cargo:.", "cargo:elevenlabs-types", "cargo:elevenlabs-sdk"]
-
-        # Config for 'dist'
-        [dist]
-        # The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-        cargo-dist-version = "0.31.0"
-        # CI backends to support
-        ci = "github"
-        # Build each app with `cargo build --package` instead of a workspace-wide
-        # build. Without this, cargo-dist also compiles the non-distributed root
-        # crate, whose default features pull in native-tls/OpenSSL and break the
-        # musl builds.
-        precise-builds = true
-        # The installers to generate for each app
-        installers = ["shell", "powershell", "homebrew"]
-        # Whether to enable GitHub Attestations
-        github-attestations = true
-        # Target platforms to build apps for (Rust target-triple syntax)
-        targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "aarch64-unknown-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
-        # Which actions to run on pull requests
-        pr-run-mode = "plan"
-        # Publish jobs to run (npm publishing deferred until pipeline is validated)
-        publish-jobs = ["homebrew"]
-        # Alpha testers install via brew/scoop before public launch, so prereleases
-        # must actually publish. A tap/bucket has no prerelease channel: whatever is
-        # published is what `brew install` serves.
-        publish-prereleases = true
-        # Don't overwrite release.yml on `dist init` (preserves customizations)
-        allow-dirty = ["ci"]
-        # The archive format to use for windows builds (defaults .zip)
-        windows-archive = ".zip"
-        # The archive format to use for non-windows builds (defaults .tar.xz)
-        unix-archive = ".tar.gz"
-        # Path that installers should place binaries in
-        install-path = "CARGO_HOME"
-        # Whether to install an updater program
-        install-updater = false
-        default-features = false
-        features = ["rustls"]
-        tap = "elevenlabs/homebrew-tap"
-        formula = "elevenlabs"
-    user_owned: true
   - id: patch-composite-7dd8e976
     content_hash: sha256:727bf425270c370d4b055f6b8a2bb082f18bb82cf149017e372817f2c34baee7
     original_commit: 7dd8e9767ea722f56c08748ae23ec9028cbf850d
@@ -56043,3 +55974,15 @@ patches:
         wiremock = "0.6"
         tokio = { version = "1", features = ["full"] }
     status: unresolved
+dismissals:
+  - patch_id: patch-3324bcc8
+    original_commit: 3324bcc8a81566c3164c58a1f4b2b626ac9f8906
+    original_message: "build: publish prereleases to homebrew and scoop"
+    content_hashes:
+      - sha256:5b706a9be215c490d56de74d7e44ac7051685d909e2e9cbdd5ff378df54bc43c
+      - sha256:e995852aa205c0fd216e69c051690a03968e8f8908c153523e822b2d9e046732
+    dismissed_at: 2026-10-28T09:44:19.526Z
+    via: forget
+forgotten_hashes:
+  - sha256:5b706a9be215c490d56de74d7e44ac7051685d909e2e9cbdd5ff378df54bc43c
+  - sha256:e995852aa205c0fd216e69c051690a03968e8f8908c153523e822b2d9e046732
