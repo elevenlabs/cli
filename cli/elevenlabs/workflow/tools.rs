@@ -48,12 +48,6 @@ fn require_tools() -> Result<project::ToolsConfig, CliError> {
     project::load_tools()
 }
 
-fn tool_name_from_config(config_path: &str) -> Option<String> {
-    project::read_value_in_project(config_path)
-        .ok()
-        .and_then(|v| v.get("name").and_then(Value::as_str).map(String::from))
-}
-
 /// Extract a tool id from a create/get/list item, tolerating `id`,
 /// `tool_id`, and `toolId` spellings.
 fn tool_id_of(value: &Value) -> Option<String> {
@@ -200,7 +194,7 @@ fn handle_delete(args: DeleteArgs, ctx: &AppContext) -> Result<(), CliError> {
         }
         println!("\nFound {} tool(s) to delete:", registry.tools.len());
         for (i, tool) in registry.tools.iter().enumerate() {
-            let name = tool_name_from_config(&tool.config)
+            let name = project::config_name(&tool.config)
                 .or_else(|| tool.id.clone())
                 .unwrap_or_else(|| "Unknown".to_string());
             println!(
@@ -220,7 +214,7 @@ fn handle_delete(args: DeleteArgs, ctx: &AppContext) -> Result<(), CliError> {
         }
         println!("\nDeleting tools...\n");
         for tool in &registry.tools {
-            let name = tool_name_from_config(&tool.config)
+            let name = project::config_name(&tool.config)
                 .or_else(|| tool.id.clone())
                 .unwrap_or_else(|| "Unknown".to_string());
             println!(
@@ -258,7 +252,7 @@ fn handle_delete(args: DeleteArgs, ctx: &AppContext) -> Result<(), CliError> {
             ))
         })?;
     let removed = registry.tools.remove(index);
-    let name = tool_name_from_config(&removed.config).unwrap_or_else(|| tool_id.clone());
+    let name = project::config_name(&removed.config).unwrap_or_else(|| tool_id.clone());
 
     println!("Deleting tool '{name}' (ID: {tool_id})...");
     println!("Deleting from ElevenLabs...");

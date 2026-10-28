@@ -212,6 +212,10 @@ elevenlabs agents test <agent_id>
 
 # Draw an agent's workflow in the terminal, or print it as Mermaid (local files only, no API key)
 elevenlabs agents workflow diagram <config-path|agent_id|name> [--format ascii|mermaid|mermaid-md]
+
+# Show how agents connect to tools, tests, documents and each other (local files only)
+elevenlabs agents graph [config-path|agent_id|name] [--format ascii|mermaid|mermaid-md]
+elevenlabs agents graph --uses <id|name>
 ```
 
 ### Two surfaces in one namespace
@@ -220,7 +224,7 @@ elevenlabs agents workflow diagram <config-path|agent_id|name> [--format ascii|m
 
 | | Workflow commands | API commands |
 |---|---|---|
-| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed`, `workflow diagram` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
+| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed`, `workflow diagram`, `graph` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
 | **Operates on** | Your local project files, syncing them with ElevenLabs | The API directly — one command, one request |
 | **Arguments** | Positional, e.g. `agents test <agent_id>` | Flags, e.g. `agents get --agent-id <id>` |
 | **Output** | Progress text | The API response (`--format json\|table\|yaml\|csv`) |
@@ -308,6 +312,56 @@ flowchart TD
     n_lookup -->|"failure"| n_apologize
     n_lookup -->|"success"| n_done
     n_start_node -->|"The caller has given an order number"| n_lookup
+```
+
+### Mapping a project
+
+Agent configs refer to tools, tests, knowledge-base documents and other agents by ID. `agents graph` follows those references across every agent in `agents.json` (branches included) and resolves them against `tools.json`, `tests.json` and `agents.json`, so you can see what connects to what, and what a change affects.
+
+```bash
+# Every agent, one drawing each, in the terminal
+elevenlabs agents graph
+
+# One agent: everything it uses, and every agent that hands off to it
+elevenlabs agents graph Billing
+
+# The whole project as one Mermaid graph, for docs or a PR comment
+elevenlabs agents graph --format mermaid-md
+
+# Which agents use this tool (or test, agent or document)? An ID, or a tool's or test's name
+elevenlabs agents graph --uses tool_refund
+```
+
+It follows:
+- tools in `prompt.tool_ids`, workflow tool nodes and `additional_tool_ids`
+- agent handoffs in the `transfer_to_agent` tool and workflow `standalone_agent` nodes (thick arrows); a handoff to a registered branch points at that branch
+- tests in `platform_settings.testing.attached_tests`
+- knowledge-base documents in `prompt.knowledge_base` and `additional_knowledge_base`, shown by the name the config gives them, since there's no local registry for documents
+
+References inside a workflow node's prompt override count too. An ID that isn't in the project, such as a tool made in the dashboard or a handoff to an agent outside the repo, is shown as external rather than dropped.
+
+In the terminal, each agent is drawn on its own, as a card with a count of each kind of connection, and what surrounds it grouped into one box per kind: the agents that hand off to it on the left, and on the right the agents it hands off to, its tools, its tests and its documents. Handoffs are the thick arrows, and the boxes are ordered so no two lines cross. If the drawing is wider than the terminal (or `COLUMNS`, when set), long IDs are shortened to their start and end, as in `tool_01jx…sfb67`. `--format mermaid` draws the whole project as one graph instead, with a node for every resource.
+
+```
+                                                              ┌──────────────┐
+                                                              ║  Tools (1)   ║
+                                                              ║ issue_refund ║
+                                 ┌──────────────────┐────────►└──────────────┘
+┌─────────────────────────┐      │      Agent       │
+│   Handed off from (2)   │      │     Billing      │
+│         Support         │━━━━━►│ 2 hand off to it │
+│ Support (branch 'beta') │      │      1 tool      │
+└─────────────────────────┘      │    1 document    │    ┌────►┌───────────────┐
+                                 └──────────────────┘────┘     ( Documents (1) )
+                                                               (  Pricing FAQ  )
+                                                               └───────────────┘
+```
+
+`--uses` prints one line per reference, tab-separated: the agent's ID, its name, and where the reference is. That makes it easy to script, for example to check which agents a changed tool config affects:
+
+```
+agent_billing	Billing	prompt.tool_ids
+agent_support	Support (branch 'beta')	workflow node 'refunds'
 ```
 
 ### Tools

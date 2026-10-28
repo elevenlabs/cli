@@ -17,7 +17,6 @@
 //! diagram only changes when the workflow does.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::IsTerminal;
 use std::path::Path;
 
 use fern_cli_sdk::app::CliApp;
@@ -25,7 +24,12 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
 
-use super::agents::{agent_display_name, find_agent, require_agents};
+use super::agents::{config_entries, find_agent, require_agents, AgentConfigEntry};
+use super::mermaid::{
+    abbreviate, comment_safe, draw_text, fence, node_line, push_classes, quote, str_field, tangles,
+    terminal_width, text_width, truncate, use_color, Format, MermaidIds, NodeLabel, Style, Target,
+    EDGE_LABEL_MAX, NODE_LABEL_MAX, SHORT_ID_MIN,
+};
 use super::{api, project};
 
 /// Register the `agents workflow` command group.
@@ -53,16 +57,6 @@ struct DiagramArgs {
     format: Format,
 }
 
-#[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
-enum Format {
-    /// Boxes and arrows drawn with box-drawing characters.
-    Ascii,
-    /// Mermaid source, which GitHub and most docs tools render.
-    Mermaid,
-    /// Mermaid source in a ```mermaid fence.
-    MermaidMd,
-}
-
 fn handle_diagram(args: DiagramArgs, _ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("agents.workflow.diagram");
     let Some(target) = &args.target else {
@@ -71,7 +65,7 @@ fn handle_diagram(args: DiagramArgs, _ctx: &AppContext) -> Result<(), CliError> 
     let workflow = load_one(target)?;
     match args.format {
         Format::Ascii => {
-            let color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
+            let color = use_color();
             print!(
                 "{}",
                 render_terminal(&workflow.workflow, color, terminal_width())?
@@ -84,7 +78,7 @@ fn handle_diagram(args: DiagramArgs, _ctx: &AppContext) -> Result<(), CliError> 
 }
 
 fn diagram_all(format: Format) -> Result<(), CliError> {
-    let color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
+    let color = use_color();
     let width = terminal_width();
     for (i, workflow) in load_all()?.iter().enumerate() {
         if i > 0 {
@@ -161,18 +155,11 @@ fn load_one(target: &str) -> Result<LoadedWorkflow, CliError> {
 /// skipping, with a note on stderr, configs that are unreadable or have none.
 fn load_all() -> Result<Vec<LoadedWorkflow>, CliError> {
     let registry = require_agents()?;
-    // agents.json order, then each agent's branches by name: both stable.
-    let mut entries: Vec<(String, String)> = Vec::new();
-    for agent in &registry.agents {
-        let name = agent_display_name(&agent.config);
-        entries.push((name.clone(), agent.config.clone()));
-        for (branch, def) in agent.branches.iter().flatten() {
-            entries.push((format!("{name} (branch '{branch}')"), def.config.clone()));
-        }
-    }
-
     let mut loaded = Vec::new();
-    for (title, config_path) in entries {
+    for AgentConfigEntry {
+        title, config_path, ..
+    } in config_entries(&registry)
+    {
         let config = match project::read_value_in_project(&config_path) {
             Ok(v) => v,
             Err(e) => {
@@ -206,32 +193,7 @@ fn workflow_of(config: &Value) -> Option<&Value> {
     has_nodes.then_some(workflow)
 }
 
-fn fence(diagram: &str) -> String {
-    format!("```mermaid\n{diagram}```\n")
-}
-
 // ── Rendering ───────────────────────────────────────────────────────
-
-/// Longest node label, in characters, before it is cut with an ellipsis.
-const NODE_LABEL_MAX: usize = 60;
-/// Longest edge label. LLM conditions are full sentences; the diagram only
-/// needs enough to tell edges apart.
-const EDGE_LABEL_MAX: usize = 40;
-/// Line width node labels are wrapped to in the terminal. Side-by-side nodes
-/// are what make a diagram wide, so they are kept narrow.
-const TERMINAL_WRAP: usize = 24;
-
-/// Who the Mermaid source is for.
-#[derive(Clone, Copy, PartialEq)]
-enum Target {
-    /// mermaid.js (GitHub, docs): one-line labels, entity-escaped, with edge
-    /// conditions inline.
-    Export,
-    /// mmdflux, drawing in a terminal: plain-text labels wrapped onto lines,
-    /// and edge conditions replaced by numbered keys explained in a legend.
-    /// Inline conditions are what make a terminal diagram too wide to read.
-    Terminal,
-}
 
 /// Mermaid source, plus the legend lines for [`Target::Terminal`].
 struct Built {
@@ -258,14 +220,6 @@ struct Layout {
     min_width: BTreeMap<String, usize>,
 }
 
-/// How each node type is drawn: Mermaid shape delimiters and its class.
-/// Class names are prefixed because `end` is a Mermaid keyword.
-struct Style {
-    open: &'static str,
-    close: &'static str,
-    class: &'static str,
-}
-
 fn style_for(node_type: &str, target: Target) -> Style {
     let (open, close, class) = match node_type {
         "start" => ("([", "])", "t_start"),
@@ -282,24 +236,6 @@ fn style_for(node_type: &str, target: Target) -> Style {
     };
     Style { open, close, class }
 }
-
-/// `classDef` lines in emission order. Light fills with dark text read on
-/// both GitHub's light and dark themes.
-const CLASS_DEFS: &[(&str, &str)] = &[
-    ("t_start", "fill:#d1fae5,stroke:#059669,color:#064e3b"),
-    ("t_end", "fill:#fee2e2,stroke:#dc2626,color:#7f1d1d"),
-    ("t_say", "fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e"),
-    ("t_tool", "fill:#fef3c7,stroke:#d97706,color:#78350f"),
-    ("t_state", "fill:#ede9fe,stroke:#7c3aed,color:#4c1d95"),
-    ("t_subagent", "fill:#f1f5f9,stroke:#475569,color:#0f172a"),
-    ("t_transfer", "fill:#fce7f3,stroke:#db2777,color:#831843"),
-    (
-        "t_unknown",
-        "fill:#f3f4f6,stroke:#6b7280,stroke-dasharray:4 2,color:#111827",
-    ),
-    // Terminal only: the numbered condition keys.
-    ("t_key", "fill:#f3f4f6,stroke:#6b7280,color:#111827"),
-];
 
 /// Render a workflow (`{"nodes": {...}, "edges": {...}}`) as a Mermaid
 /// flowchart. Always ends with a newline.
@@ -330,9 +266,6 @@ fn render_terminal(
     }
     if color {
         out = draw(&built.source, true)?;
-    }
-    if !out.ends_with('\n') {
-        out.push('\n');
     }
     if !built.legend.is_empty() {
         out.push('\n');
@@ -435,51 +368,13 @@ fn permutations(n: usize) -> Vec<Vec<usize>> {
     all
 }
 
-/// Characters where lines cross (`┼`), or meet and share a stretch (`├`,
-/// `┬`, ...). Boxes never use them, so each one is a tangle a reader has to
-/// unpick to see what connects to what.
-const TANGLES: &[char] = &[
-    '┼', '╋', '╂', '┿', '╪', '╫', '╬', '├', '┤', '┬', '┴', '┣', '┫', '┳', '┻', '┠', '┨', '┯', '┷',
-    '┝', '┥', '┰', '┸',
-];
-
-fn tangles(text: &str) -> usize {
-    text.chars().filter(|c| TANGLES.contains(c)).count()
-}
-
 /// Mermaid source drawn as box-drawing text by mmdflux.
 fn draw(source: &str, color: bool) -> Result<String, CliError> {
-    let mut config = mmdflux::RenderConfig::default();
-    if color {
-        config.text_color_mode = mmdflux::TextColorMode::Ansi;
-    }
-    mmdflux::render_diagram(source, mmdflux::OutputFormat::Text, &config).map_err(|e| {
-        CliError::Other(anyhow::anyhow!(
-            "Could not draw this workflow in the terminal ({e}). \
-             'elevenlabs agents workflow diagram --format mermaid' prints it as Mermaid instead."
-        ))
-    })
-}
-
-fn text_width(text: &str) -> usize {
-    text.lines().map(|l| l.chars().count()).max().unwrap_or(0)
-}
-
-/// The width to fit drawings to: `COLUMNS` when set (so scripts and CI can
-/// ask for a width), otherwise the terminal's when stdout is one. `None`
-/// means draw at full size.
-fn terminal_width() -> Option<usize> {
-    if let Some(columns) = std::env::var("COLUMNS")
-        .ok()
-        .and_then(|c| c.parse().ok())
-        .filter(|c| *c > 0)
-    {
-        return Some(columns);
-    }
-    if !std::io::stdout().is_terminal() {
-        return None;
-    }
-    terminal_size::terminal_size_of(std::io::stdout()).map(|(w, _)| w.0 as usize)
+    draw_text(
+        source,
+        color,
+        "elevenlabs agents workflow diagram --format mermaid",
+    )
 }
 
 fn build(workflow: &Value, target: Target, layout: &Layout) -> Built {
@@ -644,14 +539,7 @@ fn build(workflow: &Value, target: Target, layout: &Layout) -> Built {
         classes.insert("t_key", keys);
     }
 
-    for (class, style) in CLASS_DEFS {
-        if let Some(members) = classes.get(class) {
-            out.push_str(&format!("    classDef {class} {style}\n"));
-            let mut members = members.clone();
-            members.sort_unstable();
-            out.push_str(&format!("    class {} {class}\n", members.join(",")));
-        }
-    }
+    push_classes(&mut out, &classes);
     Built {
         source: out,
         legend,
@@ -758,10 +646,6 @@ fn one_line(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Longest word kept whole by [`shorten_ids`]. Names are shorter; IDs such
-/// as `tool_01jxcrhpk0ehdvnxw3mw4sfb67` are longer.
-const SHORT_ID_MIN: usize = 16;
-
 /// `text` with every ID-like word longer than [`SHORT_ID_MIN`] cut to its
 /// start and end, `tool_01j…sfb67`, for a terminal too narrow for the drawing.
 /// Brackets and commas around a word are kept.
@@ -774,9 +658,7 @@ fn shorten_ids(text: &str) -> String {
             if !id_like || chars.len() <= SHORT_ID_MIN {
                 return word.to_string();
             }
-            let head: String = chars[..8].iter().collect();
-            let tail: String = chars[chars.len() - 5..].iter().collect();
-            word.replacen(core, &format!("{head}…{tail}"), 1)
+            word.replacen(core, &abbreviate(&chars, 8, 5), 1)
         })
         .collect::<Vec<_>>()
         .join(" ")
@@ -817,51 +699,6 @@ fn flow_order<'a>(
         (source.copied().unwrap_or(usize::MAX), *id)
     });
     ordered.into_iter().map(|(_, edge)| edge).collect()
-}
-
-/// One node's line: `id`, then `label` (already quoted) inside the shape's
-/// delimiters.
-///
-/// mmdflux ends a round `( )` node at the first `)`, even inside the quoted
-/// label, and then fails to parse the rest ("Say · Confirm (booking)"). Other
-/// shapes are unaffected, and so is mermaid.js. So in the terminal, a round
-/// node's brackets become same-width lookalikes.
-fn node_line(id: &str, open: &str, label: &str, close: &str, target: Target) -> String {
-    let label = if target == Target::Terminal && open == "(" {
-        label.replace('(', "❨").replace(')', "❩")
-    } else {
-        label.to_string()
-    };
-    format!("    {id}{open}{label}{close}\n")
-}
-
-/// A node's label: the kind of node (absent for start/end, which say it
-/// themselves) and the text that identifies this one.
-struct NodeLabel {
-    kind: Option<String>,
-    text: String,
-}
-
-impl NodeLabel {
-    /// The quoted label for `target`. Export puts it on one line, `kind ·
-    /// text`; the terminal stacks the kind over the text, wrapped narrow.
-    fn render(&self, target: Target) -> String {
-        match target {
-            Target::Export => {
-                let line = match &self.kind {
-                    Some(kind) => format!("{kind} · {}", self.text),
-                    None => self.text.clone(),
-                };
-                quote(&truncate(&line, NODE_LABEL_MAX))
-            }
-            Target::Terminal => {
-                let mut lines: Vec<String> = self.kind.iter().cloned().collect();
-                lines.extend(wrap(&truncate(&self.text, NODE_LABEL_MAX), TERMINAL_WRAP));
-                let lines: Vec<String> = lines.iter().map(|l| plain(l)).collect();
-                format!("\"{}\"", lines.join("<br/>"))
-            }
-        }
-    }
 }
 
 /// A node's label: its own `label` when it has one, otherwise a summary
@@ -948,120 +785,6 @@ fn condition_label(cond: &Value) -> Option<String> {
         Some("expression") => Some("expression".to_string()),
         Some("unconditional") | None => None,
         Some(other) => Some(other.to_string()),
-    }
-}
-
-fn str_field<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
-    value.get(key).and_then(Value::as_str)
-}
-
-/// Collapse whitespace and cut to `max` characters, ending in `…` when cut.
-fn truncate(text: &str, max: usize) -> String {
-    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    if collapsed.chars().count() <= max {
-        return collapsed;
-    }
-    let cut: String = collapsed.chars().take(max - 1).collect();
-    format!("{}…", cut.trim_end())
-}
-
-/// Quote label text for Mermaid, entity-encoding everything that would end
-/// the string or be read as syntax. `#` goes first: it starts every entity.
-fn quote(text: &str) -> String {
-    let mut out = String::with_capacity(text.len() + 2);
-    out.push('"');
-    for c in text.chars() {
-        match c {
-            '#' => out.push_str("#35;"),
-            '"' => out.push_str("#quot;"),
-            '<' => out.push_str("#lt;"),
-            '>' => out.push_str("#gt;"),
-            '|' => out.push_str("#124;"),
-            '`' => out.push_str("#96;"),
-            '\n' | '\r' => out.push(' '),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
-}
-
-/// Label text for mmdflux, which prints quoted text literally but does not
-/// decode Mermaid's `#…;` entities. Only a quote (ends the string) and angle
-/// brackets (read as tags, like the `<br/>` that wraps lines) need replacing,
-/// and lookalikes keep the text readable.
-fn plain(text: &str) -> String {
-    text.chars()
-        .map(|c| match c {
-            '"' => '\'',
-            '<' => '‹',
-            '>' => '›',
-            '\n' | '\r' => ' ',
-            c => c,
-        })
-        .collect()
-}
-
-/// Greedy word wrap to `width` characters. A word longer than the width
-/// gets a line of its own rather than being split.
-fn wrap(text: &str, width: usize) -> Vec<String> {
-    let mut lines: Vec<String> = Vec::new();
-    let mut line = String::new();
-    for word in text.split_whitespace() {
-        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > width {
-            lines.push(std::mem::take(&mut line));
-        }
-        if !line.is_empty() {
-            line.push(' ');
-        }
-        line.push_str(word);
-    }
-    if !line.is_empty() {
-        lines.push(line);
-    }
-    lines
-}
-
-/// A node ID for a `%%` comment: one line, nothing else to escape.
-fn comment_safe(id: &str) -> String {
-    id.replace(['\n', '\r'], " ")
-}
-
-/// Mermaid-safe node IDs for workflow node IDs.
-///
-/// Workflow IDs are arbitrary strings; Mermaid IDs must be plain words and
-/// must not be keywords (`end`) or start with `o`/`x` right after a link
-/// (`A---oB` is a circle edge). Prefixing `n_` and replacing everything else
-/// with `_` covers all of it; a numeric suffix separates IDs that collapse to
-/// the same word. IDs are assigned in sorted order so they are stable.
-struct MermaidIds<'a> {
-    map: BTreeMap<&'a str, String>,
-}
-
-impl<'a> MermaidIds<'a> {
-    fn new(ids: impl Iterator<Item = &'a str>) -> Self {
-        let sorted: BTreeSet<&str> = ids.collect();
-        let mut map = BTreeMap::new();
-        let mut taken = BTreeSet::new();
-        for id in sorted {
-            let base: String = format!("n_{id}")
-                .chars()
-                .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-                .collect();
-            let mut candidate = base.clone();
-            let mut n = 2;
-            while !taken.insert(candidate.clone()) {
-                candidate = format!("{base}_{n}");
-                n += 1;
-            }
-            map.insert(id, candidate);
-        }
-        MermaidIds { map }
-    }
-
-    fn get(&self, id: &str) -> &str {
-        // Every id rendered was passed to `new`.
-        self.map.get(id).map(String::as_str).unwrap_or("n_")
     }
 }
 
@@ -1413,7 +1136,10 @@ mod tests {
         let workflow = workflow_of(&config).unwrap();
         for width in [None, Some(104)] {
             let drawn = render_terminal(workflow, false, width).expect("draws");
-            let tangled: Vec<char> = drawn.chars().filter(|c| TANGLES.contains(c)).collect();
+            let tangled: Vec<char> = drawn
+                .chars()
+                .filter(|c| super::super::mermaid::TANGLES.contains(c))
+                .collect();
             assert!(tangled.is_empty(), "{width:?}: {tangled:?}\n{drawn}");
             if let Some(width) = width {
                 assert!(text_width(&drawn) <= width, "{drawn}");
@@ -1481,16 +1207,6 @@ mod tests {
         render_terminal(&workflow, false, None).expect("draws");
         // mermaid.js handles brackets, so export keeps them.
         assert!(render_mermaid(&workflow).contains("Confirm (booking)"));
-    }
-
-    #[test]
-    fn wrap_keeps_long_words_whole() {
-        assert_eq!(wrap("a bb ccc", 4), ["a bb", "ccc"]);
-        assert_eq!(
-            wrap("system__is_text_only x", 8),
-            ["system__is_text_only", "x"]
-        );
-        assert!(wrap("   ", 8).is_empty());
     }
 
     /// Every fixture must draw: an mmdflux parse error would only show up as
