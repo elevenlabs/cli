@@ -209,6 +209,9 @@ elevenlabs agents widget embed <agent_id>
 
 # Run the tests attached to an agent (polls to completion; exits non-zero on failure)
 elevenlabs agents test <agent_id>
+
+# Draw an agent's workflow in the terminal, or print it as Mermaid (local files only, no API key)
+elevenlabs agents workflow diagram <config-path|agent_id|name> [--format ascii|mermaid|mermaid-md]
 ```
 
 ### Two surfaces in one namespace
@@ -217,7 +220,7 @@ elevenlabs agents test <agent_id>
 
 | | Workflow commands | API commands |
 |---|---|---|
-| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
+| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed`, `workflow diagram` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
 | **Operates on** | Your local project files, syncing them with ElevenLabs | The API directly — one command, one request |
 | **Arguments** | Positional, e.g. `agents test <agent_id>` | Flags, e.g. `agents get --agent-id <id>` |
 | **Output** | Progress text | The API response (`--format json\|table\|yaml\|csv`) |
@@ -228,6 +231,84 @@ The API commands own the primitive names, so the workflow only adds verbs the AP
 - **Deleting** — `agents delete --agent-id <id>` deletes remotely (API command). It does **not** remove the local config file or its `agents.json` entry; delete those yourself.
 
 > **Migrating from v0 (`@elevenlabs/cli`):** v0's `agents list` showed local config and `agents delete <id>` took a positional and cleaned up locally. In v1 both names belong to the API surface — use `agents status` for the local view, and `--agent-id` for delete. v0's `agents widget <id>` is now `agents widget embed <id>`, since `agents widget` is an API subgroup.
+
+### Visualizing workflows
+
+Workflows are stored as `workflow.nodes` / `workflow.edges` in the agent config, which is lossless but hard to read, and harder to review as a diff. `agents workflow diagram` turns one into a flowchart:
+
+```bash
+# Draw it in the terminal: a config file, or an id or name from agents.json
+elevenlabs agents workflow diagram Support
+elevenlabs agents workflow diagram agent_configs/support.json
+elevenlabs agents workflow diagram --all
+
+# Print it as Mermaid source, to save, or to paste into docs or a PR comment
+elevenlabs agents workflow diagram Support --format mermaid > docs/support-flow.mmd
+elevenlabs agents workflow diagram Support --format mermaid-md     # wrapped in a ```mermaid fence
+elevenlabs agents workflow diagram --all --format mermaid-md       # every agent and branch, one section each
+```
+
+It reads local files only: no API key, no network, so it also runs in CI on forks.
+
+The default format, `ascii`, draws boxes and arrows (in colour when stdout is a terminal and `NO_COLOR` is unset). To keep a workflow narrow enough to read, each edge condition is drawn as a numbered key on its edge and written out in full in a legend underneath:
+
+```
+         ╭───────╮
+         │ Start │
+         ╰───────╯
+             │
+             │
+             │
+             │
+           ╭───╮
+           │ 1 │
+           ╰───╯
+             │
+             │
+             ▼
+   ┌───────────────────┐
+   ║       Tool        ║
+   ║ tool_lookup_order ║
+   └───────────────────┘
+    │                 │
+    └───┐          ┌──┘
+        │          │
+        │          │
+    ╭───╮          ╭───╮
+    │ 2 │          │ 3 │
+    ╰───╯          ╰───╯
+      │              │
+      │              │
+      ▼              │
+╭───────────╮        ▼
+│    Say    │    ╭───────────────╮
+│ Apologize │    │ End (success) │
+╰───────────╯    ╰───────────────╯
+
+  1  The caller has given an order number
+  2  failure
+  3  success
+```
+
+A few things keep a busy workflow readable, so lines don't cross or run together:
+
+- A step back (a backward condition) ends in a stub, such as `6 ↩`. The legend says where it goes: `6  Changes topic (back to 'Ask for the order number')`.
+- An ending that several paths lead to (an end, or an agent or phone transfer) is drawn once for each path.
+- When a node's branches would still cross, its box is widened or the branches are reordered, whichever draws without crossings.
+- When the drawing is wider than the terminal (or `COLUMNS`), long IDs are shortened, as in `tool_01j…sfb67`. If it still doesn't fit, a note says so; `--format mermaid` has the full IDs.
+
+`--format mermaid` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
+
+```mermaid
+flowchart TD
+    n_apologize("Say · Apologize")
+    n_done(["End (success)"])
+    n_lookup[["Tool · tool_lookup_order"]]
+    n_start_node(["Start"])
+    n_lookup -->|"failure"| n_apologize
+    n_lookup -->|"success"| n_done
+    n_start_node -->|"The caller has given an order number"| n_lookup
+```
 
 ### Tools
 

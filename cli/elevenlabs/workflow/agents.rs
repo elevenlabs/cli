@@ -67,7 +67,7 @@ pub fn register(app: CliApp) -> CliApp {
 
 /// Load `agents.json`, erroring with v0's "run init first" hint when it
 /// is missing.
-fn require_agents() -> Result<project::AgentsConfig, CliError> {
+pub(super) fn require_agents() -> Result<project::AgentsConfig, CliError> {
     if !Path::new(project::AGENTS_FILE).exists() {
         return Err(CliError::Validation(
             "agents.json not found. Run 'elevenlabs agents init' first.".to_string(),
@@ -78,7 +78,7 @@ fn require_agents() -> Result<project::AgentsConfig, CliError> {
 
 /// Read an agent's display name from its config file. Ports v0's
 /// `getAgentName` (Unknown when unreadable, Unnamed when nameless).
-fn agent_display_name(config_path: &str) -> String {
+pub(super) fn agent_display_name(config_path: &str) -> String {
     match project::read_value_in_project(config_path) {
         Ok(value) => value
             .get("name")
@@ -87,6 +87,28 @@ fn agent_display_name(config_path: &str) -> String {
             .to_string(),
         Err(_) => "Unknown Agent".to_string(),
     }
+}
+
+/// Find an agent in `agents.json` by ID, falling back to the display name in
+/// its config file.
+///
+/// ID first so existing scripts keep resolving identically. `init`'s
+/// next-steps tell users to pass the name they just created, and an agent ID
+/// is not something anyone has to hand at that point.
+pub(super) fn find_agent<'a>(
+    config: &'a project::AgentsConfig,
+    key: &str,
+) -> Option<&'a project::AgentDefinition> {
+    config
+        .agents
+        .iter()
+        .find(|a| a.id.as_deref() == Some(key))
+        .or_else(|| {
+            config
+                .agents
+                .iter()
+                .find(|a| agent_display_name(&a.config) == key)
+        })
 }
 
 // ── init ────────────────────────────────────────────────────────────
@@ -453,26 +475,12 @@ struct TestArgs {
 fn handle_test(args: TestArgs, ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("agents.test");
     let config = require_agents()?;
-    // ID first so existing scripts keep resolving identically, then fall back
-    // to the display name in the config file. `init`'s next-steps tell users
-    // to pass the name they just created, and an agent ID is not something
-    // anyone has to hand at that point.
-    let agent = config
-        .agents
-        .iter()
-        .find(|a| a.id.as_deref() == Some(args.agent.as_str()))
-        .or_else(|| {
-            config
-                .agents
-                .iter()
-                .find(|a| agent_display_name(&a.config) == args.agent)
-        })
-        .ok_or_else(|| {
-            CliError::Validation(format!(
-                "No agent with ID or name '{}' in agents.json",
-                args.agent
-            ))
-        })?;
+    let agent = find_agent(&config, &args.agent).ok_or_else(|| {
+        CliError::Validation(format!(
+            "No agent with ID or name '{}' in agents.json",
+            args.agent
+        ))
+    })?;
 
     let config_path = Path::new(&agent.config);
     if !config_path.exists() {

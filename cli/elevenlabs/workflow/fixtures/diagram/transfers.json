@@ -1,0 +1,20 @@
+{
+  "name": "Front desk",
+  "workflow": {
+    "nodes": {
+      "start_node": { "type": "start" },
+      "triage": { "type": "override_agent", "label": "Triage" },
+      "billing": { "type": "standalone_agent", "agent_id": "agent_billing", "transfer_message": "Connecting you to billing." },
+      "billing_beta": { "type": "standalone_agent", "agent_id": "agent_billing", "branch_id": "agtbrch_beta" },
+      "human": { "type": "phone_number", "transfer_destination": { "type": "phone", "phone_number": "+15550100" }, "transfer_type": "conference" },
+      "sip": { "type": "phone_number", "transfer_destination": { "type": "sip_uri", "sip_uri": "sip:support@example.com" } }
+    },
+    "edges": {
+      "e_start": { "source": "start_node", "target": "triage", "forward_condition": { "type": "unconditional" } },
+      "e_billing": { "source": "triage", "target": "billing", "forward_condition": { "type": "llm", "condition": "The caller has a question about an invoice or a payment." } },
+      "e_beta": { "source": "triage", "target": "billing_beta", "forward_condition": { "type": "expression", "label": "Beta customer", "expression": { "type": "eq_operator", "left": { "type": "dynamic_variable", "name": "tier" }, "right": { "type": "string_literal", "value": "beta" } } } },
+      "e_human": { "source": "triage", "target": "human", "forward_condition": { "type": "llm", "condition": "The caller asks for a person." } },
+      "e_sip": { "source": "triage", "target": "sip", "forward_condition": { "type": "expression", "expression": { "type": "boolean_literal", "value": false } } }
+    }
+  }
+}

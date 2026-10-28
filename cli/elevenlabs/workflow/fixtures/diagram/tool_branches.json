@@ -1,0 +1,22 @@
+{
+  "name": "Order lookup",
+  "workflow": {
+    "nodes": {
+      "start_node": { "type": "start" },
+      "collect": { "type": "override_agent", "label": "Collect order number", "additional_prompt": "Ask for the order number." },
+      "lookup": { "type": "tool", "tools": [{ "tool_id": "tool_lookup_order" }] },
+      "save": { "type": "update_state", "label": "Remember order status", "updates": [] },
+      "apologize": { "type": "say", "label": "Apologize", "message": { "type": "prompt", "prompt": "Apologize and offer a callback." } },
+      "done": { "type": "end", "outcome": "success" },
+      "failed": { "type": "end", "outcome": "failure" }
+    },
+    "edges": {
+      "e_start": { "source": "start_node", "target": "collect", "forward_condition": { "type": "unconditional" } },
+      "e_collect": { "source": "collect", "target": "lookup", "forward_condition": { "type": "llm", "label": "Has order number", "condition": "The caller has given an order number." } },
+      "e_ok": { "source": "lookup", "target": "save", "forward_condition": { "type": "result", "successful": true } },
+      "e_fail": { "source": "lookup", "target": "apologize", "forward_condition": { "type": "result", "successful": false } },
+      "e_saved": { "source": "save", "target": "done", "forward_condition": { "type": "unconditional" } },
+      "e_sorry": { "source": "apologize", "target": "failed", "forward_condition": { "type": "unconditional" } }
+    }
+  }
+}
