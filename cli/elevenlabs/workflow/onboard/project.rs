@@ -320,9 +320,87 @@ impl Project {
         self.any_file(&imports_sdk)
     }
 
+    /// ElevenLabs is in the code: an SDK, or a page or component that embeds
+    /// the agent widget.
+    pub fn wired(&self) -> bool {
+        (self.sdk_declared() && self.sdk_imported()) || self.embeds_agent_widget()
+    }
+
+    /// Something in the app reads the key, so the app has to load it: an SDK
+    /// that reads it, or code that names it. The agents' browser SDKs and
+    /// the widget connect without it.
+    pub fn reads_key(&self) -> bool {
+        let declared = self.any_file(&|path| declares_sdk_where(path, &reads_key_package));
+        let imported = self.any_file(&|path| imports_sdk_where(path, &reads_key_package));
+        (declared && imported)
+            || self.any_file(&|path| {
+                is_source(path) && read_small(path).is_some_and(|s| s.contains(API_KEY_ENV))
+            })
+    }
+
+    /// Some page or component embeds the agent widget.
+    pub fn embeds_agent_widget(&self) -> bool {
+        self.any_file(&|path| {
+            (is_source(path) || is_html(path))
+                && read_small(path).is_some_and(|s| s.contains(WIDGET_TAG))
+        })
+    }
+
+    /// The agent IDs the project names, at most `limit`: those in the code
+    /// first, then in its env files (not the samples), then in an
+    /// `agents.json`, so the agent the app uses comes before a list of them.
+    pub fn agent_ids(&self, limit: usize) -> Vec<String> {
+        let mut found: [Vec<String>; 3] = Default::default();
+        self.each_file(&mut |path| {
+            let name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+            let sample = [".example", ".sample", ".template"]
+                .iter()
+                .any(|s| name.ends_with(s));
+            let rank = if is_source(path) || is_html(path) {
+                0
+            } else if name.starts_with(".env") && !sample {
+                1
+            } else if name == "agents.json" {
+                2
+            } else {
+                return false;
+            };
+            if let Some(text) = read_small(path) {
+                for id in agent_ids_in(&text) {
+                    let ids = &mut found[rank];
+                    if ids.len() < limit && !ids.iter().any(|known| known == id) {
+                        ids.push(id.to_string());
+                    }
+                }
+            }
+            found[0].len() >= limit
+        });
+        let mut ids: Vec<String> = Vec::new();
+        for id in found.into_iter().flatten() {
+            if ids.len() < limit && !ids.contains(&id) {
+                ids.push(id);
+            }
+        }
+        ids
+    }
+
     /// Whether `test` holds for a file in the project, skipping hidden folders
     /// and installed dependencies.
     fn any_file(&self, test: &dyn Fn(&Path) -> bool) -> bool {
+        let mut found = false;
+        self.each_file(&mut |path| {
+            found = test(path);
+            found
+        });
+        found
+    }
+
+    /// Calls `visit` on the project's files, skipping hidden folders and
+    /// installed dependencies, until it returns true.
+    fn each_file(&self, visit: &mut dyn FnMut(&Path) -> bool) {
         let mut stack = vec![self.dir.clone()];
         while let Some(dir) = stack.pop() {
             let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -339,23 +417,74 @@ impl Project {
                     if !name.starts_with('.') && !SKIPPED_DIRS.contains(&&*name) && !sample {
                         stack.push(entry.path());
                     }
-                } else if kind.is_file() && test(&entry.path()) {
-                    return true;
+                } else if kind.is_file() && visit(&entry.path()) {
+                    return;
                 }
             }
         }
-        false
     }
 }
 
+/// The agent widget's element, as its embed snippet writes it.
+const WIDGET_TAG: &str = "<elevenlabs-convai";
+
+/// A file's text when it's small enough to be the app's own code, not a
+/// generated bundle or report.
+fn read_small(path: &Path) -> Option<String> {
+    let small = std::fs::metadata(path).is_ok_and(|m| m.len() <= 1_000_000);
+    small.then(|| std::fs::read_to_string(path).ok()).flatten()
+}
+
+/// Every ElevenLabs package but the agents' browser SDKs and the widget,
+/// which connect to an agent without the key.
+fn reads_key_package(name: &str) -> bool {
+    !matches!(
+        name,
+        "@elevenlabs/react" | "@elevenlabs/client" | "@elevenlabs/react-native"
+    ) && !name.starts_with("@elevenlabs/convai-widget")
+}
+
+fn is_html(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("html" | "htm")
+    )
+}
+
+/// Agent IDs in `text`: `agent_` and 26 to 30 lowercase letters or digits,
+/// as a whole word.
+pub(super) fn agent_ids_in(text: &str) -> impl Iterator<Item = &str> {
+    let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
+    text.match_indices("agent_").filter_map(move |(i, m)| {
+        if text[..i].chars().next_back().is_some_and(word) {
+            return None;
+        }
+        let rest = &text[i + m.len()..];
+        let len = rest
+            .chars()
+            .take_while(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+            .count();
+        let whole = rest[len..].chars().next().is_none_or(|c| !word(c));
+        ((26..=30).contains(&len) && whole).then(|| &text[i..i + m.len() + len])
+    })
+}
+
 fn declares_sdk(path: &Path) -> bool {
+    declares_sdk_where(path, &|_| true)
+}
+
+/// Like [`declares_sdk`], counting only the npm packages `counts` accepts.
+fn declares_sdk_where(path: &Path, counts: &dyn Fn(&str) -> bool) -> bool {
     let read = || std::fs::read_to_string(path).unwrap_or_default();
     match path.file_name().and_then(|n| n.to_str()) {
         Some("package.json") => serde_json::from_str::<serde_json::Value>(&read()).is_ok_and(|p| {
             ["dependencies", "devDependencies"].iter().any(|d| {
                 p[d].as_object().is_some_and(|deps| {
-                    deps.keys()
-                        .any(|name| name.starts_with("@elevenlabs/") && name != "@elevenlabs/cli")
+                    deps.keys().any(|name| {
+                        name.starts_with("@elevenlabs/")
+                            && name != "@elevenlabs/cli"
+                            && counts(name)
+                    })
                 })
             })
         }),
@@ -461,10 +590,15 @@ fn is_source(path: &Path) -> bool {
 }
 
 fn imports_sdk(path: &Path) -> bool {
+    imports_sdk_where(path, &|_| true)
+}
+
+/// Like [`imports_sdk`], counting only the npm packages `counts` accepts.
+fn imports_sdk_where(path: &Path, counts: &dyn Fn(&str) -> bool) -> bool {
     let source = is_source(path) && path.extension().is_some_and(|e| e != "sh");
     source
         && std::fs::read_to_string(path).is_ok_and(|s| {
-            imports_js_sdk(&s)
+            imports_js_sdk_where(&s, counts)
                 || s.lines().any(|l| {
                     let l = l.trim_start();
                     l.starts_with("from elevenlabs") || l.starts_with("import elevenlabs")
@@ -474,12 +608,19 @@ fn imports_sdk(path: &Path) -> bool {
 
 /// A quoted `@elevenlabs/<package>` import of any package but the CLI.
 pub(super) fn imports_js_sdk(source: &str) -> bool {
+    imports_js_sdk_where(source, &|_| true)
+}
+
+fn imports_js_sdk_where(source: &str, counts: &dyn Fn(&str) -> bool) -> bool {
     source.match_indices("@elevenlabs/").any(|(i, m)| {
         let name: String = source[i + m.len()..]
             .chars()
             .take_while(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c))
             .collect();
-        source[..i].ends_with(['"', '\'']) && !name.is_empty() && name != "cli"
+        source[..i].ends_with(['"', '\''])
+            && !name.is_empty()
+            && name != "cli"
+            && counts(&format!("@elevenlabs/{name}"))
     })
 }
 
