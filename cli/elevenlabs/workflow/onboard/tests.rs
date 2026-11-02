@@ -795,6 +795,16 @@ fn agent_ids_in_the_key_file_count_wherever_it_is() {
     std::fs::write(app.join("config/secrets.env"), format!("AGENT_ID={id}\n")).unwrap();
     let p = super::project::Project::at(app.clone(), Some("config/secrets.env".into()));
     assert_eq!(p.agent_ids(3, None), [id], "a custom --env-path");
+    // It comes before the agents in the project's other env files, however many there are.
+    for (file, other) in [
+        (".env.test", "agent_0101kf1yn87vfwat2negbz8zzp5t"),
+        (".env.development", "agent_1701kj50p7zzfd8vsp8hpapc4yhq"),
+        (".env.production", "agent_2201m2jqpj2jej1tbfdrctx18r7b"),
+    ] {
+        std::fs::write(app.join(file), format!("AGENT_ID={other}\n")).unwrap();
+    }
+    assert_eq!(p.agent_ids(3, None)[0], id, "the key's env file first");
+    assert_eq!(p.agent_ids(1, None), [id]);
 }
 
 #[test]

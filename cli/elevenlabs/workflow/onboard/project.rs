@@ -347,11 +347,20 @@ impl Project {
     }
 
     /// The agent IDs the project names, at most `limit`: those in the code
-    /// first, then in its env files (not the samples, and `key_file`, the one
-    /// the key is in), then in an `agents.json`, so the agent the app uses
-    /// comes before a list of them.
+    /// first, then in its env file and `key_file` (the one the key is in),
+    /// wherever they are and whatever they're named, then in its other env
+    /// files (not the samples), then in an `agents.json`, so the agent the
+    /// app uses comes before a list of them.
     pub fn agent_ids(&self, limit: usize, key_file: Option<&Path>) -> Vec<String> {
-        let mut found: [Vec<String>; 3] = Default::default();
+        let mut found: [Vec<String>; 4] = Default::default();
+        for file in [Some(self.env_file.as_path()), key_file]
+            .into_iter()
+            .flatten()
+        {
+            if let Some(text) = read_small(file) {
+                add_agent_ids(&mut found[1], &text, limit);
+            }
+        }
         self.each_file(&mut |path| {
             let name = path
                 .file_name()
@@ -363,36 +372,17 @@ impl Project {
             let rank = if is_source(path) || is_html(path) {
                 0
             } else if name.starts_with(".env") && !sample {
-                1
-            } else if name == "agents.json" {
                 2
+            } else if name == "agents.json" {
+                3
             } else {
                 return false;
             };
             if let Some(text) = read_small(path) {
-                for id in agent_ids_in(&text) {
-                    let ids = &mut found[rank];
-                    if ids.len() < limit && !ids.iter().any(|known| known == id) {
-                        ids.push(id.to_string());
-                    }
-                }
+                add_agent_ids(&mut found[rank], &text, limit);
             }
             found[0].len() >= limit
         });
-        // The env file and the key's file count wherever they are and whatever they're named.
-        for file in [Some(self.env_file.as_path()), key_file]
-            .into_iter()
-            .flatten()
-        {
-            if let Some(text) = read_small(file) {
-                for id in agent_ids_in(&text) {
-                    let ids = &mut found[1];
-                    if ids.len() < limit && !ids.iter().any(|known| known == id) {
-                        ids.push(id.to_string());
-                    }
-                }
-            }
-        }
         let mut ids: Vec<String> = Vec::new();
         for id in found.into_iter().flatten() {
             if ids.len() < limit && !ids.contains(&id) {
@@ -464,6 +454,15 @@ fn is_html(path: &Path) -> bool {
         path.extension().and_then(|e| e.to_str()),
         Some("html" | "htm")
     )
+}
+
+/// Add the agent IDs in `text` that `ids` doesn't have yet, up to `limit`.
+fn add_agent_ids(ids: &mut Vec<String>, text: &str, limit: usize) {
+    for id in agent_ids_in(text) {
+        if ids.len() < limit && !ids.iter().any(|known| known == id) {
+            ids.push(id.to_string());
+        }
+    }
 }
 
 /// Agent IDs in `text`: `agent_` and 26 to 30 lowercase letters or digits,
