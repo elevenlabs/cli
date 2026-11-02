@@ -76,7 +76,7 @@ pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Res
             let say = format!("Your key works and the code uses the SDK, but nothing in the app loads {name} yet.");
             load_key(project, &ending, &name, say)
         }
-        (true, _, None) => match own_agent(ctx, project, &key.value) {
+        (true, _, None) => match own_agent(ctx, project, &key) {
             Some(agent) => agent_ready(&ending, file, &agent, reads_key)?,
             None => offer_test(project, &ending, file),
         },
@@ -128,8 +128,8 @@ const AGENT_LOOKUPS: usize = 3;
 /// The first agent the code names that belongs to the key's account, so a
 /// sample's or another account's agent is never offered. `None` when there
 /// is none, or the key can't read agents.
-fn own_agent(ctx: &AppContext, project: &Project, key: &str) -> Option<Agent> {
-    let ids = project.agent_ids(AGENT_LOOKUPS);
+fn own_agent(ctx: &AppContext, project: &Project, key: &Key) -> Option<Agent> {
+    let ids = project.agent_ids(AGENT_LOOKUPS, key.file(project));
     if ids.is_empty() {
         return None;
     }
@@ -139,7 +139,7 @@ fn own_agent(ctx: &AppContext, project: &Project, key: &str) -> Option<Agent> {
         let sent = block_on(
             client
                 .get(format!("{base}/v1/convai/agents/{id}"))
-                .header("xi-api-key", key)
+                .header("xi-api-key", &key.value)
                 .timeout(std::time::Duration::from_secs(10))
                 .send(),
         );

@@ -732,7 +732,7 @@ fn the_widget_and_agent_ids_are_found_where_the_app_keeps_them() {
         !p.embeds_agent_widget(),
         "installed packages and docs don't count"
     );
-    assert!(p.agent_ids(3).is_empty());
+    assert!(p.agent_ids(3, None).is_empty());
 
     std::fs::write(
         d.join("index.html"),
@@ -740,7 +740,7 @@ fn the_widget_and_agent_ids_are_found_where_the_app_keeps_them() {
     )
     .unwrap();
     assert!(p.embeds_agent_widget());
-    assert_eq!(p.agent_ids(3), [a]);
+    assert_eq!(p.agent_ids(3, None), [a]);
 
     std::fs::write(d.join(".env.local"), format!("AGENT_ID={b}\n")).unwrap();
     std::fs::write(
@@ -758,7 +758,7 @@ fn the_widget_and_agent_ids_are_found_where_the_app_keeps_them() {
         "AGENT_ID=agent_9201kwcrbq9qfxaa2t8nnnkqf2w9\n",
     )
     .unwrap();
-    let mut ids = p.agent_ids(10);
+    let mut ids = p.agent_ids(10, None);
     let (env, list) = (ids[2].clone(), ids[3].clone());
     assert_eq!(
         (env.as_str(), list.as_str()),
@@ -767,9 +767,34 @@ fn the_widget_and_agent_ids_are_found_where_the_app_keeps_them() {
     );
     ids.sort();
     assert_eq!(ids, [a, b, c, e], "each once, and no sample's");
-    let mut first = p.agent_ids(2);
+    let mut first = p.agent_ids(2, None);
     first.sort();
     assert_eq!(first, [a, e], "no more than asked for, the code's first");
+}
+
+#[test]
+fn agent_ids_in_the_key_file_count_wherever_it_is() {
+    let root = tempfile::tempdir().unwrap();
+    let app = root.path().join("apps/web");
+    std::fs::create_dir_all(&app).unwrap();
+    let id = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    // A monorepo's root env file, outside the app's folder.
+    std::fs::write(root.path().join(".env.local"), format!("AGENT_ID={id}\n")).unwrap();
+    let p = super::project::Project::at(app.clone(), Some("../../.env.local".into()));
+    assert_eq!(p.agent_ids(3, None), [id], "the project's env file");
+    // A key found in a `.env` up the tree, apart from the project's env file.
+    let p = project(&app);
+    assert!(p.agent_ids(3, None).is_empty());
+    assert_eq!(
+        p.agent_ids(3, Some(&root.path().join(".env.local"))),
+        [id],
+        "the key's file"
+    );
+    // An env file under another name, inside the app.
+    std::fs::create_dir_all(app.join("config")).unwrap();
+    std::fs::write(app.join("config/secrets.env"), format!("AGENT_ID={id}\n")).unwrap();
+    let p = super::project::Project::at(app.clone(), Some("config/secrets.env".into()));
+    assert_eq!(p.agent_ids(3, None), [id], "a custom --env-path");
 }
 
 #[test]
