@@ -111,7 +111,7 @@ impl ProjectClient {
     ///         .dubbing
     ///         .project
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest8 {
     ///                 file: b"test file content".to_vec(),
     ///                 transcript: b"test file content".to_vec(),
     ///                 source_url: Some("https://example.com/promo.mp4".to_string()),

@@ -87,7 +87,7 @@ impl ProjectsClient {
     ///         .studio
     ///         .projects
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest10 {
     ///                 from_document: b"test file content".to_vec(),
     ///                 name: "name".to_string(),
     ///                 default_title_voice_id: None,
@@ -222,7 +222,7 @@ impl ProjectsClient {
     ///         .projects
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyUpdateStudioProjectV1StudioProjectsProjectIDPost {
+    ///             &BodyUpdateStudioProjectV1StudioProjectsProjectIdPost {
     ///                 name: "Project 1".to_string(),
     ///                 default_title_voice_id: "21m00Tcm4TlvDq8ikWAM".to_string(),
     ///                 default_paragraph_voice_id: "21m00Tcm4TlvDq8ikWAM".to_string(),

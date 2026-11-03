@@ -95,7 +95,7 @@ impl AssetsClient {
     ///     client
     ///         .assets
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest4 {
     ///                 asset: b"test file content".to_vec(),
     ///                 name: "name".to_string(),
     ///             },

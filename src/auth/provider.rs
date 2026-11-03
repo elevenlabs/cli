@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::auth::credential::CredentialSlots;
 use crate::error::CliError;
 
 /// Per-request context the executor passes to providers. Maps directly to
@@ -112,11 +113,45 @@ pub trait AuthProvider: Send + Sync + std::fmt::Debug {
         self.has_credentials()
     }
 
+    /// Whether this provider can authenticate from credentials the user stored
+    /// (keyring), as opposed to ambient env/flag sources. Composition wrappers
+    /// use it to prefer stored credentials when a profile is named with
+    /// `--profile`.
+    fn has_stored_credentials(&self) -> bool {
+        false
+    }
+
     /// Human-readable hints about where this provider reads its credentials
     /// from. Used by the friendly auth-error path to tell the user which
     /// env var / CLI flag / file to set.
     fn credential_hints(&self) -> Vec<String> {
         Vec::new()
+    }
+
+    /// Like [`credential_hints`](Self::credential_hints), but restricted to
+    /// sources that actually hold a value.
+    ///
+    /// The 401/403 path names the sources a rejected credential came from. It
+    /// used to name every *declared* source, so on a CLI with two schemes it
+    /// listed four places when one had supplied the value — and then advised
+    /// hunting for shadowing between sources the user had never set.
+    ///
+    /// Defaults to [`credential_hints`](Self::credential_hints) so a provider
+    /// that cannot distinguish keeps today's behavior; providers backed by an
+    /// [`AuthCredentialSource`](crate::auth::AuthCredentialSource) override it.
+    fn populated_credential_hints(&self) -> Vec<String> {
+        self.credential_hints()
+    }
+
+    /// The credential slots this provider reads, for `auth status`.
+    ///
+    /// See [`CredentialSlots`] for the required/alternative split.
+    /// Providers registered as
+    /// [`SchemeBinding::Custom`](crate::auth::SchemeBinding::Custom) are
+    /// otherwise opaque to the status surface; overriding this lets it
+    /// enumerate their env vars like a builtin bearer/basic binding.
+    fn credential_slots(&self) -> CredentialSlots {
+        CredentialSlots::default()
     }
 
     /// Apply the scheme to `request`. Implementations should be a no-op if
@@ -128,6 +163,20 @@ pub trait AuthProvider: Send + Sync + std::fmt::Debug {
         request: reqwest::RequestBuilder,
         endpoint: &EndpointAuthMetadata,
     ) -> Result<reqwest::RequestBuilder, CliError>;
+
+    /// Field names `auth login --with-token` should collect for this
+    /// provider, stored together as one JSON keyring entry.
+    ///
+    /// `None` — the default — means the scheme takes a single opaque value,
+    /// which is how bearer and API-key paste works today.
+    ///
+    /// `Some([...])` is for schemes whose credential is several values:
+    /// OAuth2 client credentials returns `["client_id", "client_secret"]`.
+    /// One entry rather than one per field because the OS keychain prompts
+    /// per item, and a multi-part credential is still one credential.
+    fn credential_fields(&self) -> Option<Vec<&'static str>> {
+        None
+    }
 
     /// Post-construction hook: inject the on-disk token cache for
     /// cross-invocation persistence. Called by [`CliApp`] in
@@ -169,81 +218,10 @@ impl AuthProvider for NoAuthProvider {
     }
 }
 
-/// Whether `name` is an API-key header (`xi-api-key`, `X-API-Key`, …).
-/// Narrower than [`crate::debug::is_sensitive_header`], which errs wide for redaction.
-pub(crate) fn is_api_key_header(name: &str) -> bool {
-    let lowered = name.to_ascii_lowercase();
-    ["api-key", "apikey", "api_key"]
-        .iter()
-        .any(|p| lowered.contains(p))
-}
-
-/// The first header in `headers` carrying a non-empty API key.
-pub(crate) fn supplied_api_key_header<'a, I>(headers: I) -> Option<&'a str>
-where
-    I: IntoIterator<Item = (&'a str, &'a str)>,
-{
-    headers
-        .into_iter()
-        .find(|(name, value)| is_api_key_header(name) && !value.trim().is_empty())
-        .map(|(name, _)| name)
-}
-
-/// Replaces the configured provider when the request already carries an API
-/// key header, so `Authorization` isn't sent alongside it. Reports credentials
-/// as present so a 401 names the header rather than the unused keyring entry.
-#[derive(Debug, Clone)]
-pub(crate) struct SuppliedHeaderAuthProvider {
-    hint: String,
-}
-
-impl SuppliedHeaderAuthProvider {
-    pub(crate) fn new(hint: impl Into<String>) -> Self {
-        Self { hint: hint.into() }
-    }
-}
-
-impl AuthProvider for SuppliedHeaderAuthProvider {
-    fn name(&self) -> &str {
-        "supplied-header"
-    }
-
-    fn has_credentials(&self) -> bool {
-        true
-    }
-
-    fn credential_hints(&self) -> Vec<String> {
-        vec![self.hint.clone()]
-    }
-
-    fn apply(
-        &self,
-        request: reqwest::RequestBuilder,
-        _endpoint: &EndpointAuthMetadata,
-    ) -> Result<reqwest::RequestBuilder, CliError> {
-        Ok(request)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::auth::test_helpers::{auth_header, req};
-
-    #[test]
-    fn api_key_header_detection() {
-        for name in ["xi-api-key", "X-API-Key", "apikey", "x_api_key"] {
-            assert!(is_api_key_header(name), "{name}");
-        }
-        for name in ["authorization", "idempotency-key", "x-csrf-token", "cookie"] {
-            assert!(!is_api_key_header(name), "{name}");
-        }
-        assert_eq!(
-            supplied_api_key_header([("accept", "json"), ("xi-api-key", "sk")]),
-            Some("xi-api-key")
-        );
-        assert_eq!(supplied_api_key_header([("xi-api-key", "  ")]), None);
-    }
 
     #[tokio::test]
     async fn no_auth_provider_emits_no_headers() {

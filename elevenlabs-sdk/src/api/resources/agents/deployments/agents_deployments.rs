@@ -99,7 +99,7 @@ impl DeploymentsClient {
     ///         .deployments
     ///         .create(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodyCreateOrUpdateDeploymentsV1ConvaiAgentsAgentIDDeploymentsPost {
+    ///             &BodyCreateOrUpdateDeploymentsV1ConvaiAgentsAgentIdDeploymentsPost {
     ///                 deployment_request: AgentDeploymentRequest {
     ///                     requests: vec![AgentDeploymentRequestItem {
     ///                         branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),

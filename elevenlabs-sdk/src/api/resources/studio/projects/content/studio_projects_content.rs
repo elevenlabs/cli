@@ -41,7 +41,7 @@ impl ContentClient {
     ///         .content
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &UpdateRequest {
+    ///             &UpdateRequest3 {
     ///                 from_document: b"test file content".to_vec(),
     ///                 from_url: None,
     ///                 from_content_json: None,

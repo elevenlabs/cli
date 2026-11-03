@@ -1,0 +1,30 @@
+flowchart LR
+    n_Agent_agent_billing["Agent · Billing"]
+    n_Agent_agent_support["Agent · Support"]
+    n_Agent_agent_support_agtbrch_beta["Agent · Support (branch 'beta')"]
+    n_Tool_tool_from_dashboard[["Tool (external) · tool_from_dashboard"]]
+    n_Tool_tool_lookup[["Tool · lookup_order"]]
+    n_Tool_tool_refund[["Tool · issue_refund"]]
+    n_Test_test_greets(["Test · Greets the caller"])
+    n_Document_doc_pricing[("Document · Pricing FAQ")]
+    n_Agent_agent_billing --> n_Tool_tool_refund
+    n_Agent_agent_billing --> n_Document_doc_pricing
+    n_Agent_agent_support ==> n_Agent_agent_billing
+    n_Agent_agent_support --> n_Tool_tool_from_dashboard
+    n_Agent_agent_support --> n_Tool_tool_lookup
+    n_Agent_agent_support --> n_Test_test_greets
+    n_Agent_agent_support --> n_Document_doc_pricing
+    n_Agent_agent_support_agtbrch_beta ==>|"via 'to_billing'"| n_Agent_agent_billing
+    n_Agent_agent_support_agtbrch_beta --> n_Tool_tool_lookup
+    n_Agent_agent_support_agtbrch_beta -->|"via 'refunds'"| n_Tool_tool_refund
+    n_Agent_agent_support_agtbrch_beta --> n_Test_test_greets
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_Tool_tool_lookup,n_Tool_tool_refund t_tool
+    classDef t_state fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class n_Test_test_greets t_state
+    classDef t_subagent fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_Agent_agent_billing,n_Agent_agent_support,n_Agent_agent_support_agtbrch_beta t_subagent
+    classDef t_unknown fill:#f3f4f6,stroke:#6b7280,stroke-dasharray:4 2,color:#111827
+    class n_Tool_tool_from_dashboard t_unknown
+    classDef t_doc fill:#ecfccb,stroke:#65a30d,color:#365314
+    class n_Document_doc_pricing t_doc

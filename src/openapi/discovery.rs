@@ -502,6 +502,29 @@ pub struct Server {
     /// Optional human-readable description from the spec — surfaced in
     /// `--help` next to the server URL.
     pub description: Option<String>,
+    /// The URL to use when the caller supplies no value for any of this
+    /// server's template variables, from the `x-fern-default-url`
+    /// extension. Mirrors fern's OpenAPI importer, which treats it as the
+    /// concrete default environment URL for a templated server
+    /// (`packages/cli/api-importers/openapi/openapi-ir-parser/src/openapi/v3/converters/convertServer.ts`).
+    pub default_url: Option<String>,
+    /// The server's OpenAPI `variables:` block, in name order. Each entry
+    /// becomes a global `--<variable>` flag whose value is substituted
+    /// into [`Self::url`] before the request is sent.
+    pub variables: Vec<ServerVariable>,
+}
+
+/// One entry from an OpenAPI server's `variables:` block.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ServerVariable {
+    /// Variable name as it appears in the `{placeholder}`.
+    pub name: String,
+    /// The spec's `default` — used when the caller supplies no value.
+    pub default: Option<String>,
+    /// The spec's `description`, surfaced as the flag's `--help` text.
+    pub description: Option<String>,
+    /// The spec's `enum`, surfaced as the flag's allowed values.
+    pub enum_values: Vec<String>,
 }
 
 impl RestDescription {
@@ -563,6 +586,53 @@ pub const DEFAULT_RETRY_JITTER: f64 = 0.1;
 /// - per-op block absent → inherit the spec-root block (or `None` if also absent)
 /// - per-op `true` → spec-root config, or all-defaults when root is absent
 /// - per-op `false` (or `{ disabled: true }`) → disabled regardless of root
+/// Process-wide `--retries` override: the number of *additional* attempts the
+/// caller asked for, or `None` to use whatever the spec declared.
+///
+/// A process-global rather than a parameter because
+/// [`execute_method`](crate::openapi::executor::execute_method) already takes
+/// ~20 arguments and has 12 call sites across the OpenAPI and GraphQL
+/// bindings; threading one more through all of them buys nothing. Mirrors the
+/// existing pattern used by `user_agent::SUFFIX_FLAG`,
+/// `keyring_store::active_store()`, and `profiles::selection`. One process
+/// serves one command, so there is no cross-talk.
+static RETRIES_OVERRIDE: std::sync::OnceLock<std::sync::RwLock<Option<u32>>> =
+    std::sync::OnceLock::new();
+
+fn retries_override_slot() -> &'static std::sync::RwLock<Option<u32>> {
+    RETRIES_OVERRIDE.get_or_init(|| std::sync::RwLock::new(None))
+}
+
+/// Install the caller's `--retries` value for this invocation. `None` leaves
+/// the spec's policy untouched.
+pub fn set_retries_override(additional_attempts: Option<u32>) {
+    if let Ok(mut slot) = retries_override_slot().write() {
+        *slot = additional_attempts;
+    }
+}
+
+/// The caller's `--retries` value, if one was resolved this invocation.
+pub fn retries_override() -> Option<u32> {
+    retries_override_slot().read().ok().and_then(|slot| *slot)
+}
+
+/// Apply [`retries_override`] on top of a spec-declared policy.
+///
+/// `--retries N` means N attempts *after* the first, so `max_attempts` is
+/// `N + 1` and `--retries 0` is equivalent to `--no-retry`. The rest of the
+/// policy (backoff base, factor, jitter) is left as the spec declared it —
+/// the caller asked how many times to retry, not how to pace them.
+pub fn with_retries_override(base: &RetriesConfig) -> RetriesConfig {
+    match retries_override() {
+        Some(additional) => RetriesConfig {
+            enabled: additional > 0,
+            max_attempts: additional.saturating_add(1),
+            ..base.clone()
+        },
+        None => base.clone(),
+    }
+}
+
 /// - per-op object → root values, overridden field-by-field by the op block
 #[derive(Debug, Clone, PartialEq)]
 pub struct RetriesConfig {
@@ -839,9 +909,10 @@ pub enum PaginationConfig {
         /// Dotted JSON path in the response to the results array.
         results: String,
         /// Optional request parameter name holding the page-size step. When
-        /// present, the offset advances by the step value the caller
-        /// supplied (e.g. `--params '{"limit": 50}'`). When absent, the
-        /// offset advances by the response page's results length.
+        /// present, the offset counts items: it advances by the number of
+        /// results returned and a short page (fewer than the caller's
+        /// `limit`) ends pagination. When absent, the offset counts pages
+        /// and advances by 1.
         step: Option<String>,
         /// Optional dotted JSON path in the response to a boolean
         /// "more pages?" flag.
@@ -1013,6 +1084,20 @@ pub struct MethodParameter {
     pub location: Option<String>,
     #[serde(default)]
     pub required: bool,
+    /// Whether the *spec* requires this property, independent of whether the
+    /// CLI flag is clap-required.
+    ///
+    /// The two diverge for an object-valued body property the parser recurses
+    /// into: its shorthand flag must stay optional, because the caller can
+    /// satisfy the property with dot-notation leaf flags instead — but the
+    /// property itself is still required on the wire. Reporting `required`
+    /// there made `--schema` disagree with the validator: an agent supplied
+    /// every field the contract listed and the request was still rejected for
+    /// a property `--schema` never mentioned.
+    ///
+    /// `--schema`'s `input.required` uses this; clap uses [`required`].
+    #[serde(default)]
+    pub required_by_spec: bool,
     pub format: Option<String>,
     /// Client-side default sourced only from the Fern `x-fern-default`
     /// extension. When set, the generated CLI plumbs this into clap's
@@ -1049,6 +1134,34 @@ pub struct MethodParameter {
     pub enum_descriptions: Option<Vec<String>>,
     #[serde(default)]
     pub repeated: bool,
+    /// Element type of a `repeated` parameter, when the spec's `items` says
+    /// something other than a plain string.
+    ///
+    /// A repeated flag carries `param_type: "string"` because that is the
+    /// *flag* surface — clap collects strings. `--schema` was rendering that
+    /// as `items: {type: string}`, which is a lie for an array of objects: an
+    /// agent reads the contract, sends `["x"]`, and the validator rejects it.
+    /// The element type is preserved here so the advertised contract matches
+    /// the wire, and so the collector knows to JSON-decode each occurrence
+    /// rather than keep it a literal.
+    ///
+    /// `None` means "string" — the overwhelmingly common case, and the value
+    /// every pre-existing lowering produced.
+    pub item_type: Option<String>,
+    /// Enum members an *element* of an array parameter may take, i.e. the
+    /// `items.enum` of `type: array, items: {$ref: SomeEnum}`.
+    ///
+    /// Separate from [`MethodParameter::enum_values`] because that one is
+    /// enforced by a clap `value_parser`, which cannot work here: a repeated
+    /// flag also accepts a whole JSON array in one argument
+    /// (`--labels '["a","b"]'`), and clap would reject that literal as a
+    /// non-member. So element enums are enforced after collection, in the
+    /// executor, and advertised as `items.enum` by `--schema`.
+    ///
+    /// Without this an array-of-enum parameter was completely unconstrained
+    /// while its scalar twin was checked — `--event-types bogus` went to the
+    /// API, `--direction bogus` did not.
+    pub item_enum_values: Option<Vec<String>>,
     /// True for `oneOf/anyOf [string, array<string>]` unions where a single
     /// value should be sent as a scalar string, not wrapped in a length-1
     /// array. Pure `type: array` params leave this `false`.
@@ -1182,6 +1295,13 @@ pub struct JsonSchema {
     #[serde(rename = "$ref")]
     pub schema_ref: Option<String>,
     pub items: Option<Box<JsonSchemaProperty>>,
+    /// The component's own `enum`. A property that reaches its enum through a
+    /// `$ref` resolves to a component, so without this field the members were
+    /// unreachable from the validator and an invalid value was accepted and
+    /// sent — while the identical enum declared inline on the property was
+    /// enforced. Mirrors [`JsonSchemaProperty::enum_values`].
+    #[serde(rename = "enum")]
+    pub enum_values: Option<Vec<String>>,
     #[serde(default)]
     pub required: Vec<String>,
     /// JSON Schema composition branches at the component-schema root. Mirrors
@@ -1263,6 +1383,53 @@ pub struct JsonSchemaProperty {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    #[serial_test::serial]
+    fn retries_override_replaces_max_attempts_and_keeps_the_pacing() {
+        // `--retries N` answers "how many times", not "how to pace them", so
+        // backoff base / factor / jitter stay as the spec declared.
+        let spec = RetriesConfig {
+            enabled: true,
+            max_attempts: 4,
+            base_delay_ms: 250,
+            factor: 3.0,
+            jitter: 0.5,
+        };
+        set_retries_override(Some(5));
+        let merged = with_retries_override(&spec);
+        assert_eq!(merged.max_attempts, 6, "5 retries = 6 total sends");
+        assert!(merged.enabled);
+        assert_eq!(merged.base_delay_ms, 250);
+        assert_eq!(merged.factor, 3.0);
+        assert_eq!(merged.jitter, 0.5);
+        set_retries_override(None);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn retries_override_of_zero_disables_retries() {
+        // `--retries 0` has to mean the same thing as `--no-retry`, or the
+        // flag has a value that looks valid and quietly retries once.
+        let spec = RetriesConfig::default();
+        set_retries_override(Some(0));
+        let merged = with_retries_override(&spec);
+        assert!(!merged.enabled);
+        assert_eq!(merged.max_attempts, 1);
+        set_retries_override(None);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn without_an_override_the_spec_policy_is_untouched() {
+        let spec = RetriesConfig {
+            enabled: true,
+            max_attempts: 7,
+            ..RetriesConfig::default()
+        };
+        set_retries_override(None);
+        assert_eq!(with_retries_override(&spec), spec);
+    }
+
     use super::*;
 
     #[test]

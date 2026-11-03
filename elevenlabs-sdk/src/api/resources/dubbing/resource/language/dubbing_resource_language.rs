@@ -41,7 +41,7 @@ impl LanguageClient2 {
     ///         .language
     ///         .add(
     ///             &"dubbing_id".to_string(),
-    ///             &BodyAddALanguageToTheResourceV1DubbingResourceDubbingIDLanguagePost {
+    ///             &BodyAddALanguageToTheResourceV1DubbingResourceDubbingIdLanguagePost {
     ///                 ..Default::default()
     ///             },
     ///             None,

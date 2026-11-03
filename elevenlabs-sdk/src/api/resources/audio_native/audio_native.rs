@@ -37,7 +37,7 @@ impl AudioNativeClient {
     ///     client
     ///         .audio_native
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest2 {
     ///                 file: b"test file content".to_vec(),
     ///                 name: "name".to_string(),
     ///                 image: None,
@@ -144,7 +144,7 @@ impl AudioNativeClient {
     ///         .audio_native
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &UpdateRequest {
+    ///             &UpdateRequest2 {
     ///                 file: b"test file content".to_vec(),
     ///                 auto_convert: None,
     ///                 auto_publish: None,
@@ -195,7 +195,7 @@ impl AudioNativeClient {
     ///     client
     ///         .audio_native
     ///         .update_content_from_url(
-    ///             &BodyUpdateAudioNativeContentFromURLV1AudioNativeContentPost {
+    ///             &BodyUpdateAudioNativeContentFromUrlV1AudioNativeContentPost {
     ///                 url: "https://elevenlabs.io/blog/the_first_ai_that_can_laugh/".to_string(),
     ///                 author: None,
     ///                 title: None,

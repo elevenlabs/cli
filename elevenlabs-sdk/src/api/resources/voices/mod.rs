@@ -438,7 +438,7 @@ impl VoicesClient {
     ///         .share(
     ///             &"63e06b7e7cafdc46be4d2e0b3f045940231ae058d508589653d74d1265a574ca".to_string(),
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyAddSharedVoiceV1VoicesAddPublicUserIDVoiceIDPost {
+    ///             &BodyAddSharedVoiceV1VoicesAddPublicUserIdVoiceIdPost {
     ///                 new_name: "John Smith".to_string(),
     ///                 bookmarked: None,
     ///             },

@@ -47,7 +47,7 @@ impl SpeakerClient {
     ///         .update(
     ///             &"dubbing_id".to_string(),
     ///             &"speaker_id".to_string(),
-    ///             &BodyUpdateMetadataForASpeakerV1DubbingResourceDubbingIDSpeakerSpeakerIDPatch {
+    ///             &BodyUpdateMetadataForASpeakerV1DubbingResourceDubbingIdSpeakerSpeakerIdPatch {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -101,7 +101,7 @@ impl SpeakerClient {
     ///         .speaker
     ///         .create(
     ///             &"dubbing_id".to_string(),
-    ///             &BodyCreateANewSpeakerV1DubbingResourceDubbingIDSpeakerPost {
+    ///             &BodyCreateANewSpeakerV1DubbingResourceDubbingIdSpeakerPost {
     ///                 ..Default::default()
     ///             },
     ///             None,

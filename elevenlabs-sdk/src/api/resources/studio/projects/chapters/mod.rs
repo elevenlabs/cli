@@ -91,7 +91,7 @@ impl ChaptersClient {
     ///         .chapters
     ///         .create(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyCreateChapterV1StudioProjectsProjectIDChaptersPost {
+    ///             &BodyCreateChapterV1StudioProjectsProjectIdChaptersPost {
     ///                 name: "Chapter 1".to_string(),
     ///                 from_url: None,
     ///             },
@@ -199,7 +199,7 @@ impl ChaptersClient {
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyUpdateChapterV1StudioProjectsProjectIDChaptersChapterIDPost {
+    ///             &BodyUpdateChapterV1StudioProjectsProjectIdChaptersChapterIdPost {
     ///                 ..Default::default()
     ///             },
     ///             None,

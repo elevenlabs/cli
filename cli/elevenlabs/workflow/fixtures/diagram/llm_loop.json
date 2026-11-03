@@ -1,0 +1,21 @@
+{
+  "name": "Booking",
+  "workflow": {
+    "nodes": {
+      "start_node": { "type": "start" },
+      "ask_date": { "type": "override_agent", "label": "Ask for a date" },
+      "confirm": { "type": "say", "label": "Confirm \"booking\" | details", "message": { "type": "prompt", "prompt": "Read back the booking." } },
+      "end_node": { "type": "end" }
+    },
+    "edges": {
+      "e_start": { "source": "start_node", "target": "ask_date", "forward_condition": { "type": "unconditional" } },
+      "e_confirm": {
+        "source": "ask_date",
+        "target": "confirm",
+        "forward_condition": { "type": "llm", "condition": "The caller has chosen a date and a time for the booking" },
+        "backward_condition": { "type": "llm", "label": "Wants another date", "condition": "The caller wants to change the date." }
+      },
+      "e_end": { "source": "confirm", "target": "end_node", "forward_condition": { "type": "unconditional" }, "backward_condition": null }
+    }
+  }
+}

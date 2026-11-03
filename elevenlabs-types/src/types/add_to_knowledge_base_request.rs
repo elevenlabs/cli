@@ -29,15 +29,11 @@ impl AddToKnowledgeBaseRequest {
     }
 
     if let Some(ref value) = self.name {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("name", json_str);
-        }
+        form = form.text("name", value.clone());
     }
 
     if let Some(ref value) = self.url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("url", json_str);
-        }
+        form = form.text("url", value.clone());
     }
 
     form

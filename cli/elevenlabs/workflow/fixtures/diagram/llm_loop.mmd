@@ -1,0 +1,17 @@
+flowchart TD
+    n_ask_date["Subagent · Ask for a date"]
+    n_confirm("Say · Confirm #quot;booking#quot; #124; details")
+    n_end_node(["End"])
+    n_start_node(["Start"])
+    n_ask_date -->|"The caller has chosen a date and a time…"| n_confirm
+    n_confirm -.->|"Wants another date"| n_ask_date
+    n_confirm --> n_end_node
+    n_start_node --> n_ask_date
+    classDef t_start fill:#d1fae5,stroke:#059669,color:#064e3b
+    class n_start_node t_start
+    classDef t_end fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class n_end_node t_end
+    classDef t_say fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    class n_confirm t_say
+    classDef t_subagent fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_ask_date t_subagent

@@ -1,0 +1,18 @@
+flowchart TD
+    n_billing{{"Agent transfer · agent_billing"}}
+    n_billing_beta{{"Agent transfer · agent_billing (agtbrch_beta)"}}
+    n_human{{"Phone transfer · +15550100"}}
+    n_sip{{"Phone transfer · sip:support@example.com"}}
+    n_start_node(["Start"])
+    n_triage["Subagent · Triage"]
+    n_triage -->|"Beta customer"| n_billing_beta
+    n_triage -->|"The caller has a question about an invo…"| n_billing
+    n_triage -->|"The caller asks for a person."| n_human
+    n_triage -->|"expression"| n_sip
+    n_start_node --> n_triage
+    classDef t_start fill:#d1fae5,stroke:#059669,color:#064e3b
+    class n_start_node t_start
+    classDef t_subagent fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_triage t_subagent
+    classDef t_transfer fill:#fce7f3,stroke:#db2777,color:#831843
+    class n_billing,n_billing_beta,n_human,n_sip t_transfer

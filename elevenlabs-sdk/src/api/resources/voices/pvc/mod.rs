@@ -100,7 +100,7 @@ impl PvcClient {
     ///         .pvc
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyEditPvcVoiceV1VoicesPvcVoiceIDPost {
+    ///             &BodyEditPvcVoiceV1VoicesPvcVoiceIdPost {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -152,7 +152,7 @@ impl PvcClient {
     ///         .pvc
     ///         .train(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyRunPvcTrainingV1VoicesPvcVoiceIDTrainPost {
+    ///             &BodyRunPvcTrainingV1VoicesPvcVoiceIdTrainPost {
     ///                 ..Default::default()
     ///             },
     ///             None,

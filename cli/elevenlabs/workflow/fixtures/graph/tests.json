@@ -1,0 +1,5 @@
+{
+  "tests": [
+    { "config": "test_configs/greets.json", "type": "llm", "id": "test_greets" }
+  ]
+}

@@ -209,6 +209,13 @@ elevenlabs agents widget embed <agent_id>
 
 # Run the tests attached to an agent (polls to completion; exits non-zero on failure)
 elevenlabs agents test <agent_id>
+
+# Draw an agent's workflow in the terminal, or print it as Mermaid (local files only, no API key)
+elevenlabs agents workflow diagram <config-path|agent_id|name> [--format ascii|mermaid|mermaid-md]
+
+# Show how agents connect to tools, tests, documents and each other (local files only)
+elevenlabs agents graph [config-path|agent_id|name] [--format ascii|mermaid|mermaid-md]
+elevenlabs agents graph --uses <id|name>
 ```
 
 ### Two surfaces in one namespace
@@ -217,7 +224,7 @@ elevenlabs agents test <agent_id>
 
 | | Workflow commands | API commands |
 |---|---|---|
-| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
+| **What** | `init`, `add`, `status`, `push`, `pull`, `test`, `templates`, `widget embed`, `workflow diagram`, `graph` | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `run_tests`, and subgroups like `branches`, `tools`, `tests`, `conversations` |
 | **Operates on** | Your local project files, syncing them with ElevenLabs | The API directly — one command, one request |
 | **Arguments** | Positional, e.g. `agents test <agent_id>` | Flags, e.g. `agents get --agent-id <id>` |
 | **Output** | Progress text | The API response (`--format json\|table\|yaml\|csv`) |
@@ -228,6 +235,134 @@ The API commands own the primitive names, so the workflow only adds verbs the AP
 - **Deleting** — `agents delete --agent-id <id>` deletes remotely (API command). It does **not** remove the local config file or its `agents.json` entry; delete those yourself.
 
 > **Migrating from v0 (`@elevenlabs/cli`):** v0's `agents list` showed local config and `agents delete <id>` took a positional and cleaned up locally. In v1 both names belong to the API surface — use `agents status` for the local view, and `--agent-id` for delete. v0's `agents widget <id>` is now `agents widget embed <id>`, since `agents widget` is an API subgroup.
+
+### Visualizing workflows
+
+Workflows are stored as `workflow.nodes` / `workflow.edges` in the agent config, which is lossless but hard to read, and harder to review as a diff. `agents workflow diagram` turns one into a flowchart:
+
+```bash
+# Draw it in the terminal: a config file, or an id or name from agents.json
+elevenlabs agents workflow diagram Support
+elevenlabs agents workflow diagram agent_configs/support.json
+elevenlabs agents workflow diagram --all
+
+# Print it as Mermaid source, to save, or to paste into docs or a PR comment
+elevenlabs agents workflow diagram Support --format mermaid > docs/support-flow.mmd
+elevenlabs agents workflow diagram Support --format mermaid-md     # wrapped in a ```mermaid fence
+elevenlabs agents workflow diagram --all --format mermaid-md       # every agent and branch, one section each
+```
+
+It reads local files only: no API key, no network, so it also runs in CI on forks.
+
+The default format, `ascii`, draws boxes and arrows (in colour when stdout is a terminal and `NO_COLOR` is unset). To keep a workflow narrow enough to read, each edge condition is drawn as a numbered key on its edge and written out in full in a legend underneath:
+
+```
+         ╭───────╮
+         │ Start │
+         ╰───────╯
+             │
+             │
+             │
+             │
+           ╭───╮
+           │ 1 │
+           ╰───╯
+             │
+             │
+             ▼
+   ┌───────────────────┐
+   ║       Tool        ║
+   ║ tool_lookup_order ║
+   └───────────────────┘
+    │                 │
+    └───┐          ┌──┘
+        │          │
+        │          │
+    ╭───╮          ╭───╮
+    │ 2 │          │ 3 │
+    ╰───╯          ╰───╯
+      │              │
+      │              │
+      ▼              │
+╭───────────╮        ▼
+│    Say    │    ╭───────────────╮
+│ Apologize │    │ End (success) │
+╰───────────╯    ╰───────────────╯
+
+  1  The caller has given an order number
+  2  failure
+  3  success
+```
+
+A few things keep a busy workflow readable, so lines don't cross or run together:
+
+- A step back (a backward condition) ends in a stub, such as `6 ↩`. The legend says where it goes: `6  Changes topic (back to 'Ask for the order number')`.
+- An ending that several paths lead to (an end, or an agent or phone transfer) is drawn once for each path.
+- When a node's branches would still cross, its box is widened or the branches are reordered, whichever draws without crossings.
+- When the drawing is wider than the terminal (or `COLUMNS`), long IDs are shortened, as in `tool_01j…sfb67`. If it still doesn't fit, a note says so; `--format mermaid` has the full IDs.
+
+`--format mermaid` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
+
+```mermaid
+flowchart TD
+    n_apologize("Say · Apologize")
+    n_done(["End (success)"])
+    n_lookup[["Tool · tool_lookup_order"]]
+    n_start_node(["Start"])
+    n_lookup -->|"failure"| n_apologize
+    n_lookup -->|"success"| n_done
+    n_start_node -->|"The caller has given an order number"| n_lookup
+```
+
+### Mapping a project
+
+Agent configs refer to tools, tests, knowledge-base documents and other agents by ID. `agents graph` follows those references across every agent in `agents.json` (branches included) and resolves them against `tools.json`, `tests.json` and `agents.json`, so you can see what connects to what, and what a change affects.
+
+```bash
+# Every agent, one drawing each, in the terminal
+elevenlabs agents graph
+
+# One agent: everything it uses, and every agent that hands off to it
+elevenlabs agents graph Billing
+
+# The whole project as one Mermaid graph, for docs or a PR comment
+elevenlabs agents graph --format mermaid-md
+
+# Which agents use this tool (or test, agent or document)? An ID, or a tool's or test's name
+elevenlabs agents graph --uses tool_refund
+```
+
+It follows:
+- tools in `prompt.tool_ids`, workflow tool nodes and `additional_tool_ids`
+- agent handoffs in the `transfer_to_agent` tool and workflow `standalone_agent` nodes (thick arrows); a handoff to a registered branch points at that branch
+- tests in `platform_settings.testing.attached_tests`
+- knowledge-base documents in `prompt.knowledge_base` and `additional_knowledge_base`, shown by the name the config gives them, since there's no local registry for documents
+
+References inside a workflow node's prompt override count too. An ID that isn't in the project, such as a tool made in the dashboard or a handoff to an agent outside the repo, is shown as external rather than dropped.
+
+In the terminal, each agent is drawn on its own, as a card with a count of each kind of connection, and what surrounds it grouped into one box per kind: the agents that hand off to it on the left, and on the right the agents it hands off to, its tools, its tests and its documents. Handoffs are the thick arrows, and the boxes are ordered so no two lines cross. If the drawing is wider than the terminal (or `COLUMNS`, when set), long IDs are shortened to their start and end, as in `tool_01jx…sfb67`. `--format mermaid` draws the whole project as one graph instead, with a node for every resource.
+
+```
+                                                              ┌──────────────┐
+                                                              ║  Tools (1)   ║
+                                                              ║ issue_refund ║
+                                 ┌──────────────────┐────────►└──────────────┘
+┌─────────────────────────┐      │      Agent       │
+│   Handed off from (2)   │      │     Billing      │
+│         Support         │━━━━━►│ 2 hand off to it │
+│ Support (branch 'beta') │      │      1 tool      │
+└─────────────────────────┘      │    1 document    │    ┌────►┌───────────────┐
+                                 └──────────────────┘────┘     ( Documents (1) )
+                                                               (  Pricing FAQ  )
+                                                               └───────────────┘
+```
+
+`--uses` prints one line per reference, tab-separated: the agent's ID, its name, and where the reference is. That makes it easy to script, for example to check which agents a changed tool config affects:
+
+```
+agent_billing	Billing	prompt.tool_ids
+agent_support	Support (branch 'beta')	workflow node 'refunds'
+```
 
 ### Tools
 

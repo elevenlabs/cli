@@ -41,7 +41,7 @@ impl DraftsClient {
     ///         .drafts
     ///         .create(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodyCreateAgentDraftV1ConvaiAgentsAgentIDDraftsPost {
+    ///             &BodyCreateAgentDraftV1ConvaiAgentsAgentIdDraftsPost {
     ///                 branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
     ///                 conversation_config: HashMap::from([(
     ///                     "key".to_string(),

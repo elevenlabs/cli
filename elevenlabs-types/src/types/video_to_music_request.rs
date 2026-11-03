@@ -39,9 +39,7 @@ impl VideoToMusicRequest {
     }
 
     if let Some(ref value) = self.description {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("description", json_str);
-        }
+        form = form.text("description", value.clone());
     }
 
     if let Some(ref value) = self.tags {

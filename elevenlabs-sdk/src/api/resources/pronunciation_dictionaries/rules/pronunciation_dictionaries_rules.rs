@@ -35,8 +35,8 @@ impl RulesClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.pronunciation_dictionaries.rules.set(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodySetRulesOnThePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIDSetRulesPost {
-    ///         rules: vec![BodySetRulesOnThePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIDSetRulesPostRulesItem::Alias {
+    ///     client.pronunciation_dictionaries.rules.set(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodySetRulesOnThePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIdSetRulesPost {
+    ///         rules: vec![BodySetRulesOnThePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIdSetRulesPostRulesItem::Alias {
     ///             data: PronunciationDictionaryAliasRuleRequestModel {
     ///                 string_to_replace: "Thailand".to_string(),
     ///                 case_sensitive: Some(true),

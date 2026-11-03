@@ -1,0 +1,12 @@
+flowchart TD
+    n_end_node(["End (success)"])
+    n_greet("Say · Greet caller")
+    n_start_node(["Start"])
+    n_greet --> n_end_node
+    n_start_node --> n_greet
+    classDef t_start fill:#d1fae5,stroke:#059669,color:#064e3b
+    class n_start_node t_start
+    classDef t_end fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class n_end_node t_end
+    classDef t_say fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    class n_greet t_say

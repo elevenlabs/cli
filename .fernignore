@@ -25,6 +25,9 @@ assets/
 # unprotected on purpose so cargo-dist updates still come through.)
 .github/workflows/ci.yml
 
+# Hand-written workflow with no generated counterpart; regeneration deletes it.
+.github/workflows/windows-smoke.yml
+
 # Hand-written: the generated types crate ships without a .gitignore, so running
 # its test suite leaves untracked build artifacts.
 elevenlabs-types/.gitignore

@@ -1,0 +1,26 @@
+flowchart TD
+    n_apologize("Say · Apologize")
+    n_collect["Subagent · Collect order number"]
+    n_done(["End (success)"])
+    n_failed(["End (failure)"])
+    n_lookup[["Tool · tool_lookup_order"]]
+    n_save[/"Update state · Remember order status"/]
+    n_start_node(["Start"])
+    n_collect -->|"Has order number"| n_lookup
+    n_lookup -->|"failure"| n_apologize
+    n_lookup -->|"success"| n_save
+    n_save --> n_done
+    n_apologize --> n_failed
+    n_start_node --> n_collect
+    classDef t_start fill:#d1fae5,stroke:#059669,color:#064e3b
+    class n_start_node t_start
+    classDef t_end fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class n_done,n_failed t_end
+    classDef t_say fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    class n_apologize t_say
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_lookup t_tool
+    classDef t_state fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class n_save t_state
+    classDef t_subagent fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_collect t_subagent

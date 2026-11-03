@@ -78,38 +78,26 @@ impl CreateRequest10 {
         );
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.name) {
-        form = form.text("name", json_str);
-    }
+    form = form.text("name", self.name.clone());
 
     if let Some(ref value) = self.default_title_voice_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("default_title_voice_id", json_str);
-        }
+        form = form.text("default_title_voice_id", value.clone());
     }
 
     if let Some(ref value) = self.default_paragraph_voice_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("default_paragraph_voice_id", json_str);
-        }
+        form = form.text("default_paragraph_voice_id", value.clone());
     }
 
     if let Some(ref value) = self.default_model_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("default_model_id", json_str);
-        }
+        form = form.text("default_model_id", value.clone());
     }
 
     if let Some(ref value) = self.from_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("from_url", json_str);
-        }
+        form = form.text("from_url", value.clone());
     }
 
     if let Some(ref value) = self.from_content_json {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("from_content_json", json_str);
-        }
+        form = form.text("from_content_json", value.clone());
     }
 
     if let Some(ref value) = self.quality_preset {
@@ -119,21 +107,15 @@ impl CreateRequest10 {
     }
 
     if let Some(ref value) = self.title {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("title", json_str);
-        }
+        form = form.text("title", value.clone());
     }
 
     if let Some(ref value) = self.author {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("author", json_str);
-        }
+        form = form.text("author", value.clone());
     }
 
     if let Some(ref value) = self.description {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("description", json_str);
-        }
+        form = form.text("description", value.clone());
     }
 
     if let Some(ref value) = self.genres {
@@ -149,21 +131,15 @@ impl CreateRequest10 {
     }
 
     if let Some(ref value) = self.language {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("language", json_str);
-        }
+        form = form.text("language", value.clone());
     }
 
     if let Some(ref value) = self.content_type {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("content_type", json_str);
-        }
+        form = form.text("content_type", value.clone());
     }
 
     if let Some(ref value) = self.original_publication_date {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("original_publication_date", json_str);
-        }
+        form = form.text("original_publication_date", value.clone());
     }
 
     if let Some(ref value) = self.mature_content {
@@ -173,9 +149,7 @@ impl CreateRequest10 {
     }
 
     if let Some(ref value) = self.isbn_number {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("isbn_number", json_str);
-        }
+        form = form.text("isbn_number", value.clone());
     }
 
     if let Some(ref value) = self.acx_volume_normalization {
@@ -197,9 +171,7 @@ impl CreateRequest10 {
     }
 
     if let Some(ref value) = self.callback_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("callback_url", json_str);
-        }
+        form = form.text("callback_url", value.clone());
     }
 
     if let Some(ref value) = self.fiction {

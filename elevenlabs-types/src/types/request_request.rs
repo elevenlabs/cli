@@ -23,9 +23,7 @@ impl RequestRequest {
     }
 
     if let Some(ref value) = self.extra_text {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("extra_text", json_str);
-        }
+        form = form.text("extra_text", value.clone());
     }
 
     form

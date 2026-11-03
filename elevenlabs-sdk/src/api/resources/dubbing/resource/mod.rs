@@ -97,7 +97,7 @@ impl ResourceClient {
     ///         .resource
     ///         .migrate_segments(
     ///             &"dubbing_id".to_string(),
-    ///             &BodyMoveSegmentsBetweenSpeakersV1DubbingResourceDubbingIDMigrateSegmentsPost {
+    ///             &BodyMoveSegmentsBetweenSpeakersV1DubbingResourceDubbingIdMigrateSegmentsPost {
     ///                 segment_ids: vec!["segment_ids".to_string()],
     ///                 speaker_id: "speaker_id".to_string(),
     ///             },
@@ -150,7 +150,7 @@ impl ResourceClient {
     ///         .resource
     ///         .transcribe(
     ///             &"dubbing_id".to_string(),
-    ///             &BodyTranscribesSegmentsV1DubbingResourceDubbingIDTranscribePost {
+    ///             &BodyTranscribesSegmentsV1DubbingResourceDubbingIdTranscribePost {
     ///                 segments: vec!["segments".to_string()],
     ///             },
     ///             None,
@@ -202,7 +202,7 @@ impl ResourceClient {
     ///         .resource
     ///         .translate(
     ///             &"dubbing_id".to_string(),
-    ///             &BodyTranslatesAllOrSomeSegmentsAndLanguagesV1DubbingResourceDubbingIDTranslatePost {
+    ///             &BodyTranslatesAllOrSomeSegmentsAndLanguagesV1DubbingResourceDubbingIdTranslatePost {
     ///                 segments: vec!["segments".to_string()],
     ///                 languages: None,
     ///             },
@@ -255,7 +255,7 @@ impl ResourceClient {
     ///         .resource
     ///         .dub(
     ///             &"dubbing_id".to_string(),
-    ///             &BodyDubsAllOrSomeSegmentsAndLanguagesV1DubbingResourceDubbingIDDubPost {
+    ///             &BodyDubsAllOrSomeSegmentsAndLanguagesV1DubbingResourceDubbingIdDubPost {
     ///                 segments: vec!["segments".to_string()],
     ///                 languages: None,
     ///             },
@@ -304,7 +304,7 @@ impl ResourceClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.dubbing.resource.render(&"dubbing_id".to_string(), &"language".to_string(), &BodyRenderAudioOrVideoForTheGivenLanguageV1DubbingResourceDubbingIDRenderLanguagePost {
+    ///     client.dubbing.resource.render(&"dubbing_id".to_string(), &"language".to_string(), &BodyRenderAudioOrVideoForTheGivenLanguageV1DubbingResourceDubbingIdRenderLanguagePost {
     ///         render_type: RenderType::Mp4,
     ///         normalize_volume: None
     ///     }, None).await;
