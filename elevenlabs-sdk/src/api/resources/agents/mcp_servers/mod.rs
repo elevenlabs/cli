@@ -92,7 +92,7 @@ impl McpServersClient {
     ///                     approval_policy: None,
     ///                     tool_approval_hashes: None,
     ///                     transport: None,
-    ///                     url: McpServerConfigInputURL::String("url".to_string()),
+    ///                     url: McpServerConfigInputUrl::String("url".to_string()),
     ///                     secret_token: None,
     ///                     request_headers: None,
     ///                     request_meta: None,

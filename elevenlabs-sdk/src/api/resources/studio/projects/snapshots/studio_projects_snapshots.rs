@@ -137,7 +137,7 @@ impl SnapshotsClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.studio.projects.snapshots.stream(&"project_id".to_string(), &"project_snapshot_id".to_string(), &BodyStreamStudioProjectAudioV1StudioProjectsProjectIDSnapshotsProjectSnapshotIDStreamPost {
+    ///     client.studio.projects.snapshots.stream(&"project_id".to_string(), &"project_snapshot_id".to_string(), &BodyStreamStudioProjectAudioV1StudioProjectsProjectIdSnapshotsProjectSnapshotIdStreamPost {
     ///         ..Default::default()
     ///     }, None).await;
     /// }

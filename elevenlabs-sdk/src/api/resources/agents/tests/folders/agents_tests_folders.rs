@@ -195,7 +195,7 @@ impl FoldersClient {
     ///         .folders
     ///         .update(
     ///             &"tfld_7301khxdkycse5f88fzjdtrterzm".to_string(),
-    ///             &BodyUpdateAgentTestFolderV1ConvaiAgentTestingFoldersFolderIDPatch {
+    ///             &BodyUpdateAgentTestFolderV1ConvaiAgentTestingFoldersFolderIdPatch {
     ///                 name: "name".to_string(),
     ///             },
     ///             None,

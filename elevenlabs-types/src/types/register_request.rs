@@ -30,26 +30,18 @@ impl RegisterRequest {
         );
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.declared_language) {
-        form = form.text("declared_language", json_str);
-    }
+    form = form.text("declared_language", self.declared_language.clone());
 
     if let Some(ref value) = self.media_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("media_url", json_str);
-        }
+        form = form.text("media_url", value.clone());
     }
 
     if let Some(ref value) = self.media_url_filename {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("media_url_filename", json_str);
-        }
+        form = form.text("media_url_filename", value.clone());
     }
 
     if let Some(ref value) = self.media_url_content_type {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("media_url_content_type", json_str);
-        }
+        form = form.text("media_url_content_type", value.clone());
     }
 
     form

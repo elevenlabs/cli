@@ -47,7 +47,7 @@ impl EnvironmentVariablesClient {
     ///                 page_size: Some(1),
     ///                 label: Some("label".to_string()),
     ///                 environment: Some("environment".to_string()),
-    ///                 r#type: Some(EnvironmentVariablesListRequestType::String),
+    ///                 r#type: Some(EnvironmentVariablesListRequestType::String_),
     ///                 ..Default::default()
     ///             },
     ///             None,

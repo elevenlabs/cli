@@ -105,7 +105,7 @@ impl BranchesClient {
     ///         .branches
     ///         .create(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodyCreateANewBranchV1ConvaiAgentsAgentIDBranchesPost {
+    ///             &BodyCreateANewBranchV1ConvaiAgentsAgentIdBranchesPost {
     ///                 parent_version_id: "parent_version_id".to_string(),
     ///                 name: "name".to_string(),
     ///                 description: "description".to_string(),
@@ -216,7 +216,7 @@ impl BranchesClient {
     ///         .update(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtbranch_0901k4aafjxxfxt93gd841r7tv5t".to_string(),
-    ///             &BodyUpdateAgentBranchV1ConvaiAgentsAgentIDBranchesBranchIDPatch {
+    ///             &BodyUpdateAgentBranchV1ConvaiAgentsAgentIdBranchesBranchIdPatch {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -338,7 +338,7 @@ impl BranchesClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.agents.branches.merge(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyMergeABranchIntoATargetBranchV1ConvaiAgentsAgentIDBranchesSourceBranchIDMergePost {
+    ///     client.agents.branches.merge(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyMergeABranchIntoATargetBranchV1ConvaiAgentsAgentIdBranchesSourceBranchIdMergePost {
     ///         target_branch_id: "agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
     ///         archive_source_branch: None,
     ///         force: None
@@ -468,7 +468,7 @@ impl BranchesClient {
     ///         .rebase(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtbrch_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
-    ///             &BodyRebaseABranchOntoMainV1ConvaiAgentsAgentIDBranchesBranchIDRebasePost {
+    ///             &BodyRebaseABranchOntoMainV1ConvaiAgentsAgentIdBranchesBranchIdRebasePost {
     ///                 source_branch_id: Some("source_branch_id".to_string()),
     ///                 ..Default::default()
     ///             },

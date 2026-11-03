@@ -19,6 +19,7 @@ impl InvocationsClient {
     ///
     /// * `agent_id` - Filter by agent ID
     /// * `branch_id` - Filter by branch ID
+    /// * `created_by_user_id` - Filter by test run creator user ID
     /// * `test_id` - Filter to invocations that include a run of this test id
     /// * `start_time` - Inclusive lower bound on created_at, in unix seconds
     /// * `end_time` - Inclusive upper bound on created_at, in unix seconds
@@ -51,6 +52,7 @@ impl InvocationsClient {
     ///             &AgentsTestsInvocationsListQueryRequest {
     ///                 agent_id: Some("agent_id".to_string()),
     ///                 branch_id: Some("branch_id".to_string()),
+    ///                 created_by_user_id: Some("created_by_user_id".to_string()),
     ///                 test_id: Some("test_id".to_string()),
     ///                 start_time: Some(1),
     ///                 end_time: Some(1),
@@ -78,6 +80,7 @@ impl InvocationsClient {
                 QueryBuilder::new()
                     .string("agent_id", request.agent_id.clone())
                     .string("branch_id", request.branch_id.clone())
+                    .string("created_by_user_id", request.created_by_user_id.clone())
                     .string("test_id", request.test_id.clone())
                     .int("start_time", request.start_time.clone())
                     .int("end_time", request.end_time.clone())

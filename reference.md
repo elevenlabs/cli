@@ -6,6 +6,8 @@ Full command reference for `elevenlabs`.
 
 - [`elevenlabs agents`](#elevenlabs-agents)
 - [`elevenlabs agents agents llm-usage`](#elevenlabs-agents-agents-llm-usage)
+- [`elevenlabs agents analysis-items`](#elevenlabs-agents-analysis-items)
+- [`elevenlabs agents analysis-items dependent-agents`](#elevenlabs-agents-analysis-items-dependent-agents)
 - [`elevenlabs agents analytics live-count`](#elevenlabs-agents-analytics-live-count)
 - [`elevenlabs agents batch-calls`](#elevenlabs-agents-batch-calls)
 - [`elevenlabs agents branches`](#elevenlabs-agents-branches)
@@ -330,6 +332,126 @@ Calculates expected number of LLM tokens needed for the specified agent.
 | `--agent-id` | `string` | Yes |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents analysis-items`
+
+#### `elevenlabs agents analysis-items copy`
+
+Create a new analysis item from this item's current definition.
+
+`POST /v1/convai/analysis-items/{analysis_item_id}/copy`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents analysis-items create`
+
+Create a new analysis item (evaluation criterion or data collection) in the workspace.
+
+`POST /v1/convai/analysis-items`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents analysis-items delete`
+
+Delete an analysis item and all of its versions from the workspace.
+
+`DELETE /v1/convai/analysis-items/{analysis_item_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--force` | `boolean` | No | If set to true, the analysis item will be deleted regardless of whether it is used by any agents and it will be removed from the dependent agents and branches. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents analysis-items get`
+
+Get an analysis item available in the workspace.
+
+`GET /v1/convai/analysis-items/{analysis_item_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents analysis-items list`
+
+List analysis items available in the workspace.
+
+`GET /v1/convai/analysis-items`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--search` | `string` | No | If specified, only analysis items whose names start with this string are returned, ordered by relevance rather than sort_direction. |
+| `--page-size` | `string` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--kind` | `string` | No | If specified, only analysis items of this kind are returned. |
+| `--analysis-item-ids` | `string` | No | If specified, only analysis items with these IDs are returned. |
+| `--created-by-user-id` | `string` | No | Filter by creator user ID. Use '@me' to refer to the authenticated user. |
+| `--sort-direction` | `SortDirection` | No | The direction to sort the results |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents analysis-items list-versions`
+
+List the published versions of an analysis item, newest first.
+
+`GET /v1/convai/analysis-items/{analysis_item_id}/versions`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents analysis-items update`
+
+Update an analysis item. Publishes a new version when the content changes.
+
+`PATCH /v1/convai/analysis-items/{analysis_item_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents analysis-items update-attachments`
+
+Attach or detach one analysis item on multiple agent branches.
+
+`PATCH /v1/convai/analysis-items/{analysis_item_id}/attachments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents analysis-items dependent-agents`
+
+#### `elevenlabs agents analysis-items dependent-agents get`
+
+Get a list of agents (and branches) that reference this analysis item.
+
+`GET /v1/convai/analysis-items/{analysis_item_id}/dependent-agents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--analysis-item-id` | `string` | Yes | ID of the requested analysis item. |
+| `--page-size` | `integer` | No | How many documents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 
@@ -1378,7 +1500,7 @@ Moves the entity from one folder to another.
 
 #### `elevenlabs agents knowledge-base documents update`
 
-Update the name and/or content of a document.
+Update the name, content and/or auto-sync settings of a document.
 
 `PATCH /v1/convai/knowledge-base/{documentation_id}`
 
@@ -1966,6 +2088,17 @@ Create or update user's draft for a procedure
 
 ### `elevenlabs agents realtime`
 
+#### `elevenlabs agents realtime clear-conversation-group`
+
+Remove a realtime conversation from its conversation group.
+
+`DELETE /v1/convai/realtime/conversations/{conversation_id}/conversation-group`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of a realtime conversation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
 #### `elevenlabs agents realtime create-client-secret`
 
 Create an ephemeral client secret for authenticating browser-based Realtime API sessions.
@@ -1976,6 +2109,76 @@ Create an ephemeral client secret for authenticating browser-based Realtime API 
 |------|------|----------|-------------|
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents realtime create-conversation-group`
+
+Create a realtime conversation group owned by the current user.
+
+`POST /v1/convai/realtime/conversation-groups`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents realtime delete-conversation-group`
+
+Delete a realtime conversation group. Every conversation in it becomes ungrouped, so access granted through the group is revoked.
+
+`DELETE /v1/convai/realtime/conversation-groups/{conversation_group_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-group-id` | `string` | Yes | The id of a realtime conversation group. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents realtime get-conversation-group`
+
+Get a realtime conversation group by id.
+
+`GET /v1/convai/realtime/conversation-groups/{conversation_group_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-group-id` | `string` | Yes | The id of a realtime conversation group. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents realtime list-conversation-groups`
+
+List the realtime conversation groups the current user can view.
+
+`GET /v1/convai/realtime/conversation-groups`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | How many conversation groups to return. Can not exceed 100. |
+| `--search` | `string` | No | If specified, only conversation groups whose title or description contains this string (case-insensitive) are returned. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents realtime set-conversation-group`
+
+Place a realtime conversation in a conversation group, moving it out of its current group if it has one.
+
+`PUT /v1/convai/realtime/conversations/{conversation_id}/conversation-group`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of a realtime conversation. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents realtime update-conversation-group`
+
+Rename or re-describe a realtime conversation group.
+
+`PATCH /v1/convai/realtime/conversation-groups/{conversation_group_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-group-id` | `string` | Yes | The id of a realtime conversation group. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
 ---
 
@@ -2285,6 +2488,7 @@ Lists all test invocations with pagination support and optional search filtering
 |------|------|----------|-------------|
 | `--agent-id` | `string` | No | Filter by agent ID |
 | `--branch-id` | `string` | No | Filter by branch ID |
+| `--created-by-user-id` | `string` | No | Filter by test run creator user ID |
 | `--test-id` | `string` | No | Filter to invocations that include a run of this test id |
 | `--start-time` | `string` | No | Inclusive lower bound on created_at, in unix seconds |
 | `--end-time` | `string` | No | Inclusive upper bound on created_at, in unix seconds |
@@ -5996,9 +6200,23 @@ These flags are available on every command:
 | `--format <json\|table\|yaml\|csv>` | Output format (default: `json`) |
 | `--output <PATH>` | Write binary responses to a file |
 | `--base-url <URL>` | Override the API base URL |
-| `--page-all` | Auto-paginate and stream all results |
-| `--page-limit <N>` | Max pages to fetch (default: `10`) |
+| `--no-extract` | Print the full response body instead of the `x-fern-sdk-return-value` extraction |
+| `--no-retry` | Disable retries declared by `x-fern-retries`, including network errors |
 | `-q, --quiet` | Suppress stdout on success |
 | `-h, --help` | Print help |
 | `-V, --version` | Print version |
 
+Operations the spec describes how to page (via `x-fern-pagination` or a root `page_token` parameter) also accept:
+
+| Flag | Description |
+|------|-------------|
+| `--page-all` | Auto-paginate and stream all results |
+| `--page-limit <N>` | Max pages to fetch (default: `10`) |
+| `--page-delay <MS>` | Delay between page fetches in milliseconds (default: `100`) |
+| `--no-pager` | Disable the pager even on interactive terminals |
+
+Operations the spec marks as streaming (via `x-fern-streaming`) also accept:
+
+| Flag | Description |
+|------|-------------|
+| `--no-stream` | Buffer the streaming response and print it as a single value once complete |

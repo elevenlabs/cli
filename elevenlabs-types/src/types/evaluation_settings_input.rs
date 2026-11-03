@@ -6,7 +6,7 @@ use super::*;
 /// Agents are evaluated against a set of criteria, with success being defined as meeting some combination of those criteria.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct EvaluationSettingsInput {
-    /// Individual criteria that the agent should be evaluated against
+    /// Individual criteria that the agent should be evaluated against. Each criterion is stored as an analysis item attached to the agent (see analysis_items).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub criteria: Option<Vec<PromptEvaluationCriteria>>,
 }

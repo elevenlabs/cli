@@ -69,7 +69,7 @@ impl WorkspaceClient {
     ///     client
     ///         .workspace
     ///         .set_third_party_disabling_policy(
-    ///             &BodySetWorkspaceThirdPartyDisablingPolicyV1WorkspacesAPIKeysThirdPartyDisablingPost {
+    ///             &BodySetWorkspaceThirdPartyDisablingPolicyV1WorkspacesApiKeysThirdPartyDisablingPost {
     ///                 ..Default::default()
     ///             },
     ///             None,

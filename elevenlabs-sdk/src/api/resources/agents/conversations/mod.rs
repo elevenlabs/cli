@@ -72,7 +72,7 @@ impl ConversationsClient {
     ///         .agents
     ///         .conversations
     ///         .get_signed_url(
-    ///             &GetSignedURLQueryRequest {
+    ///             &GetSignedUrlQueryRequest {
     ///                 agent_id: "agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///                 include_conversation_id: Some(true),
     ///                 branch_id: Some("branch_id".to_string()),
@@ -482,7 +482,7 @@ impl ConversationsClient {
     ///         .get(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
     ///             &AgentsConversationsGetQueryRequest {
-    ///                 format: Some(ConversationsGetRequestFormat::JSON),
+    ///                 format: Some(ConversationsGetRequestFormat::Json),
     ///                 ..Default::default()
     ///             },
     ///             None,

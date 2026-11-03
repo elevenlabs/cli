@@ -295,7 +295,7 @@ impl TestsClient {
     ///         .agents
     ///         .tests
     ///         .summaries(
-    ///             &ListTestsByIDsRequestModel {
+    ///             &ListTestsByIdsRequestModel {
     ///                 test_ids: vec!["test_id_1".to_string(), "test_id_2".to_string()],
     ///             },
     ///             None,

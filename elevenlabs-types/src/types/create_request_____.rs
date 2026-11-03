@@ -50,21 +50,15 @@ impl CreateRequest8 {
     }
 
     if let Some(ref value) = self.source_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("source_url", json_str);
-        }
+        form = form.text("source_url", value.clone());
     }
 
     if let Some(ref value) = self.reference {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("reference", json_str);
-        }
+        form = form.text("reference", value.clone());
     }
 
     if let Some(ref value) = self.source_language {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("source_language", json_str);
-        }
+        form = form.text("source_language", value.clone());
     }
 
     if let Some(ref value) = self.model_id {
@@ -86,9 +80,7 @@ impl CreateRequest8 {
     }
 
     if let Some(ref value) = self.target_language {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("target_language", json_str);
-        }
+        form = form.text("target_language", value.clone());
     }
 
     form

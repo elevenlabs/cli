@@ -16,6 +16,10 @@ pub struct WhatsAppConversationInfo {
     pub recipient: Option<WhatsAppRecipient>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_permission_request: Option<WhatsAppCallPermissionRequest>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_result: Option<CallResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opening_message: Option<WhatsAppOpeningMessage>,
 }
 
 impl WhatsAppConversationInfo {
@@ -33,6 +37,8 @@ pub struct WhatsAppConversationInfoBuilder {
     awaiting_first_user_message: Option<bool>,
     recipient: Option<WhatsAppRecipient>,
     call_permission_request: Option<WhatsAppCallPermissionRequest>,
+    call_result: Option<CallResult>,
+    opening_message: Option<WhatsAppOpeningMessage>,
 }
 
 impl WhatsAppConversationInfoBuilder {
@@ -66,6 +72,16 @@ impl WhatsAppConversationInfoBuilder {
         self
     }
 
+    pub fn call_result(mut self, value: CallResult) -> Self {
+        self.call_result = Some(value);
+        self
+    }
+
+    pub fn opening_message(mut self, value: WhatsAppOpeningMessage) -> Self {
+        self.opening_message = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WhatsAppConversationInfo`].
     /// This method will fail if any of the following fields are not set:
     /// - [`whatsapp_user_id`](WhatsAppConversationInfoBuilder::whatsapp_user_id)
@@ -77,6 +93,8 @@ impl WhatsAppConversationInfoBuilder {
             awaiting_first_user_message: self.awaiting_first_user_message,
             recipient: self.recipient,
             call_permission_request: self.call_permission_request,
+            call_result: self.call_result,
+            opening_message: self.opening_message,
         })
     }
 }

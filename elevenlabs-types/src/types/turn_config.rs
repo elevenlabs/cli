@@ -48,6 +48,12 @@ pub struct TurnConfig {
     /// Configuration for soft timeout functionality. Provides immediate feedback during longer LLM responses.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub soft_timeout_config: Option<SoftTimeoutConfig>,
+    /// When enabled, the agent politely suggests the user move somewhere quieter when it hears other voices in the background. This improves transcription and turn-taking accuracy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub noisy_environment_detection: Option<bool>,
+    /// What the agent says when it detects a noisy environment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub noisy_environment_message: Option<String>,
 }
 
 impl TurnConfig {
@@ -72,6 +78,8 @@ pub struct TurnConfigBuilder {
     merge_with_default_ignore_terms: Option<bool>,
     transcribe_on_disabled_interruptions: Option<bool>,
     soft_timeout_config: Option<SoftTimeoutConfig>,
+    noisy_environment_detection: Option<bool>,
+    noisy_environment_message: Option<String>,
 }
 
 impl TurnConfigBuilder {
@@ -140,6 +148,16 @@ impl TurnConfigBuilder {
         self
     }
 
+    pub fn noisy_environment_detection(mut self, value: bool) -> Self {
+        self.noisy_environment_detection = Some(value);
+        self
+    }
+
+    pub fn noisy_environment_message(mut self, value: impl Into<String>) -> Self {
+        self.noisy_environment_message = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`TurnConfig`].
     pub fn build(self) -> Result<TurnConfig, BuildError> {
         Ok(TurnConfig {
@@ -156,6 +174,8 @@ impl TurnConfigBuilder {
             merge_with_default_ignore_terms: self.merge_with_default_ignore_terms,
             transcribe_on_disabled_interruptions: self.transcribe_on_disabled_interruptions,
             soft_timeout_config: self.soft_timeout_config,
+            noisy_environment_detection: self.noisy_environment_detection,
+            noisy_environment_message: self.noisy_environment_message,
         })
     }
 }

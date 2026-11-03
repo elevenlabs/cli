@@ -1,6 +1,6 @@
 [package]
 name = "elevenlabs-cli"
-version = "1.8.0"
+version = "1.9.0"
 edition = "2021"
 description = "CLI for the ElevenLabs API"
 license = "MIT"
@@ -48,21 +48,12 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
 
 [dependencies]
 anyhow = "1"
-# Reads the API key the approval page copied for `elevenlabs onboard`; no image
-# support, so the musl targets link without an image stack.
-arboard = { version = "3", default-features = false, features = ["wayland-data-control"] }
 base64 = "0.22"
 bytes = "1"
 clap = { version = "4", features = ["derive", "string", "env"] }
-clap_complete = "4"
+clap_complete = { version = "4", features = ["unstable-dynamic"] }
 clap_mangen = "0.2"
 hmac = "0.12"
-# Draws `agents workflow diagram` in the terminal: Mermaid in, box-drawing text
-# out, in pure Rust. The default `cli` feature is mmdflux's own binary.
-mmdflux = { version = "2.6.1", default-features = false }
-# The terminal's width, so diagrams and `agents graph` can shorten long IDs
-# to fit it.
-terminal_size = "0.4"
 dotenvy = "0.15"
 futures-util = "0.3"
 httpdate = "1"
@@ -109,8 +100,12 @@ serde_yaml = "0.9.34"
 secrecy = "0.10"
 serde_qs = "1.1.1"
 sha2 = "0.10"
-tempfile = "3"
 thiserror = "2"
+# Format-preserving TOML for `profiles.toml`. `toml_edit` rather than `toml`
+# because an older binary must round-trip a file written by a newer one
+# without dropping the fields (or the user's comments) it does not
+# understand — see `profiles::store`.
+toml_edit = "0.22"
 webbrowser = "1"
 rand = "0.8"
 tokio = { version = "1", features = ["full"] }
@@ -158,5 +153,6 @@ serde_yaml = "0.9.34"
 
 [dev-dependencies]
 serial_test = "3.4.0"
+tempfile = "3"
 wiremock = "0.6"
 tokio = { version = "1", features = ["full"] }

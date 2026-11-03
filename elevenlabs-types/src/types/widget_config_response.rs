@@ -145,6 +145,9 @@ pub struct WidgetConfigResponse {
     /// Whether the widget opens fullscreen on mobile
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mobile_fullscreen: Option<bool>,
+    /// Whether voice call transcripts are revealed as the agent speaks
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transcript_speech_sync_enabled: Option<bool>,
     #[serde(default)]
     pub language: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -224,6 +227,7 @@ pub struct WidgetConfigResponseBuilder {
     show_resize_button: Option<bool>,
     end_confirmation_enabled: Option<bool>,
     mobile_fullscreen: Option<bool>,
+    transcript_speech_sync_enabled: Option<bool>,
     language: Option<String>,
     supported_language_overrides: Option<Vec<String>>,
     language_presets: Option<HashMap<String, WidgetLanguagePresetResponse>>,
@@ -470,6 +474,11 @@ impl WidgetConfigResponseBuilder {
         self
     }
 
+    pub fn transcript_speech_sync_enabled(mut self, value: bool) -> Self {
+        self.transcript_speech_sync_enabled = Some(value);
+        self
+    }
+
     pub fn language(mut self, value: impl Into<String>) -> Self {
         self.language = Some(value.into());
         self
@@ -562,6 +571,7 @@ impl WidgetConfigResponseBuilder {
             show_resize_button: self.show_resize_button,
             end_confirmation_enabled: self.end_confirmation_enabled,
             mobile_fullscreen: self.mobile_fullscreen,
+            transcript_speech_sync_enabled: self.transcript_speech_sync_enabled,
             language: self.language.ok_or_else(|| BuildError::missing_field("language"))?,
             supported_language_overrides: self.supported_language_overrides,
             language_presets: self.language_presets,

@@ -152,7 +152,7 @@ impl SnapshotsClient2 {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.studio.projects.chapters.snapshots.stream(&"project_id".to_string(), &"chapter_id".to_string(), &"chapter_snapshot_id".to_string(), &BodyStreamChapterAudioV1StudioProjectsProjectIDChaptersChapterIDSnapshotsChapterSnapshotIDStreamPost {
+    ///     client.studio.projects.chapters.snapshots.stream(&"project_id".to_string(), &"chapter_id".to_string(), &"chapter_snapshot_id".to_string(), &BodyStreamChapterAudioV1StudioProjectsProjectIdChaptersChapterIdSnapshotsChapterSnapshotIdStreamPost {
     ///         ..Default::default()
     ///     }, None).await;
     /// }

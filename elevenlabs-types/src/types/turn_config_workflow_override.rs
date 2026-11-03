@@ -49,6 +49,9 @@ pub struct TurnConfigWorkflowOverride {
     /// Configuration for soft timeout functionality. Provides immediate feedback during longer LLM responses.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub soft_timeout_config: Option<SoftTimeoutConfigWorkflowOverride>,
+    /// What the agent says when it detects a noisy environment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub noisy_environment_message: Option<String>,
 }
 
 impl TurnConfigWorkflowOverride {
@@ -73,6 +76,7 @@ pub struct TurnConfigWorkflowOverrideBuilder {
     merge_with_default_ignore_terms: Option<bool>,
     transcribe_on_disabled_interruptions: Option<bool>,
     soft_timeout_config: Option<SoftTimeoutConfigWorkflowOverride>,
+    noisy_environment_message: Option<String>,
 }
 
 impl TurnConfigWorkflowOverrideBuilder {
@@ -141,6 +145,11 @@ impl TurnConfigWorkflowOverrideBuilder {
         self
     }
 
+    pub fn noisy_environment_message(mut self, value: impl Into<String>) -> Self {
+        self.noisy_environment_message = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`TurnConfigWorkflowOverride`].
     pub fn build(self) -> Result<TurnConfigWorkflowOverride, BuildError> {
         Ok(TurnConfigWorkflowOverride {
@@ -157,6 +166,7 @@ impl TurnConfigWorkflowOverrideBuilder {
             merge_with_default_ignore_terms: self.merge_with_default_ignore_terms,
             transcribe_on_disabled_interruptions: self.transcribe_on_disabled_interruptions,
             soft_timeout_config: self.soft_timeout_config,
+            noisy_environment_message: self.noisy_environment_message,
         })
     }
 }

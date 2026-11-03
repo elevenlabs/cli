@@ -48,7 +48,7 @@ impl FinetunesClient {
     ///                 cursor: Some("cursor".to_string()),
     ///                 page_size: Some(1),
     ///                 visibility: Some(FinetuneVisibility::Private),
-    ///                 created_by: Some(FinetuneCreatedBy::Self),
+    ///                 created_by: Some(FinetuneCreatedBy::Self_),
     ///                 sort: Some(FinetunesListRequestSort::CreatedAt),
     ///                 sort_direction: Some(FinetunesListRequestSortDirection::Asc),
     ///                 ..Default::default()
@@ -106,7 +106,7 @@ impl FinetunesClient {
     ///         .music
     ///         .finetunes
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest9 {
     ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
     ///                 name: "name".to_string(),
     ///                 primary_genre: "primary_genre".to_string(),

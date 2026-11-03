@@ -190,7 +190,7 @@ impl PronunciationDictionariesClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.pronunciation_dictionaries.update(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyUpdatePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIDPatch {
+    ///     client.pronunciation_dictionaries.update(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyUpdatePronunciationDictionaryV1PronunciationDictionariesPronunciationDictionaryIdPatch {
     ///         ..Default::default()
     ///     }, None).await;
     /// }

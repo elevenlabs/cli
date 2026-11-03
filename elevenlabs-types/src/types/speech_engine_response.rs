@@ -34,6 +34,9 @@ pub struct SpeechEngineResponse {
     /// Concurrency and daily conversation limits for this speech engine
     #[serde(default)]
     pub call_limits: AgentCallLimits,
+    /// Who may start a conversation with this speech engine
+    #[serde(default)]
+    pub auth: SpeechEngineAuthConfig,
     /// ISO language code used by the speech engine (e.g. 'en')
     #[serde(default)]
     pub language: String,
@@ -74,6 +77,7 @@ pub struct SpeechEngineResponseBuilder {
     conversation: Option<ConversationConfigOutput>,
     privacy: Option<PrivacyConfigOutput>,
     call_limits: Option<AgentCallLimits>,
+    auth: Option<SpeechEngineAuthConfig>,
     language: Option<String>,
     cascade_timeout_seconds: Option<f64>,
     tags: Option<Vec<String>>,
@@ -133,6 +137,11 @@ impl SpeechEngineResponseBuilder {
         self
     }
 
+    pub fn auth(mut self, value: SpeechEngineAuthConfig) -> Self {
+        self.auth = Some(value);
+        self
+    }
+
     pub fn language(mut self, value: impl Into<String>) -> Self {
         self.language = Some(value.into());
         self
@@ -175,6 +184,7 @@ impl SpeechEngineResponseBuilder {
     /// - [`conversation`](SpeechEngineResponseBuilder::conversation)
     /// - [`privacy`](SpeechEngineResponseBuilder::privacy)
     /// - [`call_limits`](SpeechEngineResponseBuilder::call_limits)
+    /// - [`auth`](SpeechEngineResponseBuilder::auth)
     /// - [`language`](SpeechEngineResponseBuilder::language)
     /// - [`cascade_timeout_seconds`](SpeechEngineResponseBuilder::cascade_timeout_seconds)
     /// - [`tags`](SpeechEngineResponseBuilder::tags)
@@ -192,6 +202,7 @@ impl SpeechEngineResponseBuilder {
             conversation: self.conversation.ok_or_else(|| BuildError::missing_field("conversation"))?,
             privacy: self.privacy.ok_or_else(|| BuildError::missing_field("privacy"))?,
             call_limits: self.call_limits.ok_or_else(|| BuildError::missing_field("call_limits"))?,
+            auth: self.auth.ok_or_else(|| BuildError::missing_field("auth"))?,
             language: self.language.ok_or_else(|| BuildError::missing_field("language"))?,
             cascade_timeout_seconds: self.cascade_timeout_seconds.ok_or_else(|| BuildError::missing_field("cascade_timeout_seconds"))?,
             tags: self.tags.ok_or_else(|| BuildError::missing_field("tags"))?,

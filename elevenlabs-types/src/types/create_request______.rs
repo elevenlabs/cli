@@ -32,13 +32,9 @@ impl CreateRequest9 {
         }
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.name) {
-        form = form.text("name", json_str);
-    }
+    form = form.text("name", self.name.clone());
 
-    if let Ok(json_str) = serde_json::to_string(&self.primary_genre) {
-        form = form.text("primary_genre", json_str);
-    }
+    form = form.text("primary_genre", self.primary_genre.clone());
 
     if let Some(ref value) = self.tags {
         if let Ok(json_str) = serde_json::to_string(value) {

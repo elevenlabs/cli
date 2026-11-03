@@ -111,7 +111,7 @@ impl MergeProposalsClient {
     ///         .merge_proposals
     ///         .create(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodyCreateAMergeProposalV1ConvaiAgentsAgentIDMergeProposalsPost {
+    ///             &BodyCreateAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsPost {
     ///                 source_branch_id: "source_branch_id".to_string(),
     ///                 target_branch_id: "target_branch_id".to_string(),
     ///                 title: "title".to_string(),
@@ -224,7 +224,7 @@ impl MergeProposalsClient {
     ///         .update(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtmprop_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
-    ///             &BodyUpdateAMergeProposalV1ConvaiAgentsAgentIDMergeProposalsMergeProposalIDPatch {
+    ///             &BodyUpdateAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsMergeProposalIdPatch {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -276,7 +276,7 @@ impl MergeProposalsClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.agents.merge_proposals.submit_review(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtmprop_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyReviewAMergeProposalV1ConvaiAgentsAgentIDMergeProposalsMergeProposalIDReviewsPost {
+    ///     client.agents.merge_proposals.submit_review(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtmprop_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyReviewAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsMergeProposalIdReviewsPost {
     ///         state: MergeProposalReviewState::Approved,
     ///         comment: None
     ///     }, None).await;
@@ -326,7 +326,7 @@ impl MergeProposalsClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.agents.merge_proposals.add_comment(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtmprop_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyCommentOnAMergeProposalV1ConvaiAgentsAgentIDMergeProposalsMergeProposalIDCommentsPost {
+    ///     client.agents.merge_proposals.add_comment(&"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(), &"agtmprop_8901k4t9z5defmb8vh3e9361y7nj".to_string(), &BodyCommentOnAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsMergeProposalIdCommentsPost {
     ///         body: "body".to_string()
     ///     }, None).await;
     /// }
@@ -381,7 +381,7 @@ impl MergeProposalsClient {
     ///         .merge(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
     ///             &"agtmprop_8901k4t9z5defmb8vh3e9361y7nj".to_string(),
-    ///             &BodyMergeAMergeProposalV1ConvaiAgentsAgentIDMergeProposalsMergeProposalIDMergePost {
+    ///             &BodyMergeAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsMergeProposalIdMergePost {
     ///                 ..Default::default()
     ///             },
     ///             None,
