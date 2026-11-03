@@ -4,11 +4,8 @@
 
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
-use serde_json::Value;
 
-use super::super::say::run_async as block_on;
-use super::super::settings;
-use super::auth::{api_base, check_key, sign_in_config, KeyCheck};
+use super::auth::{check_key, KeyCheck};
 use super::connect;
 use super::env_file::{self, API_KEY_ENV};
 use super::manual::{self, NO_BROWSER};
@@ -63,23 +60,18 @@ pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Res
     let imported = project.sdk_imported();
     let ending = last4(&key.value);
     let key_file = key.file(project).map(|f| project.show(f));
-    let wired = (declared && imported) || project.embeds_agent_widget();
-    let reads_key = wired && project.reads_key();
+    let uses_sdk = declared && imported;
+    let wired = uses_sdk || project.embeds_agent_widget();
     let file = key_file.as_deref();
-    // The code reads the key, but it only gets it if the app loads the file it's in.
-    let unloaded = key
-        .file(project)
-        .filter(|f| reads_key && !project.loads_key_file(f));
+    // The code uses the SDK, but the key only reaches it if the app loads the file it's in.
+    let unloaded = key.file(project).filter(|f| uses_sdk && !project.loads_key_file(f));
     let reply = match (wired, answered, unloaded) {
         (true, _, Some(unloaded)) => {
             let name = project.show(unloaded);
             let say = format!("Your key works and the code uses the SDK, but nothing in the app loads {name} yet.");
             load_key(project, &ending, &name, say)
         }
-        (true, _, None) => match own_agent(ctx, project, &key) {
-            Some(agent) => agent_ready(&ending, file, &agent, reads_key)?,
-            None => offer_test(project, &ending, file),
-        },
+        (true, _, None) => offer_test(project, &ending, file),
         (false, false, _) => ask_what_to_build(project, &ending, file, "Your key works."),
         (false, true, _) => write_code(project, &ending, file)?,
     };
@@ -96,142 +88,12 @@ fn offer_test(project: &Project, ending: &str, key_file: Option<&str>) -> Reply 
     Reply::new(
         Next::OfferTest,
         format!(
-            "ElevenLabs is set up: a working key ending in {ending} in {location}, and ElevenLabs in your code. \
+            "ElevenLabs is set up: a working key ending in {ending} in {location}, and the SDK in your code. \
              Want me to send a test request? It makes a short text-to-speech clip with your key and uses a few credits."
         ),
     )
     .run(&project.next("test"))
     .detail("key_last4", ending)
-}
-
-/// An agent the code names that this key can open.
-struct Agent {
-    id: String,
-    name: String,
-    access: Access,
-}
-
-/// Who can start a conversation with an agent.
-#[derive(PartialEq)]
-enum Access {
-    /// Anyone with its link: the talk-to page works.
-    Public,
-    /// Only the sites on its allowlist, which the talk-to page isn't.
-    Allowlist,
-    /// Only with a signed URL or token from a server holding the key.
-    Private,
-}
-
-/// How many of the agent IDs in the code to look up before giving up.
-const AGENT_LOOKUPS: usize = 3;
-
-/// The first agent the code names that belongs to the key's account, so a
-/// sample's or another account's agent is never offered. `None` when there
-/// is none, or the key can't read agents.
-fn own_agent(ctx: &AppContext, project: &Project, key: &Key) -> Option<Agent> {
-    let ids = project.agent_ids(AGENT_LOOKUPS, key.file(project));
-    if ids.is_empty() {
-        return None;
-    }
-    let client = ctx.http_config().build_client().ok()?;
-    let base = api_base(ctx);
-    for id in ids {
-        let sent = block_on(
-            client
-                .get(format!("{base}/v1/convai/agents/{id}"))
-                .header("xi-api-key", &key.value)
-                .timeout(std::time::Duration::from_secs(10))
-                .send(),
-        );
-        let Ok(response) = sent else { return None };
-        let status = response.status();
-        // The key can't read agents at all, so no other ID will do better.
-        if status == 401 || status == 403 {
-            return None;
-        }
-        if !status.is_success() {
-            continue;
-        }
-        let Ok(body) = block_on(response.json::<Value>()) else {
-            continue;
-        };
-        let auth = &body["platform_settings"]["auth"];
-        let access = if auth["enable_auth"] == Value::Bool(true) {
-            Access::Private
-        } else if auth["allowlist"].as_array().is_some_and(|a| !a.is_empty()) {
-            Access::Allowlist
-        } else {
-            Access::Public
-        };
-        return Some(Agent {
-            name: body["name"].as_str().unwrap_or_default().trim().to_string(),
-            access,
-            id,
-        });
-    }
-    None
-}
-
-/// The code has the developer's agent in it: the test is talking to it,
-/// which the developer does in the browser, so there's nothing left to run.
-/// `reads_key`: the app has code that reads the key, which a private agent
-/// needs to sign each conversation.
-fn agent_ready(
-    ending: &str,
-    key_file: Option<&str>,
-    agent: &Agent,
-    reads_key: bool,
-) -> Result<Reply, CliError> {
-    let app = app_origin()?;
-    let page = format!("{app}/app/agents/agents/{}", agent.id);
-    let talk_to = format!("{app}/app/talk-to?agent_id={}", agent.id);
-    let location = key_file.unwrap_or("your shell");
-    let named = if agent.name.is_empty() {
-        "your agent".to_string()
-    } else {
-        format!("your agent \"{}\"", agent.name)
-    };
-    let next = match agent.access {
-        Access::Public => format!("Talk to it at {talk_to}, and change it at {page}."),
-        Access::Allowlist => format!(
-            "Only the sites on its allowlist can connect to it, so try it from its page: {page}."
-        ),
-        Access::Private if reads_key => {
-            format!("It needs a signed URL to talk to it, so try it from its page: {page}.")
-        }
-        Access::Private => format!(
-            "It requires authentication, so your page can't connect to it yet: turn authentication \
-             off on its page ({page}), or have your server request a signed URL for each conversation."
-        ),
-    };
-    let reply = Reply::new(
-        Next::Done,
-        format!("ElevenLabs is set up: a working key ending in {ending} in {location}, and {named} in your code. {next}"),
-    )
-    .detail("key_last4", ending)
-    .detail("agent_id", &agent.id)
-    .detail("agent_url", page);
-    Ok(if agent.access == Access::Public {
-        reply.detail("talk_to_url", talk_to)
-    } else {
-        reply
-    })
-}
-
-/// The web app the developer's agents live in: their data residency
-/// region's, or else the one the sign-in opens.
-fn app_origin() -> Result<String, CliError> {
-    let authorize = &sign_in_config()?.authorize_url;
-    app_origin_for(&settings::read_residency(), authorize)
-}
-
-pub(super) fn app_origin_for(residency: &str, authorize_url: &str) -> Result<String, CliError> {
-    if let Some(region) = residency.strip_suffix("-residency") {
-        return Ok(format!("https://{region}.residency.elevenlabs.io"));
-    }
-    reqwest::Url::parse(authorize_url)
-        .map(|u| u.origin().ascii_serialization())
-        .map_err(|e| CliError::Other(anyhow::anyhow!("read the sign-in page's address: {e}")))
 }
 
 /// Asked every time, so the agent never picks a product for the developer.

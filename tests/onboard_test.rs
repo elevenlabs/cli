@@ -11,7 +11,7 @@ use std::process::{Command, Output};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use wiremock::matchers::{header, method, path, path_regex};
+use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 const KEY: &str = "sk_0123456789abcdef0123456789abcdef01234567";
@@ -236,13 +236,6 @@ fn check_on_a_remote_machine_needs_no_home_folder() {
 async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
     let server = MockServer::start().await;
     user_endpoint_accepting(&server, KEY).await;
-    // An app with no agent in it never looks one up.
-    Mock::given(method("GET"))
-        .and(path_regex("^/v1/convai/agents/"))
-        .respond_with(ResponseTemplate::new(404))
-        .expect(0)
-        .mount(&server)
-        .await;
     let (home, cwd) = temp();
     git(cwd.path(), &["init", "-q"]);
     write(
@@ -374,71 +367,12 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
     assert_eq!(r["run"], "elevenlabs onboard test --env-path .env.local");
     assert!(say(&r).contains("Want me to send a test request?"), "{r}");
     assert_eq!(r["details"]["fixed"], json!([]), "nothing left to fix");
-    server.verify().await;
-}
-
-/// `GET /v1/convai/agents/{id}` answers `key` with an agent of `name` and
-/// these `auth` settings.
-async fn agent_endpoint(server: &MockServer, key: &str, id: &str, name: &str, auth: Value) {
-    Mock::given(method("GET"))
-        .and(path(format!("/v1/convai/agents/{id}")))
-        .and(header("xi-api-key", key))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "agent_id": id,
-            "name": name,
-            "platform_settings": {"auth": auth},
-        })))
-        .mount(server)
-        .await;
-}
-
-/// The page the agent widget's embed snippet makes.
-fn embed(id: &str) -> String {
-    format!(
-        "<body>\n<elevenlabs-convai agent-id=\"{id}\"></elevenlabs-convai>\n\
-         <script src=\"https://unpkg.com/@elevenlabs/convai-widget-embed\" async></script>\n</body>\n"
-    )
 }
 
 #[tokio::test]
-async fn a_page_with_the_agent_widget_ends_on_talking_to_the_agent() {
-    const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
-    const LISTED: &str = "agent_2201m2jqpj2jej1tbfdrctx18r7b";
-    const PRIVATE: &str = "agent_0101kf1yn87vfwat2negbz8zzp5t";
-    const OTHERS: &str = "agent_1701kj50p7zzfd8vsp8hpapc4yhq";
+async fn a_page_with_only_the_agent_widget_is_set_up() {
     let server = MockServer::start().await;
     user_endpoint_accepting(&server, KEY).await;
-    agent_endpoint(
-        &server,
-        KEY,
-        MINE,
-        "Store helper",
-        json!({"enable_auth": false, "allowlist": []}),
-    )
-    .await;
-    agent_endpoint(
-        &server,
-        KEY,
-        LISTED,
-        "Shop",
-        json!({"enable_auth": false, "allowlist": [{"hostname": "mystore.com"}]}),
-    )
-    .await;
-    agent_endpoint(
-        &server,
-        KEY,
-        PRIVATE,
-        "Back office",
-        json!({"enable_auth": true}),
-    )
-    .await;
-    Mock::given(method("GET"))
-        .and(path(format!("/v1/convai/agents/{OTHERS}")))
-        .respond_with(
-            ResponseTemplate::new(404).set_body_json(json!({"detail": {"status": "not_found"}})),
-        )
-        .mount(&server)
-        .await;
     let (home, cwd) = temp();
     write(
         cwd.path(),
@@ -447,186 +381,28 @@ async fn a_page_with_the_agent_widget_ends_on_talking_to_the_agent() {
     );
     let check = |args: &[&str]| reply(&mut cli(home.path(), cwd.path(), &server.uri(), args));
 
-    // A plain site whose only ElevenLabs code is the widget: wired, with nothing to load,
-    // since the widget never reads the key.
-    write(cwd.path(), "index.html", &embed(MINE));
-    let r = check(&["onboard", "check", "--answered"]);
-    assert_eq!(r["next"], "done", "{r}");
-    assert_eq!(
-        say(&r),
-        format!(
-            "ElevenLabs is set up: a working key ending in 4567 in .env.local, and your agent \"Store helper\" \
-             in your code. Talk to it at https://elevenlabs.io/app/talk-to?agent_id={MINE}, and change it at \
-             https://elevenlabs.io/app/agents/agents/{MINE}."
-        )
-    );
-    assert!(r.get("run").is_none(), "nothing left to run: {r}");
-    assert_eq!(r["details"]["agent_id"], MINE);
-    assert_eq!(
-        r["details"]["talk_to_url"],
-        format!("https://elevenlabs.io/app/talk-to?agent_id={MINE}")
-    );
-
-    // The talk-to page can't open an agent limited to the developer's own sites.
-    write(cwd.path(), "index.html", &embed(LISTED));
-    let r = check(&["onboard", "check"]);
-    assert_eq!(r["next"], "done", "{r}");
-    assert!(
-        say(&r).contains("Only the sites on its allowlist can connect to it"),
-        "{r}"
-    );
-    assert!(r["details"].get("talk_to_url").is_none(), "{r}");
-
-    // A private agent: a page with only the widget can't reach it, and says what to do.
-    write(cwd.path(), "index.html", &embed(PRIVATE));
-    let r = check(&["onboard", "check"]);
-    assert_eq!(r["next"], "done", "{r}");
-    assert!(
-        say(&r).ends_with(&format!(
-            "It requires authentication, so your page can't connect to it yet: turn authentication off on \
-             its page (https://elevenlabs.io/app/agents/agents/{PRIVATE}), or have your server request a \
-             signed URL for each conversation."
-        )),
-        "{r}"
-    );
-    assert!(r["details"].get("talk_to_url").is_none(), "{r}");
-    // With a server that signs its conversations (and loads the key), it's tried from its page.
-    write(
-        cwd.path(),
-        "server.js",
-        "const key = process.env.ELEVENLABS_API_KEY; // signs each conversation\n",
-    );
-    write(
-        cwd.path(),
-        "package.json",
-        r#"{"scripts":{"start":"node --env-file=.env.local server.js"}}"#,
-    );
-    let r = check(&["onboard", "check"]);
-    assert!(
-        say(&r).ends_with(&format!(
-            "It needs a signed URL to talk to it, so try it from its page: https://elevenlabs.io/app/agents/agents/{PRIVATE}."
-        )),
-        "{r}"
-    );
-    std::fs::remove_file(cwd.path().join("server.js")).unwrap();
-    std::fs::remove_file(cwd.path().join("package.json")).unwrap();
-
-    // An agent the key can't open, like a sample's, is never offered: the test request is.
-    write(cwd.path(), "index.html", &embed(OTHERS));
-    let r = check(&["onboard", "check"]);
-    assert_eq!(r["next"], "offer_test", "{r}");
-    assert!(say(&r).contains("and ElevenLabs in your code"), "{r}");
-
-    // Nor is the widget's stand-in ID; a page without the widget still needs code.
-    write(cwd.path(), "index.html", &embed("your-agent-id"));
-    assert_eq!(check(&["onboard", "check"])["next"], "offer_test");
+    // Without the widget, the code is still to write.
     write(cwd.path(), "index.html", "<body>Hello</body>\n");
     assert_eq!(
         check(&["onboard", "check", "--answered"])["next"],
         "write_code"
     );
 
-    // The widget installed from npm in a Vite app reads no key either, so there's nothing to load.
+    // The widget is the integration, and it never reads the key, so there's nothing to load.
     write(
         cwd.path(),
-        "package.json",
-        r#"{"dependencies":{"vite":"7","@elevenlabs/convai-widget-embed":"0.4"}}"#,
+        "index.html",
+        "<body>\n<elevenlabs-convai agent-id=\"agent_7101k5zvyjhmfg983brhmhkd98n6\"></elevenlabs-convai>\n\
+         <script src=\"https://unpkg.com/@elevenlabs/convai-widget-embed\" async></script>\n</body>\n",
     );
-    write(
-        cwd.path(),
-        "src/main.js",
-        &format!("import \"@elevenlabs/convai-widget-embed\";\nexport const id = \"{MINE}\";\n"),
-    );
-    let r = check(&["onboard", "check"]);
-    assert_eq!(
-        (r["next"].as_str(), r["details"]["agent_id"].as_str()),
-        (Some("done"), Some(MINE)),
-        "{r}"
-    );
-    std::fs::remove_dir_all(cwd.path().join("src")).unwrap();
-
-    // The SDK in a Next.js app (which reads .env.local), with the agent's ID in the env file.
-    write(cwd.path(), "index.html", "");
-    write(
-        cwd.path(),
-        "package.json",
-        r#"{"dependencies":{"next":"15","@elevenlabs/react":"1"}}"#,
-    );
-    write(
-        cwd.path(),
-        "app/page.tsx",
-        "import { useConversation } from \"@elevenlabs/react\";\nconst agentId = process.env.NEXT_PUBLIC_AGENT_ID;\n",
-    );
-    write(
-        cwd.path(),
-        ".env.local",
-        &format!("ELEVENLABS_API_KEY={KEY}\nNEXT_PUBLIC_AGENT_ID={MINE}\n"),
-    );
-    let r = check(&["onboard", "check"]);
-    assert_eq!(
-        (r["next"].as_str(), r["details"]["agent_id"].as_str()),
-        (Some("done"), Some(MINE)),
-        "{r}"
-    );
-}
-
-#[tokio::test]
-async fn agent_lookups_stop_at_three_and_at_a_key_that_cant_read_agents() {
-    let ids = [
-        "agent_0101kf1yn87vfwat2negbz8zzp5t",
-        "agent_1701kj50p7zzfd8vsp8hpapc4yhq",
-        "agent_2201m2jqpj2jej1tbfdrctx18r7b",
-        "agent_2701m62trrmgfa1vneex0grrd868",
-    ];
-    let page: String = ids.iter().map(|id| embed(id)).collect();
-
-    // None of them is the developer's: three are looked up, then the test request is offered.
-    let server = MockServer::start().await;
-    user_endpoint_accepting(&server, KEY).await;
-    Mock::given(method("GET"))
-        .and(path_regex("^/v1/convai/agents/agent_"))
-        .respond_with(
-            ResponseTemplate::new(404).set_body_json(json!({"detail": {"status": "not_found"}})),
-        )
-        .expect(3)
-        .mount(&server)
-        .await;
-    let (home, cwd) = temp();
-    write(
-        cwd.path(),
-        ".env.local",
-        &format!("ELEVENLABS_API_KEY={KEY}\n"),
-    );
-    write(cwd.path(), "index.html", &page);
-    let r = reply(&mut cli(
-        home.path(),
-        cwd.path(),
-        &server.uri(),
+    for args in [
+        &["onboard", "check", "--answered"][..],
         &["onboard", "check"],
-    ));
-    assert_eq!(r["next"], "offer_test", "{r}");
-    server.verify().await;
-
-    // A key without agent access is refused on the first one, so the rest aren't tried.
-    let restricted = MockServer::start().await;
-    user_endpoint_accepting(&restricted, KEY).await;
-    Mock::given(method("GET"))
-        .and(path_regex("^/v1/convai/agents/agent_"))
-        .respond_with(
-            ResponseTemplate::new(401)
-                .set_body_json(json!({"detail": {"status": "missing_permissions"}})),
-        )
-        .expect(1)
-        .mount(&restricted)
-        .await;
-    let r = reply(&mut cli(
-        home.path(),
-        cwd.path(),
-        &restricted.uri(),
-        &["onboard", "check"],
-    ));
-    assert_eq!(r["next"], "offer_test", "{r}");
-    restricted.verify().await;
+    ] {
+        let r = check(args);
+        assert_eq!(r["next"], "offer_test", "{r}");
+        assert_eq!(r["run"], "elevenlabs onboard test --env-path .env.local");
+    }
 }
 
 #[tokio::test]
