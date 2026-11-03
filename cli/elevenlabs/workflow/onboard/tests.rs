@@ -655,29 +655,158 @@ fn the_sdk_counts_only_when_declared_and_imported_in_source() {
 }
 
 #[test]
-fn the_agent_widget_counts_in_pages_and_components() {
+fn agent_ids_are_whole_words_of_the_right_length() {
+    use super::project::agent_ids_in;
+    let id = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    let found = |text: &str| agent_ids_in(text).map(str::to_string).collect::<Vec<_>>();
+    assert_eq!(
+        found(&format!("<elevenlabs-convai agent-id=\"{id}\">")),
+        [id]
+    );
+    assert_eq!(found(&format!("NEXT_PUBLIC_AGENT_ID={id}\n")), [id]);
+    assert_eq!(found(&format!("agentId: '{id}', backup: '{id}'")), [id, id]);
+    assert_eq!(
+        found("agent_01k07af5wbf7eas72ff36x54xa"),
+        ["agent_01k07af5wbf7eas72ff36x54xa"],
+        "an older, shorter ID"
+    );
+    for not_one in [
+        "agent_id".to_string(),
+        "your-agent-id".to_string(),
+        format!("my{id}"),
+        format!("{id}x_"),
+        format!("{id}abcdef"),
+        "agent_7101K5ZVYJHMFG983BRHMHKD98N6".to_string(),
+        "agent_9f8b7c6d5e4a3b2c1d0e".to_string(),
+    ] {
+        assert!(found(&not_one).is_empty(), "{not_one}");
+    }
+}
+
+#[test]
+fn agent_links_use_the_accounts_region() {
+    use super::check::app_origin_for;
+    let sign_in = "https://elevenlabs.io/app/oauth/authorize";
+    for (residency, app) in [
+        ("global", "https://elevenlabs.io"),
+        ("us", "https://elevenlabs.io"),
+        ("eu-residency", "https://eu.residency.elevenlabs.io"),
+        ("in-residency", "https://in.residency.elevenlabs.io"),
+        ("sg-residency", "https://sg.residency.elevenlabs.io"),
+        ("euu-residency", "https://elevenlabs.io"),
+        ("eu", "https://elevenlabs.io"),
+    ] {
+        assert_eq!(
+            app_origin_for(residency, sign_in).unwrap(),
+            app,
+            "{residency}"
+        );
+    }
+    assert_eq!(
+        app_origin_for("global", "http://localhost:3000/app/oauth/authorize").unwrap(),
+        "http://localhost:3000"
+    );
+}
+
+#[test]
+fn the_widget_and_agent_ids_are_found_where_the_app_keeps_them() {
     let dir = tempfile::tempdir().unwrap();
     let d = dir.path();
     let p = project(d);
-    let tag =
-        "<elevenlabs-convai agent-id=\"agent_7101k5zvyjhmfg983brhmhkd98n6\"></elevenlabs-convai>";
+    let (a, b, c, e) = (
+        "agent_0101kf1yn87vfwat2negbz8zzp5t",
+        "agent_1701kj50p7zzfd8vsp8hpapc4yhq",
+        "agent_2201m2jqpj2jej1tbfdrctx18r7b",
+        "agent_2701m62trrmgfa1vneex0grrd868",
+    );
     std::fs::create_dir_all(d.join("node_modules/x")).unwrap();
-    std::fs::write(d.join("node_modules/x/index.html"), tag).unwrap();
-    std::fs::write(d.join("README.md"), tag).unwrap();
+    std::fs::write(
+        d.join("node_modules/x/index.html"),
+        format!("<elevenlabs-convai agent-id=\"{a}\"></elevenlabs-convai>"),
+    )
+    .unwrap();
+    std::fs::write(
+        d.join("README.md"),
+        format!("<elevenlabs-convai agent-id=\"{a}\">"),
+    )
+    .unwrap();
     assert!(
         !p.embeds_agent_widget(),
         "installed packages and docs don't count"
     );
-    std::fs::write(d.join("index.html"), tag).unwrap();
-    assert!(p.embeds_agent_widget());
-    std::fs::remove_file(d.join("index.html")).unwrap();
-    std::fs::create_dir_all(d.join("src")).unwrap();
+    assert!(p.agent_ids(3, None).is_empty());
+
     std::fs::write(
-        d.join("src/App.tsx"),
-        format!("export default () => {tag};"),
+        d.join("index.html"),
+        format!("<elevenlabs-convai agent-id=\"{a}\"></elevenlabs-convai>"),
     )
     .unwrap();
-    assert!(p.embeds_agent_widget(), "a component");
+    assert!(p.embeds_agent_widget());
+    assert_eq!(p.agent_ids(3, None), [a]);
+
+    std::fs::write(d.join(".env.local"), format!("AGENT_ID={b}\n")).unwrap();
+    std::fs::write(
+        d.join("agents.json"),
+        format!("{{\"agents\":[{{\"id\":\"{c}\"}}]}}"),
+    )
+    .unwrap();
+    std::fs::write(
+        d.join("app.tsx"),
+        format!("const id = \"{e}\"; const again = \"{a}\";"),
+    )
+    .unwrap();
+    std::fs::write(
+        d.join(".env.example"),
+        "AGENT_ID=agent_9201kwcrbq9qfxaa2t8nnnkqf2w9\n",
+    )
+    .unwrap();
+    let mut ids = p.agent_ids(10, None);
+    let (env, list) = (ids[2].clone(), ids[3].clone());
+    assert_eq!(
+        (env.as_str(), list.as_str()),
+        (b, c),
+        "the code's first, then the env file, then agents.json"
+    );
+    ids.sort();
+    assert_eq!(ids, [a, b, c, e], "each once, and no sample's");
+    let mut first = p.agent_ids(2, None);
+    first.sort();
+    assert_eq!(first, [a, e], "no more than asked for, the code's first");
+}
+
+#[test]
+fn agent_ids_in_the_key_file_count_wherever_it_is() {
+    let root = tempfile::tempdir().unwrap();
+    let app = root.path().join("apps/web");
+    std::fs::create_dir_all(&app).unwrap();
+    let id = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    // A monorepo's root env file, outside the app's folder.
+    std::fs::write(root.path().join(".env.local"), format!("AGENT_ID={id}\n")).unwrap();
+    let p = super::project::Project::at(app.clone(), Some("../../.env.local".into()));
+    assert_eq!(p.agent_ids(3, None), [id], "the project's env file");
+    // A key found in a `.env` up the tree, apart from the project's env file.
+    let p = project(&app);
+    assert!(p.agent_ids(3, None).is_empty());
+    assert_eq!(
+        p.agent_ids(3, Some(&root.path().join(".env.local"))),
+        [id],
+        "the key's file"
+    );
+    // An env file under another name, inside the app.
+    std::fs::create_dir_all(app.join("config")).unwrap();
+    std::fs::write(app.join("config/secrets.env"), format!("AGENT_ID={id}\n")).unwrap();
+    let p = super::project::Project::at(app.clone(), Some("config/secrets.env".into()));
+    assert_eq!(p.agent_ids(3, None), [id], "a custom --env-path");
+    // It comes before the agents in the project's other env files, however many there are.
+    for (file, other) in [
+        (".env.test", "agent_0101kf1yn87vfwat2negbz8zzp5t"),
+        (".env.development", "agent_1701kj50p7zzfd8vsp8hpapc4yhq"),
+        (".env.production", "agent_2201m2jqpj2jej1tbfdrctx18r7b"),
+    ] {
+        std::fs::write(app.join(file), format!("AGENT_ID={other}\n")).unwrap();
+    }
+    assert_eq!(p.agent_ids(3, None)[0], id, "the key's env file first");
+    assert_eq!(p.agent_ids(1, None), [id]);
 }
 
 #[test]
@@ -1144,6 +1273,66 @@ fn every_clipboard_outcome_has_its_reply() {
         )
     );
     assert_eq!(replaced["details"]["key_status"], "created");
+
+    // A page that only embeds the agent widget has nothing to build or load: straight to check,
+    // which ends on the agent.
+    let widget = tempfile::tempdir().unwrap();
+    git(widget.path(), &["init", "-q"]);
+    std::fs::write(
+        widget.path().join("index.html"),
+        "<elevenlabs-convai agent-id=\"agent_7101k5zvyjhmfg983brhmhkd98n6\"></elevenlabs-convai>",
+    )
+    .unwrap();
+    let first = reply_for(&project(widget.path()), &Outcome::Store(key.into()))
+        .unwrap()
+        .to_value();
+    assert_eq!(
+        (first["next"].as_str(), first["run"].as_str()),
+        (
+            Some("run"),
+            Some("elevenlabs onboard check --env-path .env.local")
+        ),
+        "{first}"
+    );
+}
+
+#[test]
+fn only_code_that_reads_the_key_has_to_load_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let d = dir.path();
+    let p = project(d);
+    let write = |file: &str, text: &str| {
+        let path = d.join(file);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    };
+    write(
+        "package.json",
+        r#"{"dependencies":{"@elevenlabs/react":"1","@elevenlabs/convai-widget-embed":"0.4"}}"#,
+    );
+    write(
+        "src/App.tsx",
+        "import { useConversation } from \"@elevenlabs/react\";\nimport \"@elevenlabs/convai-widget-embed\";\n",
+    );
+    assert!(
+        p.wired() && !p.reads_key(),
+        "the browser SDKs connect without the key"
+    );
+    write(
+        "src/api/token.ts",
+        "fetch(url, { headers: { \"xi-api-key\": process.env.ELEVENLABS_API_KEY! } });\n",
+    );
+    assert!(p.reads_key(), "a server route that names the key");
+    std::fs::remove_file(d.join("src/api/token.ts")).unwrap();
+    write(
+        "package.json",
+        r#"{"dependencies":{"@elevenlabs/react":"1","@elevenlabs/elevenlabs-js":"2"}}"#,
+    );
+    write(
+        "src/server.ts",
+        "import { ElevenLabsClient } from \"@elevenlabs/elevenlabs-js\";\n",
+    );
+    assert!(p.reads_key(), "the server SDK reads it");
 }
 
 #[test]
