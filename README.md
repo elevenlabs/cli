@@ -241,9 +241,10 @@ The API commands own the primitive names, so the workflow only adds verbs the AP
 Workflows are stored as `workflow.nodes` / `workflow.edges` in the agent config, which is lossless but hard to read, and harder to review as a diff. `agents workflow diagram` turns one into a flowchart:
 
 ```bash
-# Draw it in the terminal: a config file, or an id or name from agents.json
+# Draw it in the terminal: a config or workflow file, or an id or name from agents.json
 elevenlabs agents workflow diagram Support
 elevenlabs agents workflow diagram agent_configs/support.json
+elevenlabs agents workflow diagram workflows/support.json          # a bare workflow, e.g. exported by an SDK's Workflow builder
 elevenlabs agents workflow diagram --all
 
 # Print it as Mermaid source, to save, or to paste into docs or a PR comment
