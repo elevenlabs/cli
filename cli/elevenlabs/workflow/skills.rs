@@ -48,6 +48,7 @@
 use std::path::{Path, PathBuf};
 
 use fern_cli_sdk::app::CliApp;
+use fern_cli_sdk::auth::AuthStrategy;
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::skill_emitter::{generate_skills, generate_skills_command};
 use fern_cli_sdk::openapi::AppContext;
@@ -191,7 +192,7 @@ tags like `[laughs]` as delivery. Without it the API falls back to `eleven_v3`.
 /// Every file `generate-skills` should write, spec-derived ones first.
 fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
     let shared = PathBuf::from(SHARED_SKILL).join("SKILL.md");
-    let mut files = generate_skills(ctx.spec(), BIN_NAME, &[]);
+    let mut files = generate_skills(ctx.spec(), BIN_NAME, &[], AuthStrategy::default());
 
     let mut appended = false;
     let mut pointers = 0usize;
@@ -376,7 +377,7 @@ mod tests {
     #[test]
     fn the_emitter_still_renders_the_no_auth_fallback() {
         let doc = fern_cli_sdk::openapi::discovery::RestDescription::default();
-        let files = generate_skills(&doc, BIN_NAME, &[]);
+        let files = generate_skills(&doc, BIN_NAME, &[], AuthStrategy::default());
         let (_, shared) = files
             .iter()
             .find(|(p, _)| p.starts_with(SHARED_SKILL))
