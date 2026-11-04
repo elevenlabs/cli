@@ -16,6 +16,9 @@ pub struct WorkflowEdgeModelOutput {
     /// Condition that must be met for the edge to be traversed in the backward direction (target to source).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backward_condition: Option<WorkflowEdgeModelOutputBackwardCondition>,
+    /// Points the edge is routed through between its source and target, in order. Layout only, no effect on execution.
+    #[serde(default)]
+    pub reroutes: Vec<PositionOutput>,
 }
 
 impl WorkflowEdgeModelOutput {
@@ -31,6 +34,7 @@ pub struct WorkflowEdgeModelOutputBuilder {
     target: Option<String>,
     forward_condition: Option<WorkflowEdgeModelOutputForwardCondition>,
     backward_condition: Option<WorkflowEdgeModelOutputBackwardCondition>,
+    reroutes: Option<Vec<PositionOutput>>,
 }
 
 impl WorkflowEdgeModelOutputBuilder {
@@ -54,16 +58,23 @@ impl WorkflowEdgeModelOutputBuilder {
         self
     }
 
+    pub fn reroutes(mut self, value: Vec<PositionOutput>) -> Self {
+        self.reroutes = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`WorkflowEdgeModelOutput`].
     /// This method will fail if any of the following fields are not set:
     /// - [`source`](WorkflowEdgeModelOutputBuilder::source)
     /// - [`target`](WorkflowEdgeModelOutputBuilder::target)
+    /// - [`reroutes`](WorkflowEdgeModelOutputBuilder::reroutes)
     pub fn build(self) -> Result<WorkflowEdgeModelOutput, BuildError> {
         Ok(WorkflowEdgeModelOutput {
             source: self.source.ok_or_else(|| BuildError::missing_field("source"))?,
             target: self.target.ok_or_else(|| BuildError::missing_field("target"))?,
             forward_condition: self.forward_condition,
             backward_condition: self.backward_condition,
+            reroutes: self.reroutes.ok_or_else(|| BuildError::missing_field("reroutes"))?,
         })
     }
 }

@@ -2,11 +2,17 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct DubbingError {
-    pub message_type: String,
+    /// Stable identifier for the failure, safe to branch on. New codes are added over time, so we recommend treating an unrecognized value as `internal_error`.
     #[serde(default)]
-    pub error: String,
+    pub code: String,
+    /// Human-readable description of the failure, for display. The wording may change at any time, so we recommend branching on `code` instead.
+    #[serde(default)]
+    pub message: String,
+    /// Whether resubmitting the same input could succeed. A value of false means the failure describes the input or the account, so an identical retry will fail the same way.
+    #[serde(default)]
+    pub retryable: bool,
 }
 
 impl DubbingError {
@@ -18,29 +24,37 @@ impl DubbingError {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct DubbingErrorBuilder {
-    message_type: Option<String>,
-    error: Option<String>,
+    code: Option<String>,
+    message: Option<String>,
+    retryable: Option<bool>,
 }
 
 impl DubbingErrorBuilder {
-    pub fn message_type(mut self, value: impl Into<String>) -> Self {
-        self.message_type = Some(value.into());
+    pub fn code(mut self, value: impl Into<String>) -> Self {
+        self.code = Some(value.into());
         self
     }
 
-    pub fn error(mut self, value: impl Into<String>) -> Self {
-        self.error = Some(value.into());
+    pub fn message(mut self, value: impl Into<String>) -> Self {
+        self.message = Some(value.into());
+        self
+    }
+
+    pub fn retryable(mut self, value: bool) -> Self {
+        self.retryable = Some(value);
         self
     }
 
     /// Consumes the builder and constructs a [`DubbingError`].
     /// This method will fail if any of the following fields are not set:
-    /// - [`message_type`](DubbingErrorBuilder::message_type)
-    /// - [`error`](DubbingErrorBuilder::error)
+    /// - [`code`](DubbingErrorBuilder::code)
+    /// - [`message`](DubbingErrorBuilder::message)
+    /// - [`retryable`](DubbingErrorBuilder::retryable)
     pub fn build(self) -> Result<DubbingError, BuildError> {
         Ok(DubbingError {
-            message_type: self.message_type.ok_or_else(|| BuildError::missing_field("message_type"))?,
-            error: self.error.ok_or_else(|| BuildError::missing_field("error"))?,
+            code: self.code.ok_or_else(|| BuildError::missing_field("code"))?,
+            message: self.message.ok_or_else(|| BuildError::missing_field("message"))?,
+            retryable: self.retryable.ok_or_else(|| BuildError::missing_field("retryable"))?,
         })
     }
 }

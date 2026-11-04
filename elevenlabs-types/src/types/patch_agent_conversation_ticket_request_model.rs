@@ -7,6 +7,9 @@ pub struct PatchAgentConversationTicketRequestModel {
     /// If provided, updates the ticket title. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// If provided, updates the ticket description. Omit to leave unchanged.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub qa_comment: Option<String>,
     /// If provided, updates the ticket status. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<AgentConversationTicketStatus>,
@@ -28,6 +31,7 @@ impl PatchAgentConversationTicketRequestModel {
 #[non_exhaustive]
 pub struct PatchAgentConversationTicketRequestModelBuilder {
     title: Option<String>,
+    qa_comment: Option<String>,
     status: Option<AgentConversationTicketStatus>,
     assignee_user_id: Option<String>,
     priority: Option<AgentConversationTicketPriority>,
@@ -36,6 +40,11 @@ pub struct PatchAgentConversationTicketRequestModelBuilder {
 impl PatchAgentConversationTicketRequestModelBuilder {
     pub fn title(mut self, value: impl Into<String>) -> Self {
         self.title = Some(value.into());
+        self
+    }
+
+    pub fn qa_comment(mut self, value: impl Into<String>) -> Self {
+        self.qa_comment = Some(value.into());
         self
     }
 
@@ -58,6 +67,7 @@ impl PatchAgentConversationTicketRequestModelBuilder {
     pub fn build(self) -> Result<PatchAgentConversationTicketRequestModel, BuildError> {
         Ok(PatchAgentConversationTicketRequestModel {
             title: self.title,
+            qa_comment: self.qa_comment,
             status: self.status,
             assignee_user_id: self.assignee_user_id,
             priority: self.priority,

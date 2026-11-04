@@ -29,15 +29,11 @@ impl UpdateRequest3 {
     }
 
     if let Some(ref value) = self.from_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("from_url", json_str);
-        }
+        form = form.text("from_url", value.clone());
     }
 
     if let Some(ref value) = self.from_content_json {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("from_content_json", json_str);
-        }
+        form = form.text("from_content_json", value.clone());
     }
 
     if let Some(ref value) = self.auto_convert {

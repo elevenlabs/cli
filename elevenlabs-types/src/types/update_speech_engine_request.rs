@@ -22,6 +22,9 @@ pub struct UpdateSpeechEngineRequest {
     pub privacy: Option<PrivacyConfigInput>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_limits: Option<AgentCallLimits>,
+    /// Who may start a conversation with this speech engine
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<SpeechEngineAuthConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
     /// Time in seconds to wait for the upstream speech engine endpoint to respond before the attempt is abandoned and retried. Must be between 2 and 15 seconds.
@@ -53,6 +56,7 @@ pub struct UpdateSpeechEngineRequestBuilder {
     conversation: Option<ConversationConfigInput>,
     privacy: Option<PrivacyConfigInput>,
     call_limits: Option<AgentCallLimits>,
+    auth: Option<SpeechEngineAuthConfig>,
     language: Option<String>,
     cascade_timeout_seconds: Option<f64>,
     tags: Option<Vec<String>>,
@@ -105,6 +109,11 @@ impl UpdateSpeechEngineRequestBuilder {
         self
     }
 
+    pub fn auth(mut self, value: SpeechEngineAuthConfig) -> Self {
+        self.auth = Some(value);
+        self
+    }
+
     pub fn language(mut self, value: impl Into<String>) -> Self {
         self.language = Some(value.into());
         self
@@ -137,6 +146,7 @@ impl UpdateSpeechEngineRequestBuilder {
             conversation: self.conversation,
             privacy: self.privacy,
             call_limits: self.call_limits,
+            auth: self.auth,
             language: self.language,
             cascade_timeout_seconds: self.cascade_timeout_seconds,
             tags: self.tags,

@@ -11,6 +11,9 @@ pub struct AgentsTestsInvocationsListQueryRequest {
     /// Filter by branch ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    /// Filter by test run creator user ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_by_user_id: Option<String>,
     /// Filter to invocations that include a run of this test id
     #[serde(skip_serializing_if = "Option::is_none")]
     pub test_id: Option<String>,
@@ -45,6 +48,7 @@ impl AgentsTestsInvocationsListQueryRequest {
 pub struct AgentsTestsInvocationsListQueryRequestBuilder {
     agent_id: Option<String>,
     branch_id: Option<String>,
+    created_by_user_id: Option<String>,
     test_id: Option<String>,
     start_time: Option<i64>,
     end_time: Option<i64>,
@@ -62,6 +66,11 @@ impl AgentsTestsInvocationsListQueryRequestBuilder {
 
     pub fn branch_id(mut self, value: impl Into<String>) -> Self {
         self.branch_id = Some(value.into());
+        self
+    }
+
+    pub fn created_by_user_id(mut self, value: impl Into<String>) -> Self {
+        self.created_by_user_id = Some(value.into());
         self
     }
 
@@ -105,6 +114,7 @@ impl AgentsTestsInvocationsListQueryRequestBuilder {
         Ok(AgentsTestsInvocationsListQueryRequest {
             agent_id: self.agent_id,
             branch_id: self.branch_id,
+            created_by_user_id: self.created_by_user_id,
             test_id: self.test_id,
             start_time: self.start_time,
             end_time: self.end_time,

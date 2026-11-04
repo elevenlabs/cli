@@ -110,7 +110,7 @@ impl LanguageClient {
     ///         .language
     ///         .create(
     ///             &"proj_1601kwkyxp0hfzvtmyxwqxx6mcy3".to_string(),
-    ///             &BodyCreateDubbingLanguageTargetV1DubbingProjectProjectIDLanguagePost {
+    ///             &BodyCreateDubbingLanguageTargetV1DubbingProjectProjectIdLanguagePost {
     ///                 target_language: "es".to_string(),
     ///                 voice_settings: None,
     ///                 translations: None,

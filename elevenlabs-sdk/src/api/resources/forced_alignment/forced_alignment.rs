@@ -37,7 +37,7 @@ impl ForcedAlignmentClient {
     ///     client
     ///         .forced_alignment
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest3 {
     ///                 file: b"test file content".to_vec(),
     ///                 text: "text".to_string(),
     ///             },

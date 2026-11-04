@@ -43,7 +43,7 @@ impl SpeechToTextClient {
     ///     client
     ///         .speech_to_text
     ///         .convert(
-    ///             &ConvertRequest {
+    ///             &ConvertRequest3 {
     ///                 token: Some("token".to_string()),
     ///                 enable_logging: Some(true),
     ///                 file: b"test file content".to_vec(),

@@ -39,7 +39,7 @@ impl RequestsClient {
     ///         .analytics
     ///         .requests
     ///         .get(
-    ///             &BodyListAPIRequestsV1WorkspaceAnalyticsRequestsPost {
+    ///             &BodyListApiRequestsV1WorkspaceAnalyticsRequestsPost {
     ///                 ..Default::default()
     ///             },
     ///             None,

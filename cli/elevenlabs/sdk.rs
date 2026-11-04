@@ -48,7 +48,14 @@ impl elevenlabs_sdk::RequestExecutor for CliExecutorAdapter {
 pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
     let executor = ctx.build_sdk_executor();
     let adapter = Arc::new(CliExecutorAdapter(executor));
-    let config = elevenlabs_sdk::ClientConfig::default();
+    // Seed the base URL from the CLI's own resolution (--base-url / env >
+    // spec base_url > server root). `ClientConfig::default()` carries an
+    // empty `base_url` for any API that declares no environment, which made
+    // every custom command fail on a relative URL before the executor ran.
+    let config = elevenlabs_sdk::ClientConfig {
+        base_url: ctx.effective_base_url(),
+        ..Default::default()
+    };
     let http_client = elevenlabs_sdk::HttpClient::with_executor(
         adapter as Arc<dyn elevenlabs_sdk::RequestExecutor>,
         config.clone(),
@@ -219,6 +226,10 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             tools: elevenlabs_sdk::api::resources::agents::ToolsClient {
                 http_client: http_client.clone(),
                 executions: elevenlabs_sdk::api::resources::agents::tools::ExecutionsClient { http_client: http_client.clone() },
+            },
+            analysis_items: elevenlabs_sdk::api::resources::agents::AnalysisItemsClient {
+                http_client: http_client.clone(),
+                dependent_agents: elevenlabs_sdk::api::resources::agents::analysis_items::DependentAgentsClient { http_client: http_client.clone() },
             },
             settings: elevenlabs_sdk::api::resources::agents::SettingsClient { http_client: http_client.clone() },
             secrets: elevenlabs_sdk::api::resources::agents::SecretsClient { http_client: http_client.clone() },

@@ -28,14 +28,10 @@ impl CreateFromFileRequest {
         );
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.name) {
-        form = form.text("name", json_str);
-    }
+    form = form.text("name", self.name.clone());
 
     if let Some(ref value) = self.description {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("description", json_str);
-        }
+        form = form.text("description", value.clone());
     }
 
     if let Some(ref value) = self.workspace_access {

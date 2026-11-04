@@ -213,7 +213,7 @@ impl CollectionsClient {
     ///         .collections
     ///         .update(
     ///             &"collection_id".to_string(),
-    ///             &BodyUpdateVoiceCollectionV1VoicesCollectionsCollectionIDPatch {
+    ///             &BodyUpdateVoiceCollectionV1VoicesCollectionsCollectionIdPatch {
     ///                 ..Default::default()
     ///             },
     ///             None,

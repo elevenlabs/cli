@@ -96,33 +96,23 @@ impl CreateRequest {
     }
 
     if let Some(ref value) = self.name {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("name", json_str);
-        }
+        form = form.text("name", value.clone());
     }
 
     if let Some(ref value) = self.source_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("source_url", json_str);
-        }
+        form = form.text("source_url", value.clone());
     }
 
     if let Some(ref value) = self.source_lang {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("source_lang", json_str);
-        }
+        form = form.text("source_lang", value.clone());
     }
 
     if let Some(ref value) = self.target_lang {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("target_lang", json_str);
-        }
+        form = form.text("target_lang", value.clone());
     }
 
     if let Some(ref value) = self.target_accent {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("target_accent", json_str);
-        }
+        form = form.text("target_accent", value.clone());
     }
 
     if let Some(ref value) = self.num_speakers {

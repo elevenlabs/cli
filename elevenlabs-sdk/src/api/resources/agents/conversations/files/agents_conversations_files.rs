@@ -40,7 +40,7 @@ impl FilesClient {
     ///         .files
     ///         .create(
     ///             &"conversation_id".to_string(),
-    ///             &CreateRequest {
+    ///             &CreateRequest6 {
     ///                 file: b"test file content".to_vec(),
     ///             },
     ///             None,

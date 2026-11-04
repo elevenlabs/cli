@@ -16,6 +16,9 @@ pub struct UnitTestToolCallEvaluationModelOutput {
     /// Configuration for testing workflow node transitions. When set, the test will verify the agent transitions to the specified workflow node.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workflow_node_transition: Option<UnitTestWorkflowNodeTransitionEvaluationNodeId>,
+    /// Evaluate guardrails triggered by the generated agent turn.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guardrail_trigger: Option<UnitTestGuardrailTriggerEvaluationModel>,
 }
 
 impl UnitTestToolCallEvaluationModelOutput {
@@ -31,6 +34,7 @@ pub struct UnitTestToolCallEvaluationModelOutputBuilder {
     referenced_tool: Option<ReferencedToolCommonModel>,
     verify_absence: Option<bool>,
     workflow_node_transition: Option<UnitTestWorkflowNodeTransitionEvaluationNodeId>,
+    guardrail_trigger: Option<UnitTestGuardrailTriggerEvaluationModel>,
 }
 
 impl UnitTestToolCallEvaluationModelOutputBuilder {
@@ -54,6 +58,11 @@ impl UnitTestToolCallEvaluationModelOutputBuilder {
         self
     }
 
+    pub fn guardrail_trigger(mut self, value: UnitTestGuardrailTriggerEvaluationModel) -> Self {
+        self.guardrail_trigger = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`UnitTestToolCallEvaluationModelOutput`].
     pub fn build(self) -> Result<UnitTestToolCallEvaluationModelOutput, BuildError> {
         Ok(UnitTestToolCallEvaluationModelOutput {
@@ -61,6 +70,7 @@ impl UnitTestToolCallEvaluationModelOutputBuilder {
             referenced_tool: self.referenced_tool,
             verify_absence: self.verify_absence,
             workflow_node_transition: self.workflow_node_transition,
+            guardrail_trigger: self.guardrail_trigger,
         })
     }
 }

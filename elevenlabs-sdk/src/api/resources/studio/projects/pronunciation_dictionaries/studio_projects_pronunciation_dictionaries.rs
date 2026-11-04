@@ -35,7 +35,7 @@ impl PronunciationDictionariesClient2 {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.studio.projects.pronunciation_dictionaries.create(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyCreatePronunciationDictionariesV1StudioProjectsProjectIDPronunciationDictionariesPost {
+    ///     client.studio.projects.pronunciation_dictionaries.create(&"21m00Tcm4TlvDq8ikWAM".to_string(), &BodyCreatePronunciationDictionariesV1StudioProjectsProjectIdPronunciationDictionariesPost {
     ///         pronunciation_dictionary_locators: vec![PronunciationDictionaryVersionLocator {
     ///             pronunciation_dictionary_id: "pronunciation_dictionary_id".to_string(),
     ///             version_id: None,

@@ -82,20 +82,14 @@ impl ConvertRequest3 {
         );
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.model_id) {
-        form = form.text("model_id", json_str);
-    }
+    form = form.text("model_id", self.model_id.clone());
 
     if let Some(ref value) = self.language_code {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("language_code", json_str);
-        }
+        form = form.text("language_code", value.clone());
     }
 
     if let Some(ref value) = self.transcript_edit {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("transcript_edit", json_str);
-        }
+        form = form.text("transcript_edit", value.clone());
     }
 
     if let Some(ref value) = self.tag_audio_events {
@@ -141,15 +135,11 @@ impl ConvertRequest3 {
     }
 
     if let Some(ref value) = self.cloud_storage_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("cloud_storage_url", json_str);
-        }
+        form = form.text("cloud_storage_url", value.clone());
     }
 
     if let Some(ref value) = self.source_url {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("source_url", json_str);
-        }
+        form = form.text("source_url", value.clone());
     }
 
     if let Some(ref value) = self.webhook {
@@ -159,9 +149,7 @@ impl ConvertRequest3 {
     }
 
     if let Some(ref value) = self.webhook_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("webhook_id", json_str);
-        }
+        form = form.text("webhook_id", value.clone());
     }
 
     if let Some(ref value) = self.temperature {
@@ -225,9 +213,7 @@ impl ConvertRequest3 {
     }
 
     if let Some(ref value) = self.entity_redaction_mode {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("entity_redaction_mode", json_str);
-        }
+        form = form.text("entity_redaction_mode", value.clone());
     }
 
     if let Some(ref value) = self.keyterms {

@@ -41,7 +41,7 @@ impl MembersClient2 {
     ///         .members
     ///         .remove(
     ///             &"group_id".to_string(),
-    ///             &BodyDeleteMemberFromUserGroupV1WorkspaceGroupsGroupIDMembersRemovePost {
+    ///             &BodyDeleteMemberFromUserGroupV1WorkspaceGroupsGroupIdMembersRemovePost {
     ///                 email: "email".to_string(),
     ///             },
     ///             None,

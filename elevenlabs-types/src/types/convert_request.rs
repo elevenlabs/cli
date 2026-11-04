@@ -30,9 +30,7 @@ impl ConvertRequest {
     }
 
     if let Some(ref value) = self.preview_b64 {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("preview_b64", json_str);
-        }
+        form = form.text("preview_b64", value.clone());
     }
 
     form

@@ -38,7 +38,7 @@ impl IvcClient {
     ///         .voices
     ///         .ivc
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest11 {
     ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
     ///                 name: "name".to_string(),
     ///                 remove_background_noise: None,

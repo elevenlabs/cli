@@ -49,7 +49,7 @@ impl SpeechToSpeechClient {
     ///         .speech_to_speech
     ///         .convert(
     ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
-    ///             &ConvertRequest {
+    ///             &ConvertRequest2 {
     ///                 output_format: Some(SpeechToSpeechConvertRequestOutputFormat::Mp344100128),
     ///                 audio: b"test file content".to_vec(),
     ///                 model_id: Some("eleven_multilingual_sts_v2".to_string()),
@@ -125,7 +125,7 @@ impl SpeechToSpeechClient {
     ///         .speech_to_speech
     ///         .stream(
     ///             &"JBFqnCBsd6RMkjVDRZzb".to_string(),
-    ///             &StreamRequest {
+    ///             &StreamRequest2 {
     ///                 output_format: Some(SpeechToSpeechStreamRequestOutputFormat::Mp344100128),
     ///                 audio: b"test file content".to_vec(),
     ///                 model_id: Some("eleven_multilingual_sts_v2".to_string()),

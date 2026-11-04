@@ -41,7 +41,7 @@ impl AvatarClient {
     ///         .avatar
     ///         .create(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &CreateRequest {
+    ///             &CreateRequest7 {
     ///                 avatar_file: b"test file content".to_vec(),
     ///             },
     ///             None,

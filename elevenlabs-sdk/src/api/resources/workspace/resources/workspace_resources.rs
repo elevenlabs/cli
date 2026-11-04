@@ -95,8 +95,8 @@ impl ResourcesClient {
     ///         .resources
     ///         .share(
     ///             &"resource_id".to_string(),
-    ///             &BodyShareWorkspaceResourceV1WorkspaceResourcesResourceIDSharePost {
-    ///                 role: BodyShareWorkspaceResourceV1WorkspaceResourcesResourceIDSharePostRole::Admin,
+    ///             &BodyShareWorkspaceResourceV1WorkspaceResourcesResourceIdSharePost {
+    ///                 role: BodyShareWorkspaceResourceV1WorkspaceResourcesResourceIdSharePostRole::Admin,
     ///                 resource_type: WorkspaceResourceType::Voice,
     ///                 user_email: None,
     ///                 group_id: None,
@@ -151,7 +151,7 @@ impl ResourcesClient {
     ///         .resources
     ///         .unshare(
     ///             &"resource_id".to_string(),
-    ///             &BodyUnshareWorkspaceResourceV1WorkspaceResourcesResourceIDUnsharePost {
+    ///             &BodyUnshareWorkspaceResourceV1WorkspaceResourcesResourceIdUnsharePost {
     ///                 resource_type: WorkspaceResourceType::Voice,
     ///                 user_email: None,
     ///                 group_id: None,

@@ -35,11 +35,11 @@ impl ItemsClient {
     ///         ..Default::default()
     ///     };
     ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
-    ///     client.productions.orders.items.upsert(&OrderID("order_id".to_string()), &BodyUpsertOrderItemV1ProductionsOrdersOrderIDItemsPost {
+    ///     client.productions.orders.items.upsert(&OrderId("order_id".to_string()), &BodyUpsertOrderItemV1ProductionsOrdersOrderIdItemsPost {
     ///         request: UpsertOrderItemRequest {
     ///             item: OrderItemRequestInput::Dub {
     ///                 data: DubOrderItemRequest {
-    ///                     media_id: MediaID("prodmedia_01jgatk6h0fwxrtbjade61yqhx".to_string()),
+    ///                     media_id: MediaId("prodmedia_01jgatk6h0fwxrtbjade61yqhx".to_string()),
     ///                     source_language: "en".to_string(),
     ///                     destination_languages: vec!["hi".to_string(), "fr-FR".to_string(), "de".to_string()],
     ///                     include_captions: true,
@@ -99,8 +99,8 @@ impl ItemsClient {
     ///         .orders
     ///         .items
     ///         .remove(
-    ///             &OrderID("order_id".to_string()),
-    ///             &ItemID("item_id".to_string()),
+    ///             &OrderId("order_id".to_string()),
+    ///             &ItemId("item_id".to_string()),
     ///             None,
     ///         )
     ///         .await;

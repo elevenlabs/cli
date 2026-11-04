@@ -24,15 +24,11 @@ impl CreateFromFileRequest2 {
     );
 
     if let Some(ref value) = self.name {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("name", json_str);
-        }
+        form = form.text("name", value.clone());
     }
 
     if let Some(ref value) = self.parent_folder_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("parent_folder_id", json_str);
-        }
+        form = form.text("parent_folder_id", value.clone());
     }
 
     form

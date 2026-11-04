@@ -8,9 +8,10 @@ use clap::{Arg, Command};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
+use crate::cli_args::{HELP_HEADING_OPTIONAL, HELP_HEADING_REQUEST, HELP_HEADING_REQUIRED};
 use crate::openapi::discovery::{
-    Availability, FernEnumValue, MethodParameter, MultipartField, RestDescription, RestResource,
-    SdkGroupInfo,
+    Availability, FernEnumValue, MethodParameter, MultipartField, RestDescription, RestMethod,
+    RestResource, SdkGroupInfo,
 };
 use crate::text::{sanitize_flag_name, to_kebab_flag};
 
@@ -99,6 +100,7 @@ pub(crate) const BUILTIN_FLAG_NAMES: &[&str] = &[
     "page-delay",
     "no-pager",
     "no-extract",
+    "retries",
     "no-retry",
     "no-stream",
     "quiet",
@@ -113,22 +115,79 @@ pub(crate) const BUILTIN_FLAG_NAMES: &[&str] = &[
 /// computed dynamically from bindings by `CliApp::run_async` and
 /// prepended via `Command::after_help` — keeping them out of this string
 /// avoids stale `{NAME}_API_KEY` boilerplate.
-pub fn after_help_footer(binary_name: &str) -> String {
-    let prefix = binary_name.to_uppercase().replace('-', "_");
+///
+/// Server variables come from the spec (`servers[].variables`), which is
+/// where `<PREFIX>_REGION`-style vars originate; `profiles set --help`
+/// documents which of these can also be stored per profile.
+pub fn after_help_footer(binary_name: &str, doc: &RestDescription) -> String {
+    let prefix = crate::text::env_var_prefix(binary_name);
     // The suffix flag/env names default to `--user-agent-suffix` /
     // `<NAME>_USER_AGENT_SUFFIX` but can be renamed at generation time.
     let ua_env = format!("{prefix}{}", crate::user_agent::suffix_env_segment());
     let ua_flag = crate::user_agent::suffix_flag();
-    format!(
-        "Environment variables:\n  \
-         {prefix}_BASE_URL             Override the API base URL\n  \
-         {prefix}_CA_BUNDLE            Path to PEM file with extra trust roots (or SSL_CERT_FILE)\n  \
-         {prefix}_INSECURE=1           Skip TLS verification (debugging only)\n  \
-         {prefix}_PROXY                HTTP(S) proxy URL\n  \
-         {prefix}_TIMEOUT_SECS         Total request timeout\n  \
-         {ua_env}    Product token appended to the User-Agent (e.g. my-app/1.0; --{ua_flag} wins)\n\n\
-         Standard env vars (HTTPS_PROXY / HTTP_PROXY / NO_PROXY / SSL_CERT_FILE) are also honored."
-    )
+
+    let mut rows: Vec<(String, String)> = vec![
+        (
+            format!("{prefix}_PROFILE"),
+            "Named profile to run under (-p/--profile wins)".into(),
+        ),
+        (
+            format!("{prefix}_BASE_URL"),
+            "Override the API base URL (--base-url wins)".into(),
+        ),
+        (
+            format!("{prefix}_OUTPUT"),
+            "Default output format (--format wins)".into(),
+        ),
+        (
+            format!("{prefix}_RETRIES"),
+            "Retry attempts for failed requests (--retries wins)".into(),
+        ),
+    ];
+    for var in crate::openapi::app::collect_spec_server_variables(doc) {
+        let name = format!("{prefix}_{}", crate::text::to_screaming_snake(&var.name));
+        if rows.iter().any(|(existing, _)| *existing == name) {
+            continue;
+        }
+        rows.push((
+            name,
+            format!(
+                "Value for the {{{}}} URL template variable (--{} wins)",
+                var.name,
+                crate::text::to_kebab_flag(&var.name)
+            ),
+        ));
+    }
+    rows.extend([
+        (
+            format!("{prefix}_CA_BUNDLE"),
+            "Path to PEM file with extra trust roots (or SSL_CERT_FILE)".into(),
+        ),
+        (
+            format!("{prefix}_INSECURE=1"),
+            "Skip TLS verification (debugging only)".into(),
+        ),
+        (format!("{prefix}_PROXY"), "HTTP(S) proxy URL".into()),
+        (format!("{prefix}_TIMEOUT_SECS"), "Total request timeout".into()),
+        (
+            ua_env,
+            format!("Product token appended to the User-Agent (e.g. my-app/1.0; --{ua_flag} wins)"),
+        ),
+    ]);
+
+    let width = rows
+        .iter()
+        .map(|(name, _)| name.chars().count())
+        .max()
+        .unwrap_or(0);
+    let mut out = String::from("Environment variables:\n");
+    for (name, help) in &rows {
+        out.push_str(&format!("  {name:<width$}  {help}\n"));
+    }
+    out.push_str(
+        "\nStandard env vars (HTTPS_PROXY / HTTP_PROXY / NO_PROXY / SSL_CERT_FILE) are also honored.",
+    );
+    out
 }
 
 /// Builds the full CLI command tree from an API description.
@@ -137,7 +196,7 @@ pub fn build_cli(doc: &RestDescription) -> Command {
         .title
         .clone()
         .unwrap_or_else(|| format!("{} CLI", doc.name));
-    let after_help = after_help_footer(&doc.name);
+    let after_help = after_help_footer(&doc.name, doc);
     let mut root = Command::new(doc.name.clone())
         .about(about_text)
         .after_help(after_help)
@@ -210,6 +269,8 @@ pub fn build_cli(doc: &RestDescription) -> Command {
             &doc.group_operation_counts,
             &doc.tag_group_names,
             &doc.tag_description_order,
+            doc.pagination_token_query_param.is_some()
+                || doc.pagination_token_response_path.is_some(),
         )
         {
             root = root.subcommand(cmd);
@@ -522,6 +583,11 @@ fn build_resource_command(
     group_operation_counts: &HashMap<String, usize>,
     tag_group_names: &HashMap<String, Vec<String>>,
     tag_description_order: &[String],
+    // True when the spec root declares the token query-param /
+    // response-path pair the generic pager falls back on. Passed down rather
+    // than read from the doc because this builder is recursive and never
+    // holds it.
+    doc_has_pagination_defaults: bool,
 ) -> Option<Command> {
     let mut cmd = Command::new(name.to_string())
         .about(group_about_text_for_group(
@@ -583,18 +649,32 @@ fn build_resource_command(
         let long_about = (long_description.trim() != short_description.trim())
             .then(|| with_availability_badge(&long_description, method.availability));
 
-        let mut method_cmd = Command::new(method_name.to_string())
-            .about(about)
-            .arg(
-                Arg::new("params")
-                    .long("params")
-                    .help("Additional parameters as JSON (overrides individual flags)")
-                    .value_name("JSON"),
-            );
+        let mut method_cmd = Command::new(method_name.to_string()).about(about);
 
         if let Some(long_about) = long_about {
             method_cmd = method_cmd.long_about(long_about);
         }
+
+        // Spec parameters are registered before the per-operation request
+        // controls and split by whether the operation can run without them.
+        // clap renders custom help headings in first-seen order, so this
+        // insertion order is what puts "Required parameters" at the top of
+        // `--help`, ahead of everything the caller may leave out.
+        let (required_args, optional_args) = build_parameter_args(method);
+        for arg in required_args {
+            method_cmd = method_cmd.arg(arg.help_heading(HELP_HEADING_REQUIRED));
+        }
+        for arg in optional_args {
+            method_cmd = method_cmd.arg(arg.help_heading(HELP_HEADING_OPTIONAL));
+        }
+
+        method_cmd = method_cmd.arg(
+            Arg::new("params")
+                .long("params")
+                .help("Additional parameters as JSON (overrides individual flags)")
+                .value_name("JSON")
+                .help_heading(HELP_HEADING_REQUEST),
+        );
 
         // `-o, --output PATH` is only meaningful for operations that can
         // return a binary body — the JSON path in `process_response` never
@@ -609,7 +689,8 @@ fn build_resource_command(
                     .long("output")
                     .short('o')
                     .help("Output file path for binary responses (use '-' to stream to stdout)")
-                    .value_name("PATH"),
+                    .value_name("PATH")
+                    .help_heading(HELP_HEADING_REQUEST),
             );
         }
 
@@ -619,7 +700,8 @@ fn build_resource_command(
                 Arg::new("json")
                     .long("json")
                     .help("JSON request body (use `-` to read from stdin; auto-detected, errors if no data piped)")
-                    .value_name("JSON|-"),
+                    .value_name("JSON|-")
+                    .help_heading(HELP_HEADING_REQUEST),
             );
         }
 
@@ -643,56 +725,74 @@ fn build_resource_command(
                          \\@<REST>    escape: send literal value @<REST>\n  \
                          -           read from stdin (sent chunked)",
                         binary.content_type,
-                    )),
+                    ))
+                    .help_heading(HELP_HEADING_REQUEST),
             );
         }
 
-        // Add per-field flags for multipart/form-data operations.
-        // Skip fields whose kebab name collides with a builtin flag,
-        // matching the regular-param convention above.
-        for field in &method.multipart_fields {
-            let kebab = to_kebab_flag(&field.wire_name);
-            if is_reserved_flag_name(&kebab) {
-                continue;
-            }
-            method_cmd = method_cmd.arg(build_multipart_field_arg(field));
+        // Pagination flags — only where the spec actually describes how to
+        // page. Registering them unconditionally advertised `--page-all` on
+        // every list operation of a spec with no pagination metadata at all,
+        // and the executor then fell back to guessing `pageToken` /
+        // `nextPageToken`: one request went out and the command exited 0 with
+        // page 1. Silent partial data is the worst outcome for an agent
+        // consumer, so the flags are hidden where they cannot work — the same
+        // treatment `--no-stream` already gets on non-streaming operations.
+        if method_has_pagination(method, doc_has_pagination_defaults) {
+            method_cmd = method_cmd
+                .arg(
+                    Arg::new("page-all")
+                        .long("page-all")
+                        .help("Auto-paginate through all results (NDJSON)")
+                        .action(clap::ArgAction::SetTrue)
+                        .help_heading(HELP_HEADING_REQUEST),
+                )
+                .arg(
+                    Arg::new("page-limit")
+                        .long("page-limit")
+                        .help("Maximum number of pages to fetch (default: 10)")
+                        .value_name("N")
+                        .value_parser(clap::value_parser!(u32))
+                        .help_heading(HELP_HEADING_REQUEST),
+                )
+                .arg(
+                    Arg::new("page-delay")
+                        .long("page-delay")
+                        .help("Delay in milliseconds between page fetches (default: 100)")
+                        .value_name("MS")
+                        .value_parser(clap::value_parser!(u64))
+                        .help_heading(HELP_HEADING_REQUEST),
+                )
+                .arg(
+                    Arg::new("no-pager")
+                        .long("no-pager")
+                        .help("Disable pager even on interactive terminals")
+                        .action(clap::ArgAction::SetTrue)
+                        .help_heading(HELP_HEADING_REQUEST),
+                );
         }
 
-        // Pagination flags
         method_cmd = method_cmd
-            .arg(
-                Arg::new("page-all")
-                    .long("page-all")
-                    .help("Auto-paginate through all results (NDJSON)")
-                    .action(clap::ArgAction::SetTrue),
-            )
-            .arg(
-                Arg::new("page-limit")
-                    .long("page-limit")
-                    .help("Maximum number of pages to fetch (default: 10)")
-                    .value_name("N")
-                    .value_parser(clap::value_parser!(u32)),
-            )
-            .arg(
-                Arg::new("page-delay")
-                    .long("page-delay")
-                    .help("Delay in milliseconds between page fetches (default: 100)")
-                    .value_name("MS")
-                    .value_parser(clap::value_parser!(u64)),
-            )
-            .arg(
-                Arg::new("no-pager")
-                    .long("no-pager")
-                    .help("Disable pager even on interactive terminals")
-                    .action(clap::ArgAction::SetTrue),
-            )
             .arg(
                 Arg::new("no-extract")
                     .long("no-extract")
                     .help(
                         "Disable x-fern-sdk-return-value extraction and print the full response body",
                     )
-                    .action(clap::ArgAction::SetTrue),
+                    .action(clap::ArgAction::SetTrue)
+                    .help_heading(HELP_HEADING_REQUEST),
+            )
+            .arg(
+                Arg::new("retries")
+                    .long("retries")
+                    .value_name("N")
+                    .value_parser(clap::value_parser!(u32))
+                    .help(
+                        "Retry a failed request up to N additional times, overriding \
+                         x-fern-retries on this operation. 0 is the same as --no-retry. \
+                         Falls back to <NAME>_RETRIES, then the active profile.",
+                    )
+                    .help_heading(HELP_HEADING_REQUEST),
             )
             .arg(
                 Arg::new("no-retry")
@@ -701,7 +801,8 @@ fn build_resource_command(
                         "Disable retries declared by x-fern-retries on this operation, \
                          including network errors. Useful for debugging.",
                     )
-                    .action(clap::ArgAction::SetTrue),
+                    .action(clap::ArgAction::SetTrue)
+                    .help_heading(HELP_HEADING_REQUEST),
             );
 
         // `--no-stream` is only meaningful on operations with
@@ -718,160 +819,9 @@ fn build_resource_command(
                         "Buffer the streaming response and print it as a single value once \
                         complete (handy for piping into another JSON tool)",
                     )
-                    .action(clap::ArgAction::SetTrue),
+                    .action(clap::ArgAction::SetTrue)
+                    .help_heading(HELP_HEADING_REQUEST),
             );
-        }
-
-        // Generate individual flags from method parameters.
-        //
-        // Track (sanitized_flag → wire_name) to detect collisions where
-        // two distinct wire names produce the same CLI flag.
-        let mut flag_to_wire: HashMap<String, String> = HashMap::new();
-
-        let mut param_names: Vec<_> = method.parameters.keys().collect();
-        param_names.sort();
-        for param_name in param_names {
-            let param = &method.parameters[param_name];
-
-            // Flag name resolution uses `resolve_param_flag_name` — the
-            // single source of truth shared with the executor's
-            // missing-param hint (FER-10430).
-            let kebab_name = match resolve_param_flag_name(param, param_name) {
-                Some(name) => name,
-                None => {
-                    tracing::warn!(
-                        param = %param_name,
-                        "skipping parameter with unsanitizable name",
-                    );
-                    continue;
-                }
-            };
-
-            // Variable-bound path parameters get their value from a
-            // root-level global flag (registered in `app::run_async` from
-            // `doc.sdk_variables`) plus its env-var fallback. Skip before
-            // inserting into flag_to_wire so variable-bound params don't
-            // occupy a collision slot and block a later non-variable-bound
-            // param that sanitizes to the same flag name.
-            if param.variable_reference.is_some() {
-                continue;
-            }
-
-            // Cross-parameter collision: two different wire names mapping
-            // to the same flag. Skip the second occurrence with a warning
-            // (load-time error would be ideal but the builder is infallible).
-            if let Some(existing_wire) = flag_to_wire.get(&kebab_name) {
-                tracing::warn!(
-                    flag = %kebab_name,
-                    wire1 = %existing_wire,
-                    wire2 = %param_name,
-                    "two parameters sanitize to the same flag --{kebab_name}; \
-                     keeping '{existing_wire}', skipping '{param_name}'",
-                );
-                continue;
-            }
-            flag_to_wire.insert(kebab_name.clone(), param_name.clone());
-
-            let base_value_name = match param.param_type.as_deref() {
-                Some("string") => "STRING",
-                Some("integer") => "NUMBER",
-                Some("number") => "NUMBER",
-                Some("boolean") => "BOOLEAN",
-                Some("array") => "JSON_ARRAY",
-                Some("object") => "JSON_OBJECT",
-                _ => "VALUE",
-            };
-            // A composite only sets `param.nullable` when it came from a
-            // promoted nullable composition (`anyOf: [$ref, null]`), where
-            // the schema genuinely admits `null` — so the sentinel suffix
-            // is accurate for `JSON_OBJECT|null` too.
-            let value_name: Cow<'static, str> = if param.nullable {
-                Cow::Owned(format!("{base_value_name}|null"))
-            } else {
-                Cow::Borrowed(base_value_name)
-            };
-
-            // When the CLI flag differs from the wire name — whether via
-            // `x-fern-parameter-name` rename or sanitization — surface
-            // the original wire name in `--help` so users can correlate
-            // the flag with the API docs / `--params` JSON. Synthetic
-            // `flag_name_override` injections already encode the wire
-            // name in their description, so they skip this.
-            let flag_differs_from_wire = param.flag_name_override.is_none()
-                && kebab_name != *param_name;
-            // Both tiers carry the same annotations; only the amount of
-            // prose differs. The `[default: ...]` suffix mirrors the shape
-            // clap renders for `x-fern-default`, so the user sees "there is
-            // a default" without being told who applies it. The CLI itself
-            // does not send the documentation default on the wire.
-            let decorate = |text: &str| -> String {
-                let text = with_availability_badge(text, param.availability);
-                let text = if flag_differs_from_wire {
-                    if text.is_empty() {
-                        format!("(api: {param_name})")
-                    } else {
-                        format!("{text} (api: {param_name})")
-                    }
-                } else {
-                    text
-                };
-                match documentation_default_help_suffix(&param.documentation_default_value) {
-                    Some(suffix) => format!("{text}{suffix}"),
-                    None => text,
-                }
-            };
-            let description =
-                crate::text::collapse_whitespace(param.description.as_deref().unwrap_or(""));
-            let help_text = decorate(&crate::text::truncate_description(
-                &crate::text::first_sentence(&description),
-                crate::text::CLI_SHORT_DESCRIPTION_LIMIT,
-                true,
-            ));
-            let long_help_text = decorate(&crate::text::truncate_description(
-                &description,
-                crate::text::CLI_LONG_DESCRIPTION_LIMIT,
-                true,
-            ));
-
-            let arg_id = param_clap_arg_id(param_name);
-            let mut arg = Arg::new(arg_id)
-                .long(kebab_name)
-                .value_name(value_name)
-                .help(help_text.clone());
-            // `-h` shows the one-line form, `--help` the fuller prose. Only
-            // set the long form when it actually says more, so `-h` and
-            // `--help` do not print identical blocks.
-            if long_help_text != help_text {
-                arg = arg.long_help(long_help_text);
-            }
-
-            // Only `x-fern-default` (lowered into `default_value`)
-            // becomes a clap default. The standard `default:` keyword
-            // is doc-only and handled above via the help-text suffix.
-            if let Some(default_str) = default_value_for_clap(&param.default_value) {
-                arg = arg.default_value(default_str);
-            }
-
-            // Environment-variable fallback (currently populated by the
-            // OpenAPI parser for synthetic idempotency-header params from
-            // `x-fern-idempotency-headers`, with overrides applied by
-            // `CliApp::idempotency_header_env`). Clap reads `.env(...)`
-            // when the flag is absent on the command line, giving us the
-            // same priority order — flag → env → default — used for auth
-            // sources.
-            if let Some(ref env_var) = param.env_var {
-                arg = arg.env(env_var.clone());
-            }
-
-            if let Some(ref enum_values) = param.enum_values {
-                arg = arg.value_parser(build_enum_value_parser(enum_values, param));
-            }
-
-            if param.repeated {
-                arg = arg.action(clap::ArgAction::Append);
-            }
-
-            method_cmd = method_cmd.arg(arg);
         }
 
         cmd = cmd.subcommand(method_cmd);
@@ -893,6 +843,7 @@ fn build_resource_command(
             &HashMap::new(),
             &HashMap::new(),
             &[],
+            doc_has_pagination_defaults,
         )
         {
             has_children = true;
@@ -907,6 +858,295 @@ fn build_resource_command(
     }
 }
 
+/// A parameter flag the operation cannot run without: the spec marks it
+/// required (`required`, or `required_by_spec` for an object shorthand whose
+/// clap flag is deliberately optional) and no client-side `x-fern-default`
+/// fills it in when omitted.
+///
+/// A parent object flag and its dotted leaves are mutually exclusive on the
+/// command line, so when both are spec-required only the leaves are listed as
+/// required — the parent shorthand is an alternative form, not an extra
+/// obligation. This is the same rule `--schema` applies to `input.required`
+/// (see `openapi::help`), so the two surfaces agree.
+///
+/// Requiredness of a dotted leaf is also conditional on its ancestors:
+/// `flatten_body_params_prefix` reads each nested schema's own `required`
+/// list without gating on whether the parent property is required, so
+/// `settings.region` arrives `required: true` even when `settings` itself is
+/// optional. Such a leaf is only required *if* the caller opts into the
+/// parent, and listing it under `Required parameters` (or spelling it into
+/// the usage line) would demand a flag the operation runs fine without.
+fn is_required_parameter_flag(
+    param: &MethodParameter,
+    param_name: &str,
+    all_params: &HashMap<String, MethodParameter>,
+) -> bool {
+    if !unconditionally_required(param, param_name, all_params) {
+        return false;
+    }
+    // A required leaf supersedes its ancestor shorthand — but only a leaf that
+    // is itself unconditionally required. Testing bare `required` here would
+    // let a conditional grandchild (required within an *optional* intermediate
+    // object) demote a genuinely required parent, leaving the operation with
+    // nothing listed as required at all.
+    let child_prefix = format!("{param_name}.");
+    !all_params.iter().any(|(name, p)| {
+        name.starts_with(&child_prefix) && unconditionally_required(p, name, all_params)
+    })
+}
+
+/// The spec requires this parameter, no client-side `x-fern-default` fills it
+/// in when omitted, and every ancestor object on its dotted path is itself
+/// required — so the caller cannot avoid it by declining an optional parent.
+///
+/// An ancestor with no entry of its own does not disqualify: the parser emits
+/// the object shorthand alongside every recursion that produced leaves, so a
+/// gap means the ancestor is not a flag the caller chooses between, not that
+/// it is optional.
+fn unconditionally_required(
+    param: &MethodParameter,
+    param_name: &str,
+    all_params: &HashMap<String, MethodParameter>,
+) -> bool {
+    if !(param.required || param.required_by_spec)
+        || default_value_for_clap(&param.default_value).is_some()
+    {
+        return false;
+    }
+    let mut rest = param_name;
+    while let Some((parent, _)) = rest.rsplit_once('.') {
+        if let Some(ancestor) = all_params.get(parent) {
+            if !(ancestor.required || ancestor.required_by_spec)
+                || default_value_for_clap(&ancestor.default_value).is_some()
+            {
+                return false;
+            }
+        }
+        rest = parent;
+    }
+    true
+}
+
+/// Builds the per-parameter flags for one operation — spec parameters
+/// (path/query/header/body) followed by multipart form fields — and splits
+/// them into `(required, optional)` so the caller can register each group
+/// under its own help heading.
+///
+/// Neither group carries a heading yet; the caller assigns it. The
+/// executor, not clap, enforces required-ness (a required body property
+/// can also arrive via `--json`/`--params`), so spec parameters stay
+/// clap-optional here regardless of which bucket they land in.
+fn build_parameter_args(method: &RestMethod) -> (Vec<Arg>, Vec<Arg>) {
+    let mut required_args: Vec<Arg> = Vec::new();
+    let mut optional_args: Vec<Arg> = Vec::new();
+
+    // Track (sanitized_flag → wire_name) to detect collisions where
+    // two distinct wire names produce the same CLI flag.
+    let mut flag_to_wire: HashMap<String, String> = HashMap::new();
+
+    let mut param_names: Vec<_> = method.parameters.keys().collect();
+    param_names.sort();
+    for param_name in param_names {
+        let param = &method.parameters[param_name];
+
+        // Flag name resolution uses `resolve_param_flag_name` — the
+        // single source of truth shared with the executor's
+        // missing-param hint (FER-10430).
+        let kebab_name = match resolve_param_flag_name(param, param_name) {
+            Some(name) => name,
+            None => {
+                tracing::warn!(
+                    param = %param_name,
+                    "skipping parameter with unsanitizable name",
+                );
+                continue;
+            }
+        };
+
+        // Variable-bound path parameters get their value from a
+        // root-level global flag (registered in `app::run_async` from
+        // `doc.sdk_variables`) plus its env-var fallback. Skip before
+        // inserting into flag_to_wire so variable-bound params don't
+        // occupy a collision slot and block a later non-variable-bound
+        // param that sanitizes to the same flag name.
+        if param.variable_reference.is_some() {
+            continue;
+        }
+
+        // Cross-parameter collision: two different wire names mapping
+        // to the same flag. Skip the second occurrence with a warning
+        // (load-time error would be ideal but the builder is infallible).
+        if let Some(existing_wire) = flag_to_wire.get(&kebab_name) {
+            tracing::warn!(
+                flag = %kebab_name,
+                wire1 = %existing_wire,
+                wire2 = %param_name,
+                "two parameters sanitize to the same flag --{kebab_name}; \
+                 keeping '{existing_wire}', skipping '{param_name}'",
+            );
+            continue;
+        }
+        flag_to_wire.insert(kebab_name.clone(), param_name.clone());
+
+        let base_value_name = value_name_for(param);
+        // A composite only sets `param.nullable` when it came from a
+        // promoted nullable composition (`anyOf: [$ref, null]`), where
+        // the schema genuinely admits `null` — so the sentinel suffix
+        // is accurate for `JSON_OBJECT|null` too.
+        let value_name: Cow<'static, str> = if param.nullable {
+            Cow::Owned(format!("{base_value_name}|null"))
+        } else {
+            Cow::Borrowed(base_value_name)
+        };
+
+        // When the CLI flag differs from the wire name — whether via
+        // `x-fern-parameter-name` rename or sanitization — surface
+        // the original wire name in `--help` so users can correlate
+        // the flag with the API docs / `--params` JSON. Synthetic
+        // `flag_name_override` injections already encode the wire
+        // name in their description, so they skip this.
+        let flag_differs_from_wire =
+            param.flag_name_override.is_none() && kebab_name != *param_name;
+        // Both tiers carry the same annotations; only the amount of
+        // prose differs. The `[default: ...]` suffix mirrors the shape
+        // clap renders for `x-fern-default`, so the user sees "there is
+        // a default" without being told who applies it. The CLI itself
+        // does not send the documentation default on the wire.
+        let decorate = |text: &str| -> String {
+            let text = with_availability_badge(text, param.availability);
+            let text = if flag_differs_from_wire {
+                if text.is_empty() {
+                    format!("(api: {param_name})")
+                } else {
+                    format!("{text} (api: {param_name})")
+                }
+            } else {
+                text
+            };
+            match documentation_default_help_suffix(&param.documentation_default_value) {
+                Some(suffix) => format!("{text}{suffix}"),
+                None => text,
+            }
+        };
+        let description =
+            crate::text::collapse_whitespace(param.description.as_deref().unwrap_or(""));
+        let help_text = decorate(&crate::text::truncate_description(
+            &crate::text::first_sentence(&description),
+            crate::text::CLI_SHORT_DESCRIPTION_LIMIT,
+            true,
+        ));
+        let long_help_text = {
+            let text = decorate(&crate::text::truncate_description(
+                &description,
+                crate::text::CLI_LONG_DESCRIPTION_LIMIT,
+                true,
+            ));
+            // A repeated flag accepts two forms and the value name can only
+            // show one. It used to read `<JSON_ARRAY>`, which at least
+            // hinted at the array form; now that it correctly shows the
+            // element type, nothing on the surface says the flag can be
+            // repeated or handed a whole array. Both work, so say so — in
+            // the long help only, since the short form is width-limited and
+            // truncated.
+            if param.repeated {
+                let hint = "Repeatable: pass the flag once per value, \
+                                or supply a JSON array as a single value.";
+                if text.is_empty() {
+                    hint.to_string()
+                } else {
+                    format!("{text}\n\n{hint}")
+                }
+            } else {
+                text
+            }
+        };
+
+        let arg_id = param_clap_arg_id(param_name);
+        // Read before `kebab_name` is moved into `.long(...)`.
+        let profile_default = profile_parameter_default(param, param_name);
+        // clap resolves EnvVariable above DefaultValue, so a profile value
+        // installed as the default normally loses to the parameter's env var
+        // — which is the documented order. When the profile was named with
+        // `-p` it has to win instead, and the only way to express that in
+        // clap is to not register the env var at all for this arg.
+        let profile_outranks_env_var = profile_default.is_some() && crate::profiles::outranks_env();
+        let mut arg = Arg::new(arg_id)
+            .long(kebab_name)
+            .value_name(value_name)
+            .help(help_text.clone());
+        // `-h` shows the one-line form, `--help` the fuller prose. Only
+        // set the long form when it actually says more, so `-h` and
+        // `--help` do not print identical blocks.
+        if long_help_text != help_text {
+            arg = arg.long_help(long_help_text);
+        }
+
+        // Only `x-fern-default` (lowered into `default_value`)
+        // becomes a clap default. The standard `default:` keyword
+        // is doc-only and handled above via the help-text suffix.
+        //
+        // A profile-supplied value takes that slot instead when the active
+        // profile names this parameter. That places the profile *above* the
+        // spec default and, because clap resolves `CommandLine` >
+        // `EnvVariable` > `DefaultValue`, *below* both the flag and the env
+        // var — which is exactly the documented precedence, with no new arg
+        // plumbing.
+        //
+        // This one line is what makes `--account-sid` stop being typed.
+        // With no profile selected `parameter_default` is `None` and the
+        // behaviour is byte-identical to before.
+        if let Some(value) = profile_default {
+            arg = arg.default_value(value);
+        } else if let Some(default_str) = default_value_for_clap(&param.default_value) {
+            arg = arg.default_value(default_str);
+        }
+
+        // Environment-variable fallback (currently populated by the
+        // OpenAPI parser for synthetic idempotency-header params from
+        // `x-fern-idempotency-headers`, with overrides applied by
+        // `CliApp::idempotency_header_env`). Clap reads `.env(...)`
+        // when the flag is absent on the command line, giving us the
+        // same priority order — flag → env → default — used for auth
+        // sources.
+        if let Some(ref env_var) = param.env_var {
+            if !profile_outranks_env_var {
+                arg = arg.env(env_var.clone());
+            }
+        }
+
+        if let Some(ref enum_values) = param.enum_values {
+            arg = arg.value_parser(build_enum_value_parser(enum_values, param));
+        }
+
+        if param.repeated {
+            arg = arg.action(clap::ArgAction::Append);
+        }
+
+        if is_required_parameter_flag(param, param_name, &method.parameters) {
+            required_args.push(arg);
+        } else {
+            optional_args.push(arg);
+        }
+    }
+
+    // Per-field flags for multipart/form-data operations. Skip fields
+    // whose kebab name collides with a builtin flag, matching the
+    // regular-param convention above.
+    for field in &method.multipart_fields {
+        if resolve_multipart_field_flag_name(&field.wire_name).is_none() {
+            continue;
+        }
+        let arg = build_multipart_field_arg(field);
+        if field.required {
+            required_args.push(arg);
+        } else {
+            optional_args.push(arg);
+        }
+    }
+
+    (required_args, optional_args)
+}
+
 /// Compute the clap arg ID for a parameter given its wire name.
 ///
 /// Normally the arg ID equals the wire name so the executor can look
@@ -917,7 +1157,13 @@ fn build_resource_command(
 /// This function is also called by `collect_params_from_flags` so the
 /// executor uses the same mangled ID that the command builder registered.
 pub(crate) fn param_clap_arg_id(wire_name: &str) -> String {
-    if BUILTIN_FLAG_NAMES.contains(&wire_name) {
+    // `is_reserved_flag_name` rather than `BUILTIN_FLAG_NAMES` alone, so the
+    // two config-dependent reservations (the user-agent suffix flag and
+    // `--profile`) mangle the *id* as well as the long name. Leaving the id
+    // un-mangled makes clap silently skip propagating the root's global into
+    // that leaf instead of erroring — the flag then means the spec parameter
+    // on that one command and the global everywhere else.
+    if flag_name_is_reserved(wire_name) {
         format!("{wire_name}-param")
     } else {
         wire_name.to_string()
@@ -934,6 +1180,28 @@ pub(crate) fn param_clap_arg_id(wire_name: &str) -> String {
 /// Returns `None` only when `sanitize_flag_name` rejects the name
 /// (control characters, CJK, etc.). The caller should fall back to
 /// `--params` guidance in that case.
+/// The active profile's default for `param`, if it names one.
+///
+/// The single source of truth for "does the profile supply this parameter?".
+/// Two call sites need the answer and must agree: the command builder, which
+/// installs it as the clap `default_value`, and
+/// [`collect_params_from_flags`](crate::openapi::app::collect_params_from_flags),
+/// which has to know a `DefaultValue` came from the profile rather than from
+/// `x-fern-default` — those two are typed differently and only one of them
+/// is the caller's.
+///
+/// Falls back to the plain kebab-cased wire name when
+/// [`resolve_param_flag_name`] rejects it, so a parameter whose name cannot
+/// become a flag can still be matched by its wire name.
+pub(crate) fn profile_parameter_default(
+    param: &MethodParameter,
+    wire_name: &str,
+) -> Option<String> {
+    let flag_name = resolve_param_flag_name(param, wire_name)
+        .unwrap_or_else(|| crate::text::to_kebab_flag(wire_name));
+    crate::profiles::parameter_default(wire_name, &flag_name)
+}
+
 pub(crate) fn resolve_param_flag_name(param: &MethodParameter, wire_name: &str) -> Option<String> {
     let mut flag = if let Some(override_flag) = param.flag_name_override.as_deref() {
         override_flag.to_string()
@@ -949,10 +1217,23 @@ pub(crate) fn resolve_param_flag_name(param: &MethodParameter, wire_name: &str) 
             }
         }
     };
-    if is_reserved_flag_name(&flag) {
+    if flag_name_is_reserved(&flag) {
         flag = format!("{flag}-param");
     }
     Some(flag)
+}
+
+/// Resolve the CLI flag name for a multipart field, replicating what
+/// `build_resource_command` registers. `None` when the kebab name is
+/// reserved by the runtime: the builder skips those args, so no flag
+/// exists and the field is reachable only through `--params`.
+pub(crate) fn resolve_multipart_field_flag_name(wire_name: &str) -> Option<String> {
+    let kebab = to_kebab_flag(wire_name);
+    if flag_name_is_reserved(&kebab) {
+        None
+    } else {
+        Some(kebab)
+    }
 }
 
 /// Whether a parameter-derived flag long name is reserved by the runtime
@@ -960,8 +1241,10 @@ pub(crate) fn resolve_param_flag_name(param: &MethodParameter, wire_name: &str) 
 /// duplicate-flag panic. Covers the always-present built-in flags plus a
 /// customer-configured `userAgentSuffixFlag` name that would otherwise
 /// clash with the consumer suffix flag.
-fn is_reserved_flag_name(flag: &str) -> bool {
-    BUILTIN_FLAG_NAMES.contains(&flag) || crate::user_agent::collides_with_suffix_flag(flag)
+pub(crate) fn flag_name_is_reserved(flag: &str) -> bool {
+    BUILTIN_FLAG_NAMES.contains(&flag)
+        || crate::user_agent::collides_with_suffix_flag(flag)
+        || crate::profiles::collides_with_profile_flag(flag)
 }
 
 /// Build a `PossibleValuesParser` that respects an optional `x-fern-enum`
@@ -974,6 +1257,12 @@ fn build_enum_value_parser(
     wire_values: &[String],
     param: &MethodParameter,
 ) -> PossibleValuesParser {
+    PossibleValuesParser::from(enum_possible_values(wire_values, param))
+}
+
+/// The `PossibleValue`s an enum parameter admits, with `x-fern-enum` display
+/// names and help text applied.
+fn enum_possible_values(wire_values: &[String], param: &MethodParameter) -> Vec<PossibleValue> {
     let mut possible: Vec<PossibleValue> = wire_values
         .iter()
         .map(|wire| {
@@ -990,7 +1279,34 @@ fn build_enum_value_parser(
     if param.nullable {
         possible.push(PossibleValue::new("null").help("Send JSON null."));
     }
-    PossibleValuesParser::from(possible)
+    possible
+}
+
+/// Every string this parameter's flag accepts, or `None` when it is
+/// unconstrained.
+///
+/// Derived from the *same* `PossibleValue`s the clap `value_parser` is built
+/// from, so the two cannot drift. That matters because `profiles create
+/// --set` validates against this list: a stricter list would reject a value
+/// the command itself accepts (notably an `x-fern-enum` display name, which
+/// is only an alias of the wire value), and a looser one would let a profile
+/// store a default that fails every command carrying the parameter.
+pub(crate) fn enum_accepted_values(param: &MethodParameter) -> Option<Vec<String>> {
+    let wire_values = param.enum_values.as_ref()?;
+    if wire_values.is_empty() {
+        return None;
+    }
+    Some(
+        enum_possible_values(wire_values, param)
+            .iter()
+            .flat_map(|value| {
+                value
+                    .get_name_and_aliases()
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .collect(),
+    )
 }
 
 /// Construct a single `PossibleValue` from a wire value and its optional
@@ -1007,6 +1323,52 @@ fn build_possible_value(wire: &str, cfg: Option<&FernEnumValue>) -> PossibleValu
         pv = pv.help(desc.to_string());
     }
     pv
+}
+
+/// `--help` value-name placeholder for a parameter.
+///
+/// On a repeated flag `param_type` is the *flag* surface — clap collects
+/// strings — so the spec's real element type lives in `item_type`. Reading
+/// `param_type` here made an array-of-objects flag advertise `<STRING>` while
+/// `--schema` (correctly) said `items: {type: object}` and the collector
+/// decoded objects: three surfaces, two answers.
+///
+/// The `param_type` fallback is only correct for *body* arrays, where
+/// `param_type` already holds the element type. On a query, header or path
+/// array it is the container type `"array"`, so those must arrive with
+/// `item_type` resolved — `convert_parameter` spells it out, defaulting to
+/// `Some("string")`, rather than leaving it `None` and falling through here.
+fn value_name_for(param: &MethodParameter) -> &'static str {
+    let value_type = if param.repeated {
+        param.item_type.as_deref().or(param.param_type.as_deref())
+    } else {
+        param.param_type.as_deref()
+    };
+    match value_type {
+        Some("string") => "STRING",
+        Some("integer") => "NUMBER",
+        Some("number") => "NUMBER",
+        Some("boolean") => "BOOLEAN",
+        Some("array") => "JSON_ARRAY",
+        Some("object") => "JSON_OBJECT",
+        _ => "VALUE",
+    }
+}
+
+/// True when the spec says enough for `--page-all` to actually work on this
+/// operation: either the operation carries a resolved `x-fern-pagination`
+/// block, or the spec root declares the token query-parameter / response-path
+/// pair the executor's generic pager uses.
+///
+/// When all three are absent the executor still *runs* — it falls back to
+/// guessing `pageToken` / `nextPageToken` — which is why the flags could not
+/// be left registered: on a spec using any other convention the guess never
+/// matches, so a single page comes back and the command exits 0.
+fn method_has_pagination(
+    method: &crate::openapi::discovery::RestMethod,
+    doc_has_pagination_defaults: bool,
+) -> bool {
+    method.pagination.is_some() || doc_has_pagination_defaults
 }
 
 /// Build a `clap::Arg` for a single [`MultipartField`]. File fields
@@ -1067,8 +1429,45 @@ fn build_multipart_field_arg(field: &MultipartField) -> Arg {
 }
 
 #[cfg(test)]
+mod profile_flag_reservation_tests {
+    use super::{flag_name_is_reserved, param_clap_arg_id};
+    use serial_test::serial;
+
+    /// The reservation must be **conditional**. Reserving `profile`
+    /// unconditionally would rename an existing CLI's spec parameter from
+    /// `--profile` to `--profile-param` the moment this code shipped — a
+    /// breaking change for a consumer who never asked for profiles.
+    #[test]
+    #[serial]
+    fn profile_is_only_reserved_when_profiles_are_enabled() {
+        crate::profiles::selection::release_profile_flag_for_tests();
+        assert!(!flag_name_is_reserved("profile"));
+        assert_eq!(param_clap_arg_id("profile"), "profile");
+
+        crate::profiles::reserve_profile_flag();
+        assert!(flag_name_is_reserved("profile"));
+        // Mangled to match how `format` / `json` / `output` are handled.
+        assert_eq!(param_clap_arg_id("profile"), "profile-param");
+
+        crate::profiles::selection::release_profile_flag_for_tests();
+    }
+
+    /// Unconditional reservations are unaffected either way.
+    #[test]
+    #[serial]
+    fn the_unconditional_builtins_are_reserved_regardless() {
+        crate::profiles::selection::release_profile_flag_for_tests();
+        for flag in ["format", "json", "output", "base-url"] {
+            assert!(flag_name_is_reserved(flag), "{flag}");
+        }
+        assert!(!flag_name_is_reserved("account-sid"));
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli_args::HELP_HEADING_GLOBAL;
     use crate::openapi::discovery::{FernEnumValue, MethodParameter, RestMethod, RestResource};
     use std::collections::HashMap;
 
@@ -1191,6 +1590,225 @@ mod tests {
         assert!(args.contains(&"uuid".to_string()), "uuid flag missing");
         assert!(args.contains(&"status".to_string()), "status flag missing");
         assert!(args.contains(&"params".to_string()), "params flag missing");
+    }
+
+    fn leaf_with_params(params: HashMap<String, MethodParameter>) -> Command {
+        let mut methods = HashMap::new();
+        methods.insert(
+            "get".to_string(),
+            RestMethod {
+                http_method: "POST".to_string(),
+                path: "/users/{uuid}".to_string(),
+                parameters: params,
+                request: Some(Default::default()),
+                ..Default::default()
+            },
+        );
+        let mut resources = HashMap::new();
+        resources.insert(
+            "users".to_string(),
+            RestResource {
+                methods,
+                resources: HashMap::new(),
+            },
+        );
+        let doc = RestDescription {
+            name: "test-cli".to_string(),
+            resources,
+            ..Default::default()
+        };
+        let cmd = crate::cli_args::apply_global_help_heading(build_cli(&doc));
+        cmd.find_subcommand("users")
+            .and_then(|c| c.find_subcommand("get"))
+            .expect("users get missing")
+            .clone()
+    }
+
+    fn heading_of(cmd: &Command, id: &str) -> Option<String> {
+        cmd.get_arguments()
+            .find(|a| a.get_id() == id)
+            .unwrap_or_else(|| panic!("{id} flag missing"))
+            .get_help_heading()
+            .map(str::to_string)
+    }
+
+    #[test]
+    fn test_help_groups_params_by_requiredness() {
+        let mut params = HashMap::new();
+        params.insert(
+            "uuid".to_string(),
+            MethodParameter {
+                param_type: Some("string".to_string()),
+                location: Some("path".to_string()),
+                required: true,
+                ..Default::default()
+            },
+        );
+        params.insert(
+            "status".to_string(),
+            MethodParameter {
+                param_type: Some("string".to_string()),
+                location: Some("query".to_string()),
+                ..Default::default()
+            },
+        );
+        // Required by the spec, but `x-fern-default` fills it in when
+        // omitted — the caller may leave it out, so it is optional.
+        params.insert(
+            "kind".to_string(),
+            MethodParameter {
+                param_type: Some("string".to_string()),
+                location: Some("query".to_string()),
+                required: true,
+                default_value: Some(serde_json::json!("plant")),
+                ..Default::default()
+            },
+        );
+
+        let leaf = leaf_with_params(params);
+
+        assert_eq!(heading_of(&leaf, "uuid").as_deref(), Some(HELP_HEADING_REQUIRED));
+        assert_eq!(heading_of(&leaf, "status").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(heading_of(&leaf, "kind").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(heading_of(&leaf, "params").as_deref(), Some(HELP_HEADING_REQUEST));
+        assert_eq!(heading_of(&leaf, "json").as_deref(), Some(HELP_HEADING_REQUEST));
+        assert_eq!(heading_of(&leaf, "format").as_deref(), Some(HELP_HEADING_GLOBAL));
+        assert_eq!(heading_of(&leaf, "dry-run").as_deref(), Some(HELP_HEADING_GLOBAL));
+        assert_eq!(heading_of(&leaf, "help").as_deref(), Some(HELP_HEADING_GLOBAL));
+
+        // Required params stay clap-optional: a required body property may
+        // also arrive via `--json`/`--params`, which the executor validates.
+        assert!(leaf.clone().try_get_matches_from(["get"]).is_ok());
+
+        // Rendered help leads with the required section and keeps the
+        // global flags out of the per-operation groups.
+        let help = leaf.clone().render_help().to_string();
+        let pos = |needle: &str| help.find(needle).unwrap_or_else(|| panic!("{needle:?} missing"));
+        assert!(
+            help.contains("Usage: test-cli users get [OPTIONS] --uuid <STRING>"),
+            "{help}"
+        );
+        assert!(pos(HELP_HEADING_REQUIRED) < pos(HELP_HEADING_OPTIONAL));
+        assert!(pos(HELP_HEADING_OPTIONAL) < pos(HELP_HEADING_REQUEST));
+        // Globals land last only because clap appends propagated `.global(true)`
+        // args after a subcommand's own args. Nothing in our code enforces it,
+        // so pin it here: a clap upgrade that reorders propagation should fail
+        // this assert rather than silently push `Global options` to the top.
+        assert!(pos(HELP_HEADING_REQUEST) < pos(HELP_HEADING_GLOBAL));
+        let required_section = &help[pos(HELP_HEADING_REQUIRED)..pos(HELP_HEADING_OPTIONAL)];
+        assert!(required_section.contains("--uuid"));
+        assert!(!required_section.contains("--status"));
+        assert!(!required_section.contains("--format"));
+    }
+
+    #[test]
+    fn test_help_required_object_shorthand_matches_schema_contract() {
+        let body = |required: bool, required_by_spec: bool, param_type: &str| MethodParameter {
+            param_type: Some(param_type.to_string()),
+            location: Some("body".to_string()),
+            required,
+            required_by_spec,
+            ..Default::default()
+        };
+        let mut params = HashMap::new();
+        // Required object with a required leaf: the leaf is the required
+        // form, the parent shorthand is the alternative.
+        params.insert("settings".to_string(), body(false, true, "object"));
+        params.insert("settings.auth_type".to_string(), body(true, true, "string"));
+        params.insert("settings.region".to_string(), body(false, false, "string"));
+        // Required object with no required leaves: the shorthand itself is
+        // the only thing that can satisfy the spec, so it is required.
+        params.insert("owner".to_string(), body(false, true, "object"));
+        params.insert("owner.nickname".to_string(), body(false, false, "string"));
+
+        let leaf = leaf_with_params(params);
+
+        assert_eq!(heading_of(&leaf, "settings").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(heading_of(&leaf, "settings.auth_type").as_deref(), Some(HELP_HEADING_REQUIRED));
+        assert_eq!(heading_of(&leaf, "settings.region").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(heading_of(&leaf, "owner").as_deref(), Some(HELP_HEADING_REQUIRED));
+        assert_eq!(heading_of(&leaf, "owner.nickname").as_deref(), Some(HELP_HEADING_OPTIONAL));
+    }
+
+    /// A leaf marked required inside an *optional* object is only required
+    /// once the caller opts into the parent, so it must not be advertised as
+    /// required. `flatten_body_params_prefix` reads each nested schema's own
+    /// `required` list without gating on the parent, so the leaf arrives here
+    /// `required: true` and the ancestor walk is what suppresses it — without
+    /// it the usage line read `[OPTIONS] --settings.region <STRING>` for an
+    /// operation that runs fine with no `--settings` at all.
+    #[test]
+    fn test_help_leaf_under_optional_parent_is_not_required() {
+        let body = |required: bool, required_by_spec: bool, param_type: &str| MethodParameter {
+            param_type: Some(param_type.to_string()),
+            location: Some("body".to_string()),
+            required,
+            required_by_spec,
+            ..Default::default()
+        };
+        let mut params = HashMap::new();
+        // `settings` is absent from the parent schema's `required` list;
+        // `region` is required *within* Settings.
+        params.insert("settings".to_string(), body(false, false, "object"));
+        params.insert("settings.region".to_string(), body(true, true, "string"));
+        // One optional link anywhere in the chain is enough: `owner` is
+        // required, `owner.address` is not, so `owner.address.city` is
+        // conditional even though it is required within Address.
+        params.insert("owner".to_string(), body(false, true, "object"));
+        params.insert("owner.address".to_string(), body(false, false, "object"));
+        params.insert("owner.address.city".to_string(), body(true, true, "string"));
+        // Control: a fully required chain still reports the leaf as required,
+        // at one level of nesting...
+        params.insert("plan".to_string(), body(false, true, "object"));
+        params.insert("plan.tier".to_string(), body(true, true, "string"));
+        // ...and at two, so an off-by-one in the ancestor walk (checking only
+        // the immediate parent, or stopping one link early) fails here rather
+        // than silently demoting a genuinely required deep leaf.
+        params.insert("billing".to_string(), body(false, true, "object"));
+        params.insert("billing.card".to_string(), body(false, true, "object"));
+        params.insert("billing.card.number".to_string(), body(true, true, "string"));
+
+        let leaf = leaf_with_params(params);
+
+        assert_eq!(heading_of(&leaf, "settings").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(
+            heading_of(&leaf, "settings.region").as_deref(),
+            Some(HELP_HEADING_OPTIONAL)
+        );
+        assert_eq!(heading_of(&leaf, "owner.address").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(
+            heading_of(&leaf, "owner.address.city").as_deref(),
+            Some(HELP_HEADING_OPTIONAL)
+        );
+        assert_eq!(heading_of(&leaf, "plan.tier").as_deref(), Some(HELP_HEADING_REQUIRED));
+        // ...and its shorthand steps aside for the leaf, as before.
+        assert_eq!(heading_of(&leaf, "plan").as_deref(), Some(HELP_HEADING_OPTIONAL));
+
+        // `owner` is spec-required and its only required descendant is itself
+        // conditional (inside optional `owner.address`), so nothing supersedes
+        // the shorthand and it stays the required form. Demoting it here would
+        // leave the operation advertising no required flag at all.
+        assert_eq!(heading_of(&leaf, "owner").as_deref(), Some(HELP_HEADING_REQUIRED));
+
+        // Nothing conditional leaks into the usage line (the flags still
+        // exist — they are listed under `Optional parameters`).
+        let help = leaf.clone().render_help().to_string();
+        let usage = help
+            .lines()
+            .find(|line| line.starts_with("Usage: "))
+            .unwrap_or_else(|| panic!("no usage line in:\n{help}"));
+        assert!(!usage.contains("--settings.region"), "{usage}");
+        assert!(!usage.contains("--owner.address.city"), "{usage}");
+        assert_eq!(
+            heading_of(&leaf, "billing.card.number").as_deref(),
+            Some(HELP_HEADING_REQUIRED)
+        );
+        assert_eq!(heading_of(&leaf, "billing").as_deref(), Some(HELP_HEADING_OPTIONAL));
+        assert_eq!(heading_of(&leaf, "billing.card").as_deref(), Some(HELP_HEADING_OPTIONAL));
+
+        assert!(usage.contains("--plan.tier <STRING>"), "{usage}");
+        assert!(usage.contains("--owner <JSON_OBJECT>"), "{usage}");
+        assert!(usage.contains("--billing.card.number <STRING>"), "{usage}");
     }
 
     #[test]
@@ -3273,6 +3891,145 @@ paths:
             long.ends_with("Each keyterm must be under 50 characters."),
             "long help should keep the pricing/constraint clauses; got: {long}",
         );
+    }
+
+    #[test]
+    fn test_repeated_flag_long_help_discloses_both_input_forms() {
+        // The value name can only show one form. It used to read
+        // `<JSON_ARRAY>`, which at least hinted at the array form; once it
+        // correctly shows the element type, nothing on the surface says the
+        // flag is repeatable or accepts a whole array. Both work.
+        let doc = crate::openapi::discovery::RestDescription {
+            resources: HashMap::from([(
+                "threads".to_string(),
+                crate::openapi::discovery::RestResource {
+                    methods: HashMap::from([(
+                        "list".to_string(),
+                        crate::openapi::discovery::RestMethod {
+                            http_method: "GET".to_string(),
+                            path: "/threads".to_string(),
+                            parameters: HashMap::from([
+                                (
+                                    "labels".to_string(),
+                                    MethodParameter {
+                                        param_type: Some("array".to_string()),
+                                        item_type: Some("string".to_string()),
+                                        location: Some("query".to_string()),
+                                        repeated: true,
+                                        description: Some("Filter by label.".to_string()),
+                                        ..Default::default()
+                                    },
+                                ),
+                                (
+                                    "limit".to_string(),
+                                    MethodParameter {
+                                        param_type: Some("integer".to_string()),
+                                        location: Some("query".to_string()),
+                                        description: Some("Page size.".to_string()),
+                                        ..Default::default()
+                                    },
+                                ),
+                            ]),
+                            ..Default::default()
+                        },
+                    )]),
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+        let cmd = build_cli(&doc);
+        let sub = cmd
+            .get_subcommands()
+            .find(|c| c.get_name() == "threads")
+            .and_then(|c| c.get_subcommands().find(|m| m.get_name() == "list"))
+            .expect("threads list");
+
+        let long_help_for = |flag: &str| -> String {
+            sub.get_arguments()
+                .find(|a| a.get_long() == Some(flag))
+                .map(|a| {
+                    a.get_long_help()
+                        .or_else(|| a.get_help())
+                        .map(|h| h.to_string())
+                        .unwrap_or_default()
+                })
+                .unwrap_or_default()
+        };
+
+        let labels = long_help_for("labels");
+        assert!(labels.contains("Filter by label."), "keeps the description: {labels}");
+        assert!(labels.contains("Repeatable"), "must disclose repeatability: {labels}");
+        assert!(labels.contains("JSON array"), "must disclose the array form: {labels}");
+
+        // A non-repeated flag gains nothing.
+        let limit = long_help_for("limit");
+        assert!(!limit.contains("Repeatable"), "not repeatable: {limit}");
+    }
+
+    #[test]
+    fn test_repeated_flag_value_name_uses_the_element_type() {
+        // An array-of-objects flag advertised `<STRING>` in `--help` while
+        // `--schema` said `items: {type: object}` and the collector decoded
+        // objects — three surfaces, two answers.
+        use crate::openapi::discovery::MethodParameter;
+        let objects = MethodParameter {
+            param_type: Some("string".to_string()),
+            item_type: Some("object".to_string()),
+            repeated: true,
+            location: Some("body".to_string()),
+            ..Default::default()
+        };
+        let strings = MethodParameter {
+            param_type: Some("string".to_string()),
+            repeated: true,
+            location: Some("body".to_string()),
+            ..Default::default()
+        };
+        // A query array: `param_type` is the *container* type, so falling back
+        // to it rendered `<JSON_ARRAY>` — an array of arrays — on every
+        // string-element query parameter.
+        let query_strings = MethodParameter {
+            param_type: Some("array".to_string()),
+            item_type: Some("string".to_string()),
+            repeated: true,
+            location: Some("query".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(value_name_for(&objects), "JSON_OBJECT");
+        // Body array: `item_type: None` means string — unchanged from before.
+        assert_eq!(value_name_for(&strings), "STRING");
+        assert_eq!(value_name_for(&query_strings), "STRING");
+    }
+
+    #[test]
+    fn test_pagination_flags_hidden_without_metadata() {
+        // `--page-all` was advertised on every operation. On a spec with no
+        // pagination metadata the executor fell back to guessing `pageToken` /
+        // `nextPageToken`, so the guess never matched, one request went out,
+        // and the command exited 0 with page 1 — silent partial data.
+        let method = crate::openapi::discovery::RestMethod::default();
+        assert!(
+            !method_has_pagination(&method, false),
+            "no per-op config and no spec-root defaults means no pager",
+        );
+        // Spec-root token config is enough — the generic pager can use it.
+        assert!(method_has_pagination(&method, true));
+    }
+
+    #[test]
+    fn test_pagination_flags_shown_with_per_op_config() {
+        // A resolved `x-fern-pagination` block on the operation is the other
+        // way the pager becomes usable, independent of spec-root defaults.
+        let method = crate::openapi::discovery::RestMethod {
+            pagination: Some(crate::openapi::discovery::PaginationConfig::Cursor {
+                cursor: "cursor".to_string(),
+                next_cursor: "next_cursor".to_string(),
+                results: "items".to_string(),
+            }),
+            ..Default::default()
+        };
+        assert!(method_has_pagination(&method, false));
     }
 
     #[test]
