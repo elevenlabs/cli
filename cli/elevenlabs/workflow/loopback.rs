@@ -375,12 +375,14 @@ async fn exchange(
         refresh_token: Option<String>,
         expires_in: Option<u64>,
     }
-    let failed = |e: String| CliError::Auth(format!("PKCE token exchange failed: {e}"));
+    // `kind` names the failure for `onboard`'s report (see `exchange_failure`).
+    let failed =
+        |kind: &str, e: String| CliError::Auth(format!("PKCE token exchange failed [{kind}]: {e}"));
     let response = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(30))
         .build()
-        .map_err(|e| failed(e.to_string()))?
+        .map_err(|e| failed("request", e.to_string()))?
         .post(token_url)
         .form(&[
             ("grant_type", "authorization_code"),
@@ -391,9 +393,21 @@ async fn exchange(
         ])
         .send()
         .await
-        .map_err(|e| failed(e.to_string()))?;
+        .map_err(|e| {
+            let kind = if e.is_timeout() {
+                "timeout"
+            } else if e.is_connect() {
+                "connect"
+            } else {
+                "request"
+            };
+            failed(kind, e.to_string())
+        })?;
     let status = response.status();
-    let body = response.text().await.map_err(|e| failed(e.to_string()))?;
+    let body = response
+        .text()
+        .await
+        .map_err(|e| failed("response", e.to_string()))?;
     if !status.is_success() {
         let detail = serde_json::from_str::<serde_json::Value>(&body)
             .ok()
@@ -403,10 +417,15 @@ async fn exchange(
                     .and_then(|d| d.as_str().map(str::to_string))
             })
             .unwrap_or_else(|| body.chars().take(200).collect());
-        return Err(failed(format!("HTTP {status}: {detail}")));
+        let kind = if status.is_server_error() {
+            "server"
+        } else {
+            "refused"
+        };
+        return Err(failed(kind, format!("HTTP {status}: {detail}")));
     }
-    let token: Token =
-        serde_json::from_str(&body).map_err(|e| failed(format!("token response: {e}")))?;
+    let token: Token = serde_json::from_str(&body)
+        .map_err(|e| failed("response", format!("token response: {e}")))?;
     Ok(TokenBundle::from_token_response(
         &token.access_token,
         token.refresh_token.as_deref(),

@@ -14,7 +14,7 @@ use super::super::platform;
 use super::super::say::run_async as block_on;
 use super::super::settings;
 use super::super::telemetry;
-use super::session::SIGN_IN_MINUTES;
+use super::session::{LastSignIn, SIGN_IN_MINUTES};
 
 pub(super) const CLI_NAME: &str = "elevenlabs";
 
@@ -87,11 +87,14 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
     })
 }
 
-/// Sign in through the browser, asking the page for a key. Returns the access token.
+/// Sign in through the browser, asking the page for a key. `previous` is how
+/// the last sign-in for this project ended, for the page to record. Returns
+/// the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
+    previous: Option<&LastSignIn>,
 ) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
@@ -100,9 +103,13 @@ pub(super) fn sign_in(
         .and_then(loopback)
         .unwrap_or_else(|| config.token_url.trim_end_matches("/v1/oauth/token").into());
     let token_url = format!("{oauth_base}/v1/oauth/token");
+    let on = telemetry::enabled();
     let params = authorize_params(
-        telemetry::enabled().then(|| (platform::detect(), platform::install_source())),
+        on.then(|| (platform::detect(), platform::install_source())),
+        on.then(platform::agent).flatten(),
+        previous.filter(|_| on),
     );
+    let params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
     block_on(loopback::sign_in(loopback::Login {
         cli_name: CLI_NAME,
         scheme: &config.scheme,
@@ -121,18 +128,30 @@ pub(super) fn sign_in(
 }
 
 /// What the sign-in adds to the approval link: the page should hand over a
-/// key, and, with telemetry on, where the CLI runs and how it was installed,
-/// which the page records for a sign-in that never gets to make an API call.
+/// key, and, with telemetry on, where the CLI runs, how it was installed,
+/// which coding agent ran it and how this project's last sign-in ended. The
+/// page records them for a sign-in that never gets to make an API call.
 pub(super) fn authorize_params(
     platform: Option<((&'static str, Option<&'static str>), &'static str)>,
-) -> Vec<(&'static str, &'static str)> {
-    let mut params = vec![("key_handoff", "clipboard")];
+    agent: Option<&'static str>,
+    previous: Option<&LastSignIn>,
+) -> Vec<(&'static str, String)> {
+    let mut params = vec![("key_handoff", "clipboard".to_string())];
     if let Some(((os, env), install)) = platform {
-        params.push(("cli_os", os));
+        params.push(("cli_os", os.into()));
         if let Some(env) = env {
-            params.push(("cli_env", env));
+            params.push(("cli_env", env.into()));
         }
-        params.push(("cli_install", install));
+        params.push(("cli_install", install.into()));
+    }
+    if let Some(agent) = agent {
+        params.push(("cli_agent", agent.into()));
+    }
+    if let Some(previous) = previous {
+        params.push(("cli_prev", previous.outcome.into()));
+        if let Some(id) = &previous.id {
+            params.push(("cli_prev_id", id.clone()));
+        }
     }
     params
 }

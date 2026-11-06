@@ -37,12 +37,17 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
     let (name, sub) = matches
         .subcommand()
         .ok_or_else(|| CliError::Validation("Start with `elevenlabs onboard init`.".into()))?;
-    let _scope = api::command_scope(match name {
-        "init" => "onboard.init",
-        "connect" => "onboard.connect",
-        "check" => "onboard.check",
-        _ => "onboard.test",
-    });
+    // The worker reports the sign-in before its own (see `connect::handle`).
+    let last = (name != "connect").then(last_sign_in).flatten();
+    let _scope = api::command_scope_with(
+        match name {
+            "init" => "onboard.init",
+            "connect" => "onboard.connect",
+            "check" => "onboard.check",
+            _ => "onboard.test",
+        },
+        sign_in_tag(last.as_ref()),
+    );
     let reply = match name {
         "init" => Some(init::handle(sub, ctx)?.to_value()),
         "connect" => connect::handle(sub, ctx)?,
@@ -53,6 +58,20 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
         Some(reply) => reply::emit(&reply),
         None => Ok(()),
     }
+}
+
+/// `signin/<outcome>` with telemetry on, so a request after a failed sign-in
+/// says how it ended, even when the developer then adds a key by hand.
+fn sign_in_tag(sign_in: Option<&session::LastSignIn>) -> Option<String> {
+    sign_in
+        .filter(|_| super::telemetry::enabled())
+        .map(|sign_in| format!("signin/{}", sign_in.outcome))
+}
+
+/// How the sign-in for the project in the working folder last ended.
+fn last_sign_in() -> Option<session::LastSignIn> {
+    let dir = std::env::current_dir().ok()?;
+    session::Session::for_project(&dir).ok()?.last_sign_in()
 }
 
 /// `--env-path`, not `--env-file`: through npx, Node takes `--env-file` for itself (for any
