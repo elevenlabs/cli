@@ -1,7 +1,9 @@
-//! Anonymous usage telemetry: where the CLI runs and how it was installed
-//! (see [`super::platform`]), carried as User-Agent tags on every request so
-//! the API's `server_cli_request` analytics can count, say, npx runs of
-//! `onboard` against installed ones.
+//! Anonymous usage telemetry: where the CLI runs, how it was installed and
+//! which coding agent ran it (see [`super::platform`]), carried as User-Agent
+//! tags on every request so the API's `server_cli_request` analytics can
+//! count, say, npx runs of `onboard` against installed ones. `onboard` also
+//! says how the project's last sign-in ended (`signin/<outcome>`, a fixed
+//! word), so a sign-in that never reached the API can still be explained.
 //!
 //! On by default. `--telemetry off` on any command, `ELEVENLABS_TELEMETRY=off`,
 //! or `DO_NOT_TRACK=1` turns it off, and then neither the User-Agent nor the
@@ -118,8 +120,8 @@ fn resolve() {
 }
 
 const TELEMETRY_HELP: &str = "on or off. Whether requests say, anonymously, which OS the CLI \
-     runs on and how it was installed (npx, npm, Homebrew, ...). Overrides ELEVENLABS_TELEMETRY; \
-     DO_NOT_TRACK=1 also turns it off.";
+     runs on, how it was installed (npx, npm, Homebrew, ...), which coding agent ran it, and how \
+     the last sign-in ended. Overrides ELEVENLABS_TELEMETRY; DO_NOT_TRACK=1 also turns it off.";
 
 /// Resolve telemetry and register `--telemetry` so clap accepts it on every
 /// command. Its value is never sent: `Explicit` with no opt-ins means the

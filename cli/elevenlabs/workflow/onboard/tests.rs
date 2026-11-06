@@ -268,7 +268,10 @@ fn every_step_parses_its_flags_and_bare_onboard_is_refused() {
     assert_eq!(opt_string(sub, "env-file").as_deref(), Some(".env.dev"));
     assert!(sub.get_flag("no-browser"));
     let m = parse(&["onboard", "check", "--env-path", "config/.env"]).unwrap();
-    assert_eq!(opt_string(m.subcommand().unwrap().1, "env-file").as_deref(), Some("config/.env"));
+    assert_eq!(
+        opt_string(m.subcommand().unwrap().1, "env-file").as_deref(),
+        Some("config/.env")
+    );
     assert!(
         parse(&["onboard", "connect", "--product", "music"]).is_err(),
         "one key for every product, so no product to name"
@@ -355,7 +358,10 @@ fn loading_the_key_is_an_instruction_for_the_app_at_hand() {
     assert_eq!(pkg(r#""next":"15""#), "Next.js reads it on its own.");
     // Vite and what's built on it don't put env files in `process.env`, where the SDK looks.
     let vite = pkg(r#""vite":"7""#);
-    assert!(vite.contains("`loadEnv(mode, process.cwd(), \"\")` in `vite.config`"), "{vite}");
+    assert!(
+        vite.contains("`loadEnv(mode, process.cwd(), \"\")` in `vite.config`"),
+        "{vite}"
+    );
     assert!(pkg(r#""astro":"5""#).contains("`apiKey: import.meta.env.ELEVENLABS_API_KEY`"));
     assert!(pkg(r#""@sveltejs/kit":"2""#).contains("`$env/static/private`"));
     let empty = tempfile::tempdir().unwrap();
@@ -373,41 +379,77 @@ fn check_knows_whether_the_app_loads_the_key_file() {
         p.loads_key_file(&p.env_file)
     };
     write("package.json", r#"{"scripts":{"start":"node index.js"}}"#);
-    write("index.js", "import { ElevenLabsClient } from \"@elevenlabs/elevenlabs-js\";\n");
+    write(
+        "index.js",
+        "import { ElevenLabsClient } from \"@elevenlabs/elevenlabs-js\";\n",
+    );
     assert!(!loads(), "plain Node with nothing loading .env.local");
-    write("package.json", r#"{"scripts":{"start":"node --env-file=.env.local index.js"}}"#);
+    write(
+        "package.json",
+        r#"{"scripts":{"start":"node --env-file=.env.local index.js"}}"#,
+    );
     assert!(loads(), "the start script loads it");
-    write("package.json", r#"{"scripts":{"start":"node --env-file=\".env.local\" index.js"}}"#);
+    write(
+        "package.json",
+        r#"{"scripts":{"start":"node --env-file=\".env.local\" index.js"}}"#,
+    );
     assert!(loads(), "quoted");
-    write("package.json", r#"{"scripts":{"start":"node --env-file=.env index.js"}}"#);
+    write(
+        "package.json",
+        r#"{"scripts":{"start":"node --env-file=.env index.js"}}"#,
+    );
     assert!(!loads(), "another file");
     // A monorepo package names the root's key file by its own relative path.
     std::fs::create_dir_all(dir.path().join("apps/api")).unwrap();
-    write("package.json", r#"{"private":true,"workspaces":["apps/*"]}"#);
-    write("apps/api/package.json", r#"{"scripts":{"start":"node --env-file=../../.env.local server.js"}}"#);
+    write(
+        "package.json",
+        r#"{"private":true,"workspaces":["apps/*"]}"#,
+    );
+    write(
+        "apps/api/package.json",
+        r#"{"scripts":{"start":"node --env-file=../../.env.local server.js"}}"#,
+    );
     assert!(loads(), "from a package in a subfolder");
-    write("apps/api/package.json", r#"{"scripts":{"start":"node --env-file=..\\..\\.env.local server.js"}}"#);
+    write(
+        "apps/api/package.json",
+        r#"{"scripts":{"start":"node --env-file=..\\..\\.env.local server.js"}}"#,
+    );
     assert!(loads(), "a Windows path");
-    write("apps/api/package.json", r#"{"scripts":{"start":"node --env-file=../../.env.local.example server.js"}}"#);
+    write(
+        "apps/api/package.json",
+        r#"{"scripts":{"start":"node --env-file=../../.env.local.example server.js"}}"#,
+    );
     assert!(!loads(), "a file with a longer name");
     std::fs::remove_dir_all(dir.path().join("apps")).unwrap();
     write("package.json", r#"{"scripts":{"start":"node index.js"}}"#);
     write("index.js", "import \"dotenv/config\";\n");
     assert!(!loads(), "dotenv with no path reads .env, not .env.local");
-    write("index.js", "require(\"dotenv\").config({ path: \".env.local\" });\n");
+    write(
+        "index.js",
+        "require(\"dotenv\").config({ path: \".env.local\" });\n",
+    );
     assert!(loads(), "dotenv given the file");
     write("index.js", "");
-    write("package.json", r#"{"scripts":{"start":"env-cmd -f .env.local node index.js"}}"#);
+    write(
+        "package.json",
+        r#"{"scripts":{"start":"env-cmd -f .env.local node index.js"}}"#,
+    );
     assert!(loads(), "env-cmd given the file");
     write("package.json", r#"{"scripts":{"start":"sh start.sh"}}"#);
-    write("start.sh", "set -a; source .env.local; set +a\nnode index.js\n");
+    write(
+        "start.sh",
+        "set -a; source .env.local; set +a\nnode index.js\n",
+    );
     assert!(loads(), "a start script that sources it");
     std::fs::remove_file(dir.path().join("start.sh")).unwrap();
     assert!(!loads());
     write("bun.lock", "");
     assert!(loads(), "Bun reads it on its own");
     std::fs::remove_file(dir.path().join("bun.lock")).unwrap();
-    write("vite.config.ts", "const env = loadEnv(mode, process.cwd(), \"\");\n");
+    write(
+        "vite.config.ts",
+        "const env = loadEnv(mode, process.cwd(), \"\");\n",
+    );
     assert!(loads(), "Vite's loadEnv");
     std::fs::remove_file(dir.path().join("vite.config.ts")).unwrap();
     write("package.json", r#"{"dependencies":{"next":"15"}}"#);
@@ -415,10 +457,18 @@ fn check_knows_whether_the_app_loads_the_key_file() {
 
     let py = tempfile::tempdir().unwrap();
     std::fs::write(py.path().join("requirements.txt"), "elevenlabs\n").unwrap();
-    std::fs::write(py.path().join("app.py"), "from elevenlabs.client import ElevenLabs\n").unwrap();
+    std::fs::write(
+        py.path().join("app.py"),
+        "from elevenlabs.client import ElevenLabs\n",
+    )
+    .unwrap();
     let p = project(py.path());
     assert!(!p.loads_key_file(&p.env_file), "nothing loads .env");
-    std::fs::write(py.path().join("app.py"), "from dotenv import load_dotenv\nload_dotenv()\n").unwrap();
+    std::fs::write(
+        py.path().join("app.py"),
+        "from dotenv import load_dotenv\nload_dotenv()\n",
+    )
+    .unwrap();
     assert!(p.loads_key_file(&p.env_file), "python-dotenv");
 }
 
@@ -853,9 +903,15 @@ fn the_question_and_the_code_name_no_product() {
     );
     // Right after the answer: the download first, unless they only want the SDK.
     let code = code["instruction"].as_str().unwrap();
-    assert!(code.contains("Otherwise first run `details.fetch_skills`"), "{code}");
+    assert!(
+        code.contains("Otherwise first run `details.fetch_skills`"),
+        "{code}"
+    );
     // Outside the project, where some agents' file search doesn't look.
-    assert!(code.contains("with shell commands like `ls` and `cat`"), "{code}");
+    assert!(
+        code.contains("with shell commands like `ls` and `cat`"),
+        "{code}"
+    );
 }
 
 #[test]
@@ -1222,28 +1278,209 @@ async fn a_clipboard_key_is_checked_with_the_token_the_sign_in_returned() {
     assert!(key_matches_sign_in(&client, &server.uri(), "other", KEY).is_err());
 }
 
+fn pairs(expected: &[(&'static str, &str)]) -> Vec<(&'static str, String)> {
+    expected.iter().map(|(k, v)| (*k, v.to_string())).collect()
+}
+
 #[test]
 fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
     assert_eq!(
-        authorize_params(Some((("linux", Some("wsl")), "npx"))),
-        [
+        authorize_params(Some((("linux", Some("wsl")), "npx")), None, None),
+        pairs(&[
             ("key_handoff", "clipboard"),
             ("cli_os", "linux"),
             ("cli_env", "wsl"),
             ("cli_install", "npx")
-        ]
+        ])
     );
     assert_eq!(
-        authorize_params(Some((("windows", None), "scoop"))),
-        [
+        authorize_params(Some((("windows", None), "scoop")), None, None),
+        pairs(&[
             ("key_handoff", "clipboard"),
             ("cli_os", "windows"),
             ("cli_install", "scoop")
-        ]
+        ])
+    );
+}
+
+#[test]
+fn the_approval_link_says_which_agent_ran_it_and_how_the_last_sign_in_ended() {
+    use super::session::LastSignIn;
+    let last = LastSignIn {
+        outcome: "timed-out",
+        id: Some("ba7816bf8f01cfea".into()),
+    };
+    assert_eq!(
+        authorize_params(
+            Some((("macos", None), "npx")),
+            Some("claude-code"),
+            Some(&last)
+        ),
+        pairs(&[
+            ("key_handoff", "clipboard"),
+            ("cli_os", "macos"),
+            ("cli_install", "npx"),
+            ("cli_agent", "claude-code"),
+            ("cli_prev", "timed-out"),
+            ("cli_prev_id", "ba7816bf8f01cfea")
+        ])
+    );
+    let unknown_link = LastSignIn {
+        outcome: "stopped",
+        id: None,
+    };
+    assert_eq!(
+        authorize_params(None, None, Some(&unknown_link)),
+        pairs(&[("key_handoff", "clipboard"), ("cli_prev", "stopped")])
     );
 }
 
 #[test]
 fn with_telemetry_off_the_approval_link_only_asks_for_a_key() {
-    assert_eq!(authorize_params(None), [("key_handoff", "clipboard")]);
+    assert_eq!(
+        authorize_params(None, None, None),
+        pairs(&[("key_handoff", "clipboard")])
+    );
+}
+
+#[test]
+fn a_failed_sign_in_is_named_by_what_ended_it() {
+    use super::connect::sign_in_failure;
+    let cases = [
+        (
+            "Authorization server returned error: access_denied (declined)",
+            "declined",
+        ),
+        ("Timed out waiting for the browser after 300s", "timed-out"),
+        (
+            "Could not listen for the browser on any sign-in port (8484: in use)",
+            "port-busy",
+        ),
+        (
+            "PKCE token exchange failed [connect]: error sending request for url",
+            "exchange-connect",
+        ),
+        (
+            "PKCE token exchange failed [timeout]: operation timed out",
+            "exchange-timeout",
+        ),
+        (
+            "PKCE token exchange failed [refused]: HTTP 400 Bad Request: Invalid authorization code",
+            "exchange-refused",
+        ),
+        (
+            "PKCE token exchange failed [server]: HTTP 502 Bad Gateway: ",
+            "exchange-server",
+        ),
+        (
+            "PKCE token exchange failed [response]: token response: missing field",
+            "exchange-other",
+        ),
+        ("something else entirely", "sign-in-error"),
+    ];
+    for (error, want) in cases {
+        assert_eq!(sign_in_failure(error), want, "{error}");
+    }
+}
+
+#[test]
+fn a_reply_is_reported_by_a_fixed_label() {
+    use super::session::{outcome_label, OUTCOMES};
+    let cases = [
+        (Some("created"), None, "created"),
+        (Some("no_key"), None, "no-key"),
+        (Some("clipboard_unreadable"), None, "clipboard-error"),
+        (Some("clipboard_invalid"), None, "wrong-account"),
+        (Some("could_not_verify"), None, "unverified"),
+        (Some("failed"), None, "page-failed"),
+        (Some("sign_in_replaced"), None, "replaced"),
+        (Some("sign_in_failed"), Some("timed-out"), "timed-out"),
+        // Only known labels pass through.
+        (
+            Some("sign_in_failed"),
+            Some("C:\\Users\\me"),
+            "sign-in-error",
+        ),
+        (Some("sign_in_failed"), None, "sign-in-error"),
+        (Some("something_new"), None, "other"),
+        (None, None, "other"),
+    ];
+    for (status, signin, want) in cases {
+        assert_eq!(outcome_label(status, signin), want, "{status:?} {signin:?}");
+    }
+    // Every label fits the API's tag pattern, `[a-z-]{1,16}`.
+    for label in OUTCOMES {
+        assert!(
+            (1..=16).contains(&label.len())
+                && label.bytes().all(|b| b.is_ascii_lowercase() || b == b'-'),
+            "{label}"
+        );
+    }
+}
+
+#[test]
+fn the_last_sign_in_is_its_reply_or_a_stopped_worker() {
+    use super::session::{LastSignIn, Session};
+    let dir = tempfile::tempdir().unwrap();
+    let s = Session::in_dir(dir.path().to_path_buf());
+    assert_eq!(s.last_sign_in(), None, "no sign-in yet");
+
+    // A worker that logged its link and was stopped before replying.
+    std::fs::write(dir.path().join("worker.pid"), "4242").unwrap();
+    std::fs::write(
+        dir.path().join("worker.log"),
+        "Opening browser to authenticate…\n  URL: https://elevenlabs.io/app/oauth/authorize?client_id=c&state=abc&key_handoff=clipboard\n",
+    )
+    .unwrap();
+    let stopped = LastSignIn {
+        outcome: "stopped",
+        // The first 8 bytes of SHA-256("abc").
+        id: Some("ba7816bf8f01cfea".into()),
+    };
+    assert_eq!(s.last_sign_in(), Some(stopped));
+    std::fs::write(dir.path().join("signed-in"), "").unwrap();
+    assert_eq!(s.last_sign_in().unwrap().outcome, "stopped-after");
+
+    // A worker that replied.
+    std::fs::write(
+        dir.path().join("result.json"),
+        r#"{"details":{"key_status":"sign_in_failed","signin":"exchange-refused"}}"#,
+    )
+    .unwrap();
+    assert_eq!(s.last_sign_in().unwrap().outcome, "exchange-refused");
+
+    // One still running reports nothing yet.
+    let lock = s.take().unwrap().unwrap();
+    assert_eq!(s.last_sign_in(), None);
+    drop(lock);
+}
+
+#[test]
+fn a_new_sign_in_keeps_how_the_last_one_ended() {
+    use super::session::Session;
+    let dir = tempfile::tempdir().unwrap();
+    let s = Session::in_dir(dir.path().to_path_buf());
+    std::fs::write(
+        dir.path().join("result.json"),
+        r#"{"details":{"key_status":"no_key"}}"#,
+    )
+    .unwrap();
+    s.keep_last_sign_in(false);
+    assert_eq!(s.previous().unwrap().outcome, "no-key");
+    s.keep_last_sign_in(true);
+    assert_eq!(
+        s.previous().unwrap().outcome,
+        "restarted",
+        "one this command stopped for another request left no reply"
+    );
+    std::fs::remove_file(dir.path().join("result.json")).unwrap();
+    s.keep_last_sign_in(false);
+    assert_eq!(s.previous(), None, "nothing to report, nothing kept");
+    // A kept file that was tampered with reports nothing.
+    std::fs::write(
+        dir.path().join("previous.json"),
+        r#"{"outcome":"C:\\Users\\me","id":"not-hex"}"#,
+    )
+    .unwrap();
+    assert_eq!(s.previous(), None);
 }

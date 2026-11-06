@@ -17,7 +17,7 @@ use super::env_file::{self, API_KEY_ENV};
 use super::manual::{self, NO_BROWSER};
 use super::project::{last4, shell_arg, KeySource, Project};
 use super::reply::{command, Next, Reply};
-use super::session::{Session, LAUNCH_FLAG, SIGN_IN_MINUTES, WORKER_FLAG};
+use super::session::{LastSignIn, Session, LAUNCH_FLAG, SIGN_IN_MINUTES, WORKER_FLAG};
 
 /// How long one `connect` waits for the approval before handing back to the
 /// agent; well under the time agents let a command run.
@@ -46,9 +46,15 @@ pub(super) fn handle(
         for key in super::added_since_startup() {
             std::env::remove_var(key);
         }
-        let _scope = super::super::api::command_scope("onboard.connect");
-        let reply = sign_in_and_store(matches, ctx, &project, || session.signed_in(&lock))
-            .unwrap_or_else(|e| failed(&project, &e.to_string(), replace));
+        let previous = session.previous();
+        let _scope = super::super::api::command_scope_with(
+            "onboard.connect",
+            super::sign_in_tag(previous.as_ref()),
+        );
+        let reply = sign_in_and_store(matches, ctx, &project, previous.as_ref(), || {
+            session.signed_in(&lock)
+        })
+        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace));
         session.finish(&lock, &reply.to_value())?;
         return Ok(None);
     }
@@ -241,10 +247,11 @@ fn sign_in_and_store(
     matches: &clap::ArgMatches,
     ctx: &AppContext,
     project: &Project,
+    previous: Option<&LastSignIn>,
     on_signed_in: impl FnOnce(),
 ) -> Result<Reply, CliError> {
     let client = ctx.http_config().build_client()?;
-    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser) {
+    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser, previous) {
         Ok(token) => token,
         Err(error) => {
             // The page may have copied a key before the callback failed; nothing
@@ -369,5 +376,35 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool) -> Reply {
             ),
         )
     };
-    reply.run(&retry).detail("key_status", "sign_in_failed")
+    reply
+        .run(&retry)
+        .detail("key_status", "sign_in_failed")
+        .detail("signin", sign_in_failure(error))
+}
+
+/// What ended a sign-in before the clipboard step, as the label the next
+/// sign-in reports (see `Session::last_sign_in`).
+pub(super) fn sign_in_failure(error: &str) -> &'static str {
+    if error.contains("returned error: access_denied") {
+        return "declined";
+    }
+    if error.contains("Timed out waiting") {
+        return "timed-out";
+    }
+    if error.contains("Could not listen for the browser") {
+        return "port-busy";
+    }
+    // `loopback::exchange` names the failure in brackets.
+    let kind = error
+        .split_once("PKCE token exchange failed [")
+        .and_then(|(_, rest)| rest.split_once(']'))
+        .map(|(kind, _)| kind);
+    match kind {
+        Some("connect") => "exchange-connect",
+        Some("timeout") => "exchange-timeout",
+        Some("refused") => "exchange-refused",
+        Some("server") => "exchange-server",
+        Some(_) => "exchange-other",
+        None => "sign-in-error",
+    }
 }

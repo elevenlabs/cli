@@ -393,15 +393,16 @@ async fn exchange(
         refresh_token: Option<String>,
         expires_in: Option<u64>,
     }
-    let failed = |e: String, unreachable: bool| ExchangeFailed {
-        error: CliError::Auth(format!("PKCE token exchange failed: {e}")),
-        unreachable,
+    // `kind` names the failure for `onboard`'s report (`onboard::connect::sign_in_failure`).
+    let failed = |kind: &str, e: String| ExchangeFailed {
+        error: CliError::Auth(format!("PKCE token exchange failed [{kind}]: {e}")),
+        unreachable: kind == "connect",
     };
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(30))
         .build()
-        .map_err(|e| failed(e.to_string(), false))?;
+        .map_err(|e| failed("request", e.to_string()))?;
     let send = || {
         client
             .post(token_url)
@@ -423,12 +424,22 @@ async fn exchange(
         }
         sent => sent,
     }
-    .map_err(|e| failed(e.to_string(), e.is_connect()))?;
+    .map_err(|e| {
+        // A connect that timed out never reached the endpoint either.
+        let kind = if e.is_connect() {
+            "connect"
+        } else if e.is_timeout() {
+            "timeout"
+        } else {
+            "request"
+        };
+        failed(kind, e.to_string())
+    })?;
     let status = response.status();
     let body = response
         .text()
         .await
-        .map_err(|e| failed(e.to_string(), false))?;
+        .map_err(|e| failed("response", e.to_string()))?;
     if !status.is_success() {
         let detail = serde_json::from_str::<serde_json::Value>(&body)
             .ok()
@@ -438,10 +449,15 @@ async fn exchange(
                     .and_then(|d| d.as_str().map(str::to_string))
             })
             .unwrap_or_else(|| body.chars().take(200).collect());
-        return Err(failed(format!("HTTP {status}: {detail}"), false));
+        let kind = if status.is_server_error() {
+            "server"
+        } else {
+            "refused"
+        };
+        return Err(failed(kind, format!("HTTP {status}: {detail}")));
     }
-    let token: Token =
-        serde_json::from_str(&body).map_err(|e| failed(format!("token response: {e}"), false))?;
+    let token: Token = serde_json::from_str(&body)
+        .map_err(|e| failed("response", format!("token response: {e}")))?;
     Ok(TokenBundle::from_token_response(
         &token.access_token,
         token.refresh_token.as_deref(),
@@ -765,6 +781,12 @@ mod tests {
             };
             if failure.unreachable {
                 assert!(started.elapsed() >= EXCHANGE_RETRY_DELAY, "it tried again");
+                // `onboard` reports it as `exchange-connect`.
+                assert!(
+                    failure.error.to_string().contains("[connect]"),
+                    "{}",
+                    failure.error
+                );
                 return;
             }
         }
@@ -787,6 +809,13 @@ mod tests {
                 panic!("the endpoint never handed out a token");
             };
             assert!(!failure.unreachable);
+            if let Answer::Refuse = answer {
+                assert!(
+                    failure.error.to_string().contains("[refused]"),
+                    "{}",
+                    failure.error
+                );
+            }
             // Time for a second try to arrive, if there were one.
             tokio::time::sleep(EXCHANGE_RETRY_DELAY * 2).await;
             assert_eq!(requests.load(std::sync::atomic::Ordering::SeqCst), 1);

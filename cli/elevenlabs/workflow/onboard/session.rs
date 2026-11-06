@@ -42,6 +42,78 @@ const POLL: Duration = Duration::from_millis(250);
 pub(super) const WORKER_FLAG: &str = "worker";
 pub(super) const LAUNCH_FLAG: &str = "launch-worker";
 
+/// How long a finished sign-in's outcome is still reported.
+const REPORT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
+/// Where [`Session::start`] keeps how the sign-in before the new one ended.
+const PREVIOUS: &str = "previous.json";
+
+/// Every label a sign-in's outcome can have (see [`outcome_label`]): fixed
+/// words, so nothing the developer typed or the machine holds is reported.
+pub(super) const OUTCOMES: &[&str] = &[
+    "created",
+    "not-permitted",
+    "not-available",
+    "page-failed",
+    "wrong-account",
+    "unverified",
+    "no-key",
+    "clipboard-error",
+    "replaced",
+    "restarted",
+    "stopped",
+    "stopped-after",
+    "declined",
+    "timed-out",
+    "port-busy",
+    "exchange-connect",
+    "exchange-timeout",
+    "exchange-refused",
+    "exchange-server",
+    "exchange-other",
+    "sign-in-error",
+    "other",
+];
+
+/// How a sign-in ended: one of [`OUTCOMES`], and a hash of its `state` (see
+/// [`state_id`]) so the approval page's record of the same sign-in can be found.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct LastSignIn {
+    pub outcome: &'static str,
+    pub id: Option<String>,
+}
+
+/// The label for a worker's reply: its `key_status`, and for a sign-in that
+/// failed before the clipboard step, its `signin` detail (see `connect::failed`).
+pub(super) fn outcome_label(key_status: Option<&str>, signin: Option<&str>) -> &'static str {
+    match key_status.unwrap_or_default() {
+        "created" => "created",
+        "not_permitted" => "not-permitted",
+        "not_available" => "not-available",
+        "failed" => "page-failed",
+        "clipboard_invalid" => "wrong-account",
+        "could_not_verify" => "unverified",
+        "no_key" => "no-key",
+        "clipboard_unreadable" => "clipboard-error",
+        "sign_in_replaced" => "replaced",
+        "sign_in_failed" => signin.and_then(known_outcome).unwrap_or("sign-in-error"),
+        _ => "other",
+    }
+}
+
+fn known_outcome(label: &str) -> Option<&'static str> {
+    OUTCOMES.iter().copied().find(|known| *known == label)
+}
+
+/// A sign-in's id: the start of the SHA-256 of its `state`, in hex. The
+/// approval page computes the same from its link; the state never leaves.
+pub(super) fn state_id(state: &str) -> String {
+    Sha256::digest(state.as_bytes())
+        .iter()
+        .take(8)
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
 pub(super) struct Session {
     dir: PathBuf,
 }
@@ -115,13 +187,16 @@ impl Session {
         let claim_path = root.join("claim.lock");
         let claim = open_lock(&claim_path)?;
         claim.lock().map_err(io(&claim_path))?;
+        let mut restarted = false;
         if self.running() {
             let same = std::fs::read_to_string(self.path("request")).is_ok_and(|r| r == request);
             if same || self.path("signed-in").exists() {
                 return Ok(());
             }
             self.stop();
+            restarted = true;
         }
+        self.keep_last_sign_in(restarted);
         for stale in ["result.json", "worker.log", "worker.pid", "signed-in"] {
             let _ = std::fs::remove_file(self.path(stale));
         }
@@ -245,6 +320,78 @@ impl Session {
         }
     }
 
+    /// How this project's last sign-in ended, if it ended in the last day.
+    /// `None` while one is running, or when there was none.
+    pub fn last_sign_in(&self) -> Option<LastSignIn> {
+        if self.running() {
+            return None;
+        }
+        let outcome = match self.result() {
+            Some(result) if recent(&self.path("result.json")) => outcome_label(
+                result["details"]["key_status"].as_str(),
+                result["details"]["signin"].as_str(),
+            ),
+            Some(_) => return None,
+            // A worker that took its lock but left no reply was stopped: by
+            // the agent, the OS or a crash, before or after the browser step.
+            None if recent(&self.path("worker.pid")) => {
+                if self.path("signed-in").exists() {
+                    "stopped-after"
+                } else {
+                    "stopped"
+                }
+            }
+            None => return None,
+        };
+        Some(LastSignIn {
+            outcome,
+            id: self.sign_in_id(),
+        })
+    }
+
+    /// The sign-in before the current one, as [`Self::start`] kept it.
+    pub fn previous(&self) -> Option<LastSignIn> {
+        let text = std::fs::read_to_string(self.path(PREVIOUS)).ok()?;
+        let kept: Value = serde_json::from_str(&text).ok()?;
+        Some(LastSignIn {
+            outcome: kept["outcome"].as_str().and_then(known_outcome)?,
+            id: kept["id"]
+                .as_str()
+                .filter(|id| id.len() == 16 && id.bytes().all(|b| b.is_ascii_hexdigit()))
+                .map(str::to_string),
+        })
+    }
+
+    /// Before a new sign-in clears this one's files, keep how it ended for
+    /// the new one to report. One stopped here for another request left no reply.
+    pub(super) fn keep_last_sign_in(&self, restarted: bool) {
+        let last = if restarted {
+            Some(LastSignIn {
+                outcome: "restarted",
+                id: self.sign_in_id(),
+            })
+        } else {
+            self.last_sign_in()
+        };
+        let path = self.path(PREVIOUS);
+        match last {
+            Some(last) => {
+                let kept = serde_json::json!({ "outcome": last.outcome, "id": last.id });
+                let _ = env_file::write(&path, &kept.to_string());
+            }
+            None => {
+                let _ = std::fs::remove_file(&path);
+            }
+        }
+    }
+
+    /// [`state_id`] of the sign-in whose approval link the worker logged.
+    fn sign_in_id(&self) -> Option<String> {
+        let url = reqwest::Url::parse(&self.url()?).ok()?;
+        let (_, state) = url.query_pairs().find(|(name, _)| name == "state")?;
+        Some(state_id(&state))
+    }
+
     /// The approval link the worker printed (the sign-in flow logs `  URL: <url>` before it waits).
     pub fn url(&self) -> Option<String> {
         let log = std::fs::read_to_string(self.path("worker.log")).ok()?;
@@ -253,6 +400,15 @@ impl Session {
             .map(|url| url.trim().to_string())
             .filter(|url| url.starts_with("http"))
     }
+}
+
+/// Written less than [`REPORT_FOR`] ago.
+fn recent(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .and_then(|meta| meta.modified())
+        .ok()
+        .and_then(|at| at.elapsed().ok())
+        .is_some_and(|age| age < REPORT_FOR)
 }
 
 fn open_lock(path: &Path) -> Result<File, CliError> {
