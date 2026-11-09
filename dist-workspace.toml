@@ -43,3 +43,8 @@ default-features = false
 features = ["rustls"]
 tap = "elevenlabs/homebrew-tap"
 formula = "elevenlabs"
+
+# GitHub retired the macos-14 image dist defaults to for Apple Silicon builds
+# (2026-11-02), and jobs on it are cancelled before they start.
+[dist.github-custom-runners]
+aarch64-apple-darwin = "macos-15"
