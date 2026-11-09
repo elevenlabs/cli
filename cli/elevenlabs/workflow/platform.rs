@@ -28,10 +28,19 @@ pub(super) fn agent() -> Option<&'static str> {
     agent_for(&|name| std::env::var(name).ok())
 }
 
-/// Checked in this order: Cursor and VS Code forks also set `TERM_PROGRAM=vscode`.
+/// Each agent's own variable is checked first: Claude Code's leak into shells
+/// started inside it. Then the editor terminals, which set their variables for
+/// whatever runs in them, an agent or a person: Cursor, then VS Code, whose
+/// forks (Cursor among them) also set `TERM_PROGRAM=vscode`.
 pub(super) fn agent_for(var: &dyn Fn(&str) -> Option<String>) -> Option<&'static str> {
     let set = |name: &str| var(name).is_some_and(|v| !v.trim().is_empty());
-    if set("CLAUDECODE") {
+    if set("CODEX_THREAD_ID") || set("CODEX_SANDBOX") || set("CODEX_SANDBOX_NETWORK_DISABLED") {
+        Some("codex")
+    } else if set("CURSOR_AGENT") {
+        Some("cursor")
+    } else if set("GEMINI_CLI") {
+        Some("gemini-cli")
+    } else if set("CLAUDECODE") {
         // Claude Code in the desktop app is told apart: its built-in browser
         // can't write the clipboard the key travels on.
         let desktop = var("CLAUDE_CODE_ENTRYPOINT").as_deref() == Some("claude-desktop");
@@ -40,11 +49,7 @@ pub(super) fn agent_for(var: &dyn Fn(&str) -> Option<String>) -> Option<&'static
         } else {
             "claude-code"
         })
-    } else if set("GEMINI_CLI") {
-        Some("gemini-cli")
-    } else if set("CODEX_SANDBOX") || set("CODEX_SANDBOX_NETWORK_DISABLED") {
-        Some("codex")
-    } else if set("CURSOR_AGENT") || set("CURSOR_TRACE_ID") {
+    } else if set("CURSOR_TRACE_ID") {
         Some("cursor")
     } else if var("TERM_PROGRAM").as_deref() == Some("vscode") {
         Some("vscode")
@@ -258,7 +263,7 @@ mod tests {
                     .map(|(_, v)| v.to_string())
             }
         };
-        let cases: [(Vars, Option<&str>); 9] = [
+        let cases: [(Vars, Option<&str>); 13] = [
             (&[("CLAUDECODE", "1")], Some("claude-code")),
             (
                 &[("CLAUDECODE", "1"), ("CLAUDE_CODE_ENTRYPOINT", "cli")],
@@ -273,6 +278,25 @@ mod tests {
             ),
             (&[("GEMINI_CLI", "1")], Some("gemini-cli")),
             (&[("CODEX_SANDBOX", "seatbelt")], Some("codex")),
+            (&[("CODEX_THREAD_ID", "t")], Some("codex")),
+            // Another agent started from a shell inside Claude Code.
+            (
+                &[("CODEX_THREAD_ID", "t"), ("CLAUDECODE", "1")],
+                Some("codex"),
+            ),
+            (
+                &[("CURSOR_AGENT", "1"), ("CLAUDECODE", "1")],
+                Some("cursor"),
+            ),
+            // Claude Code in Cursor's terminal.
+            (
+                &[
+                    ("CLAUDECODE", "1"),
+                    ("CURSOR_TRACE_ID", "abc"),
+                    ("TERM_PROGRAM", "vscode"),
+                ],
+                Some("claude-code"),
+            ),
             (
                 &[("CURSOR_TRACE_ID", "abc"), ("TERM_PROGRAM", "vscode")],
                 Some("cursor"),

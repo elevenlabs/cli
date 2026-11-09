@@ -549,10 +549,12 @@ elevenlabs-cli/1.7.1 os/macos install/npx
 `os/` is `macos`, `linux`, `windows` or `other`; `env/`, when present, is `ssh`,
 `container` or `wsl`; `install/` is read from where the binary sits (`npx`,
 `bunx`, `pnpm-dlx`, `yarn-dlx`, `npm`, `homebrew`, `scoop`, `installer` or
-`other`); `agent/`, when a coding agent ran the command, is `claude-code`,
-`claude-desktop`, `cursor`, `codex`, `gemini-cli` or `vscode`, read from a
-variable the agent sets. Nothing else about the machine is sent: no paths,
-hostnames or ids. `onboard` puts the same values on the sign-in's approval link.
+`other`); `agent/` is the coding agent or editor terminal the command ran in,
+`claude-code`, `claude-desktop`, `cursor`, `codex`, `gemini-cli` or `vscode`,
+read from a variable that tool sets. `cursor` and `vscode` also cover a
+command typed in those editors' terminals. Nothing else about the machine is
+sent: no paths, hostnames or ids. `onboard` puts the same values on the
+sign-in's approval link.
 
 `onboard` also says how the project's last sign-in ended, when it ended in the
 past day: `signin/<outcome>` on its requests, and `cli_prev` on the next

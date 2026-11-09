@@ -1483,4 +1483,17 @@ fn a_new_sign_in_keeps_how_the_last_one_ended() {
     )
     .unwrap();
     assert_eq!(s.previous(), None);
+    // Nor does one kept more than a day ago.
+    let kept = dir.path().join("previous.json");
+    std::fs::write(&kept, r#"{"outcome":"timed-out","id":null}"#).unwrap();
+    assert_eq!(s.previous().unwrap().outcome, "timed-out");
+    let two_days_ago =
+        std::time::SystemTime::now() - std::time::Duration::from_secs(2 * 24 * 60 * 60);
+    std::fs::File::options()
+        .write(true)
+        .open(&kept)
+        .unwrap()
+        .set_modified(two_days_ago)
+        .unwrap();
+    assert_eq!(s.previous(), None);
 }

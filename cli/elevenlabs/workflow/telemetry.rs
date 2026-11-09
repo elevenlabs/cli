@@ -120,8 +120,9 @@ fn resolve() {
 }
 
 const TELEMETRY_HELP: &str = "on or off. Whether requests say, anonymously, which OS the CLI \
-     runs on, how it was installed (npx, npm, Homebrew, ...), which coding agent ran it, and how \
-     the last sign-in ended. Overrides ELEVENLABS_TELEMETRY; DO_NOT_TRACK=1 also turns it off.";
+     runs on, how it was installed (npx, npm, Homebrew, ...), which coding agent or editor \
+     terminal ran it, and how the last sign-in ended. Overrides ELEVENLABS_TELEMETRY; \
+     DO_NOT_TRACK=1 also turns it off.";
 
 /// Resolve telemetry and register `--telemetry` so clap accepts it on every
 /// command. Its value is never sent: `Explicit` with no opt-ins means the

@@ -349,9 +349,15 @@ impl Session {
         })
     }
 
-    /// The sign-in before the current one, as [`Self::start`] kept it.
+    /// The sign-in before the current one, as [`Self::start`] kept it, if
+    /// that was in the last day. The age counts too when the file couldn't be
+    /// replaced or removed since.
     pub fn previous(&self) -> Option<LastSignIn> {
-        let text = std::fs::read_to_string(self.path(PREVIOUS)).ok()?;
+        let path = self.path(PREVIOUS);
+        if !recent(&path) {
+            return None;
+        }
+        let text = std::fs::read_to_string(path).ok()?;
         let kept: Value = serde_json::from_str(&text).ok()?;
         Some(LastSignIn {
             outcome: kept["outcome"].as_str().and_then(known_outcome)?,
