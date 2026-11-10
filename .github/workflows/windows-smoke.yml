@@ -17,6 +17,7 @@ on:
     paths:
       - cli/elevenlabs/workflow/onboard/**
       - cli/elevenlabs/workflow/loopback.rs
+      - cli/elevenlabs/workflow/setup.rs
       - .github/workflows/windows-smoke.yml
 
 jobs:
@@ -49,6 +50,46 @@ jobs:
         run: |
           cargo build --bin elevenlabs
           cygpath -w "$PWD/target/debug" >> "$GITHUB_PATH"
+
+      # npm installs agents as .cmd shims, often under a user folder such as
+      # `C:\Users\Ann (Work)`, whose parentheses break a hand-built `cmd /C`.
+      - name: Set up a coding agent installed in a folder with parentheses
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          bin="$(mktemp -d)/agents (test) dir"
+          mkdir -p "$bin"
+          log=$(cygpath -w "$bin/ran.log")
+          # A stand-in `claude` that logs its arguments, one line per run.
+          cat > "$bin/claude.cmd" <<EOF
+          @echo off
+          echo %*>>"$log"
+          exit /b 0
+          EOF
+          export PATH="$bin:$PATH"
+          for var in USERPROFILE HOME CLAUDE_CONFIG_DIR CODEX_HOME; do
+            export "$var=$(cygpath -w "$(mktemp -d)")"
+          done
+          unset CLAUDE_CODE_EXECPATH
+
+          elevenlabs setup --yes
+          # Quotes std may add around an argument, and cmd's line endings, aside.
+          ran=$(tr -d '"\r' < "$bin/ran.log")
+          expected=$(printf '%s\n' \
+            "plugin marketplace update elevenlabs" \
+            "plugin install elevenlabs --marketplace elevenlabs/plugin --scope user" \
+            "plugin update elevenlabs@elevenlabs")
+          if [[ "$ran" != "$expected" ]]; then
+            echo "::error::Expected the three Claude Code commands, got:"
+            echo "$ran"
+            exit 1
+          fi
+
+          elevenlabs setup
+          if [[ "$(tr -d '"\r' < "$bin/ran.log")" != "$ran" ]]; then
+            echo "::error::setup without --yes ran a command"
+            exit 1
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
