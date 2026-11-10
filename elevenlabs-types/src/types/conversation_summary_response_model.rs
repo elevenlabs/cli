@@ -18,8 +18,15 @@ pub struct ConversationSummaryResponseModel {
     pub start_time_unix_secs: i64,
     #[serde(default)]
     pub call_duration_secs: i64,
+    /// Number of transcript turns with text; tool-only turns are not counted.
     #[serde(default)]
     pub message_count: i64,
+    /// Number of user transcript turns with text; tool-only turns are not counted. `null` for older conversations before this field whose transcript was deleted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_message_count: Option<i64>,
+    /// Number of agent transcript turns with text; tool-only turns are not counted. `null` for older conversations before this field whose transcript was deleted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_message_count: Option<i64>,
     pub status: ConversationSummaryResponseModelStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub termination_reason: Option<String>,
@@ -72,6 +79,8 @@ pub struct ConversationSummaryResponseModelBuilder {
     start_time_unix_secs: Option<i64>,
     call_duration_secs: Option<i64>,
     message_count: Option<i64>,
+    user_message_count: Option<i64>,
+    agent_message_count: Option<i64>,
     status: Option<ConversationSummaryResponseModelStatus>,
     termination_reason: Option<String>,
     call_successful: Option<EvaluationSuccessResult>,
@@ -127,6 +136,16 @@ impl ConversationSummaryResponseModelBuilder {
 
     pub fn message_count(mut self, value: i64) -> Self {
         self.message_count = Some(value);
+        self
+    }
+
+    pub fn user_message_count(mut self, value: i64) -> Self {
+        self.user_message_count = Some(value);
+        self
+    }
+
+    pub fn agent_message_count(mut self, value: i64) -> Self {
+        self.agent_message_count = Some(value);
         self
     }
 
@@ -224,6 +243,8 @@ impl ConversationSummaryResponseModelBuilder {
             start_time_unix_secs: self.start_time_unix_secs.ok_or_else(|| BuildError::missing_field("start_time_unix_secs"))?,
             call_duration_secs: self.call_duration_secs.ok_or_else(|| BuildError::missing_field("call_duration_secs"))?,
             message_count: self.message_count.ok_or_else(|| BuildError::missing_field("message_count"))?,
+            user_message_count: self.user_message_count,
+            agent_message_count: self.agent_message_count,
             status: self.status.ok_or_else(|| BuildError::missing_field("status"))?,
             termination_reason: self.termination_reason,
             call_successful: self.call_successful.ok_or_else(|| BuildError::missing_field("call_successful"))?,

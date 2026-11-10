@@ -45,7 +45,8 @@ pub fn register(app: CliApp) -> CliApp {
 
 #[derive(clap::Args)]
 struct DiagramArgs {
-    /// An agent config file, or an agent ID or name from agents.json.
+    /// An agent config file, a bare workflow file (top-level `nodes`), or an
+    /// agent ID or name from agents.json.
     #[arg(required_unless_present = "all")]
     target: Option<String>,
     /// Draw every agent (and registered branch) in agents.json.
@@ -136,7 +137,7 @@ fn load_one(target: &str) -> Result<LoadedWorkflow, CliError> {
     };
     let workflow = workflow_of(&config).cloned().ok_or_else(|| {
         CliError::Validation(format!(
-            "{config_path} has no workflow to draw (no workflow.nodes)"
+            "{config_path} has no workflow to draw (no workflow.nodes or top-level nodes)"
         ))
     })?;
     let title = config
@@ -184,8 +185,15 @@ fn load_all() -> Result<Vec<LoadedWorkflow>, CliError> {
 }
 
 /// The config's workflow, if it has any nodes to draw.
+/// The workflow in an agent config (`workflow.nodes`), or the file itself when
+/// it is a bare workflow (top-level `nodes`), which is what the SDKs'
+/// `Workflow` builders export.
 fn workflow_of(config: &Value) -> Option<&Value> {
-    let workflow = config.get("workflow")?;
+    let workflow = match config.get("workflow") {
+        Some(workflow) => workflow,
+        None if config.get("nodes").is_some() => config,
+        None => return None,
+    };
     let has_nodes = workflow
         .get("nodes")
         .and_then(Value::as_object)
@@ -1011,6 +1019,28 @@ mod tests {
             workflow_of(&json!({ "workflow": { "nodes": { "a": { "type": "start" } } } }))
                 .is_some()
         );
+    }
+
+    #[test]
+    fn a_bare_workflow_file_is_drawn_like_the_one_in_an_agent_config() {
+        let workflow = json!({
+            "nodes": {
+                "start": { "type": "start", "edge_order": ["start__end"] },
+                "end": { "type": "end" }
+            },
+            "edges": {
+                "start__end": {
+                    "source": "start",
+                    "target": "end",
+                    "forward_condition": { "type": "unconditional" }
+                }
+            }
+        });
+        let config = json!({ "name": "Greeter", "workflow": workflow });
+        assert_eq!(workflow_of(&workflow), workflow_of(&config));
+        assert!(workflow_of(&json!({ "nodes": {} })).is_none());
+        // An agent config's `workflow` key wins, even when it has nothing to draw.
+        assert!(workflow_of(&json!({ "workflow": null, "nodes": { "a": {} } })).is_none());
     }
 
     #[test]

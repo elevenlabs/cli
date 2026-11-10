@@ -52,7 +52,7 @@ impl DocumentsClient {
     ///         .knowledge_base
     ///         .documents
     ///         .create_from_url(
-    ///             &BodyCreateURLDocumentV1ConvaiKnowledgeBaseURLPost {
+    ///             &BodyCreateUrlDocumentV1ConvaiKnowledgeBaseUrlPost {
     ///                 url: "url".to_string(),
     ///                 name: None,
     ///                 parent_folder_id: None,
@@ -107,7 +107,7 @@ impl DocumentsClient {
     ///         .knowledge_base
     ///         .documents
     ///         .create_from_file(
-    ///             &CreateFromFileRequest {
+    ///             &CreateFromFileRequest2 {
     ///                 file: b"test file content".to_vec(),
     ///                 name: None,
     ///                 parent_folder_id: None,
@@ -352,7 +352,7 @@ impl DocumentsClient {
             .await
     }
 
-    /// Update the name and/or content of a document.
+    /// Update the name, content and/or auto-sync settings of a document.
     ///
     /// # Arguments
     ///
@@ -380,7 +380,7 @@ impl DocumentsClient {
     ///         .documents
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyUpdateDocumentV1ConvaiKnowledgeBaseDocumentationIDPatch {
+    ///             &BodyUpdateDocumentV1ConvaiKnowledgeBaseDocumentationIdPatch {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -657,7 +657,7 @@ impl DocumentsClient {
     ///         .documents
     ///         .move_(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &BodyMoveEntityToFolderV1ConvaiKnowledgeBaseDocumentIDMovePost {
+    ///             &BodyMoveEntityToFolderV1ConvaiKnowledgeBaseDocumentIdMovePost {
     ///                 ..Default::default()
     ///             },
     ///             None,

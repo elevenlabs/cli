@@ -48,26 +48,18 @@ impl CreateRequest2 {
         );
     }
 
-    if let Ok(json_str) = serde_json::to_string(&self.name) {
-        form = form.text("name", json_str);
-    }
+    form = form.text("name", self.name.clone());
 
     if let Some(ref value) = self.image {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("image", json_str);
-        }
+        form = form.text("image", value.clone());
     }
 
     if let Some(ref value) = self.author {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("author", json_str);
-        }
+        form = form.text("author", value.clone());
     }
 
     if let Some(ref value) = self.title {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("title", json_str);
-        }
+        form = form.text("title", value.clone());
     }
 
     if let Some(ref value) = self.small {
@@ -77,15 +69,11 @@ impl CreateRequest2 {
     }
 
     if let Some(ref value) = self.text_color {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("text_color", json_str);
-        }
+        form = form.text("text_color", value.clone());
     }
 
     if let Some(ref value) = self.background_color {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("background_color", json_str);
-        }
+        form = form.text("background_color", value.clone());
     }
 
     if let Some(ref value) = self.sessionization {
@@ -95,15 +83,11 @@ impl CreateRequest2 {
     }
 
     if let Some(ref value) = self.voice_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("voice_id", json_str);
-        }
+        form = form.text("voice_id", value.clone());
     }
 
     if let Some(ref value) = self.model_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("model_id", json_str);
-        }
+        form = form.text("model_id", value.clone());
     }
 
     if let Some(ref value) = self.auto_convert {

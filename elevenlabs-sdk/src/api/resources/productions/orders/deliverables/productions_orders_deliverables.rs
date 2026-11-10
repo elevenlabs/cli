@@ -39,7 +39,7 @@ impl DeliverablesClient {
     ///         .productions
     ///         .orders
     ///         .deliverables
-    ///         .list(&OrderID("order_id".to_string()), None)
+    ///         .list(&OrderId("order_id".to_string()), None)
     ///         .await;
     /// }
     /// ```

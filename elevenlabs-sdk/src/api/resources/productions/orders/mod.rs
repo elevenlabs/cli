@@ -170,7 +170,7 @@ impl OrdersClient {
     ///     client
     ///         .productions
     ///         .orders
-    ///         .get(&OrderID("order_id".to_string()), None)
+    ///         .get(&OrderId("order_id".to_string()), None)
     ///         .await;
     /// }
     /// ```
@@ -216,8 +216,8 @@ impl OrdersClient {
     ///         .productions
     ///         .orders
     ///         .update(
-    ///             &OrderID("order_id".to_string()),
-    ///             &BodyUpdateOrderV1ProductionsOrdersOrderIDPatch {
+    ///             &OrderId("order_id".to_string()),
+    ///             &BodyUpdateOrderV1ProductionsOrdersOrderIdPatch {
     ///                 request: UpdateOrderRequest {
     ///                     name: "Spanish Dubs".to_string(),
     ///                     ..Default::default()
@@ -272,7 +272,7 @@ impl OrdersClient {
     ///     client
     ///         .productions
     ///         .orders
-    ///         .submit(&OrderID("order_id".to_string()), None)
+    ///         .submit(&OrderId("order_id".to_string()), None)
     ///         .await;
     /// }
     /// ```

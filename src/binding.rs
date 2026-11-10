@@ -21,7 +21,12 @@ pub enum DispatchResult {
     /// A decoded response value. The root `CliApp` will run
     /// `transform_response` / `recover_error` hooks and then format it.
     Value(serde_json::Value),
-    /// The binding already wrote output (dry-run, streaming, file download).
+    /// A single diagnostic record (a `--dry-run` request preview). Hooks run
+    /// as for `Value`, but the root `CliApp` formats it with
+    /// [`OutputPipeline::emit_record`](crate::formatter::OutputPipeline::emit_record)
+    /// so `table` output never mistakes it for a list response.
+    Record(serde_json::Value),
+    /// The binding already wrote output (streaming, file download, paged dry-run).
     /// The root `CliApp` skips its own formatting.
     Handled,
 }
@@ -128,6 +133,79 @@ pub trait Binding: Send + Sync {
         &mut self,
         _params: &[crate::openapi::discovery::GlobalParameter],
     ) {
+    }
+
+    /// Every operation parameter this binding accepts — one entry per
+    /// spelling it answers to (wire name and, when they differ, the flag
+    /// name `--help` shows), each carrying the values an enum constrains it
+    /// to.
+    ///
+    /// Consumed by `profiles create --set <KEY>=<VALUE>`, which validates
+    /// both halves: a key no operation accepts is a silently-ignored
+    /// default, and a value no operation accepts makes every command
+    /// carrying that parameter fail on a flag the caller never passed.
+    ///
+    /// Default: empty, which disables that validation. A binding that
+    /// cannot enumerate its surface must not make `--set` unusable.
+    fn parameter_specs(&self) -> Vec<crate::profiles::commands::ParameterSpec> {
+        Vec::new()
+    }
+
+    /// Invoke one operation directly, outside the clap dispatch path.
+    ///
+    /// `op_path` is the command path (`["iam", "keys", "remove"]`) and
+    /// `params` a JSON object of parameter name → value, exactly the shape
+    /// `--params` accepts. Returns the decoded response — `Value::Null` when
+    /// the operation succeeded without a body, e.g. a `204` delete.
+    ///
+    /// Exists because some framework-owned commands need to call the API on
+    /// the user's behalf — `profiles remove --revoke` deleting the key it
+    /// created — and they have no `ArgMatches` for the target operation to
+    /// hand to [`dispatch`](Self::dispatch). Everything downstream (auth,
+    /// retries, TLS, base-URL resolution) is the same stack a normal
+    /// invocation uses; only the argument source differs. `root_matches`
+    /// is the parsed root command line, so global flags such as
+    /// `--base-url` and the server-variable flags apply exactly as they
+    /// would on a direct invocation. `profile` is the profile the call is
+    /// made on behalf of — the one being created or removed. The `profiles`
+    /// group itself runs unprofiled, so its stored server variables and
+    /// base URL would otherwise never reach the request; they rank exactly
+    /// where a selected profile's would (below flags, above env).
+    ///
+    /// Returns `Ok(None)` from the default implementation, meaning "this
+    /// binding does not own that path" — the caller should try the next.
+    fn invoke_operation<'a>(
+        &'a self,
+        _op_path: &'a [String],
+        _params: &'a serde_json::Value,
+        _root_matches: &'a clap::ArgMatches,
+        _profile: Option<&'a crate::profiles::ResolvedProfile>,
+    ) -> BoxFuture<'a, Result<Option<serde_json::Value>, CliError>> {
+        Box::pin(async { Ok(None) })
+    }
+
+    /// Parameters that look like a tenant key: ones this binding scopes most
+    /// of its operations by.
+    ///
+    /// Consumed by `profiles create`, which gives each its own `--<name>`
+    /// flag so the commonest profile field is not stuck behind
+    /// `--set <name>=<value>`.
+    ///
+    /// Default: empty, which surfaces no such flags.
+    fn tenant_key_candidates(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    /// Every server-URL template variable name this binding declares —
+    /// both generator-registered (`server_var(...)`) and spec-declared
+    /// (`servers[].variables`).
+    ///
+    /// Consumed by `profiles create`, which validates `--server-var` keys
+    /// against it and registers a convenience `--<name>` flag per entry.
+    ///
+    /// Default: empty.
+    fn server_variable_names(&self) -> Vec<String> {
+        Vec::new()
     }
 
     /// Validate that all auth schemes referenced by the binding's spec

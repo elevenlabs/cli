@@ -114,6 +114,7 @@ impl SpeechEngineClient {
     ///                 conversation: None,
     ///                 privacy: None,
     ///                 call_limits: None,
+    ///                 auth: None,
     ///                 language: None,
     ///                 cascade_timeout_seconds: None,
     ///                 tags: None,

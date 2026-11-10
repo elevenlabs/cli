@@ -48,8 +48,16 @@ fn cli(home: &Path, cwd: &Path, server: &str, args: &[&str]) -> Command {
         "CODESPACES",
         "REMOTE_CONTAINERS",
         "CLAUDECODE",
+        "CLAUDE_CODE_ENTRYPOINT",
         "CODEX_THREAD_ID",
+        "CODEX_SANDBOX",
+        "CODEX_SANDBOX_NETWORK_DISABLED",
         "CURSOR_AGENT",
+        "CURSOR_TRACE_ID",
+        "GEMINI_CLI",
+        "TERM_PROGRAM",
+        "ELEVENLABS_TELEMETRY",
+        "DO_NOT_TRACK",
         "npm_command",
     ] {
         cmd.env_remove(var);
@@ -1613,4 +1621,112 @@ async fn a_sign_in_the_credential_store_refuses_still_finishes() {
     assert_eq!(done["details"]["key_status"], "no_key", "{done}");
     let log = std::fs::read_to_string(session.join("worker.log")).unwrap();
     assert!(log.contains("couldn't be saved"), "{log}");
+}
+
+/// What the approval link and the requests say about the machine, the agent
+/// and the last sign-in follows the telemetry switch: with it off, nothing.
+#[tokio::test]
+async fn with_telemetry_off_nothing_is_said_about_the_machine_or_the_last_sign_in() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    let (home, cwd) = temp();
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    // A sign-in run by Claude Code, for its own env file so each one is new,
+    // declined once its link is out. Returns that link.
+    let declined_sign_in = |env_file: &str, telemetry: &[(&str, &str)], args: &[&str]| {
+        let mut cmd = cli(
+            home.path(),
+            cwd.path(),
+            &server.uri(),
+            &[
+                &[
+                    "onboard",
+                    "connect",
+                    "--no-browser",
+                    "--authorize-url",
+                    &authorize,
+                    "--env-file",
+                    env_file,
+                ],
+                args,
+            ]
+            .concat(),
+        );
+        cmd.env("CLAUDECODE", "1").envs(telemetry.iter().copied());
+        let url = link(&reply(&mut cmd));
+        decline(&url);
+        let (session, _) = approval(home.path());
+        let deadline = Instant::now() + Duration::from_secs(30);
+        while !session.join("result.json").exists() {
+            assert!(Instant::now() < deadline, "the sign-in never ended");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        url
+    };
+    let said = |url: &str| -> Vec<String> {
+        reqwest::Url::parse(url)
+            .unwrap()
+            .query_pairs()
+            .map(|(k, _)| k.into_owned())
+            .filter(|k| k.starts_with("cli_"))
+            .collect()
+    };
+
+    let first = declined_sign_in("a.env", &[], &[]);
+    assert_eq!(query(&first, "cli_agent"), "claude-code", "{first}");
+    for (env_file, telemetry, args) in [
+        ("b.env", &[][..], &["--telemetry", "off"][..]),
+        ("c.env", &[("DO_NOT_TRACK", "1")][..], &[][..]),
+        ("d.env", &[("ELEVENLABS_TELEMETRY", "off")][..], &[][..]),
+    ] {
+        let url = declined_sign_in(env_file, telemetry, args);
+        assert_eq!(said(&url), Vec::<String>::new(), "{url}");
+    }
+    // Back on, the next link says how the last sign-in ended.
+    let on = declined_sign_in("e.env", &[], &[]);
+    assert_eq!(query(&on, "cli_prev"), "declined", "{on}");
+    assert_eq!(query(&on, "cli_prev_id").len(), 16, "{on}");
+    assert_eq!(query(&on, "cli_agent"), "claude-code", "{on}");
+
+    // The requests after it say so too, unless telemetry is off.
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    for args in [&[][..], &["--telemetry", "off"][..]] {
+        reply(
+            cli(
+                home.path(),
+                cwd.path(),
+                &server.uri(),
+                &[&["onboard", "check"][..], args].concat(),
+            )
+            .env("CLAUDECODE", "1"),
+        );
+    }
+    let agents: Vec<String> = server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|r| r.url.path() == "/v1/user")
+        .map(|r| r.headers["user-agent"].to_str().unwrap().to_string())
+        .collect();
+    let (on, off) = agents.split_at(agents.len() / 2);
+    assert!(!on.is_empty(), "{agents:?}");
+    for agent in on {
+        assert!(agent.contains(" signin/declined"), "{agent}");
+        assert!(agent.contains(" agent/claude-code"), "{agent}");
+    }
+    for agent in off {
+        assert!(!agent.contains("signin/"), "{agent}");
+        assert!(!agent.contains("agent/"), "{agent}");
+        assert!(!agent.contains("os/"), "{agent}");
+    }
 }

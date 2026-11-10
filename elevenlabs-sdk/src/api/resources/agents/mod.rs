@@ -34,6 +34,8 @@ pub mod llm;
 pub use llm::LlmClient;
 pub mod tools;
 pub use tools::ToolsClient;
+pub mod analysis_items;
+pub use analysis_items::AnalysisItemsClient;
 pub mod settings;
 pub use settings::SettingsClient;
 pub mod secrets;
@@ -84,6 +86,7 @@ pub struct AgentsClient {
     pub llm_usage: LlmUsageClient,
     pub llm: LlmClient,
     pub tools: ToolsClient,
+    pub analysis_items: AnalysisItemsClient,
     pub settings: SettingsClient,
     pub secrets: SecretsClient,
     pub batch_calls: BatchCallsClient,
@@ -122,6 +125,7 @@ impl AgentsClient {
             llm_usage: LlmUsageClient::new(config.clone())?,
             llm: LlmClient::new(config.clone())?,
             tools: ToolsClient::new(config.clone())?,
+            analysis_items: AnalysisItemsClient::new(config.clone())?,
             settings: SettingsClient::new(config.clone())?,
             secrets: SecretsClient::new(config.clone())?,
             batch_calls: BatchCallsClient::new(config.clone())?,
@@ -493,7 +497,7 @@ impl AgentsClient {
     ///         .agents
     ///         .duplicate(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodyDuplicateAgentV1ConvaiAgentsAgentIDDuplicatePost {
+    ///             &BodyDuplicateAgentV1ConvaiAgentsAgentIdDuplicatePost {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -544,7 +548,7 @@ impl AgentsClient {
     ///         .agents
     ///         .simulate_conversation(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodySimulatesAConversationV1ConvaiAgentsAgentIDSimulateConversationPost {
+    ///             &BodySimulatesAConversationV1ConvaiAgentsAgentIdSimulateConversationPost {
     ///                 simulation_specification: ConversationSimulationSpecification {
     ///                     simulated_user_config: AgentConfig {
     ///                         first_message: Some("Hello, how can I help you today?".to_string()),
@@ -605,7 +609,7 @@ impl AgentsClient {
     ///         .agents
     ///         .simulate_conversation_stream(
     ///             &"agent_3701k3ttaq12ewp8b7qv5rfyszkz".to_string(),
-    ///             &BodySimulatesAConversationStreamV1ConvaiAgentsAgentIDSimulateConversationStreamPost {
+    ///             &BodySimulatesAConversationStreamV1ConvaiAgentsAgentIdSimulateConversationStreamPost {
     ///                 simulation_specification: ConversationSimulationSpecification {
     ///                     simulated_user_config: AgentConfig {
     ///                         first_message: Some("Hello, how can I help you today?".to_string()),

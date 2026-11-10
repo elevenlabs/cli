@@ -129,7 +129,7 @@ The voice, model, audio format and player default to whatever you have stored, a
 
 ```bash
 elevenlabs say config                                    # show the current defaults
-elevenlabs say config voice 21m00Tcm4TlvDq8ikWAM
+elevenlabs say config voice EXAVITQu4vr4xnSDxMaL
 elevenlabs say config model eleven_multilingual_v2
 elevenlabs say config player mpv
 elevenlabs say config voice --unset                      # back to the built-in default
@@ -241,9 +241,10 @@ The API commands own the primitive names, so the workflow only adds verbs the AP
 Workflows are stored as `workflow.nodes` / `workflow.edges` in the agent config, which is lossless but hard to read, and harder to review as a diff. `agents workflow diagram` turns one into a flowchart:
 
 ```bash
-# Draw it in the terminal: a config file, or an id or name from agents.json
+# Draw it in the terminal: a config or workflow file, or an id or name from agents.json
 elevenlabs agents workflow diagram Support
 elevenlabs agents workflow diagram agent_configs/support.json
+elevenlabs agents workflow diagram workflows/support.json          # a bare workflow, e.g. exported by an SDK's Workflow builder
 elevenlabs agents workflow diagram --all
 
 # Print it as Mermaid source, to save, or to paste into docs or a PR comment
@@ -548,8 +549,19 @@ elevenlabs-cli/1.7.1 os/macos install/npx
 `os/` is `macos`, `linux`, `windows` or `other`; `env/`, when present, is `ssh`,
 `container` or `wsl`; `install/` is read from where the binary sits (`npx`,
 `bunx`, `pnpm-dlx`, `yarn-dlx`, `npm`, `homebrew`, `scoop`, `installer` or
-`other`). Nothing else about the machine is sent: no paths, hostnames or ids.
-`onboard` puts the same values on the sign-in's approval link.
+`other`); `agent/` is the coding agent or editor terminal the command ran in,
+`claude-code`, `claude-desktop`, `cursor`, `codex`, `gemini-cli` or `vscode`,
+read from a variable that tool sets. `cursor` and `vscode` also cover a
+command typed in those editors' terminals. Nothing else about the machine is
+sent: no paths, hostnames or ids. `onboard` puts the same values on the
+sign-in's approval link.
+
+`onboard` also says how the project's last sign-in ended, when it ended in the
+past day: `signin/<outcome>` on its requests, and `cli_prev` on the next
+approval link, where `<outcome>` is a fixed word such as `timed-out`,
+`stopped` or `no-key`. The link also carries `cli_prev_id`, the start of a
+SHA-256 hash of that sign-in's `state`, so it can be matched to its approval
+page; the state itself is never sent.
 
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.

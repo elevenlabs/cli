@@ -36,15 +36,11 @@ impl ConvertRequest2 {
     );
 
     if let Some(ref value) = self.model_id {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("model_id", json_str);
-        }
+        form = form.text("model_id", value.clone());
     }
 
     if let Some(ref value) = self.voice_settings {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("voice_settings", json_str);
-        }
+        form = form.text("voice_settings", value.clone());
     }
 
     if let Some(ref value) = self.seed {

@@ -21,9 +21,7 @@ impl CreateRequest3 {
             .mime_str("application/octet-stream").unwrap()
     );
 
-    if let Ok(json_str) = serde_json::to_string(&self.text) {
-        form = form.text("text", json_str);
-    }
+    form = form.text("text", self.text.clone());
 
     form
 }

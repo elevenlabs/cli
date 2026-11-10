@@ -31,7 +31,7 @@ pub struct BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiK
     /// Maximum concurrent music generation requests for this API key. Only available for enterprise customers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music_concurrency_limit: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchMusicConcurrencyLimit>,
-    /// Unix timestamp (in seconds) after which this API key stops working. When set, it must be at least 15 minutes and at most 90 days in the future. On create, omit or pass null for a key that never expires. On update, omit to leave it unchanged, or pass "clear" to remove the expiry (never expires).
+    /// Unix timestamp (in seconds) after which this API key stops working. When set, it must be at least 15 minutes and at most 90 days in the future. On create, omit or pass null for a key that never expires. On update, omit to leave it unchanged, or pass "clear" to remove the expiry (never expires). A workspace may disallow never-expiring keys, or allow them only on service account API keys; creating one or clearing an expiry then fails.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at_unix: Option<BodyEditServiceAccountApiKeyV1ServiceAccountsServiceAccountUserIdApiKeysApiKeyIdPatchExpiresAtUnix>,
 }

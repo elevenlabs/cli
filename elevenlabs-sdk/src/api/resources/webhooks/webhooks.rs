@@ -188,7 +188,7 @@ impl WebhooksClient {
     ///         .webhooks
     ///         .update(
     ///             &"G007vmtq9uWYl7SUW9zGS8GZZa1K".to_string(),
-    ///             &BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIDPatch {
+    ///             &BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatch {
     ///                 is_disabled: true,
     ///                 name: "My Callback Webhook".to_string(),
     ///                 retry_enabled: None,

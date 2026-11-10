@@ -40,7 +40,7 @@ impl MediaClient {
     ///         .orders
     ///         .media
     ///         .register(
-    ///             &OrderID("order_id".to_string()),
+    ///             &OrderId("order_id".to_string()),
     ///             &RegisterRequest {
     ///                 media: b"test file content".to_vec(),
     ///                 declared_language: "declared_language".to_string(),
@@ -98,8 +98,8 @@ impl MediaClient {
     ///         .orders
     ///         .media
     ///         .get(
-    ///             &OrderID("order_id".to_string()),
-    ///             &MediaID("media_id".to_string()),
+    ///             &OrderId("order_id".to_string()),
+    ///             &MediaId("media_id".to_string()),
     ///             None,
     ///         )
     ///         .await;

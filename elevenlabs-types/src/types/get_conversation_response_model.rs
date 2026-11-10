@@ -22,6 +22,12 @@ pub struct GetConversationResponseModel {
     pub metadata: ConversationHistoryMetadataCommonModel,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub analysis: Option<ConversationHistoryAnalysisCommonModel>,
+    /// Number of user transcript turns with text; tool-only turns are not counted. `null` for older conversations before this field whose transcript was deleted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_message_count: Option<i64>,
+    /// Number of agent transcript turns with text; tool-only turns are not counted. `null` for older conversations before this field whose transcript was deleted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_message_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub visited_agents: Option<Vec<VisitedAgentRef>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,6 +72,8 @@ pub struct GetConversationResponseModelBuilder {
     version_id: Option<String>,
     metadata: Option<ConversationHistoryMetadataCommonModel>,
     analysis: Option<ConversationHistoryAnalysisCommonModel>,
+    user_message_count: Option<i64>,
+    agent_message_count: Option<i64>,
     visited_agents: Option<Vec<VisitedAgentRef>>,
     conversation_initiation_client_data: Option<ConversationInitiationClientDataRequestOutput>,
     environment: Option<String>,
@@ -122,6 +130,16 @@ impl GetConversationResponseModelBuilder {
 
     pub fn analysis(mut self, value: ConversationHistoryAnalysisCommonModel) -> Self {
         self.analysis = Some(value);
+        self
+    }
+
+    pub fn user_message_count(mut self, value: i64) -> Self {
+        self.user_message_count = Some(value);
+        self
+    }
+
+    pub fn agent_message_count(mut self, value: i64) -> Self {
+        self.agent_message_count = Some(value);
         self
     }
 
@@ -202,6 +220,8 @@ impl GetConversationResponseModelBuilder {
             version_id: self.version_id,
             metadata: self.metadata.ok_or_else(|| BuildError::missing_field("metadata"))?,
             analysis: self.analysis,
+            user_message_count: self.user_message_count,
+            agent_message_count: self.agent_message_count,
             visited_agents: self.visited_agents,
             conversation_initiation_client_data: self.conversation_initiation_client_data,
             environment: self.environment,

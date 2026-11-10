@@ -53,7 +53,7 @@ impl SamplesClient2 {
     ///         .samples
     ///         .create(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
-    ///             &CreateRequest {
+    ///             &CreateRequest12 {
     ///                 files: vec![b"test file 1".to_vec(), b"test file 2".to_vec()],
     ///                 remove_background_noise: None,
     ///             },
@@ -109,7 +109,7 @@ impl SamplesClient2 {
     ///         .update(
     ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
     ///             &"VW7YKqPnjY4h39yTbx2L".to_string(),
-    ///             &BodyUpdatePvcVoiceSampleV1VoicesPvcVoiceIDSamplesSampleIDPost {
+    ///             &BodyUpdatePvcVoiceSampleV1VoicesPvcVoiceIdSamplesSampleIdPost {
     ///                 ..Default::default()
     ///             },
     ///             None,
