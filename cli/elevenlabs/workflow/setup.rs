@@ -103,10 +103,11 @@ pub(super) fn found(
 ) -> Vec<Agent> {
     let set = |name: &str| env(name).is_some_and(|v| !v.is_empty());
     let mut agents = Vec::new();
-    // Inside Claude Code, including the desktop app, which may not put `claude` on PATH.
+    // Inside Claude Code, including the desktop app, which may not put `claude`
+    // on PATH. Claude Code installed by npm names `node` or `bun` there instead.
     let claude = env("CLAUDE_CODE_EXECPATH")
         .map(PathBuf::from)
-        .filter(|p| p.is_file())
+        .filter(|p| p.is_file() && is_claude(p))
         .or_else(|| on_path("claude"));
     if let Some(claude) = claude {
         agents.push(Agent::ClaudeCode(claude));
@@ -118,6 +119,12 @@ pub(super) fn found(
         agents.push(Agent::Cursor);
     }
     agents
+}
+
+/// Whether `path` is a program called `claude`, as Windows spells it or not.
+fn is_claude(path: &Path) -> bool {
+    let name = path.file_name().map(|n| n.to_string_lossy().to_ascii_lowercase());
+    matches!(name.as_deref(), Some("claude" | "claude.exe"))
 }
 
 /// [`found`] for this machine, from the shell's environment.
@@ -181,37 +188,33 @@ fn is_program(path: &Path) -> bool {
     path.is_file()
 }
 
-/// The program and arguments that run `program args`. Never through a shell
-/// on Unix; on Windows through `cmd /C`, since npm installs agents as `.cmd`
-/// shims that can't be started by name.
-pub(super) fn argv(program: &Path, args: &[&str], windows: bool) -> (OsString, Vec<OsString>) {
-    let args = args.iter().map(OsString::from);
-    if windows {
-        let mut all = vec![OsString::from("/C"), program.as_os_str().to_owned()];
-        all.extend(args);
-        (OsString::from("cmd"), all)
-    } else {
-        (program.as_os_str().to_owned(), args.collect())
-    }
-}
-
-/// Run `program args` with stdin closed, stopping it after `limit`. `Err` is
-/// why it failed: its last line of output, or that it ran out of time.
-pub(super) fn run_program(program: &Path, args: &[&str], limit: Duration) -> Result<(), String> {
-    let (exe, argv) = argv(program, args, cfg!(windows));
+/// Run `program args` with stdin closed, in `home` so nothing in the project
+/// can be loaded as part of it, stopping it and everything it started after
+/// `limit`. `program` is a full path, so on Windows std starts a `.cmd` shim
+/// through cmd with its own quoting. `Err` is why it failed: its last line of
+/// output, or that it ran out of time.
+pub(super) fn run_program(
+    program: &Path,
+    args: &[&str],
+    limit: Duration,
+    home: &Path,
+) -> Result<(), String> {
     let (out, err) = match (tempfile::tempfile(), tempfile::tempfile()) {
         (Ok(out), Ok(err)) => (out, err),
         (Err(e), _) | (_, Err(e)) => return Err(format!("couldn't start it: {e}")),
     };
-    let mut command = Command::new(exe);
+    let mut command = Command::new(program);
     command
-        .args(argv)
+        .args(args)
         .stdin(Stdio::null())
         .stdout(out.try_clone().map_err(|e| e.to_string())?)
         .stderr(err.try_clone().map_err(|e| e.to_string())?);
     if let Some(env) = super::onboard::shell_env() {
         command.env_clear().envs(env);
     }
+    command.current_dir(home).env("PWD", home);
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut command, 0);
     let mut child = command
         .spawn()
         .map_err(|e| format!("couldn't start it: {e}"))?;
@@ -221,7 +224,7 @@ pub(super) fn run_program(program: &Path, args: &[&str], limit: Duration) -> Res
             Ok(Some(status)) => break status,
             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
             _ => {
-                let _ = child.kill();
+                stop_all(&mut child);
                 let _ = child.wait();
                 return Err(format!(
                     "ran out of time after {} and was stopped",
@@ -241,6 +244,24 @@ pub(super) fn run_program(program: &Path, args: &[&str], limit: Duration) -> Res
         Some(line) => format!("exited with {code}: {line}"),
         None => format!("exited with {code}"),
     })
+}
+
+/// Stop `child` and the programs it started: the npm `codex` is a node
+/// script that starts the real one, and on Windows a shim runs under cmd.
+fn stop_all(child: &mut std::process::Child) {
+    #[cfg(unix)]
+    if let Ok(group) = i32::try_from(child.id()) {
+        // The child leads its own group, so this reaches only what it started.
+        unsafe { libc::kill(-group, libc::SIGKILL) };
+    }
+    #[cfg(windows)]
+    let _ = Command::new("taskkill")
+        .args(["/PID", &child.id().to_string(), "/T", "/F"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    let _ = child.kill();
 }
 
 fn seconds(d: Duration) -> String {
@@ -273,6 +294,16 @@ pub(super) fn install(
     run: &dyn Fn(&Path, &[&str], Duration) -> Result<(), String>,
 ) -> Vec<Outcome> {
     let started = Instant::now();
+    install_timed(agents, limits, run, &|| started.elapsed())
+}
+
+/// [`install`], with `elapsed` saying how much of the whole run's time is used.
+fn install_timed(
+    agents: &[Agent],
+    limits: Limits,
+    run: &dyn Fn(&Path, &[&str], Duration) -> Result<(), String>,
+    elapsed: &dyn Fn() -> Duration,
+) -> Vec<Outcome> {
     agents
         .iter()
         .map(|agent| {
@@ -292,7 +323,7 @@ pub(super) fn install(
                 message,
             };
             for (args, decides) in agent.steps() {
-                let left = limits.total.saturating_sub(started.elapsed());
+                let left = limits.total.saturating_sub(elapsed());
                 if left.is_zero() {
                     return failed(format!(
                         "ran out of time: setup stops after {}",
@@ -324,7 +355,9 @@ pub(super) fn run(agents: &[Agent], home: &Path, limits: Limits) -> Vec<Outcome>
     if agents.is_empty() {
         return vec![skills(home)];
     }
-    install(agents, limits, &run_program)
+    install(agents, limits, &|program, args, limit| {
+        run_program(program, args, limit, home)
+    })
 }
 
 /// What `setup` does for each agent, before it does it.
@@ -519,9 +552,11 @@ pub(super) fn copy_skills(unpacked: &Path, home: &Path) -> Result<Copied, String
             }
             std::fs::remove_dir_all(&target).map_err(|e| format!("{}: {e}", target.display()))?;
         }
-        copy_dir(&unpacked.join(&name), &target)
+        // Marked first, so a copy that stops partway is still replaced next time.
+        std::fs::create_dir_all(&target)
+            .and_then(|()| std::fs::write(target.join(MARKER), ""))
+            .and_then(|()| copy_dir(&unpacked.join(&name), &target))
             .map_err(|e| format!("{}: {e}", target.display()))?;
-        std::fs::write(target.join(MARKER), "").map_err(|e| e.to_string())?;
         copied.written.push(name);
     }
     Ok(copied)
@@ -547,7 +582,7 @@ fn handle(matches: &clap::ArgMatches) -> Result<(), CliError> {
     let home = home()
         .ok_or_else(|| CliError::Validation("No home folder found (HOME is not set).".into()))?;
     let agents = found_here(&home);
-    if !matches.get_flag("yes") {
+    if !matches.get_flag("yes") || super::util::dry_run_flag(matches) {
         for line in plan(&agents, &home) {
             println!("{line}");
         }
@@ -558,6 +593,10 @@ fn handle(matches: &clap::ArgMatches) -> Result<(), CliError> {
     for outcome in &outcomes {
         println!("{}", result_line(outcome));
     }
+    let failed = outcomes.iter().any(|o| !o.ok);
+    if failed {
+        println!("To try again, run `{}`.", later_command());
+    }
     let finish: Vec<String> = outcomes.iter().filter_map(finish).collect();
     if !finish.is_empty() {
         println!("\nTo finish:");
@@ -565,7 +604,7 @@ fn handle(matches: &clap::ArgMatches) -> Result<(), CliError> {
             println!("- {step}");
         }
     }
-    if outcomes.iter().any(|o| !o.ok) {
+    if failed {
         std::process::exit(1);
     }
     Ok(())
@@ -649,25 +688,53 @@ mod tests {
     }
 
     #[test]
-    fn claude_code_is_the_program_it_names_when_that_exists() {
+    fn claude_code_is_the_program_it_names_when_that_is_claude() {
         let home = tempfile::tempdir().unwrap();
-        let program = home.path().join("claude-desktop-bundled");
-        std::fs::write(&program, "").unwrap();
-        let inside = env_of(&[("CLAUDE_CODE_EXECPATH", program.to_str().unwrap())]);
-        assert_eq!(
-            found(&inside, &path_with(&["claude"]), home.path()),
-            vec![Agent::ClaudeCode(program.clone())]
-        );
-        assert_eq!(
-            found(&inside, &path_with(&[]), home.path()),
-            vec![Agent::ClaudeCode(program)]
-        );
+        for name in ["claude", "Claude.exe", "CLAUDE"] {
+            let dir = tempfile::tempdir().unwrap();
+            let program = dir.path().join(name);
+            std::fs::write(&program, "").unwrap();
+            let inside = env_of(&[("CLAUDE_CODE_EXECPATH", program.to_str().unwrap())]);
+            assert_eq!(
+                found(&inside, &path_with(&["claude"]), home.path()),
+                vec![Agent::ClaudeCode(program.clone())],
+                "{name}"
+            );
+            assert_eq!(
+                found(&inside, &path_with(&[]), home.path()),
+                vec![Agent::ClaudeCode(program)],
+                "{name}"
+            );
+        }
         let gone = env_of(&[("CLAUDE_CODE_EXECPATH", "/nowhere/claude")]);
         assert_eq!(found(&gone, &path_with(&[]), home.path()), vec![]);
         assert_eq!(
             found(&gone, &path_with(&["claude"]), home.path()),
             vec![Agent::ClaudeCode("/bin/claude".into())]
         );
+    }
+
+    /// Claude Code installed by npm names the runtime that runs it, which
+    /// would load the project's own `plugin.js` given `plugin install`.
+    #[test]
+    fn a_runtime_named_by_claude_code_is_never_started() {
+        let home = tempfile::tempdir().unwrap();
+        for name in ["node", "bun", "node.exe", "claude-desktop", "claude.cmd"] {
+            let dir = tempfile::tempdir().unwrap();
+            let program = dir.path().join(name);
+            std::fs::write(&program, "").unwrap();
+            let inside = env_of(&[("CLAUDE_CODE_EXECPATH", program.to_str().unwrap())]);
+            assert_eq!(
+                found(&inside, &path_with(&["claude"]), home.path()),
+                vec![Agent::ClaudeCode("/bin/claude".into())],
+                "{name}: claude on PATH instead"
+            );
+            assert_eq!(
+                found(&inside, &path_with(&[]), home.path()),
+                vec![],
+                "{name}"
+            );
+        }
     }
 
     #[cfg(unix)]
@@ -704,27 +771,6 @@ mod tests {
         assert_eq!(home_for(true, &env), Some(PathBuf::from("C:\\Users\\dev")));
         assert_eq!(home_for(true, &env_of(&[("HOME", "/home/dev")])), None);
         assert_eq!(home_for(false, &env_of(&[("HOME", "")])), None);
-    }
-
-    #[test]
-    fn agents_start_directly_on_unix_and_through_cmd_on_windows() {
-        let args = ["plugin", "add", "elevenlabs@elevenlabs"];
-        let (exe, argv) = argv(Path::new("/usr/local/bin/codex"), &args, false);
-        assert_eq!(exe, "/usr/local/bin/codex");
-        assert_eq!(argv, ["plugin", "add", "elevenlabs@elevenlabs"]);
-        let shim = Path::new("C:\\Users\\dev\\AppData\\Roaming\\npm\\codex.cmd");
-        let (exe, argv) = super::argv(shim, &args, true);
-        assert_eq!(exe, "cmd");
-        assert_eq!(
-            argv,
-            [
-                "/C",
-                "C:\\Users\\dev\\AppData\\Roaming\\npm\\codex.cmd",
-                "plugin",
-                "add",
-                "elevenlabs@elevenlabs"
-            ]
-        );
     }
 
     const LIMITS_FOR_TESTS: Limits = Limits {
@@ -844,15 +890,17 @@ mod tests {
     #[test]
     fn agents_not_reached_in_time_count_as_failed() {
         let recorder = Recorder::new(&[]);
+        // Each command takes 30 s of a 50 s run, without waiting for it.
+        let used = std::cell::Cell::new(Duration::ZERO);
         let slow = |p: &Path, a: &[&str], l: Duration| {
-            std::thread::sleep(Duration::from_millis(30));
+            used.set(used.get() + Duration::from_secs(30));
             recorder.run(p, a, l)
         };
         let limits = Limits {
-            command: Duration::from_millis(500),
-            total: Duration::from_millis(50),
+            command: Duration::from_secs(30),
+            total: Duration::from_secs(50),
         };
-        let outcomes = install(&all_agents(), limits, &slow);
+        let outcomes = install_timed(&all_agents(), limits, &slow, &|| used.get());
         assert_eq!(recorder.ran().len(), 2, "{:?}", recorder.ran());
         assert!(
             !outcomes[0].ok && outcomes[0].message.contains("ran out of time"),
@@ -880,8 +928,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let hangs = script(dir.path(), "claude", "exec sleep 30");
         let started = Instant::now();
-        let err =
-            run_program(&hangs, &["plugin", "install"], Duration::from_millis(200)).unwrap_err();
+        let err = run_program(
+            &hangs,
+            &["plugin", "install"],
+            Duration::from_millis(200),
+            dir.path(),
+        )
+        .unwrap_err();
         assert!(
             started.elapsed() < Duration::from_secs(5),
             "{:?}",
@@ -895,7 +948,7 @@ mod tests {
                 command: Duration::from_millis(200),
                 total: Duration::from_millis(300),
             },
-            &run_program,
+            &|p, a, l| run_program(p, a, l, dir.path()),
         );
         assert!(
             started.elapsed() < Duration::from_secs(5),
@@ -920,11 +973,55 @@ mod tests {
             "echo working; echo 'first' >&2; echo 'no such plugin' >&2; exit 3",
         );
         assert_eq!(
-            run_program(&fails, &[], Duration::from_secs(10)),
+            run_program(&fails, &[], Duration::from_secs(10), dir.path()),
             Err("exited with 3: no such plugin".into())
         );
         let reads = script(dir.path(), "reads", "read line && exit 1; exit 0");
-        assert_eq!(run_program(&reads, &[], Duration::from_secs(10)), Ok(()));
+        assert_eq!(
+            run_program(&reads, &[], Duration::from_secs(10), dir.path()),
+            Ok(())
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_command_past_its_limit_is_stopped_with_everything_it_started() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid = dir.path().join("pid");
+        let hangs = script(
+            dir.path(),
+            "codex",
+            &format!("sleep 300 &\necho $! > '{}'\nwait", pid.display()),
+        );
+        // Long enough for the stand-in to start its child on a busy machine.
+        let err = run_program(&hangs, &[], Duration::from_secs(2), dir.path()).unwrap_err();
+        assert!(err.contains("ran out of time"), "{err}");
+        let pid: i32 = std::fs::read_to_string(&pid).unwrap().trim().parse().unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while unsafe { libc::kill(pid, 0) } == 0 {
+            assert!(Instant::now() < deadline, "sleep {pid} still runs");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn agents_run_in_the_home_folder_not_the_project() {
+        let (dir, home) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let wrote = dir.path().join("pwd");
+        let prints = script(
+            dir.path(),
+            "claude",
+            &format!("pwd -P > '{0}'; echo \"$PWD\" >> '{0}'", wrote.display()),
+        );
+        run_program(&prints, &[], Duration::from_secs(10), home.path()).unwrap();
+        let home = home.path().canonicalize().unwrap();
+        let lines: Vec<PathBuf> = std::fs::read_to_string(&wrote)
+            .unwrap()
+            .lines()
+            .map(|l| Path::new(l).canonicalize().unwrap())
+            .collect();
+        assert_eq!(lines, [home.clone(), home]);
     }
 
     fn skill(dir: &Path, name: &str, text: &str) {
@@ -978,6 +1075,28 @@ mod tests {
         // Again: everything setup wrote is replaced, the developer's still left.
         let again = copy_skills(unpacked.path(), home.path()).unwrap();
         assert_eq!(again, copied);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_copy_that_stops_partway_is_replaced_next_time() {
+        use std::os::unix::fs::PermissionsExt;
+        let (unpacked, home) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        skill(unpacked.path(), "music", "new music");
+        let unreadable = unpacked.path().join("music").join("references").join("a.md");
+        std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let target = skills_root(home.path()).join("music");
+
+        assert!(copy_skills(unpacked.path(), home.path()).is_err());
+        assert!(target.join(MARKER).is_file(), "marked before the copy");
+
+        std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let copied = copy_skills(unpacked.path(), home.path()).unwrap();
+        assert_eq!(copied.written, ["music"]);
+        assert_eq!(
+            std::fs::read_to_string(target.join("references").join("a.md")).unwrap(),
+            "ref"
+        );
     }
 
     #[test]

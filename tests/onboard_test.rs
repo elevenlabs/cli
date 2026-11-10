@@ -2088,7 +2088,8 @@ fn setup_says_what_it_would_do_and_does_it_with_yes() {
     assert_eq!(out.status.code(), Some(1), "{}", all_output(&out));
     assert_eq!(
         String::from_utf8_lossy(&out.stdout),
-        "Claude Code: failed: `claude plugin update elevenlabs@elevenlabs` exited with 1: install refused\n"
+        "Claude Code: failed: `claude plugin update elevenlabs@elevenlabs` exited with 1: install refused\n\
+         To try again, run `elevenlabs setup --yes`.\n"
     );
 
     // Only Cursor: its link, and nothing written.
@@ -2105,6 +2106,59 @@ fn setup_says_what_it_would_do_and_does_it_with_yes() {
     );
     let entries: Vec<_> = std::fs::read_dir(home.path()).unwrap().flatten().map(|e| e.file_name()).collect();
     assert_eq!(entries, [".cursor"], "nothing written");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn with_dry_run_setup_installs_nothing() {
+    let server = MockServer::start().await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, None);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+
+    let out = cli(home.path(), cwd.path(), &server.uri(), &["setup", "--yes", "--dry-run"])
+        .env("PATH", &path)
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert!(
+        String::from_utf8_lossy(&out.stdout)
+            .ends_with("Nothing was changed. Run `elevenlabs setup --yes` to do it.\n"),
+        "{}",
+        all_output(&out)
+    );
+
+    let r = reply(
+        cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup", "--env-path", ".env.local", "--dry-run"])
+            .env("PATH", &path),
+    );
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(
+        say(&r),
+        "Nothing was installed in the coding agents, because of --dry-run. To set them up, run \
+         `elevenlabs setup --yes`."
+    );
+    assert!(recorded(&record).is_empty(), "nothing ran");
+    assert!(server.received_requests().await.unwrap().is_empty(), "no account request");
+}
+
+#[test]
+fn onboard_setup_without_a_home_folder_says_so_and_ends() {
+    let (home, cwd) = temp();
+    let r = reply(
+        cli(home.path(), cwd.path(), OFFLINE, &["onboard", "setup"])
+            .env_remove("HOME")
+            .env_remove("USERPROFILE")
+            .env("PATH", "/usr/bin:/bin"),
+    );
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(
+        say(&r),
+        "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
+         later, run `elevenlabs setup --yes`."
+    );
 }
 
 #[tokio::test]

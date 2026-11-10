@@ -449,16 +449,16 @@ elevenlabs components add conversation-bar
 `elevenlabs setup` installs the [ElevenLabs plugin](https://github.com/elevenlabs/plugin) (the ElevenLabs skills and the hosted MCP server) into the coding agents it finds, through each agent's own plugin command:
 
 ```bash
-elevenlabs setup         # say what it would do, and change nothing
+elevenlabs setup         # say what it would do, and change nothing (so does --dry-run)
 elevenlabs setup --yes   # do it
 ```
 
-- **Claude Code** (the program in `CLAUDE_CODE_EXECPATH` when run inside it, else `claude` on `PATH`): `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user`, then `claude plugin update elevenlabs@elevenlabs`.
+- **Claude Code** (when run inside it, the program in `CLAUDE_CODE_EXECPATH` if that is `claude`, else `claude` on `PATH`): `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user`, then `claude plugin update elevenlabs@elevenlabs`.
 - **Codex** (`codex` on `PATH`): `codex plugin marketplace add elevenlabs/plugin`, then `codex plugin add elevenlabs@elevenlabs`.
 - **Cursor** (a `~/.cursor` folder, or run inside Cursor) has no install command: `setup` prints the link to [its marketplace page](https://cursor.com/marketplace/elevenlabs), where you select Install.
 - **None of these**: `setup` copies the [ElevenLabs skills](https://github.com/elevenlabs/skills) into `~/.agents/skills`, one folder per skill. A folder there that `setup` didn't write is left as it is, and named in the output.
 
-Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
+Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again. Agent commands run in your home folder, never in the project. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
 
 When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), the flow can end by offering to do this for you; saying yes runs `onboard setup`, which does what `setup --yes` does.
 

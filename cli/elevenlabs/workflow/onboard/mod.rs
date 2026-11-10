@@ -69,14 +69,30 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
 /// offers accepted can be counted; its answer changes nothing.
 fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, CliError> {
     let started = std::time::Instant::now();
+    let later = super::setup::later_command();
+    if super::util::dry_run_flag(matches) {
+        return Ok(reply::Reply::new(
+            reply::Next::Done,
+            format!(
+                "Nothing was installed in the coding agents, because of --dry-run. To set them up, run `{later}`."
+            ),
+        ));
+    }
     let project = project::Project::open(matches)?;
     if super::telemetry::enabled() {
         if let Some(key) = project.key() {
             let _ = auth::check_key(ctx, &key.value);
         }
     }
-    let home = super::setup::home()
-        .ok_or_else(|| CliError::Other(anyhow::anyhow!("no home folder to set the agents up in")))?;
+    let Some(home) = super::setup::home() else {
+        return Ok(reply::Reply::new(
+            reply::Next::Done,
+            format!(
+                "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
+                 later, run `{later}`."
+            ),
+        ));
+    };
     // The request's time comes out of the whole run's, so the reply still comes in time.
     let limits = super::setup::Limits {
         total: super::setup::LIMITS.total.saturating_sub(started.elapsed()),
@@ -92,10 +108,7 @@ fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, C
         say.push(line);
     }
     if outcomes.iter().any(|o| !o.ok) {
-        say.push(format!(
-            "To try again later, run `{}`.",
-            super::setup::later_command()
-        ));
+        say.push(format!("To try again later, run `{later}`."));
     }
     Ok(reply::Reply::new(reply::Next::Done, say.join(" ")).detail("setup", &outcomes))
 }
