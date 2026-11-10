@@ -129,7 +129,7 @@ The voice, model, audio format and player default to whatever you have stored, a
 
 ```bash
 elevenlabs say config                                    # show the current defaults
-elevenlabs say config voice 21m00Tcm4TlvDq8ikWAM
+elevenlabs say config voice EXAVITQu4vr4xnSDxMaL
 elevenlabs say config model eleven_multilingual_v2
 elevenlabs say config player mpv
 elevenlabs say config voice --unset                      # back to the built-in default
