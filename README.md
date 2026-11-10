@@ -19,6 +19,7 @@ The CLI does two things:
 - [Agents as Code](#agents-as-code)
 - [Data residency](#data-residency)
 - [UI components](#ui-components)
+- [Set up your coding agents](#set-up-your-coding-agents)
 - [Usage](#usage)
 - [Documentation](#documentation)
 - [Advanced](#advanced)
@@ -443,6 +444,24 @@ elevenlabs components add                    # all components
 elevenlabs components add conversation-bar
 ```
 
+## Set up your coding agents
+
+`elevenlabs setup` installs the [ElevenLabs plugin](https://github.com/elevenlabs/plugin) (the ElevenLabs skills and the hosted MCP server) into the coding agents it finds, through each agent's own plugin command:
+
+```bash
+elevenlabs setup         # say what it would do, and change nothing
+elevenlabs setup --yes   # do it
+```
+
+- **Claude Code** (the program in `CLAUDE_CODE_EXECPATH` when run inside it, else `claude` on `PATH`): `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user`, then `claude plugin update elevenlabs@elevenlabs`.
+- **Codex** (`codex` on `PATH`): `codex plugin marketplace add elevenlabs/plugin`, then `codex plugin add elevenlabs@elevenlabs`.
+- **Cursor** (a `~/.cursor` folder, or run inside Cursor) has no install command: `setup` prints the link to [its marketplace page](https://cursor.com/marketplace/elevenlabs), where you select Install.
+- **None of these**: `setup` copies the [ElevenLabs skills](https://github.com/elevenlabs/skills) into `~/.agents/skills`, one folder per skill. A folder there that `setup` didn't write is left as it is, and named in the output.
+
+Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
+
+When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), the flow can end by offering to do this for you; saying yes runs `onboard setup`, which does what `setup --yes` does.
+
 ## Usage
 
 Every API resource appears as a subcommand (e.g. `elevenlabs <resource> <method>`). Run `elevenlabs <resource> --help` to see available methods.
@@ -562,6 +581,11 @@ approval link, where `<outcome>` is a fixed word such as `timed-out`,
 `stopped` or `no-key`. The link also carries `cli_prev_id`, the start of a
 SHA-256 hash of that sign-in's `state`, so it can be matched to its approval
 page; the state itself is never sent.
+
+When you accept the offer to set up your coding agents at the end of
+onboarding, `onboard setup` makes one account request (`GET /v1/user`, tagged
+`cmd/onboard.setup`) with the project's key, so we can count how many people
+accept it; with telemetry off it makes none.
 
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.

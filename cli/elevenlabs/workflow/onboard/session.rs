@@ -46,6 +46,17 @@ pub(super) const LAUNCH_FLAG: &str = "launch-worker";
 const REPORT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
 /// Where [`Session::start`] keeps how the sign-in before the new one ended.
 const PREVIOUS: &str = "previous.json";
+/// Left by a sign-in whose approval page asked the CLI to offer `setup` at
+/// the end of the flow; removed when the offer is made.
+const SETUP_OFFER: &str = "setup-offer";
+/// What a new sign-in clears of the last one's.
+const STALE: &[&str] = &[
+    "result.json",
+    "worker.log",
+    "worker.pid",
+    "signed-in",
+    SETUP_OFFER,
+];
 
 /// Every label a sign-in's outcome can have (see [`outcome_label`]): fixed
 /// words, so nothing the developer typed or the machine holds is reported.
@@ -197,9 +208,7 @@ impl Session {
             restarted = true;
         }
         self.keep_last_sign_in(restarted);
-        for stale in ["result.json", "worker.log", "worker.pid", "signed-in"] {
-            let _ = std::fs::remove_file(self.path(stale));
-        }
+        self.clear_stale();
         std::fs::write(self.path("request"), request).map_err(io(&self.path("request")))?;
         self.stop_others();
         keep_stdio_from_children();
@@ -298,6 +307,28 @@ impl Session {
     /// The browser step is over: another project's sign-in must not stop this one now.
     pub fn signed_in(&self, _lock: &WorkerLock) {
         let _ = std::fs::write(self.path("signed-in"), "");
+    }
+
+    /// The approval page asked for the `setup` offer at the end of the flow.
+    pub fn offer_setup(&self) {
+        let _ = std::fs::write(self.path(SETUP_OFFER), "");
+    }
+
+    /// The `setup` offer is still to be made for this sign-in.
+    pub fn setup_offer_due(&self) -> bool {
+        self.path(SETUP_OFFER).is_file()
+    }
+
+    /// The offer was made: once per sign-in.
+    pub fn setup_offer_made(&self) {
+        let _ = std::fs::remove_file(self.path(SETUP_OFFER));
+    }
+
+    /// Clear the last sign-in's files, for a new one.
+    pub(super) fn clear_stale(&self) {
+        for stale in STALE {
+            let _ = std::fs::remove_file(self.path(stale));
+        }
     }
 
     /// The worker's last act: its reply, for whoever is waiting.

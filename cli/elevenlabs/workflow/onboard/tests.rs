@@ -1713,3 +1713,48 @@ fn a_new_sign_in_keeps_how_the_last_one_ended() {
         .unwrap();
     assert_eq!(s.previous(), None);
 }
+
+#[test]
+fn a_sign_in_that_asked_for_the_setup_offer_leaves_it_due_until_made() {
+    use super::session::Session;
+    let dir = tempfile::tempdir().unwrap();
+    let s = Session::in_dir(dir.path().to_path_buf());
+    assert!(!s.setup_offer_due());
+    s.offer_setup();
+    assert!(dir.path().join("setup-offer").is_file());
+    assert!(s.setup_offer_due());
+    s.setup_offer_made();
+    assert!(!s.setup_offer_due());
+    // A new sign-in clears one the last sign-in left.
+    s.offer_setup();
+    std::fs::write(dir.path().join("previous.json"), "{}").unwrap();
+    s.clear_stale();
+    assert!(!s.setup_offer_due());
+    assert!(
+        dir.path().join("previous.json").exists(),
+        "kept for the new sign-in"
+    );
+}
+
+#[test]
+fn the_setup_offer_keeps_the_done_reply_and_adds_the_question() {
+    use super::reply::{Next, Reply};
+    let done =
+        Reply::new(Next::Done, "Your first request worked.").detail("audio_file", "/tmp/a.mp3");
+    let plain = done.to_value();
+    let v = Reply::new(Next::Done, "Your first request worked.")
+        .detail("audio_file", "/tmp/a.mp3")
+        .offer_setup("Want me to?".into(), "setup --env-path .env.local")
+        .to_value();
+    assert_eq!(v["next"], "offer_setup");
+    assert_eq!(v["say"], plain["say"]);
+    assert_eq!(v["details"]["audio_file"], plain["details"]["audio_file"]);
+    assert_eq!(v["details"]["question"], "Want me to?");
+    assert_eq!(v["run"], "elevenlabs onboard setup --env-path .env.local");
+    let instruction = v["instruction"].as_str().unwrap();
+    assert!(
+        instruction.contains("end your reply with the question in `details.question`")
+            && instruction.contains("Run `run` only if they say yes"),
+        "{instruction}"
+    );
+}

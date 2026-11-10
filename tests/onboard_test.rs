@@ -49,6 +49,8 @@ fn cli(home: &Path, cwd: &Path, server: &str, args: &[&str]) -> Command {
         "REMOTE_CONTAINERS",
         "CLAUDECODE",
         "CLAUDE_CODE_ENTRYPOINT",
+        // Names the developer's own Claude Code, which `setup` would install into.
+        "CLAUDE_CODE_EXECPATH",
         "CODEX_THREAD_ID",
         "CODEX_SANDBOX",
         "CODEX_SANDBOX_NETWORK_DISABLED",
@@ -1729,4 +1731,426 @@ async fn with_telemetry_off_nothing_is_said_about_the_machine_or_the_last_sign_i
         assert!(!agent.contains("agent/"), "{agent}");
         assert!(!agent.contains("os/"), "{agent}");
     }
+}
+
+// ── setup, and the offer at the end of the flow ─────────────────────
+
+/// The sign-in folder `onboard` keeps for the project in `cwd`, named as
+/// `Session::for_project` names it.
+fn session_dir(home: &Path, cwd: &Path) -> PathBuf {
+    use sha2::Digest;
+    let canonical = cwd.canonicalize().unwrap();
+    let id: String = sha2::Sha256::digest(canonical.to_string_lossy().as_bytes())
+        .iter()
+        .take(8)
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    home.join(".elevenlabs").join("onboard").join(id)
+}
+
+/// What a sign-in whose page asked for the `setup` offer leaves.
+fn setup_offer_due(home: &Path, cwd: &Path) -> PathBuf {
+    let dir = session_dir(home, cwd);
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("setup-offer");
+    std::fs::write(&file, "").unwrap();
+    file
+}
+
+/// Stand-ins for the agents' programs in a folder of their own, each adding
+/// the command it was given to `record`, and failing the one whose arguments
+/// contain `fail`. Returns a PATH with only them and the system's tools.
+#[cfg(unix)]
+fn stand_ins(dir: &Path, names: &[&str], record: &Path, fail: Option<&str>) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    for name in names {
+        let fails = match fail {
+            Some(args) => format!(
+                "case \"$*\" in *\"{args}\"*) echo 'something broke' >&2; echo 'install refused' >&2; exit 1;; esac\n"
+            ),
+            None => String::new(),
+        };
+        let script = format!(
+            "#!/bin/sh\necho \"{name} $*\" >> '{}'\n{fails}exit 0\n",
+            record.display()
+        );
+        let path = dir.join(name);
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    format!("{}:/usr/bin:/bin", dir.display())
+}
+
+fn recorded(record: &Path) -> Vec<String> {
+    std::fs::read_to_string(record)
+        .unwrap_or_default()
+        .lines()
+        .map(str::to_string)
+        .collect()
+}
+
+/// The same reply, apart from the clip, whose file is new each time.
+fn without_clip(reply: &Value) -> String {
+    let clip = reply["details"]["audio_file"].as_str().unwrap();
+    say(reply).replace(clip, "<clip>")
+}
+
+const PLUGIN_QUESTION: &str = "Want me to set ElevenLabs up in {} too? It installs the ElevenLabs plugin \
+    (skills and the hosted MCP server), so new sessions can use ElevenLabs right away.";
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_test_request_that_worked_offers_setup_once_when_the_sign_in_asked() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3-fake-mp3".to_vec()))
+        .mount(&server)
+        .await;
+    let failing = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(
+            ResponseTemplate::new(500).set_body_json(json!({"detail": {"message": "down"}})),
+        )
+        .mount(&failing)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude"], &record, None);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let test = |server: &str| {
+        reply(
+            cli(home.path(), cwd.path(), server, &["onboard", "test"]).env("PATH", &path),
+        )
+    };
+
+    let plain = test(&server.uri());
+    assert_eq!(plain["next"], "done", "no offer without the sign-in asking: {plain}");
+
+    let offer = setup_offer_due(home.path(), cwd.path());
+    // A test request that failed ends as it always has, and the offer waits.
+    let r = test(&failing.uri());
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r["details"].get("question").is_none(), "{r}");
+    assert!(offer.exists());
+
+    let r = test(&server.uri());
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(
+        r["details"]["question"],
+        PLUGIN_QUESTION.replace("{}", "Claude Code")
+    );
+    assert_eq!(r["run"], "elevenlabs onboard setup --env-path .env.local");
+    assert_eq!(without_clip(&r), without_clip(&plain), "the same say");
+    assert_eq!(r["details"]["status"], 200);
+    assert!(std::path::Path::new(r["details"]["audio_file"].as_str().unwrap()).exists());
+    assert!(r["instruction"].as_str().unwrap().contains("details.question"), "{r}");
+    assert!(!offer.exists(), "made once");
+    assert!(recorded(&record).is_empty(), "offering runs nothing");
+
+    let r = test(&server.uri());
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r["details"].get("question").is_none(), "{r}");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_voice_agent_project_offers_setup_at_its_link() {
+    const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    agent_endpoint(
+        &server,
+        KEY,
+        MINE,
+        "Store helper",
+        json!({"enable_auth": false, "allowlist": []}),
+    )
+    .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let path = stand_ins(bin.path(), &["codex"], &bin.path().join("ran"), None);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    write(cwd.path(), "index.html", &embed(MINE));
+    let check = || {
+        reply(
+            cli(
+                home.path(),
+                cwd.path(),
+                &server.uri(),
+                &["onboard", "check", "--answered", "--no-browser"],
+            )
+            .env("PATH", &path),
+        )
+    };
+    // The first check also fixes the file, which the details say once.
+    check();
+    let plain = check();
+    assert_eq!(plain["next"], "done", "{plain}");
+
+    let offer = setup_offer_due(home.path(), cwd.path());
+    let r = check();
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(r["details"]["question"], PLUGIN_QUESTION.replace("{}", "Codex"));
+    assert_eq!(
+        r["run"],
+        "elevenlabs onboard setup --env-path .env.local --no-browser"
+    );
+    assert_eq!(r["say"], plain["say"]);
+    let mut details = r["details"].clone();
+    details.as_object_mut().unwrap().remove("question");
+    assert_eq!(details, plain["details"], "the same details, and the question");
+    assert!(!offer.exists());
+    assert_eq!(check()["next"], "done");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn with_only_cursor_there_is_no_offer() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3".to_vec()))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    std::fs::create_dir(home.path().join(".cursor")).unwrap();
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let offer = setup_offer_due(home.path(), cwd.path());
+    let r = reply(
+        cli(home.path(), cwd.path(), &server.uri(), &["onboard", "test"]).env("PATH", "/usr/bin:/bin"),
+    );
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(offer.exists(), "kept: Cursor has nothing to install with");
+}
+
+/// The six commands, in order, that install the plugin in Claude Code and Codex.
+const INSTALLS: [&str; 6] = [
+    "claude plugin marketplace update elevenlabs",
+    "claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user",
+    "claude plugin update elevenlabs@elevenlabs",
+    "codex plugin marketplace add elevenlabs/plugin",
+    "codex plugin marketplace upgrade elevenlabs",
+    "codex plugin add elevenlabs@elevenlabs",
+];
+
+#[cfg(unix)]
+#[tokio::test]
+async fn onboard_setup_installs_in_each_agent_and_never_makes_speech() {
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    Mock::given(method("POST"))
+        .and(path_regex("^/v1/text-to-speech"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, None);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let setup = |args: &[&str], env: &[(&str, &str)]| {
+        reply(
+            cli(
+                home.path(),
+                cwd.path(),
+                &server.uri(),
+                &[&["onboard", "setup", "--env-path", ".env.local"][..], args].concat(),
+            )
+            .env("PATH", &path)
+            .envs(env.iter().copied()),
+        )
+    };
+    let user_requests = || async {
+        server
+            .received_requests()
+            .await
+            .unwrap()
+            .into_iter()
+            .filter(|r| r.url.path() == "/v1/user")
+            .map(|r| r.headers["user-agent"].to_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+
+    let r = setup(&["--no-browser"], &[]);
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r.get("run").is_none(), "{r}");
+    assert_eq!(recorded(&record), INSTALLS);
+    assert_eq!(
+        say(&r),
+        "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
+         Claude Code, then run /mcp and sign in to the ElevenLabs MCP server. Codex: installed the ElevenLabs \
+         plugin (skills and the hosted MCP server). To finish, restart Codex, then run `codex mcp login \
+         elevenlabs` to sign in to the ElevenLabs MCP server."
+    );
+    let results = r["details"]["setup"].as_array().unwrap();
+    assert_eq!(results.len(), 2, "{r}");
+    assert!(results.iter().all(|a| a["ok"] == true), "{r}");
+    let agents = user_requests().await;
+    assert_eq!(agents.len(), 1, "one account request with telemetry on: {agents:?}");
+    assert!(agents[0].contains("cmd/onboard.setup"), "{}", agents[0]);
+
+    std::fs::remove_file(&record).unwrap();
+    for off in [&[("ELEVENLABS_TELEMETRY", "off")][..], &[("DO_NOT_TRACK", "1")][..]] {
+        let r = setup(&[], off);
+        assert_eq!(r["next"], "done", "{r}");
+    }
+    assert_eq!(recorded(&record).len(), 12, "installed both times");
+    assert_eq!(user_requests().await.len(), 1, "none with telemetry off");
+
+    // Cursor gets its link with the rest.
+    std::fs::create_dir(home.path().join(".cursor")).unwrap();
+    let r = setup(&[], &[]);
+    assert!(
+        say(&r).ends_with("Cursor: open https://cursor.com/marketplace/elevenlabs and select Install."),
+        "{r}"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_failed_install_ends_on_the_command_to_run_later() {
+    let server = MockServer::start().await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, Some("plugin install"));
+    for (npm, later) in [
+        (None, "elevenlabs setup --yes"),
+        (Some("exec"), "npx -y @elevenlabs/cli@latest setup --yes"),
+    ] {
+        let mut cmd = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"]);
+        cmd.env("PATH", &path);
+        if let Some(npm) = npm {
+            cmd.env("npm_command", npm);
+        }
+        let r = reply(&mut cmd);
+        assert_eq!(r["next"], "done", "{r}");
+        assert!(
+            say(&r).starts_with(
+                "Claude Code: failed: `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user` \
+                 exited with 1: install refused. Codex: installed"
+            ),
+            "{r}"
+        );
+        assert!(
+            say(&r).ends_with(&format!("To try again later, run `{later}`.")),
+            "{r}"
+        );
+        assert_eq!(r["details"]["setup"][0]["ok"], false, "{r}");
+    }
+    // No request without a key, telemetry on or not.
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_says_what_it_would_do_and_does_it_with_yes() {
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, None);
+    let run = |args: &[&str], path: &str| {
+        cli(home.path(), cwd.path(), OFFLINE, args)
+            .env("PATH", path)
+            .output()
+            .unwrap()
+    };
+
+    let out = run(&["setup"], &path);
+    assert!(out.status.success(), "{}", all_output(&out));
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert_eq!(
+        stdout,
+        format!(
+            "Claude Code ({0}/claude): install the ElevenLabs plugin (skills and the hosted MCP server)\n\
+             Codex ({0}/codex): install the ElevenLabs plugin (skills and the hosted MCP server)\n\
+             Nothing was changed. Run `elevenlabs setup --yes` to do it.\n",
+            bin.path().display()
+        )
+    );
+    assert!(recorded(&record).is_empty(), "nothing ran");
+
+    for _ in 0..2 {
+        let out = run(&["setup", "--yes"], &path);
+        assert!(out.status.success(), "{}", all_output(&out));
+        let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+        assert!(stdout.contains("\nTo finish:\n- restart Claude Code, then run /mcp"), "{stdout}");
+    }
+    assert_eq!(recorded(&record), [INSTALLS, INSTALLS].concat(), "again: the update commands run too");
+
+    let failing = tempfile::tempdir().unwrap();
+    let path = stand_ins(failing.path(), &["claude"], &failing.path().join("ran"), Some("plugin update"));
+    let out = run(&["setup", "--yes"], &path);
+    assert_eq!(out.status.code(), Some(1), "{}", all_output(&out));
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout),
+        "Claude Code: failed: `claude plugin update elevenlabs@elevenlabs` exited with 1: install refused\n"
+    );
+
+    // Only Cursor: its link, and nothing written.
+    let (home, cwd) = temp();
+    std::fs::create_dir(home.path().join(".cursor")).unwrap();
+    let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+        .env("PATH", "/usr/bin:/bin")
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout),
+        "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install\n"
+    );
+    let entries: Vec<_> = std::fs::read_dir(home.path()).unwrap().flatten().map(|e| e.file_name()).collect();
+    assert_eq!(entries, [".cursor"], "nothing written");
+}
+
+#[tokio::test]
+async fn the_sign_in_asks_for_the_setup_offer_and_keeps_the_pages_answer() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v1/oauth/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "token",
+            "token_type": "Bearer",
+            "expires_in": 3600
+        })))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    // Signs in with telemetry off, and the page's callback carrying `params`.
+    let sign_in = |params: &str| {
+        let first = reply(&mut cli(
+            home.path(),
+            cwd.path(),
+            &server.uri(),
+            &["onboard", "connect", "--no-browser", "--authorize-url", &authorize, "--telemetry", "off"],
+        ));
+        let url = link(&first);
+        assert_eq!(query(&url, "setup_offer"), "1", "{url}");
+        callback(&url, &format!("code=approved{params}"));
+        let deadline = Instant::now() + Duration::from_secs(60);
+        loop {
+            let r = connect(home.path(), cwd.path(), &["--wait", "--no-browser"]);
+            if r["next"] != "wait" || Instant::now() >= deadline {
+                assert_eq!(r["details"]["key_status"], "no_key", "{r}");
+                break;
+            }
+        }
+    };
+    let offer = session_dir(home.path(), cwd.path()).join("setup-offer");
+    sign_in("&setup_offer=1");
+    assert!(offer.exists(), "the page asked for the offer");
+    sign_in("");
+    assert!(!offer.exists(), "a new sign-in without it clears the last one's");
+    sign_in("&setup_offer=yes");
+    assert!(!offer.exists());
 }

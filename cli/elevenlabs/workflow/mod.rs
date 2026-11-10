@@ -29,6 +29,7 @@ mod project;
 mod residency;
 mod say;
 mod settings;
+mod setup;
 mod skills;
 mod telemetry;
 mod templates;
@@ -57,6 +58,7 @@ pub fn register(app: CliApp) -> CliApp {
     let app = feedback::register(app);
     let app = say::register(app);
     let app = flows_wait::register(app);
+    let app = setup::register(app);
     // Shadows the framework's built-in; see that module's docs.
     let app = skills::register(app);
     components::register(app)

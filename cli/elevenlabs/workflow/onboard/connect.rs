@@ -51,8 +51,11 @@ pub(super) fn handle(
             "onboard.connect",
             super::sign_in_tag(previous.as_ref()),
         );
-        let reply = sign_in_and_store(matches, ctx, &project, previous.as_ref(), || {
-            session.signed_in(&lock)
+        let reply = sign_in_and_store(matches, ctx, &project, previous.as_ref(), |setup_offer| {
+            session.signed_in(&lock);
+            if setup_offer {
+                session.offer_setup();
+            }
         })
         .unwrap_or_else(|e| failed(&project, &e.to_string(), replace));
         session.finish(&lock, &reply.to_value())?;
@@ -243,28 +246,30 @@ pub(super) fn outcome_of(
 }
 
 /// The worker: sign in, then move the key from the clipboard into the env file.
+/// `on_signed_in` gets whether the page asked for the `setup` offer.
 fn sign_in_and_store(
     matches: &clap::ArgMatches,
     ctx: &AppContext,
     project: &Project,
     previous: Option<&LastSignIn>,
-    on_signed_in: impl FnOnce(),
+    on_signed_in: impl FnOnce(bool),
 ) -> Result<Reply, CliError> {
     let client = ctx.http_config().build_client()?;
-    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser, previous) {
-        Ok(token) => token,
-        Err(error) => {
-            // The page may have copied a key before the callback failed; nothing
-            // can vouch for it now, so it is cleared, not stored.
-            Clipboard::open().discard_key();
-            return Ok(failed(
-                project,
-                &error.to_string(),
-                matches.get_flag("replace"),
-            ));
-        }
-    };
-    on_signed_in();
+    let (token, setup_offer) =
+        match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser, previous) {
+            Ok(signed_in) => signed_in,
+            Err(error) => {
+                // The page may have copied a key before the callback failed; nothing
+                // can vouch for it now, so it is cleared, not stored.
+                Clipboard::open().discard_key();
+                return Ok(failed(
+                    project,
+                    &error.to_string(),
+                    matches.get_flag("replace"),
+                ));
+            }
+        };
+    on_signed_in(setup_offer);
     let mut clipboard = Clipboard::open();
     let clip = clipboard.read_handoff();
     let copied = match &clip {
