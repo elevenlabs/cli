@@ -2108,6 +2108,80 @@ fn setup_says_what_it_would_do_and_does_it_with_yes() {
     assert_eq!(entries, [".cursor"], "nothing written");
 }
 
+/// Kills the process when the test ends, passed or not.
+#[cfg(unix)]
+struct KillOnDrop(i32);
+
+#[cfg(unix)]
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        unsafe { libc::kill(self.0, libc::SIGKILL) };
+    }
+}
+
+/// Stops the child when the test ends, unless it has already exited.
+#[cfg(unix)]
+struct StopOnDrop(std::process::Child);
+
+#[cfg(unix)]
+impl Drop for StopOnDrop {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn ctrl_c_stops_the_agent_command_and_what_it_started() {
+    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::process::CommandExt;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let pid = bin.path().join("pid");
+    let claude = bin.path().join("claude");
+    std::fs::write(
+        &claude,
+        format!("#!/bin/sh\nsleep 300 &\necho $! > '{0}.new'\nmv '{0}.new' '{0}'\nwait\n", pid.display()),
+    )
+    .unwrap();
+    std::fs::set_permissions(&claude, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let mut cmd = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]);
+    cmd.env("PATH", format!("{}:/usr/bin:/bin", bin.path().display()));
+    // SIGINT at its default, as from a terminal, even where these tests run with it ignored.
+    unsafe {
+        cmd.pre_exec(|| {
+            libc::signal(libc::SIGINT, libc::SIG_DFL);
+            Ok(())
+        });
+    }
+    let mut setup = StopOnDrop(cmd.spawn().unwrap());
+    let setup = &mut setup.0;
+
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !pid.exists() {
+        assert!(Instant::now() < deadline, "the stand-in never started");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let sleep: i32 = std::fs::read_to_string(&pid).unwrap().trim().parse().unwrap();
+    let _sleep = KillOnDrop(sleep);
+
+    unsafe { libc::kill(setup.id() as i32, libc::SIGINT) };
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let status = loop {
+        if let Some(status) = setup.try_wait().unwrap() {
+            break status;
+        }
+        assert!(Instant::now() < deadline, "setup still runs after Ctrl-C");
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    assert_eq!(status.code(), Some(130), "{status:?}");
+    while unsafe { libc::kill(sleep, 0) } == 0 {
+        assert!(Instant::now() < deadline, "sleep {sleep} still runs");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn with_dry_run_setup_installs_nothing() {

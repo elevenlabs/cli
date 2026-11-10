@@ -91,6 +91,51 @@ jobs:
             exit 1
           fi
 
+      # PowerShell and cmd pass the search path as `Path`; Git Bash passes `PATH`.
+      - name: Set up a coding agent from PowerShell
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function New-TempFolder {
+            New-Item -ItemType Directory (Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid()))
+          }
+          $bin = (New-TempFolder).FullName
+          $log = Join-Path $bin 'ran.log'
+          # A stand-in `claude` that logs its arguments, one line per run.
+          Set-Content -Encoding ascii -Path (Join-Path $bin 'claude.cmd') -Value @(
+            '@echo off'
+            "echo %*>>`"$log`""
+            'exit /b 0'
+          )
+          # Spelled `Path` whatever the runner passed.
+          $searchPath = "$bin;$env:Path"
+          Remove-Item env:Path
+          [Environment]::SetEnvironmentVariable('Path', $searchPath)
+          foreach ($var in 'USERPROFILE', 'HOME', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME') {
+            Set-Item "env:$var" (New-TempFolder).FullName
+          }
+          Remove-Item env:CLAUDE_CODE_EXECPATH -ErrorAction SilentlyContinue
+          $name = [Environment]::GetEnvironmentVariables().Keys | Where-Object { $_ -ieq 'path' }
+          Write-Host "The search path variable is spelled: $name"
+          if ($name -cne 'Path') { throw "Expected the search path variable spelled Path, got $name" }
+
+          elevenlabs setup --yes
+          if ($LASTEXITCODE -ne 0) { throw "setup --yes exited with $LASTEXITCODE" }
+          if (-not (Test-Path $log)) { throw 'setup --yes ran no Claude Code command' }
+          # Quotes std may add around an argument aside.
+          $ran = @(Get-Content $log | ForEach-Object { $_.Replace('"', '').Trim() }) -join "`n"
+          $expected = @(
+            'plugin marketplace update elevenlabs'
+            'plugin install elevenlabs --marketplace elevenlabs/plugin --scope user'
+            'plugin update elevenlabs@elevenlabs'
+          ) -join "`n"
+          if ($ran -cne $expected) {
+            Write-Host "::error::Expected the three Claude Code commands, got:"
+            Write-Host $ran
+            exit 1
+          }
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:

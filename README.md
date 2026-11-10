@@ -458,7 +458,7 @@ elevenlabs setup --yes   # do it
 - **Cursor** (a `~/.cursor` folder, or run inside Cursor) has no install command: `setup` prints the link to [its marketplace page](https://cursor.com/marketplace/elevenlabs), where you select Install.
 - **None of these**: `setup` copies the [ElevenLabs skills](https://github.com/elevenlabs/skills) into `~/.agents/skills`, one folder per skill. A folder there that `setup` didn't write is left as it is, and named in the output.
 
-Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again. Agent commands run in your home folder, never in the project. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
+Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again. Agent commands run in your home folder, never in the project, and pressing Ctrl-C stops the one running along with anything it started. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
 
 When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), the flow can end by offering to do this for you; saying yes runs `onboard setup`, which does what `setup --yes` does.
 

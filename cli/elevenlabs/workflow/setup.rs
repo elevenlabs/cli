@@ -7,6 +7,7 @@
 //! `onboard setup` runs the same install when the developer accepts the offer
 //! at the end of onboarding.
 
+use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -153,12 +154,20 @@ pub(super) fn home() -> Option<PathBuf> {
 /// program this starts.
 fn shell_var(name: &str) -> Option<String> {
     match super::onboard::shell_env() {
-        Some(env) => env
-            .get(OsStr::new(name))
-            .and_then(|v| v.to_str())
-            .map(str::to_string),
+        Some(env) => env_var(env, name, cfg!(windows)),
         None => std::env::var(name).ok(),
     }
+}
+
+/// `name` in `env`. Windows ignores the case of a name: PowerShell and cmd
+/// pass the search path as `Path`.
+fn env_var(env: &HashMap<OsString, OsString>, name: &str, windows: bool) -> Option<String> {
+    let value = match env.get(OsStr::new(name)) {
+        Some(value) => value,
+        None if windows => env.iter().find(|(k, _)| k.eq_ignore_ascii_case(name))?.1,
+        None => return None,
+    };
+    value.to_str().map(str::to_string)
 }
 
 /// The first `name` on `path` that is a program (on Windows, with one of
@@ -215,11 +224,21 @@ pub(super) fn run_program(
     command.current_dir(home).env("PWD", home);
     #[cfg(unix)]
     std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    // In its own group it gets no Ctrl-C from the terminal: one sent here stops it.
+    #[cfg(unix)]
+    let interrupt = interrupt::Catch::start();
     let mut child = command
         .spawn()
         .map_err(|e| format!("couldn't start it: {e}"))?;
     let deadline = Instant::now() + limit;
     let status = loop {
+        #[cfg(unix)]
+        if let Some(signal) = interrupt.caught() {
+            stop_all(&mut child);
+            let _ = child.wait();
+            drop(interrupt);
+            std::process::exit(128 + signal);
+        }
         match child.try_wait() {
             Ok(Some(status)) => break status,
             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
@@ -262,6 +281,62 @@ fn stop_all(child: &mut std::process::Child) {
         .stderr(Stdio::null())
         .status();
     let _ = child.kill();
+}
+
+/// Ctrl-C and SIGTERM, caught while an agent command runs, so `run_program`
+/// can stop it before exiting as an interrupted program does.
+#[cfg(unix)]
+mod interrupt {
+    use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::Mutex;
+
+    const SIGNALS: [libc::c_int; 2] = [libc::SIGINT, libc::SIGTERM];
+
+    static CAUGHT: AtomicI32 = AtomicI32::new(0);
+    /// How many commands are waiting, and the handlers from before the first.
+    static WAITING: Mutex<(usize, [libc::sighandler_t; 2])> = Mutex::new((0, [0; 2]));
+
+    extern "C" fn note(signal: libc::c_int) {
+        CAUGHT.store(signal, Ordering::SeqCst);
+    }
+
+    /// Catches the signals until dropped, which puts the earlier handlers back.
+    pub struct Catch;
+
+    impl Catch {
+        pub fn start() -> Catch {
+            let mut waiting = WAITING.lock().unwrap_or_else(|e| e.into_inner());
+            if waiting.0 == 0 {
+                CAUGHT.store(0, Ordering::SeqCst);
+                for (signal, previous) in SIGNALS.iter().zip(waiting.1.iter_mut()) {
+                    let handler = note as extern "C" fn(libc::c_int) as libc::sighandler_t;
+                    *previous = unsafe { libc::signal(*signal, handler) };
+                    // A signal the parent chose to ignore stays ignored.
+                    if *previous == libc::SIG_IGN {
+                        unsafe { libc::signal(*signal, libc::SIG_IGN) };
+                    }
+                }
+            }
+            waiting.0 += 1;
+            Catch
+        }
+
+        pub fn caught(&self) -> Option<i32> {
+            Some(CAUGHT.load(Ordering::SeqCst)).filter(|&s| s != 0)
+        }
+    }
+
+    impl Drop for Catch {
+        fn drop(&mut self) {
+            let mut waiting = WAITING.lock().unwrap_or_else(|e| e.into_inner());
+            waiting.0 -= 1;
+            if waiting.0 == 0 {
+                for (signal, previous) in SIGNALS.iter().zip(waiting.1) {
+                    unsafe { libc::signal(*signal, previous) };
+                }
+            }
+        }
+    }
 }
 
 fn seconds(d: Duration) -> String {
@@ -552,11 +627,15 @@ pub(super) fn copy_skills(unpacked: &Path, home: &Path) -> Result<Copied, String
             }
             std::fs::remove_dir_all(&target).map_err(|e| format!("{}: {e}", target.display()))?;
         }
+        let failed = |e: std::io::Error| format!("{}: {e}", target.display());
+        std::fs::create_dir_all(&target).map_err(failed)?;
         // Marked first, so a copy that stops partway is still replaced next time.
-        std::fs::create_dir_all(&target)
-            .and_then(|()| std::fs::write(target.join(MARKER), ""))
-            .and_then(|()| copy_dir(&unpacked.join(&name), &target))
-            .map_err(|e| format!("{}: {e}", target.display()))?;
+        if let Err(e) = std::fs::write(target.join(MARKER), "") {
+            // Unmarked, it would count as the developer's and never be filled.
+            let _ = std::fs::remove_dir(&target);
+            return Err(failed(e));
+        }
+        copy_dir(&unpacked.join(&name), &target).map_err(failed)?;
         copied.written.push(name);
     }
     Ok(copied)
@@ -762,6 +841,28 @@ mod tests {
             on_path("codex", Some(&path), true),
             Some(dir.path().join("codex.cmd"))
         );
+    }
+
+    #[test]
+    fn on_windows_a_variable_is_found_whatever_the_case_of_its_name() {
+        let env: HashMap<OsString, OsString> = [("Path", "C:\\bin"), ("HOME", ""), ("Cursor_Agent", "1")]
+            .iter()
+            .map(|(k, v)| (k.into(), v.into()))
+            .collect();
+        assert_eq!(env_var(&env, "PATH", true), Some("C:\\bin".into()));
+        assert_eq!(env_var(&env, "PATH", false), None);
+        assert_eq!(env_var(&env, "CURSOR_AGENT", true), Some("1".into()));
+        assert_eq!(env_var(&env, "CURSOR_AGENT", false), None);
+        for windows in [true, false] {
+            assert_eq!(env_var(&env, "Path", windows), Some("C:\\bin".into()));
+            assert_eq!(env_var(&env, "HOME", windows), Some(String::new()), "empty, as set");
+            assert_eq!(env_var(&env, "USERPROFILE", windows), None);
+        }
+        let both: HashMap<OsString, OsString> = [("Path", "lower"), ("PATH", "exact")]
+            .iter()
+            .map(|(k, v)| (k.into(), v.into()))
+            .collect();
+        assert_eq!(env_var(&both, "PATH", true), Some("exact".into()));
     }
 
     #[test]
@@ -983,6 +1084,17 @@ mod tests {
         );
     }
 
+    /// Kills the process when the test ends, passed or not.
+    #[cfg(unix)]
+    struct KillOnDrop(i32);
+
+    #[cfg(unix)]
+    impl Drop for KillOnDrop {
+        fn drop(&mut self) {
+            unsafe { libc::kill(self.0, libc::SIGKILL) };
+        }
+    }
+
     #[cfg(unix)]
     #[test]
     fn a_command_past_its_limit_is_stopped_with_everything_it_started() {
@@ -994,9 +1106,11 @@ mod tests {
             &format!("sleep 300 &\necho $! > '{}'\nwait", pid.display()),
         );
         // Long enough for the stand-in to start its child on a busy machine.
-        let err = run_program(&hangs, &[], Duration::from_secs(2), dir.path()).unwrap_err();
-        assert!(err.contains("ran out of time"), "{err}");
+        let result = run_program(&hangs, &[], Duration::from_secs(2), dir.path());
         let pid: i32 = std::fs::read_to_string(&pid).unwrap().trim().parse().unwrap();
+        let _cleanup = KillOnDrop(pid);
+        let err = result.unwrap_err();
+        assert!(err.contains("ran out of time"), "{err}");
         let deadline = Instant::now() + Duration::from_secs(5);
         while unsafe { libc::kill(pid, 0) } == 0 {
             assert!(Instant::now() < deadline, "sleep {pid} still runs");
@@ -1081,6 +1195,10 @@ mod tests {
     #[test]
     fn a_copy_that_stops_partway_is_replaced_next_time() {
         use std::os::unix::fs::PermissionsExt;
+        if unsafe { libc::geteuid() } == 0 {
+            // Root reads a file whatever its mode, so the copy can't be made to stop.
+            return;
+        }
         let (unpacked, home) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
         skill(unpacked.path(), "music", "new music");
         let unreadable = unpacked.path().join("music").join("references").join("a.md");
