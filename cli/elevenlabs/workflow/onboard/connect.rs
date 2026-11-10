@@ -297,14 +297,16 @@ pub(super) fn reply_for(project: &Project, outcome: &Outcome) -> Result<Reply, C
                 "Signed in. Your new key ending in {} is in {file}, and your clipboard was cleared.",
                 last4(key)
             );
-            // An app that already uses the SDK has nothing to build: a replaced
-            // key goes where the app already reads it, and a first one only
-            // needs loading.
-            let wired = project.sdk_declared() && project.sdk_imported();
-            let reply = match (wired, old_key.is_some()) {
-                (true, true) => Reply::new(Next::Run, say).run(&project.next("check")),
-                (true, false) => load_key(project, &last4(key), file, say),
-                (false, _) => ask_what_to_build(project, &last4(key), Some(file), &say),
+            // An app that already has ElevenLabs in its code has nothing to
+            // build: a replaced key goes where the app already reads it, a
+            // first one only needs loading, and code that never reads the key
+            // (the agent widget) needs neither.
+            let reply = if !project.wired() {
+                ask_what_to_build(project, &last4(key), Some(file), &say)
+            } else if old_key.is_none() && project.reads_key() {
+                load_key(project, &last4(key), file, say)
+            } else {
+                Reply::new(Next::Run, say).run(&project.next("check"))
             };
             reply
                 .with_rules()
