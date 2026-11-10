@@ -637,8 +637,9 @@ fn the_sdk_counts_only_when_declared_and_imported_in_source() {
     )
     .unwrap();
     assert!(p.sdk_declared() && p.sdk_imported());
-    assert!(super::project::imports_js_sdk(
-        "import '@elevenlabs/client'"
+    assert!(super::project::imports_js_sdk_where(
+        "import '@elevenlabs/client'",
+        &|_| true
     ));
 
     let py = tempfile::tempdir().unwrap();

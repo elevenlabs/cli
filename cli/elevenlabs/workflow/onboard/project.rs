@@ -620,12 +620,9 @@ fn imports_sdk_where(path: &Path, counts: &dyn Fn(&str) -> bool) -> bool {
         })
 }
 
-/// A quoted `@elevenlabs/<package>` import of any package but the CLI.
-pub(super) fn imports_js_sdk(source: &str) -> bool {
-    imports_js_sdk_where(source, &|_| true)
-}
-
-fn imports_js_sdk_where(source: &str, counts: &dyn Fn(&str) -> bool) -> bool {
+/// A quoted `@elevenlabs/<package>` import of any package but the CLI, counting
+/// only the packages `counts` accepts.
+pub(super) fn imports_js_sdk_where(source: &str, counts: &dyn Fn(&str) -> bool) -> bool {
     source.match_indices("@elevenlabs/").any(|(i, m)| {
         let name: String = source[i + m.len()..]
             .chars()
