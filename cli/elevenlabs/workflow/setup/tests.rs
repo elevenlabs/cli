@@ -762,15 +762,22 @@ fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
     let node = script(base.path(), "node", "exit 0");
     let bun = script(base.path(), "bun", "exit 0");
     let missing = base.path().join("gone").join("claude");
+    // Real files, named from this process's folder: a program started from
+    // the home folder, or on Windows from the project, would not be them.
+    let relative = relative_to_here(odd.parent().unwrap()).join("claude");
+    let dot_relative = Path::new(".").join(&relative);
 
     // (row, CLAUDE_CODE_EXECPATH, the program it names when it counts)
-    let rows: [(&str, &Path, Option<&Path>); 6] = [
+    let rows: [(&str, &Path, Option<&Path>); 9] = [
         ("node", &node, None),
         ("bun", &bun, None),
         ("a missing file", &missing, None),
         ("a folder named claude", &named_folder, None),
         ("an empty value", Path::new(""), None),
         ("a claude in a folder with spaces and non-ASCII letters", &odd, Some(&odd)),
+        ("a relative path to a claude", &relative, None),
+        ("a relative path to a claude starting with ./", &dot_relative, None),
+        ("a bare claude", Path::new("claude"), None),
     ];
     for (row, value, named) in rows {
         let env = env_of(&[("CLAUDE_CODE_EXECPATH", value.to_str().unwrap())]);

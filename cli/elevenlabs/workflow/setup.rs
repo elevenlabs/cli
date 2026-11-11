@@ -106,9 +106,10 @@ pub(super) fn found(
     let mut agents = Vec::new();
     // Inside Claude Code, including the desktop app, which may not put `claude`
     // on PATH. Claude Code installed by npm names `node` or `bun` there instead.
+    // A relative path would be found from the project, so it doesn't count.
     let claude = env("CLAUDE_CODE_EXECPATH")
         .map(PathBuf::from)
-        .filter(|p| p.is_file() && is_claude(p))
+        .filter(|p| p.is_absolute() && p.is_file() && is_claude(p))
         .or_else(|| on_path("claude"));
     if let Some(claude) = claude {
         agents.push(Agent::ClaudeCode(claude));
