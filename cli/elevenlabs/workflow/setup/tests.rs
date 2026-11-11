@@ -580,8 +580,74 @@ fn the_plan_says_what_would_happen_for_each_agent() {
     assert!(plan(&[], home)[0].contains(&skills_root(home).display().to_string()));
 }
 
-
 // ── finding agents, as a table ──────────────────────────────────────
+
+/// Where Claude Code is, in a row of the table below.
+#[derive(Debug, Clone, Copy)]
+enum ClaudeAt {
+    ExecPath,
+    OnPath,
+    Both,
+    Neither,
+}
+
+/// What says Cursor is there, in a row of the table below.
+#[derive(Debug, Clone, Copy)]
+enum CursorBy {
+    Folder,
+    AgentVariable,
+    TraceVariable,
+    Nothing,
+}
+
+#[cfg(unix)]
+#[test]
+fn every_combination_of_claude_code_codex_and_cursor_is_found() {
+    let inside = tempfile::tempdir().unwrap();
+    let named = script(inside.path(), "claude", "exit 0");
+    let mut rows = 0;
+    for claude in [ClaudeAt::ExecPath, ClaudeAt::OnPath, ClaudeAt::Both, ClaudeAt::Neither] {
+        for codex in [true, false] {
+            for cursor in [
+                CursorBy::Folder,
+                CursorBy::AgentVariable,
+                CursorBy::TraceVariable,
+                CursorBy::Nothing,
+            ] {
+                let (home, bin) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+                let mut vars = Vec::new();
+                let mut want = Vec::new();
+                if matches!(claude, ClaudeAt::ExecPath | ClaudeAt::Both) {
+                    vars.push(("CLAUDE_CODE_EXECPATH", named.to_str().unwrap()));
+                }
+                let on_path_claude = matches!(claude, ClaudeAt::OnPath | ClaudeAt::Both)
+                    .then(|| script(bin.path(), "claude", "exit 0"));
+                match claude {
+                    ClaudeAt::ExecPath | ClaudeAt::Both => want.push(Agent::ClaudeCode(named.clone())),
+                    ClaudeAt::OnPath => want.push(Agent::ClaudeCode(on_path_claude.unwrap())),
+                    ClaudeAt::Neither => {}
+                }
+                if codex {
+                    want.push(Agent::Codex(script(bin.path(), "codex", "exit 0")));
+                }
+                match cursor {
+                    CursorBy::Folder => std::fs::create_dir(home.path().join(".cursor")).unwrap(),
+                    CursorBy::AgentVariable => vars.push(("CURSOR_AGENT", "1")),
+                    CursorBy::TraceVariable => vars.push(("CURSOR_TRACE_ID", "a1b2")),
+                    CursorBy::Nothing => {}
+                }
+                if !matches!(cursor, CursorBy::Nothing) {
+                    want.push(Agent::Cursor);
+                }
+                let path = std::env::join_paths([bin.path()]).unwrap();
+                let got = found(&env_of(&vars), &|n| on_path(n, Some(&path), false), home.path());
+                assert_eq!(got, want, "Claude Code {claude:?}, Codex {codex}, Cursor {cursor:?}");
+                rows += 1;
+            }
+        }
+    }
+    assert_eq!(rows, 32);
+}
 
 /// A path to `to` relative to this process's folder, as a PATH entry can be.
 #[cfg(unix)]
@@ -658,6 +724,228 @@ fn awkward_path_entries_are_skipped_and_the_first_real_program_wins() {
 
     for (row, path, want) in rows {
         assert_eq!(on_path("claude", Some(&path), false), want, "{row}: PATH={path:?}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
+    let home = tempfile::tempdir().unwrap();
+    let base = tempfile::tempdir().unwrap();
+    std::fs::create_dir(base.path().join("bin")).unwrap();
+    let on_path_claude = script(&base.path().join("bin"), "claude", "exit 0");
+    let bin = std::env::join_paths([on_path_claude.parent().unwrap()]).unwrap();
+    let odd = base.path().join("Claude Code (ü)");
+    std::fs::create_dir_all(&odd).unwrap();
+    let odd = script(&odd, "claude", "exit 0");
+    let named_folder = base.path().join("folder").join("claude");
+    std::fs::create_dir_all(&named_folder).unwrap();
+    let node = script(base.path(), "node", "exit 0");
+    let bun = script(base.path(), "bun", "exit 0");
+    let missing = base.path().join("gone").join("claude");
+
+    // (row, CLAUDE_CODE_EXECPATH, the program it names when it counts)
+    let rows: [(&str, &Path, Option<&Path>); 6] = [
+        ("node", &node, None),
+        ("bun", &bun, None),
+        ("a missing file", &missing, None),
+        ("a folder named claude", &named_folder, None),
+        ("an empty value", Path::new(""), None),
+        ("a claude in a folder with spaces and non-ASCII letters", &odd, Some(&odd)),
+    ];
+    for (row, value, named) in rows {
+        let env = env_of(&[("CLAUDE_CODE_EXECPATH", value.to_str().unwrap())]);
+        let with_path = found(&env, &|n| on_path(n, Some(&bin), false), home.path());
+        let want = named.unwrap_or(&on_path_claude).to_path_buf();
+        assert_eq!(with_path, vec![Agent::ClaudeCode(want)], "{row}, with claude on PATH");
+        let alone = found(&env, &|_| None, home.path());
+        let want: Vec<Agent> = named.map(|p| Agent::ClaudeCode(p.to_path_buf())).into_iter().collect();
+        assert_eq!(alone, want, "{row}, with nothing on PATH");
+    }
+}
+
+// ── installing, as a table and as a randomized run ──────────────────
+
+/// The six commands, in the order `install` runs them.
+const COMMANDS: [&str; 6] = [
+    "claude plugin marketplace update elevenlabs",
+    "claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user",
+    "claude plugin update elevenlabs@elevenlabs",
+    "codex plugin marketplace add elevenlabs/plugin",
+    "codex plugin marketplace upgrade elevenlabs",
+    "codex plugin add elevenlabs@elevenlabs",
+];
+
+const INSTALLED: &str = "installed the ElevenLabs plugin (skills and the hosted MCP server)";
+
+#[test]
+fn each_failing_command_stops_its_own_agent_and_no_other() {
+    let claude = Agent::ClaudeCode("claude".into());
+    let codex = Agent::Codex("codex".into());
+    let both = [claude.clone(), codex.clone(), Agent::Cursor];
+    // (agents, the command that fails, the commands that ran, each agent's result)
+    let rows: [(&[Agent], usize, &[usize], &[bool]); 12] = [
+        (&[claude.clone()], 0, &[0, 1, 2], &[true]),
+        (&[claude.clone()], 1, &[0, 1], &[false]),
+        (&[claude.clone()], 2, &[0, 1, 2], &[false]),
+        (&[codex.clone()], 3, &[3], &[false]),
+        (&[codex.clone()], 4, &[3, 4, 5], &[true]),
+        (&[codex.clone()], 5, &[3, 4, 5], &[false]),
+        (&both, 0, &[0, 1, 2, 3, 4, 5], &[true, true, true]),
+        (&both, 1, &[0, 1, 3, 4, 5], &[false, true, true]),
+        (&both, 2, &[0, 1, 2, 3, 4, 5], &[false, true, true]),
+        (&both, 3, &[0, 1, 2, 3], &[true, false, true]),
+        (&both, 4, &[0, 1, 2, 3, 4, 5], &[true, true, true]),
+        (&both, 5, &[0, 1, 2, 3, 4, 5], &[true, false, true]),
+    ];
+    for (agents, fails, ran, ok) in rows {
+        let row = format!("{:?} with `{}` failing", agents.iter().map(Agent::name).collect::<Vec<_>>(), COMMANDS[fails]);
+        let recorder = Recorder::exactly(COMMANDS[fails]);
+        let outcomes = install(agents, LIMITS_FOR_TESTS, &|p, a, l| recorder.run(p, a, l));
+        let want: Vec<String> = ran.iter().map(|&i| COMMANDS[i].to_string()).collect();
+        assert_eq!(recorder.ran(), want, "{row}");
+        let want: Vec<Outcome> = agents
+            .iter()
+            .zip(ok)
+            .map(|(agent, &ok)| Outcome {
+                agent: agent.name(),
+                ok,
+                message: match (agent, ok) {
+                    (Agent::Cursor, _) => format!("open {CURSOR_PAGE} and select Install"),
+                    (_, true) => INSTALLED.into(),
+                    (_, false) => format!("`{}` exited with 1: boom", COMMANDS[fails]),
+                },
+            })
+            .collect();
+        assert_eq!(outcomes, want, "{row}");
+    }
+}
+
+/// xorshift64*: enough randomness for a test, with no crate.
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 ^= self.0 >> 12;
+        self.0 ^= self.0 << 25;
+        self.0 ^= self.0 >> 27;
+        self.0.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    }
+
+    fn below(&mut self, n: u64) -> u64 {
+        self.next() % n
+    }
+}
+
+/// One command a randomized run started: which, when, and with how long.
+#[derive(Debug)]
+struct Call {
+    line: String,
+    at: Duration,
+    limit: Duration,
+    failed: bool,
+}
+
+#[test]
+fn install_keeps_its_rules_under_2000_random_failure_patterns() {
+    const SEED: u64 = 0x5EED_0F_E1E7_E2;
+    const PATTERNS: usize = 2000;
+    let mut rng = Rng(SEED);
+    for pattern in 0..PATTERNS {
+        let mut agents = vec![
+            Agent::ClaudeCode("claude".into()),
+            Agent::Codex("codex".into()),
+            Agent::Cursor,
+        ];
+        for i in (1..agents.len()).rev() {
+            agents.swap(i, rng.below(i as u64 + 1) as usize);
+        }
+        agents.truncate(rng.below(4) as usize);
+        let limits = Limits {
+            command: Duration::from_millis(1 + rng.below(30)),
+            total: Duration::from_millis(1 + rng.below(150)),
+        };
+        let rng = RefCell::new(Rng(rng.next() | 1));
+        let clock = std::cell::Cell::new(Duration::ZERO);
+        let calls = RefCell::new(Vec::<Call>::new());
+        let outcomes = install_timed(
+            &agents,
+            limits,
+            &|program, args, limit| {
+                let mut rng = rng.borrow_mut();
+                // Never longer than its limit: past it, a command is stopped.
+                let took = Duration::from_millis(rng.below(limit.as_millis() as u64 + 1));
+                let failed = took == limit || rng.below(10) < 3;
+                calls.borrow_mut().push(Call {
+                    line: format!("{} {}", program.display(), args.join(" ")),
+                    at: clock.get(),
+                    limit,
+                    failed,
+                });
+                clock.set(clock.get() + took);
+                if failed {
+                    Err("failed".into())
+                } else {
+                    Ok(())
+                }
+            },
+            &|| clock.get(),
+        );
+        let why = format!("seed {SEED:#x}, pattern {pattern}: {agents:?} {limits:?}");
+        let calls = calls.into_inner();
+        assert_eq!(outcomes.len(), agents.len(), "{why}");
+        assert!(clock.get() <= limits.total, "{why}: the run took {:?}", clock.get());
+        let mut next = 0;
+        for (agent, outcome) in agents.iter().zip(&outcomes) {
+            assert_eq!(outcome.agent, agent.name(), "{why}");
+            let planned: Vec<String> = COMMANDS
+                .iter()
+                .filter(|c| match agent {
+                    Agent::ClaudeCode(_) => c.starts_with("claude "),
+                    Agent::Codex(_) => c.starts_with("codex "),
+                    Agent::Cursor => false,
+                })
+                .map(|c| c.to_string())
+                .collect();
+            // This agent's commands come next, a prefix of its plan in order.
+            let mine: Vec<&Call> = calls[next..]
+                .iter()
+                .take_while(|c| planned.contains(&c.line))
+                .collect();
+            next += mine.len();
+            let lines: Vec<&String> = mine.iter().map(|c| &c.line).collect();
+            assert_eq!(lines, planned.iter().take(mine.len()).collect::<Vec<_>>(), "{why}");
+            for call in &mine {
+                assert!(
+                    !call.limit.is_zero()
+                        && call.limit <= limits.command
+                        && call.at + call.limit <= limits.total,
+                    "{why}: {call:?}"
+                );
+            }
+            let decides = |line: &str| {
+                agent.steps().iter().any(|(args, decides)| *decides && line.ends_with(&args.join(" ")))
+            };
+            let deciding_failure = mine.iter().position(|c| c.failed && decides(&c.line));
+            if let Some(at) = deciding_failure {
+                assert_eq!(at + 1, mine.len(), "{why}: nothing runs after a deciding command fails");
+            }
+            let finished = mine.len() == planned.len();
+            if !finished && deciding_failure.is_none() {
+                assert!(
+                    outcome.message.contains("ran out of time"),
+                    "{why}: stopped early only when time ran out: {outcome:?}"
+                );
+            }
+            let every_deciding_command_worked = agent
+                .steps()
+                .iter()
+                .filter(|(_, decides)| *decides)
+                .all(|(args, _)| mine.iter().any(|c| c.line.ends_with(&args.join(" ")) && !c.failed));
+            let want_ok = matches!(agent, Agent::Cursor) || every_deciding_command_worked;
+            assert_eq!(outcome.ok, want_ok, "{why}: {outcome:?} after {lines:?}");
+        }
+        assert_eq!(next, calls.len(), "{why}: every command belongs to an agent, in their order");
     }
 }
 
@@ -862,5 +1150,307 @@ async fn the_skills_download_is_copied_or_fails_with_what_went_wrong() {
             };
             assert_eq!(names, want, "{row}: no link is followed or copied");
         }
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn the_skills_land_whatever_the_home_folder_already_holds() {
+    use std::os::unix::fs::PermissionsExt;
+    let (_server, url) = github(vec![("main.tar.gz", body(archive(TWO_SKILLS)))]).await;
+    type Prepare = fn(&Path);
+    // (row, the home folder before, ok, what the message says after the root)
+    let rows: [(&str, Prepare, bool, &str); 7] = [
+        ("a fresh home folder", |_| {}, true, ""),
+        (
+            "an .agents folder holding other things",
+            |h| {
+                std::fs::create_dir_all(h.join(".agents/other")).unwrap();
+                std::fs::write(h.join(".agents/other/keep.md"), "keep").unwrap();
+            },
+            true,
+            "",
+        ),
+        (
+            "a skill folder setup wrote",
+            |h| {
+                let music = skills_root(h).join("music");
+                std::fs::create_dir_all(&music).unwrap();
+                std::fs::write(music.join(MARKER), "").unwrap();
+                std::fs::write(music.join("stale.md"), "old").unwrap();
+            },
+            true,
+            "",
+        ),
+        (
+            "a skill folder of the developer's own",
+            |h| {
+                let music = skills_root(h).join("music");
+                std::fs::create_dir_all(&music).unwrap();
+                std::fs::write(music.join("SKILL.md"), "mine").unwrap();
+            },
+            true,
+            "; left alone, since setup didn't write them: music",
+        ),
+        (
+            "a skill folder that is a symlink to a marked folder",
+            |h| {
+                let elsewhere = h.join("elsewhere");
+                std::fs::create_dir_all(&elsewhere).unwrap();
+                std::fs::write(elsewhere.join(MARKER), "").unwrap();
+                std::fs::create_dir_all(skills_root(h)).unwrap();
+                std::os::unix::fs::symlink(&elsewhere, skills_root(h).join("music")).unwrap();
+            },
+            true,
+            "; left alone, since setup didn't write them: music",
+        ),
+        (
+            "an .agents that is a file",
+            |h| std::fs::write(h.join(".agents"), "not a folder").unwrap(),
+            false,
+            "",
+        ),
+        (
+            "a read-only skill folder setup wrote",
+            |h| {
+                let music = skills_root(h).join("music");
+                std::fs::create_dir_all(&music).unwrap();
+                std::fs::write(music.join(MARKER), "").unwrap();
+                std::fs::write(music.join("SKILL.md"), "old").unwrap();
+                std::fs::set_permissions(&music, std::fs::Permissions::from_mode(0o555)).unwrap();
+            },
+            false,
+            "",
+        ),
+    ];
+    for (row, prepare, ok, kept) in rows {
+        let home = tempfile::tempdir().unwrap();
+        prepare(home.path());
+        let root = skills_root(home.path());
+        let before = outside_the_skills(home.path());
+        let skills_before = root.is_dir().then(|| tree(&root, &[]));
+        let outcome = skills_from(&url, home.path());
+        assert_eq!(outcome.ok, ok, "{row}: {outcome:?}");
+        assert_eq!(outside_the_skills(home.path()), before, "{row}: nothing outside the skills folder changed");
+        if ok {
+            let written = if kept.is_empty() { 2 } else { 1 };
+            assert_eq!(
+                outcome.message,
+                format!("copied {written} ElevenLabs skills into {}{kept}", root.display()),
+                "{row}"
+            );
+            let tts = tree(&root.join("text-to-speech"), &[]);
+            assert_eq!(tts.len(), 2, "{row}: {tts:?}");
+        } else if row.contains("read-only") {
+            assert!(outcome.message.starts_with(&root.join("music").display().to_string()), "{row}: {outcome:?}");
+            assert_eq!(Some(tree(&root, &[])), skills_before, "{row}: left as it was");
+            std::fs::set_permissions(root.join("music"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        } else {
+            assert!(outcome.message.contains(".agents"), "{row}: {outcome:?}");
+        }
+        if row.contains("own") || row.contains("symlink") {
+            assert_eq!(Some(tree(&root, &[]).into_iter().filter(|(p, _)| p.starts_with("music")).collect()),
+                skills_before.map(|t| t.into_iter().filter(|(p, _)| p.starts_with("music")).collect::<std::collections::BTreeMap<_, _>>()),
+                "{row}: the folder is left as it was");
+        }
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn five_runs_give_byte_identical_skills_with_nested_folders_and_odd_names() {
+    let files: &[(&str, &str)] = &[
+        ("music/SKILL.md", "# music"),
+        ("music/a/b/c/deep.md", "deep"),
+        ("music/with space.md", "space"),
+        ("music/ünï 日本.md", "unicode"),
+        ("music/-dash.md", "dash"),
+        ("music/.hidden", "hidden"),
+        ("music/empty/", ""),
+        ("dubbing/SKILL.md", "# dubbing"),
+    ];
+    let (_server, url) = github(vec![("main.tar.gz", body(archive(files)))]).await;
+    let home = tempfile::tempdir().unwrap();
+    let before = outside_the_skills(home.path());
+    let root = skills_root(home.path());
+    let mut first = None;
+    for run in 0..5 {
+        let outcome = skills_from(&url, home.path());
+        assert!(outcome.ok, "run {run}: {outcome:?}");
+        let now = tree(&root, &[]);
+        match &first {
+            None => first = Some(now),
+            Some(first) => assert_eq!(&now, first, "run {run}"),
+        }
+        assert_eq!(outside_the_skills(home.path()), before, "run {run}");
+    }
+    // Read back by name: macOS's tar may store a name in another Unicode form.
+    for (path, text) in files {
+        let at = root.join(path.trim_end_matches('/'));
+        if path.ends_with('/') {
+            assert!(at.is_dir(), "{path}");
+        } else {
+            assert_eq!(std::fs::read_to_string(&at).unwrap(), *text, "{path}");
+        }
+    }
+    assert_eq!(first.unwrap().len(), files.len() + 7, "the files, five folders and the two marks");
+}
+
+// ── starting a program, against real child processes ───────────────
+
+/// Waits for `file` to hold a pid, polling until a deadline.
+#[cfg(unix)]
+fn pid_in(file: &Path) -> i32 {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        if let Some(pid) = std::fs::read_to_string(file).ok().and_then(|t| t.trim().parse().ok()) {
+            return pid;
+        }
+        assert!(Instant::now() < deadline, "no pid in {}", file.display());
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// Whether process `pid` is gone, waiting up to a few seconds for it.
+#[cfg(unix)]
+fn gone(pid: i32) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while unsafe { libc::kill(pid, 0) } == 0 {
+        if Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    true
+}
+
+/// The processes whose command line contains `marker`.
+#[cfg(unix)]
+fn left_behind(marker: &str) -> Vec<String> {
+    let out = Command::new("ps").args(["-axo", "pid=,command="]).output().unwrap();
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|l| l.contains(marker) && !l.contains("ps -axo"))
+        .map(str::to_string)
+        .collect()
+}
+
+#[cfg(unix)]
+#[test]
+fn a_program_reports_how_it_ended_whatever_it_prints() {
+    let dir = tempfile::tempdir().unwrap();
+    let limit = Duration::from_secs(20);
+    // (row, the stand-in's script, what run_program returns)
+    let rows: [(&str, &str, Result<(), String>); 9] = [
+        ("stdin is closed", "read line && exit 1; exit 0", Ok(())),
+        (
+            "megabytes on stdout and stderr, then success",
+            "head -c 4000000 /dev/zero | tr '\\0' o; head -c 4000000 /dev/zero | tr '\\0' e >&2; exit 0",
+            Ok(()),
+        ),
+        (
+            "megabytes on stdout and stderr, then a failure",
+            "head -c 4000000 /dev/zero | tr '\\0' o; head -c 4000000 /dev/zero | tr '\\0' e >&2; \
+             echo >&2; echo 'the real error' >&2; exit 4",
+            Err("exited with 4: the real error".into()),
+        ),
+        (
+            "only stdout says why",
+            "echo 'on stdout'; exit 5",
+            Err("exited with 5: on stdout".into()),
+        ),
+        ("nothing said", "exit 6", Err("exited with 6".into())),
+        (
+            "output that is not UTF-8",
+            "printf 'caf\\351 \\377 broke\\n' >&2; exit 2",
+            Err("exited with 2: caf\u{FFFD} \u{FFFD} broke".into()),
+        ),
+        ("killed by a signal", "kill -KILL $$", Err("exited with a signal".into())),
+        (
+            "killed by a signal after a line",
+            "echo 'half way' >&2; kill -TERM $$",
+            Err("exited with a signal: half way".into()),
+        ),
+        ("blank lines after the last one", "echo 'last' >&2; echo >&2; echo '   ' >&2; exit 1", Err("exited with 1: last".into())),
+    ];
+    for (row, body, want) in rows {
+        let program = script(dir.path(), "claude", body);
+        let started = Instant::now();
+        assert_eq!(run_program(&program, &[], limit, dir.path()), want, "{row}");
+        assert!(started.elapsed() < Duration::from_secs(15), "{row}: took {:?}", started.elapsed());
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn a_program_that_vanished_or_lost_its_execute_bit_since_it_was_found_fails_to_start() {
+    use std::os::unix::fs::PermissionsExt;
+    let (dir, home) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let path = std::env::join_paths([dir.path()]).unwrap();
+    let program = script(dir.path(), "codex", "exit 0");
+    assert_eq!(on_path("codex", Some(&path), false), Some(program.clone()));
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o644)).unwrap();
+    let err = run_program(&program, &[], Duration::from_secs(5), home.path()).unwrap_err();
+    assert!(err.starts_with("couldn't start it: "), "lost its execute bit: {err}");
+    std::fs::remove_file(&program).unwrap();
+    let err = run_program(&program, &[], Duration::from_secs(5), home.path()).unwrap_err();
+    assert!(err.starts_with("couldn't start it: "), "vanished: {err}");
+    let outcomes = install(&[Agent::Codex(program)], LIMITS_FOR_TESTS, &|p, a, l| {
+        run_program(p, a, l, home.path())
+    });
+    assert!(!outcomes[0].ok && outcomes[0].message.contains("couldn't start it"), "{outcomes:?}");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_command_past_its_limit_is_stopped_with_its_children_and_grandchildren() {
+    let dir = tempfile::tempdir().unwrap();
+    let (child, grandchild) = (dir.path().join("child"), dir.path().join("grandchild"));
+    let hangs = script(
+        dir.path(),
+        "codex",
+        &format!(
+            "sh -c 'sleep 3011 & echo $! > \"{g}\"; wait' &\necho $! > '{c}'\nwait",
+            g = grandchild.display(),
+            c = child.display()
+        ),
+    );
+    let started = Instant::now();
+    let limit = Duration::from_millis(1500);
+    let result = run_program(&hangs, &[], limit, dir.path());
+    let (child, grandchild) = (pid_in(&child), pid_in(&grandchild));
+    let _cleanup = (KillOnDrop(child), KillOnDrop(grandchild));
+    assert_eq!(result, Err("ran out of time after 1 seconds and was stopped".into()));
+    assert!(started.elapsed() < limit + Duration::from_secs(3), "{:?}", started.elapsed());
+    assert!(gone(child), "the child {child} still runs");
+    assert!(gone(grandchild), "the grandchild {grandchild} still runs");
+    assert_eq!(left_behind("sleep 3011"), Vec::<String>::new());
+    assert_eq!(left_behind(&hangs.display().to_string()), Vec::<String>::new());
+}
+
+#[cfg(unix)]
+#[test]
+fn fifty_runs_in_a_row_leave_no_process_behind() {
+    let dir = tempfile::tempdir().unwrap();
+    let works = script(dir.path(), "works", "echo fine");
+    let fails = script(dir.path(), "fails", "echo broke >&2; exit 1");
+    let hangs = script(dir.path(), "hangs", "sh -c 'sleep 3012' &\nsleep 3012 &\nwait");
+    for run in 0..50 {
+        let (program, limit, want) = match run % 3 {
+            0 => (&works, Duration::from_secs(10), Ok(())),
+            1 => (&fails, Duration::from_secs(10), Err("exited with 1: broke".to_string())),
+            _ => (&hangs, Duration::from_millis(100), Err("ran out of time after 100 ms and was stopped".to_string())),
+        };
+        assert_eq!(run_program(program, &[], limit, dir.path()), want, "run {run}");
+    }
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let mut left = left_behind("sleep 3012");
+        left.extend(left_behind(&dir.path().display().to_string()));
+        if left.is_empty() {
+            break;
+        }
+        assert!(Instant::now() < deadline, "left behind: {left:?}");
+        std::thread::sleep(Duration::from_millis(20));
     }
 }
