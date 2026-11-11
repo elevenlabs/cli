@@ -1715,7 +1715,7 @@ fn a_new_sign_in_keeps_how_the_last_one_ended() {
 }
 
 #[test]
-fn a_sign_in_that_asked_for_the_setup_offer_leaves_it_due_until_made() {
+fn the_setup_offer_a_sign_in_leaves_is_due_until_made_and_a_new_sign_in_clears_it() {
     use super::session::Session;
     let dir = tempfile::tempdir().unwrap();
     let s = Session::in_dir(dir.path().to_path_buf());

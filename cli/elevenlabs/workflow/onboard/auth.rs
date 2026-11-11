@@ -89,13 +89,13 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
 
 /// Sign in through the browser, asking the page for a key. `previous` is how
 /// the last sign-in for this project ended, for the page to record. Returns
-/// the access token, and whether the page asked for the `setup` offer.
+/// the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
     previous: Option<&LastSignIn>,
-) -> Result<(String, bool), CliError> {
+) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
     let oauth_base = ctx
@@ -104,14 +104,11 @@ pub(super) fn sign_in(
         .unwrap_or_else(|| config.token_url.trim_end_matches("/v1/oauth/token").into());
     let token_url = format!("{oauth_base}/v1/oauth/token");
     let on = telemetry::enabled();
-    let mut params = authorize_params(
+    let params = authorize_params(
         on.then(|| (platform::detect(), platform::install_source())),
         on.then(platform::agent).flatten(),
         previous.filter(|_| on),
     );
-    // Whatever telemetry says: it tells the page this CLI can offer `setup`
-    // at the end of the flow, and the page answers on the callback.
-    params.push(("setup_offer", "1".into()));
     let params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
     block_on(loopback::sign_in(loopback::Login {
         cli_name: CLI_NAME,

@@ -113,9 +113,10 @@ fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, C
     Ok(reply::Reply::new(reply::Next::Done, say.join(" ")).detail("setup", &outcomes))
 }
 
-/// `done`, the end of the flow, or, when this project's sign-in asked for it
-/// and a coding agent can take the plugin (or none of the three is there and
-/// the skills can be copied), the question that offers `setup`. Made once.
+/// `done`, the end of the flow, or, after a sign-in in this project, when a
+/// coding agent can take the plugin (or none of the three is there and the
+/// skills can be copied), the question that offers `setup`. Made once per
+/// sign-in.
 fn or_offer_setup(project: &project::Project, done: reply::Reply) -> reply::Reply {
     let Ok(session) = session::Session::for_project(&project.dir) else {
         return done;

@@ -46,8 +46,8 @@ pub(super) const LAUNCH_FLAG: &str = "launch-worker";
 const REPORT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
 /// Where [`Session::start`] keeps how the sign-in before the new one ended.
 const PREVIOUS: &str = "previous.json";
-/// Left by a sign-in whose approval page asked the CLI to offer `setup` at
-/// the end of the flow; removed when the offer is made.
+/// Left by every sign-in, so the flow ends on the offer to set up the
+/// developer's coding agents; removed when the offer is made.
 const SETUP_OFFER: &str = "setup-offer";
 /// What a new sign-in clears of the last one's.
 const STALE: &[&str] = &[
@@ -309,7 +309,7 @@ impl Session {
         let _ = std::fs::write(self.path("signed-in"), "");
     }
 
-    /// The approval page asked for the `setup` offer at the end of the flow.
+    /// The sign-in worked: the flow can end on the `setup` offer.
     pub fn offer_setup(&self) {
         let _ = std::fs::write(self.path(SETUP_OFFER), "");
     }

@@ -1748,7 +1748,7 @@ fn session_dir(home: &Path, cwd: &Path) -> PathBuf {
     home.join(".elevenlabs").join("onboard").join(id)
 }
 
-/// What a sign-in whose page asked for the `setup` offer leaves.
+/// What a sign-in leaves: the `setup` offer is due.
 fn setup_offer_due(home: &Path, cwd: &Path) -> PathBuf {
     let dir = session_dir(home, cwd);
     std::fs::create_dir_all(&dir).unwrap();
@@ -1800,7 +1800,7 @@ const PLUGIN_QUESTION: &str = "Want me to set ElevenLabs up in {} too? It instal
 
 #[cfg(unix)]
 #[tokio::test]
-async fn a_test_request_that_worked_offers_setup_once_when_the_sign_in_asked() {
+async fn a_test_request_that_worked_offers_setup_once_after_a_sign_in() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path(format!("/v1/text-to-speech/{VOICE}")))
@@ -1827,7 +1827,7 @@ async fn a_test_request_that_worked_offers_setup_once_when_the_sign_in_asked() {
     };
 
     let plain = test(&server.uri());
-    assert_eq!(plain["next"], "done", "no offer without the sign-in asking: {plain}");
+    assert_eq!(plain["next"], "done", "no offer without a sign-in: {plain}");
 
     let offer = setup_offer_due(home.path(), cwd.path());
     // A test request that failed ends as it always has, and the offer waits.
@@ -2236,7 +2236,7 @@ fn onboard_setup_without_a_home_folder_says_so_and_ends() {
 }
 
 #[tokio::test]
-async fn the_sign_in_asks_for_the_setup_offer_and_keeps_the_pages_answer() {
+async fn every_sign_in_leaves_the_setup_offer_and_a_new_one_clears_the_last_ones() {
     let _turn = signing_in().await;
     if callback_ports_busy() {
         eprintln!("skipped: another sign-in is listening on the callback ports");
@@ -2254,8 +2254,8 @@ async fn the_sign_in_asks_for_the_setup_offer_and_keeps_the_pages_answer() {
         .await;
     let (home, cwd) = temp();
     let authorize = format!("{}/app/oauth/authorize", server.uri());
-    // Signs in with telemetry off, and the page's callback carrying `params`.
-    let sign_in = |params: &str| {
+    // Signs in with telemetry off, the page answering the callback with `params`.
+    let sign_in = |params: &str, key_status: &str| {
         let first = reply(&mut cli(
             home.path(),
             cwd.path(),
@@ -2263,22 +2263,22 @@ async fn the_sign_in_asks_for_the_setup_offer_and_keeps_the_pages_answer() {
             &["onboard", "connect", "--no-browser", "--authorize-url", &authorize, "--telemetry", "off"],
         ));
         let url = link(&first);
-        assert_eq!(query(&url, "setup_offer"), "1", "{url}");
-        callback(&url, &format!("code=approved{params}"));
+        assert!(!url.contains("setup_offer"), "the link is the base commit's: {url}");
+        callback(&url, params);
         let deadline = Instant::now() + Duration::from_secs(60);
         loop {
             let r = connect(home.path(), cwd.path(), &["--wait", "--no-browser"]);
             if r["next"] != "wait" || Instant::now() >= deadline {
-                assert_eq!(r["details"]["key_status"], "no_key", "{r}");
+                assert_eq!(r["details"]["key_status"], key_status, "{r}");
                 break;
             }
         }
     };
     let offer = session_dir(home.path(), cwd.path()).join("setup-offer");
-    sign_in("&setup_offer=1");
-    assert!(offer.exists(), "the page asked for the offer");
-    sign_in("");
-    assert!(!offer.exists(), "a new sign-in without it clears the last one's");
-    sign_in("&setup_offer=yes");
-    assert!(!offer.exists());
+    sign_in("code=approved", "no_key");
+    assert!(offer.exists(), "a sign-in that worked leaves the offer");
+    sign_in("error=access_denied&error_description=declined", "sign_in_failed");
+    assert!(!offer.exists(), "a new sign-in clears the last one's, and a declined one leaves none");
+    sign_in("code=approved", "no_key");
+    assert!(offer.exists(), "the next sign-in that works leaves it again");
 }

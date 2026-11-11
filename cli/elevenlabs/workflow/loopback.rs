@@ -66,9 +66,8 @@ pub(super) struct Login<'a> {
 }
 
 /// Sign in through the browser and store the token where `auth login` does.
-/// Returns the access token, which works even when the store refused it, and
-/// whether the callback asked the CLI to offer `setup` (`setup_offer=1`).
-pub(super) async fn sign_in(login: Login<'_>) -> Result<(String, bool), CliError> {
+/// Returns the access token, which works even when the store refused it.
+pub(super) async fn sign_in(login: Login<'_>) -> Result<String, CliError> {
     let verifier = random_token();
     let state = random_token();
     let (listeners, port) = bind(login.redirect_ports).await?;
@@ -79,7 +78,7 @@ pub(super) async fn sign_in(login: Login<'_>) -> Result<(String, bool), CliError
     if !login.no_browser {
         let _ = webbrowser::open(&url);
     }
-    let (code, setup_offer, mut browser) =
+    let (code, mut browser) =
         wait_for_callback(listeners, &state, login.error_url, login.timeout).await?;
     // The browser waits on the result page until the code is exchanged.
     let token = exchange(
@@ -103,7 +102,7 @@ pub(super) async fn sign_in(login: Login<'_>) -> Result<(String, bool), CliError
                 eprintln!("Signed in, but the sign-in couldn't be saved for later commands: {e}");
             }
             let _ = redirect(&mut browser, login.success_url).await;
-            Ok((token.access_token, setup_offer))
+            Ok(token.access_token)
         }
         Err(failure) => {
             // Its own OAuth code, so the analytics can tell these apart.
@@ -178,8 +177,7 @@ pub(super) enum Callback {
     Other,
     /// A callback this sign-in can't use: another sign-in's `state`, or none.
     NotOurs,
-    /// The code, and whether the page asked the CLI to offer `setup`.
-    Code { code: String, setup_offer: bool },
+    Code(String),
     /// The page's error, e.g. `access_denied` when the developer clicked Deny.
     Error {
         error: String,
@@ -194,7 +192,6 @@ pub(super) fn classify(target: &str, state: &str) -> Callback {
         return Callback::Other;
     }
     let (mut code, mut got_state, mut error, mut description) = (None, None, None, None);
-    let mut setup_offer = false;
     for (key, value) in form_urlencoded::parse(query.as_bytes()) {
         let value = Some(value.into_owned());
         match key.as_ref() {
@@ -202,14 +199,13 @@ pub(super) fn classify(target: &str, state: &str) -> Callback {
             "state" => got_state = value,
             "error" => error = value,
             "error_description" => description = value,
-            "setup_offer" => setup_offer = value.as_deref() == Some("1"),
             _ => {}
         }
     }
     match (got_state, code, error) {
         (Some(got), _, _) if got != state => Callback::NotOurs,
         (Some(_), _, Some(error)) => Callback::Error { error, description },
-        (Some(_), Some(code), None) => Callback::Code { code, setup_offer },
+        (Some(_), Some(code), None) => Callback::Code(code),
         // Without a `state`, nothing from ElevenLabs: the page's Deny and the
         // server's error redirects always carry it, so any page could have
         // sent this, to end the sign-in or to put words in the agent's reply.
@@ -217,15 +213,14 @@ pub(super) fn classify(target: &str, state: &str) -> Callback {
     }
 }
 
-/// Wait for this sign-in's callback. A code comes back, with whether the page
-/// asked for the `setup` offer, and with the browser's connection still open,
-/// so the browser is answered once the login is done.
+/// Wait for this sign-in's callback. A code comes back with the browser's
+/// connection still open, so the browser is answered once the login is done.
 pub(super) async fn wait_for_callback(
     listeners: Vec<TcpListener>,
     state: &str,
     error_url: &str,
     timeout: Duration,
-) -> Result<(String, bool, TcpStream), CliError> {
+) -> Result<(String, TcpStream), CliError> {
     let (tx, mut rx) = mpsc::channel::<(String, TcpStream)>(16);
     // Dropped on return, which stops every listener.
     let mut accepting = JoinSet::new();
@@ -265,7 +260,7 @@ pub(super) async fn wait_for_callback(
                 let page = error_page(error_url, "invalid_request", Some(NOT_THIS_SIGN_IN));
                 let _ = redirect(&mut socket, &page).await;
             }
-            Callback::Code { code, setup_offer } => return Ok((code, setup_offer, socket)),
+            Callback::Code(code) => return Ok((code, socket)),
             Callback::Error { error, description } => {
                 let page = error_page(error_url, &error, description.as_deref());
                 let _ = redirect(&mut socket, &page).await;
@@ -552,10 +547,7 @@ mod tests {
         let ours = "s1";
         assert_eq!(
             classify("/callback?code=c&state=s1", ours),
-            Callback::Code {
-                code: "c".into(),
-                setup_offer: false
-            }
+            Callback::Code("c".into())
         );
         assert_eq!(
             classify(
@@ -581,35 +573,6 @@ mod tests {
         for other in ["/favicon.ico", "/", "/callbacks?code=c&state=s1"] {
             assert_eq!(classify(other, ours), Callback::Other, "{other}");
         }
-    }
-
-    #[test]
-    fn a_callback_asks_for_the_setup_offer_only_with_setup_offer_1() {
-        let code = |setup_offer| Callback::Code {
-            code: "c".into(),
-            setup_offer,
-        };
-        assert_eq!(
-            classify("/callback?code=c&state=s1&setup_offer=1", "s1"),
-            code(true)
-        );
-        assert_eq!(
-            classify("/callback?setup_offer=1&code=c&state=s1", "s1"),
-            code(true)
-        );
-        for without in [
-            "/callback?code=c&state=s1",
-            "/callback?code=c&state=s1&setup_offer=0",
-            "/callback?code=c&state=s1&setup_offer=true",
-            "/callback?code=c&state=s1&setup_offer=",
-        ] {
-            assert_eq!(classify(without, "s1"), code(false), "{without}");
-        }
-        // It changes nothing about whose callback it is.
-        assert_eq!(
-            classify("/callback?code=c&state=s0&setup_offer=1", "s1"),
-            Callback::NotOurs
-        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -670,7 +633,7 @@ mod tests {
             let this_tab = request("::1", port, "/callback?code=new&state=current");
             (favicon, old_tab, this_tab)
         });
-        let (code, _, mut socket) =
+        let (code, mut socket) =
             wait_for_callback(listeners, "current", ERROR_PAGE, Duration::from_secs(3))
                 .await
                 .unwrap();
