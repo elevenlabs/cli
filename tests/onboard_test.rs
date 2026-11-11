@@ -2235,6 +2235,48 @@ fn onboard_setup_without_a_home_folder_says_so_and_ends() {
     );
 }
 
+/// A token endpoint that accepts any code, for a sign-in through the callback.
+async fn token_endpoint(server: &MockServer) {
+    Mock::given(method("POST"))
+        .and(path("/v1/oauth/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "token",
+            "token_type": "Bearer",
+            "expires_in": 3600
+        })))
+        .mount(server)
+        .await;
+}
+
+/// A sign-in with telemetry off, run as the agent runs it: `connect`, the
+/// browser's callback carrying `params` (the code or the page's error) to the
+/// real loopback listener, then `connect --wait` until it ends with `key_status`.
+fn sign_in_through_the_callback(home: &Path, cwd: &Path, server: &str, params: &str, key_status: &str) {
+    sign_in_with(home, cwd, server, params, key_status, &[])
+}
+
+/// [`sign_in_through_the_callback`], with `args` added to each `connect`.
+fn sign_in_with(home: &Path, cwd: &Path, server: &str, params: &str, key_status: &str, args: &[&str]) {
+    let authorize = format!("{server}/app/oauth/authorize");
+    let first = reply(&mut cli(
+        home,
+        cwd,
+        server,
+        &[&["onboard", "connect", "--no-browser", "--authorize-url", &authorize, "--telemetry", "off"], args].concat(),
+    ));
+    let url = link(&first);
+    assert!(!url.contains("setup_offer"), "the link is the base commit's: {url}");
+    callback(&url, params);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    loop {
+        let r = connect(home, cwd, &[&["--wait", "--no-browser"], args].concat());
+        if r["next"] != "wait" || Instant::now() >= deadline {
+            assert_eq!(r["details"]["key_status"], key_status, "{r}");
+            break;
+        }
+    }
+}
+
 #[tokio::test]
 async fn every_sign_in_leaves_the_setup_offer_and_a_new_one_clears_the_last_ones() {
     let _turn = signing_in().await;
@@ -2243,36 +2285,10 @@ async fn every_sign_in_leaves_the_setup_offer_and_a_new_one_clears_the_last_ones
         return;
     }
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/v1/oauth/token"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "access_token": "token",
-            "token_type": "Bearer",
-            "expires_in": 3600
-        })))
-        .mount(&server)
-        .await;
+    token_endpoint(&server).await;
     let (home, cwd) = temp();
-    let authorize = format!("{}/app/oauth/authorize", server.uri());
-    // Signs in with telemetry off, the page answering the callback with `params`.
     let sign_in = |params: &str, key_status: &str| {
-        let first = reply(&mut cli(
-            home.path(),
-            cwd.path(),
-            &server.uri(),
-            &["onboard", "connect", "--no-browser", "--authorize-url", &authorize, "--telemetry", "off"],
-        ));
-        let url = link(&first);
-        assert!(!url.contains("setup_offer"), "the link is the base commit's: {url}");
-        callback(&url, params);
-        let deadline = Instant::now() + Duration::from_secs(60);
-        loop {
-            let r = connect(home.path(), cwd.path(), &["--wait", "--no-browser"]);
-            if r["next"] != "wait" || Instant::now() >= deadline {
-                assert_eq!(r["details"]["key_status"], key_status, "{r}");
-                break;
-            }
-        }
+        sign_in_through_the_callback(home.path(), cwd.path(), &server.uri(), params, key_status)
     };
     let offer = session_dir(home.path(), cwd.path()).join("setup-offer");
     sign_in("code=approved", "no_key");
@@ -2281,4 +2297,705 @@ async fn every_sign_in_leaves_the_setup_offer_and_a_new_one_clears_the_last_ones
     assert!(!offer.exists(), "a new sign-in clears the last one's, and a declined one leaves none");
     sign_in("code=approved", "no_key");
     assert!(offer.exists(), "the next sign-in that works leaves it again");
+}
+
+// ── setup through the binary, for every combination of agents ───────
+
+const PLUGIN: &str = "install the ElevenLabs plugin (skills and the hosted MCP server)";
+const CURSOR_LINE: &str = "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install\n";
+const FINISH_CLAUDE: &str = "- restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server\n";
+const FINISH_CODEX: &str =
+    "- restart Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server\n";
+
+/// What `setup` prints with `agents` found, the programs in `bin`: the plan,
+/// or with `installs` what it did.
+fn setup_says(agents: &[&str], bin: &Path, home: &Path, installs: bool) -> String {
+    let has = |a: &str| agents.contains(&a);
+    let mut out = String::new();
+    if installs {
+        for (agent, name) in [("claude", "Claude Code"), ("codex", "Codex")] {
+            if has(agent) {
+                out += &format!("{name}: installed the ElevenLabs plugin (skills and the hosted MCP server)\n");
+            }
+        }
+        if has("cursor") {
+            out += CURSOR_LINE;
+        }
+        if has("claude") || has("codex") {
+            out += "\nTo finish:\n";
+        }
+        if has("claude") {
+            out += FINISH_CLAUDE;
+        }
+        if has("codex") {
+            out += FINISH_CODEX;
+        }
+        return out;
+    }
+    if agents.is_empty() {
+        out += &format!(
+            "No Claude Code, Codex or Cursor found: copy the ElevenLabs skills into {}\n",
+            home.join(".agents").join("skills").display()
+        );
+    }
+    for (agent, name) in [("claude", "Claude Code"), ("codex", "Codex")] {
+        if has(agent) {
+            out += &format!("{name} ({}): {PLUGIN}\n", bin.join(agent).display());
+        }
+    }
+    if has("cursor") {
+        out += CURSOR_LINE;
+    }
+    out + "Nothing was changed. Run `elevenlabs setup --yes` to do it.\n"
+}
+
+/// The commands of `INSTALLS` that `agents` run.
+fn installs_of(agents: &[&str]) -> Vec<String> {
+    INSTALLS
+        .iter()
+        .filter(|c| agents.iter().any(|a| c.starts_with(&format!("{a} "))))
+        .map(|c| c.to_string())
+        .collect()
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_for_every_combination_of_agents_and_flags() {
+    let combinations: [&[&str]; 8] = [
+        &[],
+        &["claude"],
+        &["codex"],
+        &["claude", "codex"],
+        &["cursor"],
+        &["claude", "cursor"],
+        &["codex", "cursor"],
+        &["claude", "codex", "cursor"],
+    ];
+    let flags: [(&[&str], bool); 4] = [
+        (&[], false),
+        (&["--yes"], true),
+        (&["--yes", "--dry-run"], false),
+        (&["--dry-run"], false),
+    ];
+    let mut rows = 0;
+    for agents in combinations {
+        for (args, installs) in flags {
+            if agents.is_empty() && installs {
+                // It would download the skills from GitHub: covered by the unit tests.
+                continue;
+            }
+            let row = format!("{agents:?} with {args:?}");
+            let (home, cwd) = temp();
+            let bin = tempfile::tempdir().unwrap();
+            let record = bin.path().join("ran");
+            let programs: Vec<&str> = agents.iter().copied().filter(|a| *a != "cursor").collect();
+            let path = stand_ins(bin.path(), &programs, &record, None);
+            if agents.contains(&"cursor") {
+                std::fs::create_dir(home.path().join(".cursor")).unwrap();
+            }
+            let out = cli(home.path(), cwd.path(), OFFLINE, &[&["setup"][..], args].concat())
+                .env("PATH", &path)
+                .output()
+                .unwrap();
+            assert_eq!(out.status.code(), Some(0), "{row}: {}", all_output(&out));
+            assert_eq!(
+                String::from_utf8_lossy(&out.stdout),
+                setup_says(agents, bin.path(), home.path(), installs),
+                "{row}"
+            );
+            let want = if installs { installs_of(agents) } else { vec![] };
+            assert_eq!(recorded(&record), want, "{row}");
+            let written: Vec<_> = std::fs::read_dir(home.path()).unwrap().flatten().map(|e| e.file_name()).collect();
+            let cursor_only: &[&str] = if agents.contains(&"cursor") { &[".cursor"] } else { &[] };
+            assert_eq!(written, cursor_only, "{row}: setup itself writes nothing in the home folder");
+            rows += 1;
+        }
+    }
+    assert_eq!(rows, 31);
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_with_a_stand_in_failing_at_each_step() {
+    let finish = format!("\nTo finish:\n{FINISH_CLAUDE}{FINISH_CODEX}");
+    let all_ok = format!(
+        "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server)\n\
+         Codex: installed the ElevenLabs plugin (skills and the hosted MCP server)\n{finish}"
+    );
+    let failed = |line: String, finish: &str| {
+        format!("{line}\nTo try again, run `elevenlabs setup --yes`.\n\nTo finish:\n{finish}")
+    };
+    // (the step that fails, exit code, output, the commands that ran)
+    let rows: [(&str, i32, String, Vec<&str>); 6] = [
+        ("marketplace update", 0, all_ok.clone(), INSTALLS.to_vec()),
+        (
+            "plugin install",
+            1,
+            failed(
+                "Claude Code: failed: `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user` \
+                 exited with 1: install refused\nCodex: installed the ElevenLabs plugin (skills and the hosted MCP server)"
+                    .into(),
+                FINISH_CODEX,
+            ),
+            [&INSTALLS[..2], &INSTALLS[3..]].concat(),
+        ),
+        (
+            "plugin update",
+            1,
+            failed(
+                "Claude Code: failed: `claude plugin update elevenlabs@elevenlabs` exited with 1: install refused\n\
+                 Codex: installed the ElevenLabs plugin (skills and the hosted MCP server)"
+                    .into(),
+                FINISH_CODEX,
+            ),
+            INSTALLS.to_vec(),
+        ),
+        (
+            "marketplace add",
+            1,
+            failed(
+                "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server)\n\
+                 Codex: failed: `codex plugin marketplace add elevenlabs/plugin` exited with 1: install refused"
+                    .into(),
+                FINISH_CLAUDE,
+            ),
+            INSTALLS[..4].to_vec(),
+        ),
+        ("marketplace upgrade", 0, all_ok.clone(), INSTALLS.to_vec()),
+        (
+            "plugin add",
+            1,
+            failed(
+                "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server)\n\
+                 Codex: failed: `codex plugin add elevenlabs@elevenlabs` exited with 1: install refused"
+                    .into(),
+                FINISH_CLAUDE,
+            ),
+            INSTALLS.to_vec(),
+        ),
+    ];
+    for (fails, code, says, ran) in rows {
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let record = bin.path().join("ran");
+        let path = stand_ins(bin.path(), &["claude", "codex"], &record, Some(fails));
+        let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+            .env("PATH", &path)
+            .output()
+            .unwrap();
+        assert_eq!(out.status.code(), Some(code), "`{fails}` failing: {}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), says, "`{fails}` failing");
+        assert_eq!(recorded(&record), ran, "`{fails}` failing");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_from_folders_with_spaces_and_non_ascii_names() {
+    let base = tempfile::tempdir().unwrap();
+    let (home, cwd, bin) = (
+        base.path().join("home dir ü 日本"),
+        base.path().join("project (été)"),
+        base.path().join("agents dir é 日本"),
+    );
+    for dir in [&home, &cwd, &bin] {
+        std::fs::create_dir(dir).unwrap();
+    }
+    let record = bin.join("ran");
+    let path = stand_ins(&bin, &["claude", "codex"], &record, None);
+    let run = |args: &[&str]| cli(&home, &cwd, OFFLINE, args).env("PATH", &path).output().unwrap();
+    let out = run(&["setup"]);
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), setup_says(&["claude", "codex"], &bin, &home, false));
+    let out = run(&["setup", "--yes"]);
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), setup_says(&["claude", "codex"], &bin, &home, true));
+    assert_eq!(recorded(&record), INSTALLS);
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_ten_runs_in_a_row_and_two_at_once() {
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, None);
+    let says = setup_says(&["claude", "codex"], bin.path(), home.path(), true);
+    let start = || {
+        cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+            .env("PATH", &path)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap()
+    };
+    for run in 0..10 {
+        let out = start().wait_with_output().unwrap();
+        assert!(out.status.success(), "run {run}: {}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), says, "run {run}");
+    }
+    assert_eq!(recorded(&record), INSTALLS.repeat(10));
+
+    std::fs::remove_file(&record).unwrap();
+    let (first, second) = (start(), start());
+    for out in [first.wait_with_output().unwrap(), second.wait_with_output().unwrap()] {
+        assert!(out.status.success(), "{}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), says);
+    }
+    let mut ran = recorded(&record);
+    ran.sort();
+    let mut want: Vec<String> = INSTALLS.repeat(2).iter().map(|c| c.to_string()).collect();
+    want.sort();
+    assert_eq!(ran, want, "each run ran all six commands");
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_starts_agents_from_the_shells_environment_never_the_projects_env() {
+    use std::os::unix::fs::PermissionsExt;
+    let (home, cwd) = temp();
+    let (bin, project_bin) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let record = bin.path().join("ran");
+    for (dir, said) in [(bin.path(), "shell's"), (project_bin.path(), "project's")] {
+        let claude = dir.join("claude");
+        std::fs::write(
+            &claude,
+            format!(
+                "#!/bin/sh\necho \"{said} claude $* [${{ELEVENLABS_SETUP_TEST:-unset}}]\" >> '{}'\n",
+                record.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&claude, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    write(
+        cwd.path(),
+        ".env",
+        &format!("PATH={}:/usr/bin:/bin\nELEVENLABS_SETUP_TEST=from-the-project\n", project_bin.path().display()),
+    );
+    let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+        .env("PATH", format!("{}:/usr/bin:/bin", bin.path().display()))
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    let want: Vec<String> = INSTALLS[..3].iter().map(|c| format!("shell's {c} [unset]")).collect();
+    assert_eq!(recorded(&record), want);
+}
+
+// ── the offer, as whole flows ───────────────────────────────────────
+
+/// `GET /v1/user` requests the server has had, by their User-Agent, and
+/// how many text-to-speech requests.
+async fn requests(server: &MockServer) -> (Vec<String>, usize) {
+    let all = server.received_requests().await.unwrap();
+    let users = all
+        .iter()
+        .filter(|r| r.url.path() == "/v1/user")
+        .map(|r| r.headers["user-agent"].to_str().unwrap().to_string())
+        .collect();
+    let speech = all.iter().filter(|r| r.url.path().starts_with("/v1/text-to-speech")).count();
+    (users, speech)
+}
+
+/// The arguments of a reply's `run`, without the program.
+fn run_args(reply: &Value) -> Vec<String> {
+    let run = reply["run"].as_str().unwrap();
+    run.strip_prefix("elevenlabs ").unwrap_or(run).split(' ').map(str::to_string).collect()
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_whole_flow_signs_in_tests_and_sets_up_offering_once_per_sign_in() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    token_endpoint(&server).await;
+    user_endpoint_accepting(&server, KEY).await;
+    // The first test request fails; the next ones work.
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(500).set_body_json(json!({"detail": {"message": "down"}})))
+        .up_to_n_times(1)
+        .with_priority(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3-fake-mp3".to_vec()))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, None);
+    let onboard = |args: &[String]| {
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        reply(cli(home.path(), cwd.path(), &server.uri(), &args).env("PATH", &path))
+    };
+    let test = || onboard(&["onboard".into(), "test".into()]);
+    let offer = session_dir(home.path(), cwd.path()).join("setup-offer");
+
+    sign_in_through_the_callback(home.path(), cwd.path(), &server.uri(), "code=approved", "no_key");
+    assert!(offer.exists());
+    // The clipboard hand-off can't run here: the key arrives as the page would leave it.
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+
+    let r = test();
+    assert_eq!((r["next"].as_str(), r["details"]["status"].as_u64()), (Some("done"), Some(500)), "{r}");
+    assert!(r["details"].get("question").is_none(), "no offer after a failed test request: {r}");
+    assert!(offer.exists(), "the offer waits for one that works");
+
+    let r = test();
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(r["details"]["question"], PLUGIN_QUESTION.replace("{}", "Claude Code and Codex"));
+    assert_eq!(r["run"], "elevenlabs onboard setup --env-path .env.local");
+    assert!(!offer.exists());
+    let accept = run_args(&r);
+    assert_eq!(test()["next"], "done", "made once");
+
+    let (users, speech) = requests(&server).await;
+    let r = onboard(&accept);
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r.get("run").is_none(), "{r}");
+    assert_eq!(recorded(&record), INSTALLS);
+    let (users_after, speech_after) = requests(&server).await;
+    assert_eq!(speech_after, speech, "onboard setup makes no speech");
+    let new: Vec<&String> = users_after[users.len()..].iter().collect();
+    assert_eq!(new.len(), 1, "one account request: {new:?}");
+    assert!(new[0].contains("cmd/onboard.setup"), "{}", new[0]);
+
+    // Signing in again in a project that has a key replaces it, as the developer asks.
+    sign_in_with(home.path(), cwd.path(), &server.uri(), "code=approved", "no_key", &["--replace"]);
+    let r = test();
+    assert_eq!(r["next"], "offer_setup", "again after a second sign-in: {r}");
+    assert_eq!(test()["next"], "done");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn with_no_agent_found_the_offer_is_the_skills_and_its_run_keeps_the_flags_and_npx() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3".to_vec()))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    write(cwd.path(), "other.env", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    // (row, npm_command, the run it offers)
+    let rows = [
+        ("installed", None, "elevenlabs onboard setup --env-path other.env --no-browser"),
+        (
+            "through npx",
+            Some("exec"),
+            "npx -y @elevenlabs/cli@latest onboard setup --env-path other.env --no-browser",
+        ),
+    ];
+    for (row, npm, run) in rows {
+        setup_offer_due(home.path(), cwd.path());
+        let mut cmd = cli(
+            home.path(),
+            cwd.path(),
+            &server.uri(),
+            &["onboard", "test", "--env-path", "other.env", "--no-browser"],
+        );
+        cmd.env("PATH", "/usr/bin:/bin");
+        if let Some(npm) = npm {
+            cmd.env("npm_command", npm);
+        }
+        let r = reply(&mut cmd);
+        assert_eq!(r["next"], "offer_setup", "{row}: {r}");
+        assert_eq!(
+            r["details"]["question"], "Want me to install the ElevenLabs skills for your coding agents?",
+            "{row}"
+        );
+        assert_eq!(r["run"], run, "{row}");
+    }
+}
+
+/// A reply with the paths and port of one run replaced, as the base
+/// commit's replies in `tests/fixtures/no_sign_in_replies.json` are.
+fn normalised(reply: &Value, home: &Path, cwd: &Path, server: &str) -> Value {
+    let mut text = reply.to_string();
+    let mut paths: Vec<(String, &str)> = Vec::new();
+    for (dir, name) in [(home, "<home>"), (cwd, "<project>")] {
+        paths.push((dir.display().to_string(), name));
+        paths.push((dir.canonicalize().unwrap().display().to_string(), name));
+    }
+    paths.sort_by_key(|(p, _)| std::cmp::Reverse(p.len()));
+    for (path, name) in paths {
+        text = text.replace(&path, name);
+    }
+    text = text.replace(server, "<server>");
+    let clip = regex_lite_clip(&text);
+    serde_json::from_str(&clip).unwrap()
+}
+
+/// `elevenlabs-hello-XXXXXX.mp3`, the test request's clip, with its random part replaced.
+fn regex_lite_clip(text: &str) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(at) = rest.find("elevenlabs-hello-") {
+        let start = at + "elevenlabs-hello-".len();
+        out.push_str(&rest[..start]);
+        rest = &rest[start..];
+        if rest.len() > 6 && rest[6..].starts_with(".mp3") {
+            out.push_str("<clip>");
+            rest = &rest[6..];
+        }
+    }
+    out + rest
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn with_no_sign_in_every_reply_is_exactly_the_base_commits() {
+    const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    let want: Value =
+        serde_json::from_str(include_str!("fixtures/no_sign_in_replies.json")).unwrap();
+    let tts = |status: u16| async move {
+        let server = MockServer::start().await;
+        user_endpoint_accepting(&server, KEY).await;
+        agent_endpoint(&server, KEY, MINE, "Store helper", json!({"enable_auth": false, "allowlist": []})).await;
+        let answer = match status {
+            200 => ResponseTemplate::new(200).set_body_bytes(b"ID3-fake-mp3".to_vec()),
+            402 => ResponseTemplate::new(402)
+                .set_body_json(json!({"detail": {"status": "payment_required", "message": "no credits"}})),
+            _ => ResponseTemplate::new(status).set_body_json(json!({"detail": {"message": "down"}})),
+        };
+        Mock::given(method("POST"))
+            .and(path_regex("^/v1/text-to-speech/"))
+            .respond_with(answer)
+            .mount(&server)
+            .await;
+        server
+    };
+    let (ok, no_credits, down) = (tts(200).await, tts(402).await, tts(500).await);
+    let with_key = |p: &Path| write(p, ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let wired = |p: &Path| {
+        with_key(p);
+        write(
+            p,
+            "package.json",
+            r#"{"scripts":{"start":"node --env-file=.env.local src/speak.js"},"dependencies":{"@elevenlabs/elevenlabs-js":"^2"}}"#,
+        );
+        write(p, "src/speak.js", "import { ElevenLabsClient } from \"@elevenlabs/elevenlabs-js\";\n");
+    };
+    let voice_agent = |p: &Path| {
+        with_key(p);
+        write(p, "index.html", &embed(MINE));
+    };
+    let nothing = |_: &Path| {};
+    let check: &[&str] = &["onboard", "check"];
+    let agent_check: &[&str] = &["onboard", "check", "--answered", "--no-browser"];
+    let test: &[&str] = &["onboard", "test"];
+    // (scenario, the project, the server, the commands run in turn)
+    let scenarios: [(&str, &dyn Fn(&Path), String, Vec<&[&str]>); 9] = [
+        ("init_in_an_empty_project", &nothing, ok.uri(), vec![&["onboard", "init"]]),
+        ("check_with_no_key", &nothing, ok.uri(), vec![check]),
+        ("check_with_a_working_key_and_no_sdk", &with_key, ok.uri(), vec![check]),
+        ("check_with_the_sdk_wired", &wired, ok.uri(), vec![check]),
+        ("test_that_works", &wired, ok.uri(), vec![test]),
+        ("test_with_no_credits", &wired, no_credits.uri(), vec![test]),
+        ("test_failing_with_500", &wired, down.uri(), vec![test]),
+        ("test_unreachable", &wired, OFFLINE.into(), vec![test]),
+        ("voice_agent_check", &voice_agent, ok.uri(), vec![agent_check, agent_check]),
+    ];
+    assert_eq!(scenarios.len(), want.as_object().unwrap().len());
+    for (name, project, server, commands) in scenarios {
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let record = bin.path().join("ran");
+        // A Claude Code on PATH: with no sign-in it changes nothing.
+        let path = stand_ins(bin.path(), &["claude"], &record, None);
+        project(cwd.path());
+        let got: Vec<Value> = commands
+            .iter()
+            .map(|args| {
+                let r = reply(cli(home.path(), cwd.path(), &server, args).env("PATH", &path));
+                normalised(&r, home.path(), cwd.path(), &server)
+            })
+            .collect();
+        assert_eq!(Value::from(got), want[name], "{name}");
+        assert!(recorded(&record).is_empty(), "{name}");
+    }
+}
+
+// ── interrupts through the binary ───────────────────────────────────
+
+/// Stand-ins for Claude Code and Codex that run every command at once but
+/// `hang_on`, which starts `sleep <marker>`, writes its pid to `pid`, and
+/// waits. Returns a PATH with only them and the system's tools.
+#[cfg(unix)]
+fn hanging_stand_ins(dir: &Path, hang_on: &str, marker: u32) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    let pid = dir.join("pid");
+    for name in ["claude", "codex"] {
+        let script = format!(
+            "#!/bin/sh\nif [ \"{name} $*\" = \"{hang_on}\" ]; then\n  sleep {marker} &\n  echo $! > '{0}.new'\n  \
+             mv '{0}.new' '{0}'\n  wait\nfi\nexit 0\n",
+            pid.display()
+        );
+        std::fs::write(dir.join(name), script).unwrap();
+        std::fs::set_permissions(dir.join(name), std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    format!("{}:/usr/bin:/bin", dir.display())
+}
+
+/// The processes whose command line contains `marker`.
+#[cfg(unix)]
+fn running(marker: &str) -> Vec<String> {
+    let out = Command::new("ps").args(["-axo", "pid=,command="]).output().unwrap();
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|l| l.contains(marker) && !l.contains("ps -axo"))
+        .map(str::to_string)
+        .collect()
+}
+
+/// `cmd` started with SIGINT at its default, as from a terminal (these tests
+/// may run with it ignored), or ignored when `ignore_sigint`.
+#[cfg(unix)]
+fn start_with_sigint(mut cmd: Command, ignore_sigint: bool) -> StopOnDrop {
+    use std::os::unix::process::CommandExt;
+    let disposition = if ignore_sigint { libc::SIG_IGN } else { libc::SIG_DFL };
+    unsafe {
+        cmd.pre_exec(move || {
+            libc::signal(libc::SIGINT, disposition);
+            Ok(())
+        });
+    }
+    StopOnDrop(cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().unwrap())
+}
+
+#[cfg(unix)]
+fn pid_in(file: &Path) -> i32 {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if let Some(pid) = std::fs::read_to_string(file).ok().and_then(|t| t.trim().parse().ok()) {
+            return pid;
+        }
+        assert!(Instant::now() < deadline, "the stand-in never started its child");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(unix)]
+fn exit_of(child: &mut std::process::Child, within: Duration) -> std::process::ExitStatus {
+    let deadline = Instant::now() + within;
+    loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            return status;
+        }
+        assert!(Instant::now() < deadline, "still running after {within:?}");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// Nothing whose command line holds `marker` (the stand-in's child) or the
+/// stand-ins' folder is left running.
+#[cfg(unix)]
+fn nothing_left(marker: u32, bin: &Path, row: &str) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let mut left = running(&format!("sleep {marker}"));
+        left.extend(running(&bin.display().to_string()));
+        if left.is_empty() {
+            return;
+        }
+        assert!(Instant::now() < deadline, "{row}: left running: {left:?}");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn an_interrupt_during_each_agent_command_stops_it_and_exits_as_interrupted() {
+    let mut rows: Vec<(String, &str, &[&str], Vec<i32>, i32)> = Vec::new();
+    for command in INSTALLS {
+        for (signal, code) in [(libc::SIGINT, 130), (libc::SIGTERM, 143)] {
+            rows.push((format!("signal {signal} during `{command}`"), command, &["setup", "--yes"], vec![signal], code));
+        }
+    }
+    rows.push(("two SIGINTs in a row".into(), INSTALLS[1], &["setup", "--yes"], vec![libc::SIGINT; 2], 130));
+    rows.push(("two SIGTERMs in a row".into(), INSTALLS[5], &["setup", "--yes"], vec![libc::SIGTERM; 2], 143));
+    rows.push(("SIGINT during `onboard setup`".into(), INSTALLS[3], &["onboard", "setup"], vec![libc::SIGINT], 130));
+    for (n, (row, command, args, signals, code)) in rows.into_iter().enumerate() {
+        let marker = 3200 + n as u32;
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let path = hanging_stand_ins(bin.path(), command, marker);
+        let mut cmd = cli(home.path(), cwd.path(), OFFLINE, args);
+        cmd.env("PATH", &path);
+        let mut setup = start_with_sigint(cmd, false);
+        let sleep = pid_in(&bin.path().join("pid"));
+        let _sleep = KillOnDrop(sleep);
+        for signal in &signals {
+            unsafe { libc::kill(setup.0.id() as i32, *signal) };
+        }
+        let status = exit_of(&mut setup.0, Duration::from_secs(10));
+        assert_eq!(status.code(), Some(code), "{row}: {status:?}");
+        nothing_left(marker, bin.path(), &row);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn with_sigint_ignored_an_interrupt_changes_nothing_and_sigterm_still_stops_it() {
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let marker = 3300;
+    let path = hanging_stand_ins(bin.path(), INSTALLS[1], marker);
+    let mut cmd = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]);
+    cmd.env("PATH", &path);
+    let mut setup = start_with_sigint(cmd, true);
+    let sleep = pid_in(&bin.path().join("pid"));
+    let _sleep = KillOnDrop(sleep);
+    unsafe { libc::kill(setup.0.id() as i32, libc::SIGINT) };
+    // Ignored: for a while, both keep running.
+    let until = Instant::now() + Duration::from_millis(300);
+    while Instant::now() < until {
+        assert!(setup.0.try_wait().unwrap().is_none(), "setup stopped on an ignored SIGINT");
+        assert_eq!(unsafe { libc::kill(sleep, 0) }, 0, "the agent command stopped on an ignored SIGINT");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    unsafe { libc::kill(setup.0.id() as i32, libc::SIGTERM) };
+    let status = exit_of(&mut setup.0, Duration::from_secs(10));
+    assert_eq!(status.code(), Some(143), "{status:?}");
+    nothing_left(marker, bin.path(), "SIGTERM after an ignored SIGINT");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn an_interrupt_with_no_agent_command_running_ends_the_cli_as_before() {
+    use std::os::unix::process::ExitStatusExt;
+    for signal in [libc::SIGINT, libc::SIGTERM] {
+        let server = MockServer::start().await;
+        // The account request `onboard setup` makes first, held open.
+        Mock::given(method("GET"))
+            .and(path("/v1/user"))
+            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(30)))
+            .mount(&server)
+            .await;
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let record = bin.path().join("ran");
+        let path = stand_ins(bin.path(), &["claude", "codex"], &record, None);
+        write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+        let mut cmd = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"]);
+        cmd.env("PATH", &path);
+        let mut setup = start_with_sigint(cmd, false);
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while server.received_requests().await.unwrap().is_empty() {
+            assert!(Instant::now() < deadline, "the account request never came");
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        unsafe { libc::kill(setup.0.id() as i32, signal) };
+        let status = exit_of(&mut setup.0, Duration::from_secs(10));
+        assert_eq!(status.signal(), Some(signal), "signal {signal}: {status:?}");
+        assert!(recorded(&record).is_empty(), "signal {signal}: no agent command ran");
+    }
 }
