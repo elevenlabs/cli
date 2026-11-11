@@ -318,13 +318,32 @@ fn agents_not_reached_in_time_count_as_failed() {
     assert!(outcomes[2].ok, "Cursor runs nothing");
 }
 
+/// A shell script at `dir/name`, written by a short-lived `sh`, never by this
+/// process. Tests run as threads of one process: if one forks while another
+/// holds a script open for writing, the forked child keeps that descriptor
+/// until it execs, and Linux then refuses to start the script with "Text
+/// file busy" (rust-lang/rust#114554). A file this process never opens can't
+/// be held that way.
 #[cfg(unix)]
 fn script(dir: &Path, name: &str, body: &str) -> PathBuf {
-    use std::os::unix::fs::PermissionsExt;
     let path = dir.join(name);
-    std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let status = Command::new("/bin/sh")
+        .args(["-c", "printf '%s' \"$1\" > \"$2\" && chmod 755 \"$2\"", "sh"])
+        .arg(format!("#!/bin/sh\n{body}\n"))
+        .arg(&path)
+        .stdin(Stdio::null())
+        .status()
+        .unwrap();
+    assert!(status.success(), "writing {}", path.display());
     path
+}
+
+/// `sleep <seconds>.<this process's id>`: a command line no other run of
+/// these tests on this machine has, for finding what a test left running.
+/// The id has a fixed width, so one marker never contains another.
+#[cfg(unix)]
+fn sleep_marker(seconds: u32) -> String {
+    format!("sleep {seconds}.{:010}", std::process::id())
 }
 
 #[cfg(unix)]
@@ -1410,7 +1429,8 @@ fn a_command_past_its_limit_is_stopped_with_its_children_and_grandchildren() {
         dir.path(),
         "codex",
         &format!(
-            "sh -c 'sleep 3011 & echo $! > \"{g}\"; wait' &\necho $! > '{c}'\nwait",
+            "sh -c '{sleep} & echo $! > \"{g}\"; wait' &\necho $! > '{c}'\nwait",
+            sleep = sleep_marker(3011),
             g = grandchild.display(),
             c = child.display()
         ),
@@ -1424,7 +1444,7 @@ fn a_command_past_its_limit_is_stopped_with_its_children_and_grandchildren() {
     assert!(started.elapsed() < limit + Duration::from_secs(3), "{:?}", started.elapsed());
     assert!(gone(child), "the child {child} still runs");
     assert!(gone(grandchild), "the grandchild {grandchild} still runs");
-    assert_eq!(left_behind("sleep 3011"), Vec::<String>::new());
+    assert_eq!(left_behind(&sleep_marker(3011)), Vec::<String>::new());
     assert_eq!(left_behind(&hangs.display().to_string()), Vec::<String>::new());
 }
 
@@ -1434,7 +1454,8 @@ fn fifty_runs_in_a_row_leave_no_process_behind() {
     let dir = tempfile::tempdir().unwrap();
     let works = script(dir.path(), "works", "echo fine");
     let fails = script(dir.path(), "fails", "echo broke >&2; exit 1");
-    let hangs = script(dir.path(), "hangs", "sh -c 'sleep 3012' &\nsleep 3012 &\nwait");
+    let sleep = sleep_marker(3012);
+    let hangs = script(dir.path(), "hangs", &format!("sh -c '{sleep}' &\n{sleep} &\nwait"));
     for run in 0..50 {
         let (program, limit, want) = match run % 3 {
             0 => (&works, Duration::from_secs(10), Ok(())),
@@ -1445,7 +1466,7 @@ fn fifty_runs_in_a_row_leave_no_process_behind() {
     }
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
-        let mut left = left_behind("sleep 3012");
+        let mut left = left_behind(&sleep);
         left.extend(left_behind(&dir.path().display().to_string()));
         if left.is_empty() {
             break;

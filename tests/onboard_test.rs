@@ -78,7 +78,7 @@ fn all_output(output: &Output) -> String {
 /// Run and parse stdout as the reply, failing with both streams when the CLI did not succeed.
 fn reply(cmd: &mut Command) -> Value {
     let output = cmd.output().unwrap();
-    assert!(output.status.success(), "{}", all_output(&output));
+    assert!(output.status.success(), "{}{}", all_output(&output), worker_log_named_in(&output));
     assert!(
         !all_output(&output).contains(KEY),
         "the key never appears in the output"
@@ -92,6 +92,20 @@ fn reply(cmd: &mut Command) -> Value {
         "the reply is one line"
     );
     serde_json::from_slice(&output.stdout).expect("stdout is JSON")
+}
+
+/// The sign-in worker's log a failed command points at, since its folder is
+/// gone once the test ends.
+fn worker_log_named_in(output: &Output) -> String {
+    let text = all_output(output);
+    let Some(log) = text.split("see ").nth(1).and_then(|t| t.split('"').next()) else {
+        return String::new();
+    };
+    if !log.ends_with("worker.log") {
+        return String::new();
+    }
+    let kept = std::fs::read_to_string(log).unwrap_or_else(|e| format!("({e})"));
+    format!("\n--- {log} ---\n{kept}")
 }
 
 fn say(reply: &Value) -> &str {
@@ -1385,10 +1399,45 @@ fn link(reply: &Value) -> String {
     say[at..].trim().to_string()
 }
 
-/// The tests that sign in take turns: each listens on the callback ports.
-async fn signing_in() -> tokio::sync::MutexGuard<'static, ()> {
+/// The tests that sign in take turns, on the whole machine: each listens on
+/// the callback ports, which two runs of this suite would otherwise share.
+struct SigningIn(#[allow(dead_code)] tokio::sync::MutexGuard<'static, ()>, std::fs::File);
+
+impl Drop for SigningIn {
+    fn drop(&mut self) {
+        let _ = self.1.unlock();
+    }
+}
+
+async fn signing_in() -> SigningIn {
     static PORTS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-    PORTS.lock().await
+    let turn = PORTS.lock().await;
+    let path = std::env::temp_dir().join("elevenlabs-cli-onboard-test-sign-in.lock");
+    let file = tokio::task::spawn_blocking(move || {
+        let file = std::fs::OpenOptions::new().create(true).truncate(false).write(true).open(&path).unwrap();
+        file.lock().unwrap();
+        file
+    })
+    .await
+    .unwrap();
+    SigningIn(turn, file)
+}
+
+/// Waits a while for the callback ports to be free. When they never are, it
+/// fails on CI, where a skipped sign-in test would go unseen, and says so.
+async fn callback_ports_still_busy() -> bool {
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while callback_ports_busy() {
+        if Instant::now() >= deadline {
+            assert!(
+                std::env::var_os("CI").is_none(),
+                "the callback ports 8482 to 8484 are busy, so this sign-in test can't run"
+            );
+            return true;
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    false
 }
 
 /// Something already listens on the sign-in's callback ports (another sign-in
@@ -1748,6 +1797,22 @@ fn session_dir(home: &Path, cwd: &Path) -> PathBuf {
     home.join(".elevenlabs").join("onboard").join(id)
 }
 
+/// A program at `path`, written by a short-lived `sh`, never by this process.
+/// Tests run as threads of one process: if one forks while another holds a
+/// script open for writing, the forked child keeps that descriptor until it
+/// execs, and Linux then refuses to start the script with "Text file busy"
+/// (rust-lang/rust#114554). A file this process never opens can't be held.
+#[cfg(unix)]
+fn program(path: &Path, text: &str) {
+    let status = Command::new("/bin/sh")
+        .args(["-c", "printf '%s' \"$1\" > \"$2\" && chmod 755 \"$2\"", "sh", text])
+        .arg(path)
+        .stdin(std::process::Stdio::null())
+        .status()
+        .unwrap();
+    assert!(status.success(), "writing {}", path.display());
+}
+
 /// What a sign-in leaves: the `setup` offer is due.
 fn setup_offer_due(home: &Path, cwd: &Path) -> PathBuf {
     let dir = session_dir(home, cwd);
@@ -1762,7 +1827,6 @@ fn setup_offer_due(home: &Path, cwd: &Path) -> PathBuf {
 /// contain `fail`. Returns a PATH with only them and the system's tools.
 #[cfg(unix)]
 fn stand_ins(dir: &Path, names: &[&str], record: &Path, fail: Option<&str>) -> String {
-    use std::os::unix::fs::PermissionsExt;
     for name in names {
         let fails = match fail {
             Some(args) => format!(
@@ -1774,9 +1838,7 @@ fn stand_ins(dir: &Path, names: &[&str], record: &Path, fail: Option<&str>) -> S
             "#!/bin/sh\necho \"{name} $*\" >> '{}'\n{fails}exit 0\n",
             record.display()
         );
-        let path = dir.join(name);
-        std::fs::write(&path, script).unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        program(&dir.join(name), &script);
     }
     format!("{}:/usr/bin:/bin", dir.display())
 }
@@ -2134,18 +2196,15 @@ impl Drop for StopOnDrop {
 #[cfg(unix)]
 #[test]
 fn ctrl_c_stops_the_agent_command_and_what_it_started() {
-    use std::os::unix::fs::PermissionsExt;
     use std::os::unix::process::CommandExt;
     let (home, cwd) = temp();
     let bin = tempfile::tempdir().unwrap();
     let pid = bin.path().join("pid");
     let claude = bin.path().join("claude");
-    std::fs::write(
+    program(
         &claude,
-        format!("#!/bin/sh\nsleep 300 &\necho $! > '{0}.new'\nmv '{0}.new' '{0}'\nwait\n", pid.display()),
-    )
-    .unwrap();
-    std::fs::set_permissions(&claude, std::fs::Permissions::from_mode(0o755)).unwrap();
+        &format!("#!/bin/sh\nsleep 300 &\necho $! > '{0}.new'\nmv '{0}.new' '{0}'\nwait\n", pid.display()),
+    );
     let mut cmd = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]);
     cmd.env("PATH", format!("{}:/usr/bin:/bin", bin.path().display()));
     // SIGINT at its default, as from a terminal, even where these tests run with it ignored.
@@ -2280,7 +2339,7 @@ fn sign_in_with(home: &Path, cwd: &Path, server: &str, params: &str, key_status:
 #[tokio::test]
 async fn every_sign_in_leaves_the_setup_offer_and_a_new_one_clears_the_last_ones() {
     let _turn = signing_in().await;
-    if callback_ports_busy() {
+    if callback_ports_still_busy().await {
         eprintln!("skipped: another sign-in is listening on the callback ports");
         return;
     }
@@ -2552,21 +2611,17 @@ fn setup_through_the_binary_ten_runs_in_a_row_and_two_at_once() {
 #[cfg(unix)]
 #[test]
 fn setup_starts_agents_from_the_shells_environment_never_the_projects_env() {
-    use std::os::unix::fs::PermissionsExt;
     let (home, cwd) = temp();
     let (bin, project_bin) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
     let record = bin.path().join("ran");
     for (dir, said) in [(bin.path(), "shell's"), (project_bin.path(), "project's")] {
-        let claude = dir.join("claude");
-        std::fs::write(
-            &claude,
-            format!(
+        program(
+            &dir.join("claude"),
+            &format!(
                 "#!/bin/sh\necho \"{said} claude $* [${{ELEVENLABS_SETUP_TEST:-unset}}]\" >> '{}'\n",
                 record.display()
             ),
-        )
-        .unwrap();
-        std::fs::set_permissions(&claude, std::fs::Permissions::from_mode(0o755)).unwrap();
+        );
     }
     write(
         cwd.path(),
@@ -2607,7 +2662,7 @@ fn run_args(reply: &Value) -> Vec<String> {
 #[tokio::test]
 async fn a_whole_flow_signs_in_tests_and_sets_up_offering_once_per_sign_in() {
     let _turn = signing_in().await;
-    if callback_ports_busy() {
+    if callback_ports_still_busy().await {
         eprintln!("skipped: another sign-in is listening on the callback ports");
         return;
     }
@@ -2830,8 +2885,7 @@ async fn with_no_sign_in_every_reply_is_exactly_the_base_commits() {
 /// `hang_on`, which starts `sleep <marker>`, writes its pid to `pid`, and
 /// waits. Returns a PATH with only them and the system's tools.
 #[cfg(unix)]
-fn hanging_stand_ins(dir: &Path, hang_on: &str, marker: u32) -> String {
-    use std::os::unix::fs::PermissionsExt;
+fn hanging_stand_ins(dir: &Path, hang_on: &str, marker: &str) -> String {
     let pid = dir.join("pid");
     for name in ["claude", "codex"] {
         let script = format!(
@@ -2839,8 +2893,7 @@ fn hanging_stand_ins(dir: &Path, hang_on: &str, marker: u32) -> String {
              mv '{0}.new' '{0}'\n  wait\nfi\nexit 0\n",
             pid.display()
         );
-        std::fs::write(dir.join(name), script).unwrap();
-        std::fs::set_permissions(dir.join(name), std::fs::Permissions::from_mode(0o755)).unwrap();
+        program(&dir.join(name), &script);
     }
     format!("{}:/usr/bin:/bin", dir.display())
 }
@@ -2895,10 +2948,18 @@ fn exit_of(child: &mut std::process::Child, within: Duration) -> std::process::E
     }
 }
 
+/// A `sleep` time no other run of these tests on this machine uses, so what
+/// one run leaves is never taken for another's: `<seconds>.<this process's
+/// id>`, the id at a fixed width so one marker never contains another.
+#[cfg(unix)]
+fn marker(seconds: u32) -> String {
+    format!("{seconds}.{:010}", std::process::id())
+}
+
 /// Nothing whose command line holds `marker` (the stand-in's child) or the
 /// stand-ins' folder is left running.
 #[cfg(unix)]
-fn nothing_left(marker: u32, bin: &Path, row: &str) {
+fn nothing_left(marker: &str, bin: &Path, row: &str) {
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         let mut left = running(&format!("sleep {marker}"));
@@ -2924,10 +2985,10 @@ fn an_interrupt_during_each_agent_command_stops_it_and_exits_as_interrupted() {
     rows.push(("two SIGTERMs in a row".into(), INSTALLS[5], &["setup", "--yes"], vec![libc::SIGTERM; 2], 143));
     rows.push(("SIGINT during `onboard setup`".into(), INSTALLS[3], &["onboard", "setup"], vec![libc::SIGINT], 130));
     for (n, (row, command, args, signals, code)) in rows.into_iter().enumerate() {
-        let marker = 3200 + n as u32;
+        let marker = marker(3200 + n as u32);
         let (home, cwd) = temp();
         let bin = tempfile::tempdir().unwrap();
-        let path = hanging_stand_ins(bin.path(), command, marker);
+        let path = hanging_stand_ins(bin.path(), command, &marker);
         let mut cmd = cli(home.path(), cwd.path(), OFFLINE, args);
         cmd.env("PATH", &path);
         let mut setup = start_with_sigint(cmd, false);
@@ -2938,7 +2999,7 @@ fn an_interrupt_during_each_agent_command_stops_it_and_exits_as_interrupted() {
         }
         let status = exit_of(&mut setup.0, Duration::from_secs(10));
         assert_eq!(status.code(), Some(code), "{row}: {status:?}");
-        nothing_left(marker, bin.path(), &row);
+        nothing_left(&marker, bin.path(), &row);
     }
 }
 
@@ -2947,8 +3008,8 @@ fn an_interrupt_during_each_agent_command_stops_it_and_exits_as_interrupted() {
 fn with_sigint_ignored_an_interrupt_changes_nothing_and_sigterm_still_stops_it() {
     let (home, cwd) = temp();
     let bin = tempfile::tempdir().unwrap();
-    let marker = 3300;
-    let path = hanging_stand_ins(bin.path(), INSTALLS[1], marker);
+    let marker = marker(3300);
+    let path = hanging_stand_ins(bin.path(), INSTALLS[1], &marker);
     let mut cmd = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]);
     cmd.env("PATH", &path);
     let mut setup = start_with_sigint(cmd, true);
@@ -2965,7 +3026,7 @@ fn with_sigint_ignored_an_interrupt_changes_nothing_and_sigterm_still_stops_it()
     unsafe { libc::kill(setup.0.id() as i32, libc::SIGTERM) };
     let status = exit_of(&mut setup.0, Duration::from_secs(10));
     assert_eq!(status.code(), Some(143), "{status:?}");
-    nothing_left(marker, bin.path(), "SIGTERM after an ignored SIGINT");
+    nothing_left(&marker, bin.path(), "SIGTERM after an ignored SIGINT");
 }
 
 #[cfg(unix)]
