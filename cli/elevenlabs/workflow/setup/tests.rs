@@ -1563,3 +1563,15 @@ fn a_failed_command_reports_a_short_clean_line_whatever_it_printed() {
     }
 }
 
+#[cfg(unix)]
+#[test]
+fn a_missing_home_folder_is_named_and_the_agent_is_not_blamed() {
+    let dir = tempfile::tempdir().unwrap();
+    let program = script(dir.path(), "claude", "exit 0");
+    let home = dir.path().join("gone");
+    assert_eq!(
+        run_program(&program, &[], Duration::from_secs(5), &home),
+        Err(format!("couldn't start it: the home folder {} is missing", home.display()))
+    );
+}
+

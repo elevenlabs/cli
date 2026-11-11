@@ -215,6 +215,9 @@ pub(super) fn run_program(
         (Ok(out), Ok(err)) => (out, err),
         (Err(e), _) | (_, Err(e)) => return Err(format!("couldn't start it: {e}")),
     };
+    if !home.is_dir() {
+        return Err(format!("couldn't start it: the home folder {} is missing", home.display()));
+    }
     let mut command = Command::new(program);
     command
         .args(args)
