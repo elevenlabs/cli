@@ -503,8 +503,13 @@ fn install_timed(
 /// Everything `setup --yes` does: install into the agents found, or, with
 /// none, copy the skills.
 pub(super) fn run(agents: &[Agent], home: &Path, limits: Limits) -> Vec<Outcome> {
+    run_from(agents, home, limits, SKILLS_ARCHIVE)
+}
+
+/// [`run`], downloading the skills from `skills_url`.
+fn run_from(agents: &[Agent], home: &Path, limits: Limits, skills_url: &str) -> Vec<Outcome> {
     if agents.is_empty() {
-        return vec![skills(home)];
+        return vec![skills_from(skills_url, home)];
     }
     install(agents, limits, &|program, args, limit| {
         run_program(program, args, limit, home)
@@ -597,12 +602,7 @@ fn skills_root(home: &Path) -> PathBuf {
     home.join(".agents").join("skills")
 }
 
-/// Download the skills and copy them into `~/.agents/skills`.
-fn skills(home: &Path) -> Outcome {
-    skills_from(SKILLS_ARCHIVE, home)
-}
-
-/// [`skills`], downloading the archive from `url`.
+/// Download the skills archive from `url` and copy them into `~/.agents/skills`.
 fn skills_from(url: &str, home: &Path) -> Outcome {
     let result = download_skills(url).and_then(|dir| copy_skills(&dir.path().join("skills"), home));
     let root = skills_root(home);
@@ -754,25 +754,32 @@ fn handle(matches: &clap::ArgMatches) -> Result<(), CliError> {
         println!("Nothing was changed. Run `{}` to do it.", later_command());
         return Ok(());
     }
-    let outcomes = run(&agents, &home, LIMITS);
-    for outcome in &outcomes {
-        println!("{}", result_line(outcome));
-    }
-    let failed = outcomes.iter().any(|o| !o.ok);
-    if failed {
-        println!("To try again, run `{}`.", later_command());
-    }
-    let finish: Vec<String> = outcomes.iter().filter_map(finish).collect();
-    if !finish.is_empty() {
-        println!("\nTo finish:");
-        for step in finish {
-            println!("- {step}");
-        }
-    }
+    let (text, failed) = report(&run(&agents, &home, LIMITS));
+    print!("{text}");
     if failed {
         std::process::exit(1);
     }
     Ok(())
+}
+
+/// What `setup --yes` prints for `outcomes`, and whether any failed.
+fn report(outcomes: &[Outcome]) -> (String, bool) {
+    let mut text = String::new();
+    for outcome in outcomes {
+        text += &format!("{}\n", result_line(outcome));
+    }
+    let failed = outcomes.iter().any(|o| !o.ok);
+    if failed {
+        text += &format!("To try again, run `{}`.\n", later_command());
+    }
+    let finish: Vec<String> = outcomes.iter().filter_map(finish).collect();
+    if !finish.is_empty() {
+        text += "\nTo finish:\n";
+        for step in finish {
+            text += &format!("- {step}\n");
+        }
+    }
+    (text, failed)
 }
 
 pub fn register(app: CliApp) -> CliApp {

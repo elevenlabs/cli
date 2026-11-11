@@ -1575,3 +1575,39 @@ fn a_missing_home_folder_is_named_and_the_agent_is_not_blamed() {
     );
 }
 
+// ── setup --yes with no agent found ─────────────────────────────────
+
+/// `setup --yes` with no agent found, the skills downloaded from a server
+/// standing in for GitHub: what it prints and whether it fails.
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn with_no_agent_found_setup_prints_what_the_skills_copy_did() {
+    let empty = archive(&[("README.md", "readme")]);
+    // (row, how the server answers, whether it fails, what it prints)
+    let rows: [(&str, wiremock::ResponseTemplate, bool, &str); 3] = [
+        ("a good archive", body(archive(TWO_SKILLS)), false, "Skills: copied 2 ElevenLabs skills into {root}\n"),
+        (
+            "an archive with no skills",
+            body(empty),
+            true,
+            "Skills: failed: the download from {url} held no skills\n\
+             To try again, run `elevenlabs setup --yes`.\n",
+        ),
+        (
+            "a server error",
+            wiremock::ResponseTemplate::new(500),
+            true,
+            "Skills: failed: couldn't download the skills from {url}: HTTP status server error (500 Internal \
+             Server Error) for url ({url})\nTo try again, run `elevenlabs setup --yes`.\n",
+        ),
+    ];
+    for (row, answer, fails, says) in rows {
+        let (_server, url) = github(vec![("main.tar.gz", answer)]).await;
+        let home = tempfile::tempdir().unwrap();
+        let root = skills_root(home.path());
+        let (text, failed) = report(&run_from(&[], home.path(), LIMITS_FOR_TESTS, &url));
+        assert_eq!(failed, fails, "{row}");
+        let says = says.replace("{root}", &root.display().to_string()).replace("{url}", &url);
+        assert_eq!(text, says, "{row}");
+    }
+}
