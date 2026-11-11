@@ -1611,3 +1611,26 @@ async fn with_no_agent_found_setup_prints_what_the_skills_copy_did() {
         assert_eq!(text, says, "{row}");
     }
 }
+
+/// A program that never stops starting new ones while its group is killed:
+/// one started as the signal lands must not survive it.
+#[cfg(unix)]
+#[test]
+fn a_program_starting_others_as_it_is_stopped_leaves_none_running() {
+    let dir = tempfile::tempdir().unwrap();
+    let sleep = sleep_marker(3013);
+    let forks = script(dir.path(), "forks", &format!("while :; do {sleep} & done"));
+    for run in 0..20 {
+        let got = run_program(&forks, &[], Duration::from_millis(50), dir.path());
+        assert_eq!(got, Err("ran out of time after 50 ms and was stopped".to_string()), "run {run}");
+    }
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let left = left_behind(&sleep);
+        if left.is_empty() {
+            break;
+        }
+        assert!(Instant::now() < deadline, "left running: {} processes, first {:?}", left.len(), &left[..1]);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
