@@ -1475,3 +1475,84 @@ fn fifty_runs_in_a_row_leave_no_process_behind() {
         std::thread::sleep(Duration::from_millis(20));
     }
 }
+
+// ── the error line a failed command leaves ──────────────────────────
+
+#[test]
+fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characters() {
+    let long = "x".repeat(5_000_000);
+    let cut = format!("{}…", "x".repeat(LINE_MAX - 1));
+    // A two-byte character where a cut by bytes would split it.
+    let straddles = format!("{}éz", "a".repeat(LINE_MAX - 1));
+    let straddles_cut = format!("{}…", "a".repeat(LINE_MAX - 1));
+    let exactly = "b".repeat(LINE_MAX);
+    // (row, the output, the line)
+    let rows: Vec<(&str, Vec<u8>, Option<String>)> = vec![
+        ("5 MB with no newline", long.clone().into_bytes(), Some(cut.clone())),
+        ("megabytes, then a short last line", format!("{long}\nthe real error\n").into_bytes(), Some("the real error".into())),
+        (
+            "a progress bar, then a coloured error",
+            b"downloading  10%\rdownloading  50%\rdownloading 100%\r\n\x1b[31merror:\x1b[0m \x1b[1mno such plugin\x1b[22m\r\n".to_vec(),
+            Some("error: no such plugin".into()),
+        ),
+        ("a progress bar redrawn last", b"done one\nstep 1/3\rstep 2/3\rstep 3/3".to_vec(), Some("step 3/3".into())),
+        ("a window title and a link", b"\x1b]0;claude\x07\x1b]8;;https://x.test\x1b\\link\x1b]8;;\x1b\\ failed".to_vec(), Some("link failed".into())),
+        ("a tab and a bell", b"one\ttwo\x07\x08three".to_vec(), Some("one twothree".into())),
+        ("a multi-byte character straddling the cut", straddles.into_bytes(), Some(straddles_cut)),
+        ("exactly 300 characters", exactly.clone().into_bytes(), Some(exactly)),
+        ("bytes that are not UTF-8", b"caf\xe9 \xff broke\n".to_vec(), Some("caf\u{FFFD} \u{FFFD} broke".into())),
+        ("empty output", Vec::new(), None),
+        ("only blank lines and escape codes", b"\n  \r\n\x1b[0m\x1b[2K\r\x1b]0;t\x07\n\t\n".to_vec(), None),
+    ];
+    for (row, output, want) in rows {
+        let got = clean_last_line(&output);
+        assert_eq!(got, want, "{row}");
+        let got = got.unwrap_or_default();
+        assert!(got.chars().count() <= LINE_MAX, "{row}: {} characters", got.chars().count());
+        assert!(!got.chars().any(char::is_control), "{row}: {got:?}");
+    }
+}
+
+#[test]
+fn only_the_tail_of_a_capture_is_read_and_a_character_cut_by_it_is_dropped() {
+    use std::io::Write;
+    let mut file = tempfile::tempfile().unwrap();
+    // 10 MB, then a last line whose first character is cut by the tail.
+    file.write_all(&vec![b'z'; 10_000_000]).unwrap();
+    file.write_all(b"\n").unwrap();
+    let mut line = "é".to_string();
+    line.push_str(&"q".repeat(TAIL as usize - 1));
+    file.write_all(line.as_bytes()).unwrap();
+    let got = last_line(file).unwrap();
+    assert_eq!(got, format!("{}…", "q".repeat(LINE_MAX - 1)));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_failed_command_reports_a_short_clean_line_whatever_it_printed() {
+    let dir = tempfile::tempdir().unwrap();
+    // (row, the stand-in's script, what run_program returns)
+    let rows: [(&str, &str, String); 3] = [
+        (
+            "5 MB on stderr with no newline",
+            "head -c 5000000 /dev/zero | tr '\\0' e >&2; exit 1",
+            format!("exited with 1: {}…", "e".repeat(LINE_MAX - 1)),
+        ),
+        (
+            "megabytes, then a short last line",
+            "head -c 5000000 /dev/zero | tr '\\0' e >&2; printf '\\nthe real error\\n' >&2; exit 1",
+            "exited with 1: the real error".into(),
+        ),
+        (
+            "a progress bar, then a coloured error",
+            "i=0; while [ $i -lt 2000 ]; do printf 'step %d\\r' $i; i=$((i+1)); done; \
+             printf '\\033[31merror:\\033[0m it broke\\r\\n' >&2; exit 2",
+            "exited with 2: error: it broke".into(),
+        ),
+    ];
+    for (row, body, want) in rows {
+        let program = script(dir.path(), "claude", body);
+        assert_eq!(run_program(&program, &[], Duration::from_secs(20), dir.path()), Err(want), "{row}");
+    }
+}
+

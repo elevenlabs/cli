@@ -2548,6 +2548,66 @@ fn setup_through_the_binary_with_a_stand_in_failing_at_each_step() {
     }
 }
 
+/// The longest error line `setup` repeats.
+const LINE_MAX: usize = 300;
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_failed_install_shows_a_short_clean_error_however_much_it_printed() {
+    let server = MockServer::start().await;
+    // (row, what the failing `claude plugin install` prints on stderr, the error line shown)
+    let rows = [
+        (
+            "5 MB with no newline",
+            "head -c 5000000 /dev/zero | tr '\\0' e >&2",
+            format!("{}…", "e".repeat(LINE_MAX - 1)),
+        ),
+        (
+            "megabytes, then a short last line",
+            "head -c 5000000 /dev/zero | tr '\\0' e >&2; printf '\\nthe real error\\n' >&2",
+            "the real error".to_string(),
+        ),
+        (
+            "a progress bar, then a coloured error",
+            "i=0; while [ $i -lt 3000 ]; do printf 'downloading %d%%\\r' $i >&2; i=$((i+1)); done; \
+             printf '\\033[31merror:\\033[0m install refused\\r\\n' >&2",
+            "error: install refused".to_string(),
+        ),
+    ];
+    for (row, prints, line) in rows {
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        program(
+            &bin.path().join("claude"),
+            &format!("#!/bin/sh\ncase \"$*\" in *\"plugin install\"*) {prints}; exit 1;; esac\nexit 0\n"),
+        );
+        let path = format!("{}:/usr/bin:/bin", bin.path().display());
+        let failed = format!(
+            "Claude Code: failed: `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user` \
+             exited with 1: {line}"
+        );
+
+        let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]).env("PATH", &path).output().unwrap();
+        assert_eq!(out.status.code(), Some(1), "{row}");
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert_eq!(stdout, format!("{failed}\nTo try again, run `elevenlabs setup --yes`.\n"), "{row}");
+        assert!(stdout.len() < 1000, "{row}: {} bytes", stdout.len());
+
+        let out = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"])
+            .env("PATH", &path)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "{row}: {}", all_output(&out));
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert_eq!(stdout.trim_end().lines().count(), 1, "{row}: one line of JSON");
+        assert!(stdout.len() < 2000, "{row}: {} bytes", stdout.len());
+        assert!(!stdout.contains('\r') && !stdout.contains("\\r"), "{row}: {stdout}");
+        assert!(!stdout.contains('\u{1b}') && !stdout.contains("\\u001b"), "{row}: {stdout}");
+        let r: Value = serde_json::from_str(&stdout).unwrap();
+        assert!(say(&r).starts_with(&format!("{failed}.")), "{row}: {r}");
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn setup_through_the_binary_from_folders_with_spaces_and_non_ascii_names() {

@@ -358,17 +358,78 @@ fn seconds(d: Duration) -> String {
     }
 }
 
-/// The last line with text in a program's captured output.
+/// How much of a program's captured output is read for its last line.
+const TAIL: u64 = 64 * 1024;
+/// The longest error line `setup` repeats: the coding agent reads all of it.
+const LINE_MAX: usize = 300;
+
+/// The last line with text in a program's captured output, read from its
+/// last [`TAIL`] bytes only, however much it printed.
 fn last_line(mut file: std::fs::File) -> Option<String> {
-    use std::io::{Read, Seek};
-    file.seek(std::io::SeekFrom::Start(0)).ok()?;
+    use std::io::{Read, Seek, SeekFrom};
+    let len = file.seek(SeekFrom::End(0)).ok()?;
+    let from = len.saturating_sub(TAIL);
+    file.seek(SeekFrom::Start(from)).ok()?;
     let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes).ok()?;
-    String::from_utf8_lossy(&bytes)
-        .lines()
-        .map(str::trim)
-        .rfind(|l| !l.is_empty())
-        .map(str::to_string)
+    file.take(TAIL).read_to_end(&mut bytes).ok()?;
+    // Cut mid-file, the tail can start inside a character.
+    let partial = if from > 0 {
+        bytes.iter().take(3).take_while(|b| (0x80..0xc0).contains(*b)).count()
+    } else {
+        0
+    };
+    clean_last_line(&bytes[partial..])
+}
+
+/// The last line with text in `bytes`, where a line ends at `\n` or `\r` (a
+/// progress bar redraws itself after `\r`), without terminal escapes or other
+/// control characters, and at most [`LINE_MAX`] characters long.
+fn clean_last_line(bytes: &[u8]) -> Option<String> {
+    let text = without_escapes(&String::from_utf8_lossy(bytes));
+    let line = text.split(['\n', '\r']).map(str::trim).rfind(|l| !l.is_empty())?;
+    Some(match line.char_indices().nth(LINE_MAX - 1) {
+        Some((at, _)) if line[at..].chars().nth(1).is_some() => format!("{}…", &line[..at]),
+        _ => line.to_string(),
+    })
+}
+
+/// `text` without CSI and OSC escape sequences (colours, titles, links) or
+/// control characters other than line ends; a tab becomes a space.
+fn without_escapes(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '\u{1b}' => match chars.next() {
+                // Parameters, then one final character from @ to ~.
+                Some('[') => {
+                    for c in chars.by_ref() {
+                        if ('@'..='~').contains(&c) {
+                            break;
+                        }
+                    }
+                }
+                // Up to BEL or ESC \.
+                Some(']') => {
+                    while let Some(c) = chars.next() {
+                        if c == '\u{7}' {
+                            break;
+                        }
+                        if c == '\u{1b}' {
+                            chars.next();
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            },
+            '\n' | '\r' => out.push(c),
+            '\t' => out.push(' '),
+            c if c.is_control() => {}
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// Install the plugin into each agent with `run`, which gets the program,
