@@ -397,38 +397,52 @@ fn clean_last_line(bytes: &[u8]) -> Option<String> {
     })
 }
 
-/// `text` without CSI and OSC escape sequences (colours, titles, links) or
-/// control characters other than line ends; a tab becomes a space.
+/// `text` without escape sequences (colours, titles, links and the rest),
+/// bidi formatting characters or control characters other than line ends;
+/// a tab becomes a space.
 fn without_escapes(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
-    let mut chars = text.chars();
+    let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
-            '\u{1b}' => match chars.next() {
-                // Parameters, then one final character from @ to ~.
-                Some('[') => {
-                    for c in chars.by_ref() {
-                        if ('@'..='~').contains(&c) {
-                            break;
+            '\u{1b}' | '\u{9b}' | '\u{9d}' => {
+                // U+009B and U+009D are one-character forms of ESC [ and ESC ].
+                let kind = match c {
+                    '\u{9b}' => Some('['),
+                    '\u{9d}' => Some(']'),
+                    _ => chars.next_if(|c| matches!(c, '[' | ']' | 'P' | 'X' | '^' | '_')),
+                };
+                match kind {
+                    // Parameters, then one final character from @ to ~.
+                    Some('[') => {
+                        for c in chars.by_ref() {
+                            if ('@'..='~').contains(&c) {
+                                break;
+                            }
                         }
                     }
-                }
-                // Up to BEL or ESC \.
-                Some(']') => {
-                    while let Some(c) = chars.next() {
-                        if c == '\u{7}' {
-                            break;
-                        }
-                        if c == '\u{1b}' {
-                            chars.next();
-                            break;
+                    // A string, up to BEL or ESC \.
+                    Some(_) => {
+                        while let Some(c) = chars.next() {
+                            if c == '\u{7}' {
+                                break;
+                            }
+                            if c == '\u{1b}' {
+                                chars.next();
+                                break;
+                            }
                         }
                     }
+                    // Characters from space to /, then one final character from 0 to ~.
+                    None => {
+                        while chars.next_if(|c| (' '..='/').contains(c)).is_some() {}
+                        chars.next_if(|c| ('0'..='~').contains(c));
+                    }
                 }
-                _ => {}
-            },
+            }
             '\n' | '\r' => out.push(c),
             '\t' => out.push(' '),
+            '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => {}
             c if c.is_control() => {}
             c => out.push(c),
         }

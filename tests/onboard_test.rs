@@ -2573,6 +2573,11 @@ async fn a_failed_install_shows_a_short_clean_error_however_much_it_printed() {
              printf '\\033[31merror:\\033[0m install refused\\r\\n' >&2",
             "error: install refused".to_string(),
         ),
+        (
+            "a coloured error ended as tput sgr0 does, with ESC ( B",
+            "printf '\\033[31merror: sgr0 reset\\033(B\\033[m\\n' >&2",
+            "error: sgr0 reset".to_string(),
+        ),
     ];
     for (row, prints, line) in rows {
         let (home, cwd) = temp();
