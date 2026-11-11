@@ -2324,7 +2324,7 @@ fn sign_in_with(home: &Path, cwd: &Path, server: &str, params: &str, key_status:
         &[&["onboard", "connect", "--no-browser", "--authorize-url", &authorize, "--telemetry", "off"], args].concat(),
     ));
     let url = link(&first);
-    assert!(!url.contains("setup_offer"), "the link is the base commit's: {url}");
+    assert!(!url.contains("setup_offer"), "the sign-in link is as it always was: {url}");
     callback(&url, params);
     let deadline = Instant::now() + Duration::from_secs(60);
     loop {
@@ -2831,8 +2831,8 @@ async fn with_no_agent_found_the_offer_is_the_skills_and_its_run_keeps_the_flags
     }
 }
 
-/// A reply with the paths and port of one run replaced, as the base
-/// commit's replies in `tests/fixtures/no_sign_in_replies.json` are.
+/// A reply with the paths and port of one run replaced, as the replies in
+/// `tests/fixtures/no_sign_in_replies.json` are.
 fn normalised(reply: &Value, home: &Path, cwd: &Path, server: &str) -> Value {
     let mut text = reply.to_string();
     let mut paths: Vec<(String, &str)> = Vec::new();
@@ -2865,12 +2865,25 @@ fn regex_lite_clip(text: &str) -> String {
     out + rest
 }
 
+/// Set to rewrite `tests/fixtures/no_sign_in_replies.json` from the replies
+/// [`a_project_that_has_not_signed_in_gets_the_replies_it_always_has`] collects.
+const REWRITE_NO_SIGN_IN_REPLIES: &str = "ELEVENLABS_TEST_REWRITE_NO_SIGN_IN_REPLIES";
+
+/// The offer is made only after a sign-in, so a project that has not signed
+/// in must get every onboarding reply it got before the offer existed.
+/// `tests/fixtures/no_sign_in_replies.json` holds those replies: for each
+/// scenario below, the reply to each command in turn, as CLI 1.10.0 (commit
+/// d697e6c) gave them, with the run's paths, server and clip name replaced as
+/// [`normalised`] does. To regenerate it, build the CLI whose replies are
+/// wanted and run this test with `ELEVENLABS_TEST_REWRITE_NO_SIGN_IN_REPLIES=1`:
+/// it writes the replies it collected into the fixture before comparing.
+/// Rewrite it only on purpose, when a change to those replies is meant.
 #[cfg(unix)]
 #[tokio::test]
-async fn with_no_sign_in_every_reply_is_exactly_the_base_commits() {
+async fn a_project_that_has_not_signed_in_gets_the_replies_it_always_has() {
     const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
-    let want: Value =
-        serde_json::from_str(include_str!("fixtures/no_sign_in_replies.json")).unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/no_sign_in_replies.json");
+    let mut collected = serde_json::Map::new();
     let tts = |status: u16| async move {
         let server = MockServer::start().await;
         user_endpoint_accepting(&server, KEY).await;
@@ -2919,7 +2932,6 @@ async fn with_no_sign_in_every_reply_is_exactly_the_base_commits() {
         ("test_unreachable", &wired, OFFLINE.into(), vec![test]),
         ("voice_agent_check", &voice_agent, ok.uri(), vec![agent_check, agent_check]),
     ];
-    assert_eq!(scenarios.len(), want.as_object().unwrap().len());
     for (name, project, server, commands) in scenarios {
         let (home, cwd) = temp();
         let bin = tempfile::tempdir().unwrap();
@@ -2934,8 +2946,18 @@ async fn with_no_sign_in_every_reply_is_exactly_the_base_commits() {
                 normalised(&r, home.path(), cwd.path(), &server)
             })
             .collect();
-        assert_eq!(Value::from(got), want[name], "{name}");
+        collected.insert(name.to_string(), Value::from(got));
         assert!(recorded(&record).is_empty(), "{name}");
+    }
+    if std::env::var_os(REWRITE_NO_SIGN_IN_REPLIES).is_some() {
+        let text = serde_json::to_string_pretty(&collected).unwrap() + "\n";
+        std::fs::write(&fixture, text).unwrap();
+    }
+    let want: serde_json::Map<String, Value> =
+        serde_json::from_str(&std::fs::read_to_string(&fixture).unwrap()).unwrap();
+    assert_eq!(collected.keys().collect::<Vec<_>>(), want.keys().collect::<Vec<_>>());
+    for (name, got) in &collected {
+        assert_eq!(got, &want[name], "{name}");
     }
 }
 
