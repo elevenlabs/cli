@@ -18,6 +18,7 @@ on:
       - cli/elevenlabs/workflow/onboard/**
       - cli/elevenlabs/workflow/loopback.rs
       - cli/elevenlabs/workflow/setup.rs
+      - cli/elevenlabs/workflow/setup/**
       - .github/workflows/windows-smoke.yml
 
 jobs:
@@ -203,6 +204,8 @@ jobs:
             'plugin marketplace update elevenlabs'
             'plugin install elevenlabs --marketplace elevenlabs/plugin --scope user'
           ) 'Expected Claude Code to stop at the failed install'
+          # The failed setup above exited 1 on purpose, and pwsh would end the step with it.
+          exit 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
