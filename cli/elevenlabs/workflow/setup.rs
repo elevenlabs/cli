@@ -274,6 +274,15 @@ fn stop_all(child: &mut std::process::Child) {
     if let Ok(group) = i32::try_from(child.id()) {
         // The child leads its own group, so this reaches only what it started.
         unsafe { libc::kill(-group, libc::SIGKILL) };
+        // A program being started as the group is killed can miss the signal,
+        // so once the child is reaped, the group is killed until it is empty.
+        let _ = child.wait();
+        for _ in 0..100 {
+            if unsafe { libc::kill(-group, libc::SIGKILL) } != 0 {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
     }
     #[cfg(windows)]
     let _ = Command::new("taskkill")
