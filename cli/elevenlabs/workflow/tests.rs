@@ -685,6 +685,8 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     }
 
     let mut processed = 0;
+    // Configs that couldn't be written; the rest are still registered.
+    let mut failed = 0;
     for (action, id, name, existing_idx) in &plan {
         if *action == PullAction::Skip {
             println!("⊘ Skipping '{name}' (already exists, use --update to overwrite)");
@@ -719,14 +721,22 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         match existing_idx {
             Some(i) => {
                 let cfg_path = registry.tests[*i].config.clone();
-                project::write_config_in_project(&cfg_path, &config)?;
+                if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
+                    println!("  ✗ Error saving '{name}': {e}");
+                    failed += 1;
+                    continue;
+                }
                 println!("  ✓ Updated '{name}' (config: {cfg_path})");
             }
             None => {
                 let cfg_path = project::generate_unique_filename(&output_dir, name, ".json")
                     .display()
                     .to_string();
-                project::write_config_in_project(&cfg_path, &config)?;
+                if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
+                    println!("  ✗ Error saving '{name}': {e}");
+                    failed += 1;
+                    continue;
+                }
                 registry.tests.push(project::TestDefinition {
                     config: cfg_path.clone(),
                     test_type,
@@ -752,6 +762,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 "You can now edit the config files in '{output_dir}/' and attach them to your agents"
             );
         }
+    }
+    if failed > 0 {
+        return Err(CliError::Validation(format!(
+            "{failed} test config(s) could not be saved; see the errors above"
+        )));
     }
     Ok(())
 }

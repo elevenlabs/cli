@@ -10,10 +10,12 @@
 //! loses nothing: `push` sends a PATCH, where a missing field is left as it
 //! is, and a field that pulled as null was unset already. What TOML can't
 //! express is *clearing* a field: deleting its line leaves the remote value
-//! alone. That needs `null` in a JSON or YAML config. A null anywhere inside
-//! an array that isn't a plain array of objects (an element, or a field of an
-//! object mixed in with other values) is data rather than an unset field, so
-//! a config with one can't be written as TOML at all.
+//! alone. That needs `null` in a JSON or YAML config.
+//!
+//! Some nulls are data rather than unset fields, and a config holding one
+//! can't be written as TOML at all: any null inside an array that isn't a
+//! plain array of objects, and any null within a free-form JSON value such as
+//! a tool parameter's `constant_value` (see [`LITERAL_KEYS`]).
 
 use std::path::Path;
 
@@ -138,15 +140,39 @@ fn json_to_toml(value: &Value) -> Result<String, String> {
         return Err("A TOML config must be an object at the top level".to_string());
     };
     let mut doc = DocumentMut::new();
-    fill_table(doc.as_table_mut(), map, "")?;
+    fill_table(doc.as_table_mut(), map, "", false)?;
     Ok(doc.to_string())
 }
 
-/// `path` is the dotted key path of `map`, for error messages.
-fn fill_table(table: &mut Table, map: &Map<String, Value>, path: &str) -> Result<(), String> {
+/// API fields whose value is free-form JSON sent through as it is, so a
+/// null inside one is part of the value. The field itself being null still
+/// just means it's unset.
+const LITERAL_KEYS: [&str; 5] = [
+    "constant_value",
+    "dynamic_variable_placeholders",
+    "dynamic_variables",
+    "input_schema",
+    "output_schema",
+];
+
+/// `path` is the dotted key path of `map`, for error messages. `literal` is
+/// set within a [`LITERAL_KEYS`] value, where a null field is refused rather
+/// than dropped.
+fn fill_table(
+    table: &mut Table,
+    map: &Map<String, Value>,
+    path: &str,
+    literal: bool,
+) -> Result<(), String> {
     for (key, value) in map {
-        if let Some(item) = to_item(value, &join(path, key))? {
-            table.insert(key, item);
+        let item_path = join(path, key);
+        let literal_child = literal || LITERAL_KEYS.contains(&key.as_str());
+        match to_item(value, &item_path, literal_child)? {
+            Some(item) => {
+                table.insert(key, item);
+            }
+            None if literal => return Err(literal_null(&item_path)),
+            None => {}
         }
     }
     Ok(())
@@ -160,12 +186,13 @@ fn join(path: &str, key: &str) -> String {
     }
 }
 
-/// A null inside an inline array is data (a constant value, say), not an
+/// A null that is data (in an array, or within a constant value), not an
 /// unset field: dropping it would change what `push` sends, so refuse
 /// instead. `path` is where the null is.
-fn null_in_array(path: &str) -> String {
+fn literal_null(path: &str) -> String {
     format!(
-        "{path} is a null inside an array, which TOML can't represent. \
+        "{path} is null, which TOML can't represent: inside an array or a \
+         free-form value like constant_value, a null is data. \
          Use a JSON or YAML config for this one"
     )
 }
@@ -173,11 +200,11 @@ fn null_in_array(path: &str) -> String {
 /// Objects become `[table]` sections and arrays of objects `[[array]]`
 /// sections, which keeps a deeply nested agent config readable. `None` for
 /// a null field, which TOML can't hold.
-fn to_item(value: &Value, path: &str) -> Result<Option<Item>, String> {
+fn to_item(value: &Value, path: &str, literal: bool) -> Result<Option<Item>, String> {
     match value {
         Value::Object(map) => {
             let mut table = Table::new();
-            fill_table(&mut table, map, path)?;
+            fill_table(&mut table, map, path, literal)?;
             // An implicit table prints no header of its own when it holds
             // only subtables. An empty one must keep its header, or the
             // (empty) object would vanish from the file. Checked after
@@ -189,7 +216,7 @@ fn to_item(value: &Value, path: &str) -> Result<Option<Item>, String> {
             let mut tables = ArrayOfTables::new();
             for (i, map) in items.iter().filter_map(Value::as_object).enumerate() {
                 let mut table = Table::new();
-                fill_table(&mut table, map, &format!("{path}[{i}]"))?;
+                fill_table(&mut table, map, &format!("{path}[{i}]"), literal)?;
                 tables.push(table);
             }
             Ok(Some(Item::ArrayOfTables(tables)))
@@ -218,7 +245,7 @@ fn to_value(value: &Value, path: &str) -> Result<Option<toml_edit::Value>, Strin
                 let item_path = format!("{path}[{i}]");
                 match to_value(item, &item_path)? {
                     Some(v) => array.push(v),
-                    None => return Err(null_in_array(&item_path)),
+                    None => return Err(literal_null(&item_path)),
                 }
             }
             array.into()
@@ -229,7 +256,7 @@ fn to_value(value: &Value, path: &str) -> Result<Option<toml_edit::Value>, Strin
                 let item_path = join(path, key);
                 match to_value(item, &item_path)? {
                     Some(v) => table.insert(key, v),
-                    None => return Err(null_in_array(&item_path)),
+                    None => return Err(literal_null(&item_path)),
                 };
             }
             table.into()
@@ -403,6 +430,10 @@ mod tests {
             // An object mixed in with other values is literal data too.
             json!({"mixed": [1, {"a": null}]}),
             json!({"nested": [[{"a": {"b": null}}]]}),
+            // So is anything within a free-form value, even a list of objects.
+            json!({"tool": {"constant_value": {"key": null}}}),
+            json!({"tool": {"constant_value": [{"key": null}]}}),
+            json!({"dynamic_variables": {"user": null}}),
         ] {
             let err = ConfigFormat::Toml.render(&value).unwrap_err().to_string();
             assert!(err.contains("Use a JSON or YAML config"), "{err}");
@@ -411,12 +442,24 @@ mod tests {
             .render(&json!({"tool": {"constant_value": [1, null]}}))
             .unwrap_err()
             .to_string();
-        assert!(err.starts_with("tool.constant_value[1] is a null"), "{err}");
+        assert!(err.starts_with("tool.constant_value[1] is null"), "{err}");
         let err = ConfigFormat::Toml
             .render(&json!({"mixed": [1, {"a": null}]}))
             .unwrap_err()
             .to_string();
-        assert!(err.starts_with("mixed[1].a is a null"), "{err}");
+        assert!(err.starts_with("mixed[1].a is null"), "{err}");
+        let err = ConfigFormat::Toml
+            .render(&json!({"tool": {"constant_value": {"key": null}}}))
+            .unwrap_err()
+            .to_string();
+        assert!(err.starts_with("tool.constant_value.key is null"), "{err}");
+        // A free-form field that is null itself is just unset.
+        assert_eq!(
+            ConfigFormat::Toml
+                .render(&json!({"tool": {"constant_value": null, "a": 1}}))
+                .unwrap(),
+            "[tool]\na = 1\n"
+        );
     }
 
     #[test]

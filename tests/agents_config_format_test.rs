@@ -312,3 +312,61 @@ fn a_bad_toml_config_names_the_format() {
         "{text}"
     );
 }
+
+#[tokio::test]
+async fn a_config_toml_cannot_hold_does_not_lose_the_others() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v1/convai/agents"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "agents": [
+                {"agent_id": "agent_1", "name": "Support"},
+                {"agent_id": "agent_2", "name": "Sales"}
+            ],
+            "has_more": false
+        })))
+        .mount(&server)
+        .await;
+    serve_agent(&server).await;
+    let mut sales = live_agent();
+    sales["agent_id"] = json!("agent_2");
+    sales["name"] = json!("Sales");
+    sales["tags"] = json!(["a", null]);
+    Mock::given(method("GET"))
+        .and(path("/v1/convai/agents/agent_2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(sales))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    ok(cli(dir, &server.uri(), &["agents", "init"]), "init");
+    let out = cli(
+        dir,
+        &server.uri(),
+        &[
+            "agents",
+            "pull",
+            "--all",
+            "--config-format",
+            "toml",
+            "--yes",
+        ],
+    );
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(!out.status.success(), "{text}");
+    assert!(text.contains("tags[1] is null"), "{text}");
+
+    // Support was still written and registered, so a retry updates it
+    // rather than writing a second copy.
+    let index: Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("agents.json")).unwrap()).unwrap();
+    let agents = index["agents"].as_array().unwrap();
+    assert_eq!(agents.len(), 1, "{agents:?}");
+    assert_eq!(agents[0]["id"], "agent_1");
+    assert!(dir.join(agents[0]["config"].as_str().unwrap()).exists());
+}

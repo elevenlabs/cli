@@ -224,7 +224,7 @@ A config file's extension sets its format: `.json`, `.yaml`/`.yml` or `.toml`. T
 
 New files are JSON unless you pick another format. `agents pull --config-format toml` writes new agents as TOML, and a new branch file follows the format of its agent's config. Files that already exist keep their format. `agents add --from-file support.yaml` saves the agent's config as YAML too; `--config-format` overrides that.
 
-TOML has no `null`, so writing TOML drops null fields. For agents nothing is lost: `push` only changes the fields it sends, and a null field was unset already. What TOML can't do is clear a field, because deleting its line leaves the value on ElevenLabs unchanged. To clear one, set it to `null` in a JSON or YAML config. A `null` inside a list (an item, or a field of an object in a list of mixed values) is data rather than an unset field, so a config with one can't be saved as TOML; the CLI says so and names the field.
+TOML has no `null`, so writing TOML drops null fields. For agents nothing is lost: `push` only changes the fields it sends, and a null field was unset already. What TOML can't do is clear a field, because deleting its line leaves the value on ElevenLabs unchanged. To clear one, set it to `null` in a JSON or YAML config. Some nulls are data rather than unset fields: one inside a list (an item, or a field of an object in a list of mixed values), or anywhere within a free-form value such as a tool parameter's `constant_value`. A config with one of those can't be saved as TOML; the CLI says so and names the field.
 
 ### Two surfaces in one namespace
 

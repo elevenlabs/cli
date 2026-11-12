@@ -1046,6 +1046,9 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     }
 
     let mut processed = 0;
+    // Configs that couldn't be written (TOML can't hold some values). The
+    // rest are still registered, so a retry doesn't duplicate their files.
+    let mut failed = 0;
     for (action, id, name, existing_idx) in &plan {
         if *action == PullAction::Skip {
             println!("⊘ Skipping '{name}' (already exists, use --update to overwrite)");
@@ -1088,7 +1091,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         let entry_idx = match existing_idx {
             Some(i) => {
                 let cfg_path = registry.agents[*i].config.clone();
-                project::write_config_in_project(&cfg_path, &config)?;
+                if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
+                    println!("  ✗ Error saving '{name}': {e}");
+                    failed += 1;
+                    continue;
+                }
                 if let Some(v) = &version_id {
                     registry.agents[*i].version_id = Some(v.clone());
                 }
@@ -1103,7 +1110,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 let cfg_path = project::generate_unique_filename(&output_dir, name, ext)
                     .display()
                     .to_string();
-                project::write_config_in_project(&cfg_path, &config)?;
+                if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
+                    println!("  ✗ Error saving '{name}': {e}");
+                    failed += 1;
+                    continue;
+                }
                 registry.agents.push(project::AgentDefinition {
                     config: cfg_path.clone(),
                     id: Some(id.clone()),
@@ -1115,6 +1126,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 registry.agents.len() - 1
             }
         };
+        processed += 1;
 
         // --branch: persist the branch config alongside the main one.
         if let (Some(branch), Some(bid)) = (&branch, &branch_id) {
@@ -1139,7 +1151,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                     .to_string(),
                 ),
             };
-            project::write_config_in_project(&branch_path, &config)?;
+            if let Err(e) = project::write_config_in_project(&branch_path, &config) {
+                println!("  ✗ Error saving branch '{branch}' of '{name}': {e}");
+                failed += 1;
+                continue;
+            }
             let branches = registry.agents[entry_idx]
                 .branches
                 .get_or_insert_with(Default::default);
@@ -1155,7 +1171,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         }
 
         if all_branches {
-            pull_all_branches(
+            match pull_all_branches(
                 ctx,
                 id,
                 name,
@@ -1163,10 +1179,14 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 &mut registry,
                 &output_dir,
                 config_format,
-            )?;
+            ) {
+                Ok(n) => failed += n,
+                Err(e) => {
+                    println!("  ✗ Error pulling branches of '{name}': {e}");
+                    failed += 1;
+                }
+            }
         }
-
-        processed += 1;
     }
 
     if !dry_run && processed > 0 {
@@ -1185,6 +1205,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             );
         }
     }
+    if failed > 0 {
+        return Err(CliError::Validation(format!(
+            "{failed} config(s) could not be saved; see the errors above"
+        )));
+    }
     Ok(())
 }
 
@@ -1199,6 +1224,7 @@ fn new_config_ext(flag: Option<ConfigFormat>, agent_config: Option<&str>) -> &'s
 
 /// Pull every non-archived, non-main branch for an agent into config files
 /// tracked under its `agents.json` entry. Ports v0's `pullAllBranches`.
+/// Returns how many branch configs couldn't be written.
 fn pull_all_branches(
     ctx: &AppContext,
     agent_id: &str,
@@ -1207,13 +1233,15 @@ fn pull_all_branches(
     registry: &mut project::AgentsConfig,
     output_dir: &str,
     config_format: Option<ConfigFormat>,
-) -> Result<(), CliError> {
+) -> Result<usize, CliError> {
     println!("  Fetching branches for '{agent_name}'...");
     let branches = api::list_branches(ctx, agent_id, false)?;
     if branches.is_empty() {
         println!("  No branches found for '{agent_name}'");
-        return Ok(());
+        return Ok(0);
     }
+
+    let mut failed = 0;
 
     let parent_branch_id = registry.agents[entry_idx].branch_id.clone();
     for branch in &branches {
@@ -1258,7 +1286,11 @@ fn pull_all_branches(
                 .display()
                 .to_string()
         });
-        project::write_config_in_project(&branch_path, &branch_config)?;
+        if let Err(e) = project::write_config_in_project(&branch_path, &branch_config) {
+            println!("  ✗ Error saving branch '{bname}': {e}");
+            failed += 1;
+            continue;
+        }
 
         let map = registry.agents[entry_idx]
             .branches
@@ -1282,7 +1314,7 @@ fn pull_all_branches(
     if count > 0 {
         println!("  {count} branch(es) stored");
     }
-    Ok(())
+    Ok(failed)
 }
 
 /// Extract the on-disk config (name + conversation_config + platform_settings
