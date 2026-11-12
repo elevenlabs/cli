@@ -13,6 +13,8 @@
 //!   working.
 //! * Files are written pretty-printed with a 4-space indent to match v0's
 //!   `JSON.stringify(value, null, 4)` on-disk format.
+//! * Config files may also be YAML or TOML, picked by their extension (see
+//!   [`super::config_format`]). Index files are always JSON.
 
 #![allow(dead_code)]
 
@@ -22,6 +24,8 @@ use std::path::{Path, PathBuf};
 use fern_cli_sdk::error::CliError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use super::config_format::ConfigFormat;
 
 // ── Index-file locations ────────────────────────────────────────────
 
@@ -267,9 +271,10 @@ pub fn read_value_in_project(path_str: &str) -> Result<Value, CliError> {
     read_value(&path)
 }
 
-/// Write a config file named by an index file, with containment + symlink checks.
-pub fn write_json_in_project<T: Serialize>(path_str: &str, value: &T) -> Result<(), CliError> {
-    write_json(&resolve_in_project(path_str)?, value)
+/// Write a config file named by an index file, with containment + symlink
+/// checks, in the format its extension names.
+pub fn write_config_in_project(path_str: &str, value: &Value) -> Result<(), CliError> {
+    write_config(&resolve_in_project(path_str)?, value)
 }
 
 /// Delete a config file named by an index file, with containment + symlink
@@ -302,14 +307,10 @@ fn restrict_permissions(file: &std::fs::File) {
     let _ = file;
 }
 
-// ── JSON IO ─────────────────────────────────────────────────────────
+// ── Config IO ───────────────────────────────────────────────────────
 
-/// Read and deserialize a JSON file, with v0-style error messages.
-pub fn read_json<T>(path: &Path) -> Result<T, CliError>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let data = std::fs::read_to_string(path).map_err(|e| {
+fn read_text(path: &Path) -> Result<String, CliError> {
+    std::fs::read_to_string(path).map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
             CliError::Validation(format!(
                 "Configuration file not found at {}",
@@ -318,8 +319,15 @@ where
         } else {
             CliError::Other(anyhow::anyhow!("Could not read {}: {e}", path.display()))
         }
-    })?;
-    serde_json::from_str(&data).map_err(|e| {
+    })
+}
+
+/// Read and deserialize a JSON file, with v0-style error messages.
+pub fn read_json<T>(path: &Path) -> Result<T, CliError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    serde_json::from_str(&read_text(path)?).map_err(|e| {
         CliError::Validation(format!(
             "Invalid JSON in configuration file {}: {e}",
             path.display()
@@ -327,9 +335,17 @@ where
     })
 }
 
-/// Read a config file as an untyped [`Value`] (lossless).
+/// Read a config file as an untyped [`Value`] (lossless), in the JSON, YAML
+/// or TOML format its extension names.
 pub fn read_value(path: &Path) -> Result<Value, CliError> {
-    read_json::<Value>(path)
+    let format = ConfigFormat::from_path(path);
+    format.parse(&read_text(path)?).map_err(|e| {
+        CliError::Validation(format!(
+            "Invalid {} in configuration file {}: {e}",
+            format.label(),
+            path.display()
+        ))
+    })
 }
 
 /// Serialize with a 4-space indent to match v0's on-disk format.
@@ -351,6 +367,15 @@ pub fn to_pretty_string<T: Serialize>(value: &T) -> Result<String, CliError> {
 /// guarantee holds even for paths that don't come from an index file (`init`
 /// writing `agents.json`, for instance).
 pub fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), CliError> {
+    write_text(path, &to_pretty_string(value)?)
+}
+
+/// Write a config in the JSON, YAML or TOML format its extension names.
+pub fn write_config(path: &Path, value: &Value) -> Result<(), CliError> {
+    write_text(path, &ConfigFormat::from_path(path).render(value)?)
+}
+
+fn write_text(path: &Path, rendered: &str) -> Result<(), CliError> {
     use std::io::Write;
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
@@ -362,7 +387,6 @@ pub fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), CliError> 
             })?;
         }
     }
-    let rendered = to_pretty_string(value)?;
     let mut file = create_no_follow(path)?;
     restrict_permissions(&file);
     file.write_all(rendered.as_bytes()).map_err(|e| {

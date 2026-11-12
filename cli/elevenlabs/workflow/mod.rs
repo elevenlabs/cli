@@ -16,6 +16,7 @@ use fern_cli_sdk::app::CliApp;
 mod agents;
 mod api;
 mod components;
+mod config_format;
 mod diagram;
 mod feedback;
 mod flows_wait;

@@ -304,7 +304,7 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
             .display()
             .to_string(),
     };
-    project::write_json_in_project(&config_path, &config)?;
+    project::write_config_in_project(&config_path, &config)?;
     println!(
         "Created config file: {config_path} (template: {})",
         args.template
@@ -719,14 +719,14 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         match existing_idx {
             Some(i) => {
                 let cfg_path = registry.tests[*i].config.clone();
-                project::write_json_in_project(&cfg_path, &config)?;
+                project::write_config_in_project(&cfg_path, &config)?;
                 println!("  ✓ Updated '{name}' (config: {cfg_path})");
             }
             None => {
                 let cfg_path = project::generate_unique_filename(&output_dir, name, ".json")
                     .display()
                     .to_string();
-                project::write_json_in_project(&cfg_path, &config)?;
+                project::write_config_in_project(&cfg_path, &config)?;
                 registry.tests.push(project::TestDefinition {
                     config: cfg_path.clone(),
                     test_type,
