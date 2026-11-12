@@ -11,6 +11,10 @@ pub enum ReceiveTranscription {
 
         CommittedTranscriptPayload(CommittedTranscriptPayload),
 
+        DiarizedTranscript(DiarizedTranscript),
+
+        SpeakersMerged(SpeakersMerged),
+
         CommittedTranscriptWithTimestampsPayload(CommittedTranscriptWithTimestampsPayload),
 
         CommittedTranscriptEntitiesPayload(CommittedTranscriptEntitiesPayload),
@@ -61,6 +65,14 @@ impl ReceiveTranscription {
 
     pub fn is_committed_transcript_payload(&self) -> bool {
         matches!(self, Self::CommittedTranscriptPayload(_))
+    }
+
+    pub fn is_diarized_transcript(&self) -> bool {
+        matches!(self, Self::DiarizedTranscript(_))
+    }
+
+    pub fn is_speakers_merged(&self) -> bool {
+        matches!(self, Self::SpeakersMerged(_))
     }
 
     pub fn is_committed_transcript_with_timestamps_payload(&self) -> bool {
@@ -178,6 +190,34 @@ impl ReceiveTranscription {
     pub fn into_committed_transcript_payload(self) -> Option<CommittedTranscriptPayload> {
         match self {
                     Self::CommittedTranscriptPayload(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_diarized_transcript(&self) -> Option<&DiarizedTranscript> {
+        match self {
+                    Self::DiarizedTranscript(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_diarized_transcript(self) -> Option<DiarizedTranscript> {
+        match self {
+                    Self::DiarizedTranscript(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_speakers_merged(&self) -> Option<&SpeakersMerged> {
+        match self {
+                    Self::SpeakersMerged(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_speakers_merged(self) -> Option<SpeakersMerged> {
+        match self {
+                    Self::SpeakersMerged(value) => Some(value),
                     _ => None,
                 }
     }
@@ -455,6 +495,8 @@ impl fmt::Display for ReceiveTranscription {
             Self::SessionStartedPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::PartialTranscriptPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::DiarizedTranscript(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::SpeakersMerged(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptWithTimestampsPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptEntitiesPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::RedactedTranscript(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),

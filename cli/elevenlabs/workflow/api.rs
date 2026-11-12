@@ -81,9 +81,19 @@ pub(super) fn suffix_env_key() -> String {
 }
 
 pub fn command_scope(command: &'static str) -> CommandScope {
+    command_scope_with(command, None)
+}
+
+/// [`command_scope`], with one more fixed tag after the command's (`onboard`
+/// adds how the last sign-in ended). Built from fixed words by the caller,
+/// like the command tag.
+pub fn command_scope_with(command: &'static str, extra: Option<String>) -> CommandScope {
     let key = suffix_env_key();
     let previous = std::env::var(&key).ok();
-    let tag = format!("cmd/{command}");
+    let tag = match extra {
+        Some(extra) => format!("cmd/{command} {extra}"),
+        None => format!("cmd/{command}"),
+    };
     let combined = match previous.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         Some(existing) => format!("{existing} {tag}"),
         None => tag,
@@ -626,6 +636,22 @@ mod tests {
                 assert_eq!(tag, "partner-app/3.1 cmd/tools.pull");
             }
             assert_eq!(std::env::var(key).as_deref(), Ok("partner-app/3.1"));
+        });
+    }
+
+    #[test]
+    fn scope_puts_an_extra_tag_after_the_command() {
+        with_env(|key| {
+            std::env::set_var(key, "os/macos install/npx");
+            {
+                let _scope = command_scope_with("onboard.check", Some("signin/timed-out".into()));
+                let tag = std::env::var(key).unwrap();
+                assert_eq!(
+                    tag,
+                    "os/macos install/npx cmd/onboard.check signin/timed-out"
+                );
+            }
+            assert_eq!(std::env::var(key).as_deref(), Ok("os/macos install/npx"));
         });
     }
 

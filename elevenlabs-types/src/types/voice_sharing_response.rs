@@ -10,7 +10,7 @@ pub struct VoiceSharingResponse {
     /// The sample ID of the history item.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub history_item_sample_id: Option<String>,
-    /// The date of the voice sharing in Unix time.
+    /// The Unix time, in seconds, at which the voice was shared.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_unix: Option<i64>,
     /// A list of whitelisted emails.
@@ -44,7 +44,7 @@ pub struct VoiceSharingResponse {
     /// The notice period of the voice sharing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notice_period: Option<i64>,
-    /// The date of the voice sharing in Unix time.
+    /// The Unix time, in seconds, at which users who added the voice from the Voice Library lose access to it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disable_at_unix: Option<i64>,
     /// Whether voice mixing is allowed.

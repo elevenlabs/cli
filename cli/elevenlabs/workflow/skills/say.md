@@ -43,7 +43,7 @@ stay in the OS keyring.
 
 ```bash
 elevenlabs say config                                 # show everything
-elevenlabs say config voice 21m00Tcm4TlvDq8ikWAM
+elevenlabs say config voice EXAVITQu4vr4xnSDxMaL
 elevenlabs say config model eleven_multilingual_v2
 elevenlabs say config output-format wav_44100
 elevenlabs say config player mpv
@@ -64,7 +64,10 @@ when latency matters more than delivery — it is built for real time and still
 reads tags. `eleven_flash_v2_5` is quicker still, but reads tags as words.
 
 Find voice IDs with `elevenlabs voices search`, and model IDs with
-`elevenlabs models list`.
+`elevenlabs models list`. Free plans can use pre-made voices but not Voice
+Library voices, which fail with a `402`, so keep the default or pick a
+pre-made one (`elevenlabs voices search --category premade`). Don't use a
+voice ID from memory: older tutorials use voices that have been retired.
 
 ## Per-run overrides
 

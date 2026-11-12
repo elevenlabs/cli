@@ -11,7 +11,7 @@ use std::process::{Command, Output};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use wiremock::matchers::{header, method, path};
+use wiremock::matchers::{header, method, path, path_regex};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 const KEY: &str = "sk_0123456789abcdef0123456789abcdef01234567";
@@ -48,8 +48,16 @@ fn cli(home: &Path, cwd: &Path, server: &str, args: &[&str]) -> Command {
         "CODESPACES",
         "REMOTE_CONTAINERS",
         "CLAUDECODE",
+        "CLAUDE_CODE_ENTRYPOINT",
         "CODEX_THREAD_ID",
+        "CODEX_SANDBOX",
+        "CODEX_SANDBOX_NETWORK_DISABLED",
         "CURSOR_AGENT",
+        "CURSOR_TRACE_ID",
+        "GEMINI_CLI",
+        "TERM_PROGRAM",
+        "ELEVENLABS_TELEMETRY",
+        "DO_NOT_TRACK",
         "npm_command",
     ] {
         cmd.env_remove(var);
@@ -236,6 +244,13 @@ fn check_on_a_remote_machine_needs_no_home_folder() {
 async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
     let server = MockServer::start().await;
     user_endpoint_accepting(&server, KEY).await;
+    // An app with no agent in it never looks one up.
+    Mock::given(method("GET"))
+        .and(path_regex("^/v1/convai/agents/"))
+        .respond_with(ResponseTemplate::new(404))
+        .expect(0)
+        .mount(&server)
+        .await;
     let (home, cwd) = temp();
     git(cwd.path(), &["init", "-q"]);
     write(
@@ -367,6 +382,259 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
     assert_eq!(r["run"], "elevenlabs onboard test --env-path .env.local");
     assert!(say(&r).contains("Want me to send a test request?"), "{r}");
     assert_eq!(r["details"]["fixed"], json!([]), "nothing left to fix");
+    server.verify().await;
+}
+
+/// `GET /v1/convai/agents/{id}` answers `key` with an agent of `name` and
+/// these `auth` settings.
+async fn agent_endpoint(server: &MockServer, key: &str, id: &str, name: &str, auth: Value) {
+    Mock::given(method("GET"))
+        .and(path(format!("/v1/convai/agents/{id}")))
+        .and(header("xi-api-key", key))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "agent_id": id,
+            "name": name,
+            "platform_settings": {"auth": auth},
+        })))
+        .mount(server)
+        .await;
+}
+
+/// The page the agent widget's embed snippet makes.
+fn embed(id: &str) -> String {
+    format!(
+        "<body>\n<elevenlabs-convai agent-id=\"{id}\"></elevenlabs-convai>\n\
+         <script src=\"https://unpkg.com/@elevenlabs/convai-widget-embed\" async></script>\n</body>\n"
+    )
+}
+
+#[tokio::test]
+async fn a_page_with_the_agent_widget_ends_on_talking_to_the_agent() {
+    const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    const LISTED: &str = "agent_2201m2jqpj2jej1tbfdrctx18r7b";
+    const PRIVATE: &str = "agent_0101kf1yn87vfwat2negbz8zzp5t";
+    const OTHERS: &str = "agent_1701kj50p7zzfd8vsp8hpapc4yhq";
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    agent_endpoint(
+        &server,
+        KEY,
+        MINE,
+        "Store helper",
+        json!({"enable_auth": false, "allowlist": []}),
+    )
+    .await;
+    agent_endpoint(
+        &server,
+        KEY,
+        LISTED,
+        "Shop",
+        json!({"enable_auth": false, "allowlist": [{"hostname": "mystore.com"}]}),
+    )
+    .await;
+    agent_endpoint(
+        &server,
+        KEY,
+        PRIVATE,
+        "Back office",
+        json!({"enable_auth": true}),
+    )
+    .await;
+    Mock::given(method("GET"))
+        .and(path(format!("/v1/convai/agents/{OTHERS}")))
+        .respond_with(
+            ResponseTemplate::new(404).set_body_json(json!({"detail": {"status": "not_found"}})),
+        )
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    let check = |args: &[&str]| reply(&mut cli(home.path(), cwd.path(), &server.uri(), args));
+
+    // A plain site whose only ElevenLabs code is the widget: wired, with nothing to load,
+    // since the widget never reads the key.
+    write(cwd.path(), "index.html", &embed(MINE));
+    let r = check(&["onboard", "check", "--answered"]);
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(
+        say(&r),
+        format!(
+            "ElevenLabs is set up: a working key ending in 4567 in .env.local, and your agent \"Store helper\" \
+             in your code. Talk to it at https://elevenlabs.io/app/talk-to?agent_id={MINE}, and change it at \
+             https://elevenlabs.io/app/agents/agents/{MINE}."
+        )
+    );
+    assert!(r.get("run").is_none(), "nothing left to run: {r}");
+    assert_eq!(r["details"]["agent_id"], MINE);
+    assert_eq!(
+        r["details"]["talk_to_url"],
+        format!("https://elevenlabs.io/app/talk-to?agent_id={MINE}")
+    );
+
+    // The talk-to page can't open an agent limited to the developer's own sites.
+    write(cwd.path(), "index.html", &embed(LISTED));
+    let r = check(&["onboard", "check"]);
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(
+        say(&r).contains("Only the sites on its allowlist can connect to it"),
+        "{r}"
+    );
+    assert!(r["details"].get("talk_to_url").is_none(), "{r}");
+
+    // A private agent: a page with only the widget can't reach it, and says what to do.
+    write(cwd.path(), "index.html", &embed(PRIVATE));
+    let r = check(&["onboard", "check"]);
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(
+        say(&r).ends_with(&format!(
+            "It requires authentication, so your page can't connect to it yet: turn authentication off on \
+             its page (https://elevenlabs.io/app/agents/agents/{PRIVATE}), or have your server request a \
+             signed URL for each conversation."
+        )),
+        "{r}"
+    );
+    assert!(r["details"].get("talk_to_url").is_none(), "{r}");
+    // With a server that signs its conversations (and loads the key), it's tried from its page.
+    write(
+        cwd.path(),
+        "server.js",
+        "const key = process.env.ELEVENLABS_API_KEY; // signs each conversation\n",
+    );
+    write(
+        cwd.path(),
+        "package.json",
+        r#"{"scripts":{"start":"node --env-file=.env.local server.js"}}"#,
+    );
+    let r = check(&["onboard", "check"]);
+    assert!(
+        say(&r).ends_with(&format!(
+            "It needs a signed URL to talk to it, so try it from its page: https://elevenlabs.io/app/agents/agents/{PRIVATE}."
+        )),
+        "{r}"
+    );
+    std::fs::remove_file(cwd.path().join("server.js")).unwrap();
+    std::fs::remove_file(cwd.path().join("package.json")).unwrap();
+
+    // An agent the key can't open, like a sample's, is never offered: the test request is.
+    write(cwd.path(), "index.html", &embed(OTHERS));
+    let r = check(&["onboard", "check"]);
+    assert_eq!(r["next"], "offer_test", "{r}");
+    assert!(say(&r).contains("and ElevenLabs in your code"), "{r}");
+
+    // Nor is the widget's stand-in ID; a page without the widget still needs code.
+    write(cwd.path(), "index.html", &embed("your-agent-id"));
+    assert_eq!(check(&["onboard", "check"])["next"], "offer_test");
+    write(cwd.path(), "index.html", "<body>Hello</body>\n");
+    assert_eq!(
+        check(&["onboard", "check", "--answered"])["next"],
+        "write_code"
+    );
+
+    // The widget installed from npm in a Vite app reads no key either, so there's nothing to load.
+    write(
+        cwd.path(),
+        "package.json",
+        r#"{"dependencies":{"vite":"7","@elevenlabs/convai-widget-embed":"0.4"}}"#,
+    );
+    write(
+        cwd.path(),
+        "src/main.js",
+        &format!("import \"@elevenlabs/convai-widget-embed\";\nexport const id = \"{MINE}\";\n"),
+    );
+    let r = check(&["onboard", "check"]);
+    assert_eq!(
+        (r["next"].as_str(), r["details"]["agent_id"].as_str()),
+        (Some("done"), Some(MINE)),
+        "{r}"
+    );
+    std::fs::remove_dir_all(cwd.path().join("src")).unwrap();
+
+    // The SDK in a Next.js app (which reads .env.local), with the agent's ID in the env file.
+    write(cwd.path(), "index.html", "");
+    write(
+        cwd.path(),
+        "package.json",
+        r#"{"dependencies":{"next":"15","@elevenlabs/react":"1"}}"#,
+    );
+    write(
+        cwd.path(),
+        "app/page.tsx",
+        "import { useConversation } from \"@elevenlabs/react\";\nconst agentId = process.env.NEXT_PUBLIC_AGENT_ID;\n",
+    );
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\nNEXT_PUBLIC_AGENT_ID={MINE}\n"),
+    );
+    let r = check(&["onboard", "check"]);
+    assert_eq!(
+        (r["next"].as_str(), r["details"]["agent_id"].as_str()),
+        (Some("done"), Some(MINE)),
+        "{r}"
+    );
+}
+
+#[tokio::test]
+async fn agent_lookups_stop_at_three_and_at_a_key_that_cant_read_agents() {
+    let ids = [
+        "agent_0101kf1yn87vfwat2negbz8zzp5t",
+        "agent_1701kj50p7zzfd8vsp8hpapc4yhq",
+        "agent_2201m2jqpj2jej1tbfdrctx18r7b",
+        "agent_2701m62trrmgfa1vneex0grrd868",
+    ];
+    let page: String = ids.iter().map(|id| embed(id)).collect();
+
+    // None of them is the developer's: three are looked up, then the test request is offered.
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    Mock::given(method("GET"))
+        .and(path_regex("^/v1/convai/agents/agent_"))
+        .respond_with(
+            ResponseTemplate::new(404).set_body_json(json!({"detail": {"status": "not_found"}})),
+        )
+        .expect(3)
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    write(cwd.path(), "index.html", &page);
+    let r = reply(&mut cli(
+        home.path(),
+        cwd.path(),
+        &server.uri(),
+        &["onboard", "check"],
+    ));
+    assert_eq!(r["next"], "offer_test", "{r}");
+    server.verify().await;
+
+    // A key without agent access is refused on the first one, so the rest aren't tried.
+    let restricted = MockServer::start().await;
+    user_endpoint_accepting(&restricted, KEY).await;
+    Mock::given(method("GET"))
+        .and(path_regex("^/v1/convai/agents/agent_"))
+        .respond_with(
+            ResponseTemplate::new(401)
+                .set_body_json(json!({"detail": {"status": "missing_permissions"}})),
+        )
+        .expect(1)
+        .mount(&restricted)
+        .await;
+    let r = reply(&mut cli(
+        home.path(),
+        cwd.path(),
+        &restricted.uri(),
+        &["onboard", "check"],
+    ));
+    assert_eq!(r["next"], "offer_test", "{r}");
+    restricted.verify().await;
 }
 
 #[tokio::test]
@@ -1353,4 +1621,112 @@ async fn a_sign_in_the_credential_store_refuses_still_finishes() {
     assert_eq!(done["details"]["key_status"], "no_key", "{done}");
     let log = std::fs::read_to_string(session.join("worker.log")).unwrap();
     assert!(log.contains("couldn't be saved"), "{log}");
+}
+
+/// What the approval link and the requests say about the machine, the agent
+/// and the last sign-in follows the telemetry switch: with it off, nothing.
+#[tokio::test]
+async fn with_telemetry_off_nothing_is_said_about_the_machine_or_the_last_sign_in() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    let (home, cwd) = temp();
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    // A sign-in run by Claude Code, for its own env file so each one is new,
+    // declined once its link is out. Returns that link.
+    let declined_sign_in = |env_file: &str, telemetry: &[(&str, &str)], args: &[&str]| {
+        let mut cmd = cli(
+            home.path(),
+            cwd.path(),
+            &server.uri(),
+            &[
+                &[
+                    "onboard",
+                    "connect",
+                    "--no-browser",
+                    "--authorize-url",
+                    &authorize,
+                    "--env-file",
+                    env_file,
+                ],
+                args,
+            ]
+            .concat(),
+        );
+        cmd.env("CLAUDECODE", "1").envs(telemetry.iter().copied());
+        let url = link(&reply(&mut cmd));
+        decline(&url);
+        let (session, _) = approval(home.path());
+        let deadline = Instant::now() + Duration::from_secs(30);
+        while !session.join("result.json").exists() {
+            assert!(Instant::now() < deadline, "the sign-in never ended");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        url
+    };
+    let said = |url: &str| -> Vec<String> {
+        reqwest::Url::parse(url)
+            .unwrap()
+            .query_pairs()
+            .map(|(k, _)| k.into_owned())
+            .filter(|k| k.starts_with("cli_"))
+            .collect()
+    };
+
+    let first = declined_sign_in("a.env", &[], &[]);
+    assert_eq!(query(&first, "cli_agent"), "claude-code", "{first}");
+    for (env_file, telemetry, args) in [
+        ("b.env", &[][..], &["--telemetry", "off"][..]),
+        ("c.env", &[("DO_NOT_TRACK", "1")][..], &[][..]),
+        ("d.env", &[("ELEVENLABS_TELEMETRY", "off")][..], &[][..]),
+    ] {
+        let url = declined_sign_in(env_file, telemetry, args);
+        assert_eq!(said(&url), Vec::<String>::new(), "{url}");
+    }
+    // Back on, the next link says how the last sign-in ended.
+    let on = declined_sign_in("e.env", &[], &[]);
+    assert_eq!(query(&on, "cli_prev"), "declined", "{on}");
+    assert_eq!(query(&on, "cli_prev_id").len(), 16, "{on}");
+    assert_eq!(query(&on, "cli_agent"), "claude-code", "{on}");
+
+    // The requests after it say so too, unless telemetry is off.
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    for args in [&[][..], &["--telemetry", "off"][..]] {
+        reply(
+            cli(
+                home.path(),
+                cwd.path(),
+                &server.uri(),
+                &[&["onboard", "check"][..], args].concat(),
+            )
+            .env("CLAUDECODE", "1"),
+        );
+    }
+    let agents: Vec<String> = server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|r| r.url.path() == "/v1/user")
+        .map(|r| r.headers["user-agent"].to_str().unwrap().to_string())
+        .collect();
+    let (on, off) = agents.split_at(agents.len() / 2);
+    assert!(!on.is_empty(), "{agents:?}");
+    for agent in on {
+        assert!(agent.contains(" signin/declined"), "{agent}");
+        assert!(agent.contains(" agent/claude-code"), "{agent}");
+    }
+    for agent in off {
+        assert!(!agent.contains("signin/"), "{agent}");
+        assert!(!agent.contains("agent/"), "{agent}");
+        assert!(!agent.contains("os/"), "{agent}");
+    }
 }

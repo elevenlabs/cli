@@ -7,7 +7,7 @@ pub struct AttachedUserEvaluationRef {
     /// Id of the referenced user evaluation item.
     #[serde(default)]
     pub analysis_item_id: String,
-    /// Primary item version whose result feeds scoring. None tracks the item's latest published version.
+    /// Primary item version whose result feeds scoring. 'latest' tracks the item's latest published version.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version_id: Option<String>,
     /// Extra item versions to also run for comparison (A/B). These are executed and stored but excluded from scoring; the primary version_id is the one that scores.

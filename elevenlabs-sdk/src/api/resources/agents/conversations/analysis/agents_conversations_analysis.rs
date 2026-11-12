@@ -90,6 +90,8 @@ impl AnalysisClient {
     ///             &RunConversationEvaluationsRequest {
     ///                 evaluation_id: "evaluation_id".to_string(),
     ///                 scope: None,
+    ///                 evaluated_agent_id: None,
+    ///                 evaluated_branch_id: None,
     ///             },
     ///             None,
     ///         )

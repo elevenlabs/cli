@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-/// Commit strategy for speech segmentation. 'manual' requires explicit commits, 'vad' automatically segments speech using silence detection, 'turn_prediction' additionally commits as soon as the model predicts the speaker has finished their turn (only for models that predict turns, where it is the default).
+/// Commit strategy for speech segmentation. 'manual' (the default for all models) requires explicit commits, 'vad' automatically segments speech using silence detection, 'turn_prediction' additionally commits as soon as the model predicts the speaker has finished their turn (only for models that predict turns).
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TextToDialogueCommitStrategy {

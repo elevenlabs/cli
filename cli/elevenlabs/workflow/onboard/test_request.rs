@@ -29,8 +29,8 @@ pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Rep
         .file(&project)
         .map(|f| project.show(f))
         .unwrap_or_else(|| "your shell".into());
-    let code = if project.sdk_declared() && project.sdk_imported() {
-        " and the SDK is in your code"
+    let code = if project.wired() {
+        " and ElevenLabs is in your code"
     } else {
         ""
     };

@@ -98,4 +98,56 @@ impl MembersClient {
             )
             .await
     }
+
+    /// Sets or clears the monthly credit usage limit of a workspace member or service account. This endpoint may only be called by workspace administrators.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_id` - User ID of the target user.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .workspace
+    ///         .members
+    ///         .update_usage_limit(
+    ///             &"user_id".to_string(),
+    ///             &UpdateMemberUsageLimitRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn update_usage_limit(
+        &self,
+        user_id: &str,
+        request: &UpdateMemberUsageLimitRequestModel,
+        options: Option<RequestOptions>,
+    ) -> Result<UpdateMemberUsageLimitResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::PUT,
+                &format!("v1/workspace/members/{}/usage-limit", user_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
 }

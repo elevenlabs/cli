@@ -58,6 +58,8 @@ pub mod drafts;
 pub use drafts::DraftsClient;
 pub mod merge_proposals;
 pub use merge_proposals::MergeProposalsClient;
+pub mod outbound_campaigns;
+pub use outbound_campaigns::OutboundCampaignsClient;
 pub mod procedures;
 pub use procedures::ProceduresClient;
 pub mod realtime;
@@ -98,6 +100,7 @@ pub struct AgentsClient {
     pub deployments: DeploymentsClient,
     pub drafts: DraftsClient,
     pub merge_proposals: MergeProposalsClient,
+    pub outbound_campaigns: OutboundCampaignsClient,
     pub procedures: ProceduresClient,
     pub realtime: RealtimeClient,
     pub agents: AgentsClient2,
@@ -137,6 +140,7 @@ impl AgentsClient {
             deployments: DeploymentsClient::new(config.clone())?,
             drafts: DraftsClient::new(config.clone())?,
             merge_proposals: MergeProposalsClient::new(config.clone())?,
+            outbound_campaigns: OutboundCampaignsClient::new(config.clone())?,
             procedures: ProceduresClient::new(config.clone())?,
             realtime: RealtimeClient::new(config.clone())?,
             agents: AgentsClient2::new(config.clone())?,

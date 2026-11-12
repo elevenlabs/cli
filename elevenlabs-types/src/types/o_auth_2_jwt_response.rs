@@ -30,6 +30,9 @@ pub struct OAuth2JwtResponse {
     /// Additional custom claims to include in the JWT
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_params: Option<HashMap<String, String>>,
+    /// Additional JWT header parameters (e.g. x5t). 'alg' and 'kid' are set from algorithm and key_id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_headers: Option<HashMap<String, String>>,
     /// Token endpoint URL for exchanging JWT for access token
     #[serde(default)]
     pub token_url: String,
@@ -39,6 +42,9 @@ pub struct OAuth2JwtResponse {
     /// Token field to extract from the token endpoint response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token_response_field: Option<OAuth2JwtResponseTokenResponseField>,
+    /// How the JWT is used at the token endpoint. 'authorization_grant' sends it as a jwt-bearer grant. 'client_authentication' sends it as a client_assertion on a client_credentials request, with the subject as client_id and scopes in the request body.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jwt_usage: Option<OAuth2JwtResponseJwtUsage>,
     #[serde(default)]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -69,9 +75,11 @@ pub struct OAuth2JwtResponseBuilder {
     subject: Option<String>,
     expiration_seconds: Option<i64>,
     extra_params: Option<HashMap<String, String>>,
+    extra_headers: Option<HashMap<String, String>>,
     token_url: Option<String>,
     scopes: Option<Vec<String>>,
     token_response_field: Option<OAuth2JwtResponseTokenResponseField>,
+    jwt_usage: Option<OAuth2JwtResponseJwtUsage>,
     id: Option<String>,
     used_by: Option<AuthConnectionDependencies>,
     status: Option<AuthConnectionStatus>,
@@ -125,6 +133,11 @@ impl OAuth2JwtResponseBuilder {
         self
     }
 
+    pub fn extra_headers(mut self, value: HashMap<String, String>) -> Self {
+        self.extra_headers = Some(value);
+        self
+    }
+
     pub fn token_url(mut self, value: impl Into<String>) -> Self {
         self.token_url = Some(value.into());
         self
@@ -137,6 +150,11 @@ impl OAuth2JwtResponseBuilder {
 
     pub fn token_response_field(mut self, value: OAuth2JwtResponseTokenResponseField) -> Self {
         self.token_response_field = Some(value);
+        self
+    }
+
+    pub fn jwt_usage(mut self, value: OAuth2JwtResponseJwtUsage) -> Self {
+        self.jwt_usage = Some(value);
         self
     }
 
@@ -185,9 +203,11 @@ impl OAuth2JwtResponseBuilder {
             subject: self.subject.ok_or_else(|| BuildError::missing_field("subject"))?,
             expiration_seconds: self.expiration_seconds,
             extra_params: self.extra_params,
+            extra_headers: self.extra_headers,
             token_url: self.token_url.ok_or_else(|| BuildError::missing_field("token_url"))?,
             scopes: self.scopes,
             token_response_field: self.token_response_field,
+            jwt_usage: self.jwt_usage,
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,
             used_by: self.used_by,
             status: self.status,

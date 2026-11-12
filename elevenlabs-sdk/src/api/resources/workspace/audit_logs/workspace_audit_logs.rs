@@ -22,8 +22,8 @@ impl AuditLogsClient {
     /// * `time_from_unix_ms` - Only include entries at or after this time (ms since epoch)
     /// * `time_to_unix_ms` - Only include entries at or before this time (ms since epoch)
     /// * `actor_uid` - Filter by actor user ID
-    /// * `class_name` - Filter by OCSF event class name (e.g. Account Change)
-    /// * `activity_name` - Filter by audit activity name (e.g. Subscription Creation)
+    /// * `class_name` - Filter by OCSF event class name
+    /// * `activity_name` - Filter by audit activity name
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -51,8 +51,8 @@ impl AuditLogsClient {
     ///                 time_from_unix_ms: Some(1),
     ///                 time_to_unix_ms: Some(1),
     ///                 actor_uid: Some("actor_uid".to_string()),
-    ///                 class_name: Some("class_name".to_string()),
-    ///                 activity_name: Some("activity_name".to_string()),
+    ///                 class_name: Some(AuditClassName::AccountChange),
+    ///                 activity_name: Some(AuditActivityName::AccountSecurityChange),
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -76,8 +76,8 @@ impl AuditLogsClient {
                     .int("time_from_unix_ms", request.time_from_unix_ms.clone())
                     .int("time_to_unix_ms", request.time_to_unix_ms.clone())
                     .string("actor_uid", request.actor_uid.clone())
-                    .string("class_name", request.class_name.clone())
-                    .string("activity_name", request.activity_name.clone())
+                    .serialize("class_name", request.class_name.clone())
+                    .serialize("activity_name", request.activity_name.clone())
                     .build(),
                 options,
             )

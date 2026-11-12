@@ -1,5 +1,5 @@
 use crate::api::*;
-use crate::{ApiError, ClientConfig, HttpClient, RequestOptions};
+use crate::{ApiError, ByteStream, ClientConfig, HttpClient, RequestOptions};
 use reqwest::Method;
 
 pub struct FilesClient {
@@ -13,15 +13,17 @@ impl FilesClient {
         })
     }
 
-    /// Upload an image, PDF, or text file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
+    /// Download a file the user attached to a conversation, including while the conversation is still active.
     ///
     /// # Arguments
     ///
+    /// * `conversation_id` - The id of the conversation you're taking the action on.
+    /// * `file_id` - The file ID returned when it was uploaded.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
     ///
-    /// JSON response from the API
+    /// Streaming file download (use .into_bytes() to collect or stream chunks)
     ///
     /// # Examples
     ///
@@ -38,27 +40,24 @@ impl FilesClient {
     ///         .agents
     ///         .conversations
     ///         .files
-    ///         .create(
-    ///             &"conversation_id".to_string(),
-    ///             &CreateRequest6 {
-    ///                 file: b"test file content".to_vec(),
-    ///             },
-    ///             None,
-    ///         )
+    ///         .get(&"conversation_id".to_string(), &"file_id".to_string(), None)
     ///         .await;
     /// }
     /// ```
-    pub async fn create(
+    pub async fn get(
         &self,
         conversation_id: &str,
-        request: &CreateRequest,
+        file_id: &str,
         options: Option<RequestOptions>,
-    ) -> Result<ConvAiFileUploadResponseModel, ApiError> {
+    ) -> Result<ByteStream, ApiError> {
         self.http_client
-            .execute_multipart_request(
-                Method::POST,
-                &format!("v1/convai/conversations/{}/files", conversation_id),
-                request.clone().to_multipart(),
+            .execute_stream_request(
+                Method::GET,
+                &format!(
+                    "v1/convai/conversations/{}/files/{}",
+                    conversation_id, file_id
+                ),
+                None,
                 None,
                 options,
             )
@@ -108,6 +107,58 @@ impl FilesClient {
                     conversation_id, file_id
                 ),
                 None,
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Upload an image, PDF, or text file for a conversation. Returns a unique file ID that can be used to reference the file in the conversation.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .files
+    ///         .create(
+    ///             &"conversation_id".to_string(),
+    ///             &CreateRequest6 {
+    ///                 file: b"test file content".to_vec(),
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn create(
+        &self,
+        conversation_id: &str,
+        request: &CreateRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<ConvAiFileUploadResponseModel, ApiError> {
+        self.http_client
+            .execute_multipart_request(
+                Method::POST,
+                &format!("v1/convai/conversations/{}/files", conversation_id),
+                request.clone().to_multipart(),
                 None,
                 options,
             )

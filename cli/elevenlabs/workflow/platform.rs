@@ -1,20 +1,61 @@
 //! Roughly where the CLI runs: the OS, whether it is over SSH, in a
-//! container or in WSL, and how it was installed. The API is told in the
-//! User-Agent (see [`super::telemetry`]), so sign-in and request problems
-//! can be counted per platform, and npx runs told apart from installs.
-//! Nothing else about the machine is sent, and `--telemetry off` sends none
-//! of it.
+//! container or in WSL, how it was installed, and which coding agent ran it.
+//! The API is told in the User-Agent (see [`super::telemetry`]), so sign-in
+//! and request problems can be counted per platform and agent, and npx runs
+//! told apart from installs. Nothing else about the machine is sent, and
+//! `--telemetry off` sends none of it.
 
 use std::path::Path;
 
-/// The prefixes of the tags below, so an inherited User-Agent suffix can be
-/// cleared of them (see [`super::telemetry`]).
-pub(super) const TAG_PREFIXES: &[&str] = &["os/", "env/", "install/"];
+/// The prefixes of the tags below, and of the `signin/` tag `onboard` adds,
+/// so an inherited User-Agent suffix can be cleared of them (see
+/// [`super::telemetry`]).
+pub(super) const TAG_PREFIXES: &[&str] = &["os/", "env/", "install/", "agent/", "signin/"];
 
-/// `os/<os>`, `env/<env>` when one applies, then `install/<source>`: the
-/// User-Agent tags.
+/// `os/<os>`, `env/<env>` when one applies, `install/<source>`, then
+/// `agent/<agent>` when a coding agent ran this: the User-Agent tags.
 pub(super) fn tags() -> String {
-    tags_for(detect(), install_source())
+    let tags = tags_for(detect(), install_source());
+    match agent() {
+        Some(agent) => format!("{tags} agent/{agent}"),
+        None => tags,
+    }
+}
+
+/// The coding agent running this command, from a variable it sets for the
+/// commands it runs. Only the label leaves the machine, never a value.
+pub(super) fn agent() -> Option<&'static str> {
+    agent_for(&|name| std::env::var(name).ok())
+}
+
+/// Each agent's own variable is checked first: Claude Code's leak into shells
+/// started inside it. Then the editor terminals, which set their variables for
+/// whatever runs in them, an agent or a person: Cursor, then VS Code, whose
+/// forks (Cursor among them) also set `TERM_PROGRAM=vscode`.
+pub(super) fn agent_for(var: &dyn Fn(&str) -> Option<String>) -> Option<&'static str> {
+    let set = |name: &str| var(name).is_some_and(|v| !v.trim().is_empty());
+    if set("CODEX_THREAD_ID") || set("CODEX_SANDBOX") || set("CODEX_SANDBOX_NETWORK_DISABLED") {
+        Some("codex")
+    } else if set("CURSOR_AGENT") {
+        Some("cursor")
+    } else if set("GEMINI_CLI") {
+        Some("gemini-cli")
+    } else if set("CLAUDECODE") {
+        // Claude Code in the desktop app is told apart: its built-in browser
+        // can't write the clipboard the key travels on.
+        let desktop = var("CLAUDE_CODE_ENTRYPOINT").as_deref() == Some("claude-desktop");
+        Some(if desktop {
+            "claude-desktop"
+        } else {
+            "claude-code"
+        })
+    } else if set("CURSOR_TRACE_ID") {
+        Some("cursor")
+    } else if var("TERM_PROGRAM").as_deref() == Some("vscode") {
+        Some("vscode")
+    } else {
+        None
+    }
 }
 
 pub(super) fn tags_for((os, env): (&str, Option<&str>), install: &str) -> String {
@@ -114,7 +155,7 @@ pub(super) fn install_source_for(path: &str) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{detect_for, install_source_for, tags_for};
+    use super::{agent_for, detect_for, install_source_for, tags_for};
 
     fn vars(set: &'static [&'static str]) -> impl Fn(&str) -> Option<String> {
         move |name| set.contains(&name).then(|| "1".to_string())
@@ -210,5 +251,62 @@ mod tests {
             tags_for(("linux", Some("ssh")), "homebrew"),
             "os/linux env/ssh install/homebrew"
         );
+    }
+
+    #[test]
+    fn the_coding_agent_from_the_variables_it_sets() {
+        type Vars = &'static [(&'static str, &'static str)];
+        let with = |set: Vars| {
+            move |name: &str| {
+                set.iter()
+                    .find(|(k, _)| *k == name)
+                    .map(|(_, v)| v.to_string())
+            }
+        };
+        let cases: [(Vars, Option<&str>); 13] = [
+            (&[("CLAUDECODE", "1")], Some("claude-code")),
+            (
+                &[("CLAUDECODE", "1"), ("CLAUDE_CODE_ENTRYPOINT", "cli")],
+                Some("claude-code"),
+            ),
+            (
+                &[
+                    ("CLAUDECODE", "1"),
+                    ("CLAUDE_CODE_ENTRYPOINT", "claude-desktop"),
+                ],
+                Some("claude-desktop"),
+            ),
+            (&[("GEMINI_CLI", "1")], Some("gemini-cli")),
+            (&[("CODEX_SANDBOX", "seatbelt")], Some("codex")),
+            (&[("CODEX_THREAD_ID", "t")], Some("codex")),
+            // Another agent started from a shell inside Claude Code.
+            (
+                &[("CODEX_THREAD_ID", "t"), ("CLAUDECODE", "1")],
+                Some("codex"),
+            ),
+            (
+                &[("CURSOR_AGENT", "1"), ("CLAUDECODE", "1")],
+                Some("cursor"),
+            ),
+            // Claude Code in Cursor's terminal.
+            (
+                &[
+                    ("CLAUDECODE", "1"),
+                    ("CURSOR_TRACE_ID", "abc"),
+                    ("TERM_PROGRAM", "vscode"),
+                ],
+                Some("claude-code"),
+            ),
+            (
+                &[("CURSOR_TRACE_ID", "abc"), ("TERM_PROGRAM", "vscode")],
+                Some("cursor"),
+            ),
+            (&[("TERM_PROGRAM", "vscode")], Some("vscode")),
+            (&[("TERM_PROGRAM", "iTerm.app")], None),
+            (&[("CLAUDECODE", " ")], None),
+        ];
+        for (set, want) in cases {
+            assert_eq!(agent_for(&with(set)), want, "{set:?}");
+        }
     }
 }
