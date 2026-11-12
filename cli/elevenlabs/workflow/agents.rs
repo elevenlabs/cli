@@ -15,6 +15,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
+use super::config_format::{ConfigFormat, FORMAT_NAMES};
 use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
 use super::{api, project, settings, templates, verify};
 
@@ -335,6 +336,10 @@ struct AddArgs {
     /// Create the agent from an existing config file.
     #[arg(long = "from-file")]
     from_file: Option<String>,
+    /// Format of the generated config file. Defaults to the format of
+    /// --from-file, else json. With --output-path, its extension decides.
+    #[arg(long = "config-format", value_parser = FORMAT_NAMES, conflicts_with = "output_path")]
+    config_format: Option<String>,
 }
 
 fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
@@ -385,19 +390,39 @@ fn handle_add(args: AddArgs, ctx: &AppContext) -> Result<(), CliError> {
         (cfg, name)
     };
 
+    // Resolve the on-disk config path (custom or generated from the name).
+    let config_path = match &args.output_path {
+        Some(path) => path.clone(),
+        None => {
+            let format = args
+                .config_format
+                .as_deref()
+                .and_then(ConfigFormat::from_name)
+                .or_else(|| {
+                    args.from_file
+                        .as_deref()
+                        .map(|f| ConfigFormat::from_path(Path::new(f)))
+                })
+                .unwrap_or(ConfigFormat::Json);
+            project::generate_unique_filename(
+                project::AGENT_CONFIGS_DIR,
+                &agent_name,
+                format.extension(),
+            )
+            .display()
+            .to_string()
+        }
+    };
+    // Render before creating: a config the format can't hold (TOML needs an
+    // object at the top) would otherwise leave a remote agent with no file.
+    ConfigFormat::from_path(Path::new(&config_path)).render(&agent_config)?;
+
     // Create in ElevenLabs first to obtain an ID.
     println!("Creating agent '{agent_name}' in ElevenLabs...");
     let agent_id = api::create_agent(ctx, &agent_config)?;
     println!("Created agent in ElevenLabs with ID: {agent_id}");
 
-    // Resolve the on-disk config path (custom or generated from the name).
-    let config_path = match &args.output_path {
-        Some(path) => path.clone(),
-        None => project::generate_unique_filename(project::AGENT_CONFIGS_DIR, &agent_name, ".json")
-            .display()
-            .to_string(),
-    };
-    project::write_json_in_project(&config_path, &agent_config)?;
+    project::write_config_in_project(&config_path, &agent_config)?;
     match &args.from_file {
         Some(from_file) => println!("Created config file: {config_path} (from: {from_file})"),
         None => println!(
@@ -869,6 +894,15 @@ fn pull_command() -> clap::Command {
                 .help("Directory to write config files into"),
         )
         .arg(
+            clap::Arg::new("config-format")
+                .long("config-format")
+                .value_parser(FORMAT_NAMES)
+                .help(
+                    "Format of newly created config files: json (default), yaml or toml. \
+                     Existing files keep their format; a new branch file follows its agent's",
+                ),
+        )
+        .arg(
             clap::Arg::new("update")
                 .long("update")
                 .action(clap::ArgAction::SetTrue)
@@ -895,6 +929,9 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let all_branches = matches.get_flag("all-branches");
     let output_dir =
         opt_string(matches, "output-dir").unwrap_or_else(|| "agent_configs".to_string());
+    let config_format = opt_string(matches, "config-format")
+        .as_deref()
+        .and_then(ConfigFormat::from_name);
     let dry_run = dry_run_flag(matches);
     let update = matches.get_flag("update");
     let all = matches.get_flag("all");
@@ -1009,6 +1046,9 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     }
 
     let mut processed = 0;
+    // Configs that couldn't be written (TOML can't hold some values). The
+    // rest are still registered, so a retry doesn't duplicate their files.
+    let mut failed = 0;
     for (action, id, name, existing_idx) in &plan {
         if *action == PullAction::Skip {
             println!("⊘ Skipping '{name}' (already exists, use --update to overwrite)");
@@ -1051,7 +1091,11 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         let entry_idx = match existing_idx {
             Some(i) => {
                 let cfg_path = registry.agents[*i].config.clone();
-                project::write_json_in_project(&cfg_path, &config)?;
+                if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
+                    println!("  ✗ Error saving '{name}': {e}");
+                    failed += 1;
+                    continue;
+                }
                 if let Some(v) = &version_id {
                     registry.agents[*i].version_id = Some(v.clone());
                 }
@@ -1062,10 +1106,15 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 *i
             }
             None => {
-                let cfg_path = project::generate_unique_filename(&output_dir, name, ".json")
+                let ext = new_config_ext(config_format, None);
+                let cfg_path = project::generate_unique_filename(&output_dir, name, ext)
                     .display()
                     .to_string();
-                project::write_json_in_project(&cfg_path, &config)?;
+                if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
+                    println!("  ✗ Error saving '{name}': {e}");
+                    failed += 1;
+                    continue;
+                }
                 registry.agents.push(project::AgentDefinition {
                     config: cfg_path.clone(),
                     id: Some(id.clone()),
@@ -1077,22 +1126,41 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 registry.agents.len() - 1
             }
         };
+        processed += 1;
 
         // --branch: persist the branch config alongside the main one.
         if let (Some(branch), Some(bid)) = (&branch, &branch_id) {
-            let branch_path = project::generate_unique_filename(
-                &output_dir,
-                &format!("{name}.{branch}"),
-                ".json",
-            )
-            .display()
-            .to_string();
-            project::write_json_in_project(&branch_path, &config)?;
+            // A branch pulled before keeps its file (and so its format), found
+            // by the name or ID it was registered under, rather than gaining a
+            // second file next to a stale one.
+            let registered = registry.agents[entry_idx].branches.as_ref().and_then(|m| {
+                m.iter()
+                    .find(|(key, def)| *key == branch || def.branch_id == *bid)
+                    .map(|(key, def)| (key.clone(), def.config.clone()))
+            });
+            let (branch_key, branch_path) = match registered {
+                Some(found) => found,
+                None => (
+                    branch.clone(),
+                    project::generate_unique_filename(
+                        &output_dir,
+                        &format!("{name}.{branch}"),
+                        new_config_ext(config_format, Some(&registry.agents[entry_idx].config)),
+                    )
+                    .display()
+                    .to_string(),
+                ),
+            };
+            if let Err(e) = project::write_config_in_project(&branch_path, &config) {
+                println!("  ✗ Error saving branch '{branch}' of '{name}': {e}");
+                failed += 1;
+                continue;
+            }
             let branches = registry.agents[entry_idx]
                 .branches
                 .get_or_insert_with(Default::default);
             branches.insert(
-                branch.clone(),
+                branch_key,
                 project::BranchDefinition {
                     config: branch_path.clone(),
                     branch_id: bid.clone(),
@@ -1103,10 +1171,22 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         }
 
         if all_branches {
-            pull_all_branches(ctx, id, name, entry_idx, &mut registry, &output_dir)?;
+            match pull_all_branches(
+                ctx,
+                id,
+                name,
+                entry_idx,
+                &mut registry,
+                &output_dir,
+                config_format,
+            ) {
+                Ok(n) => failed += n,
+                Err(e) => {
+                    println!("  ✗ Error pulling branches of '{name}': {e}");
+                    failed += 1;
+                }
+            }
         }
-
-        processed += 1;
     }
 
     if !dry_run && processed > 0 {
@@ -1125,11 +1205,26 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             );
         }
     }
+    if failed > 0 {
+        return Err(CliError::Validation(format!(
+            "{failed} config(s) could not be saved; see the errors above"
+        )));
+    }
     Ok(())
+}
+
+/// Extension for a config file a pull creates: `--config-format` when given,
+/// else the format of `agent_config` (the agent's main config, so its branch
+/// files match it), else JSON.
+fn new_config_ext(flag: Option<ConfigFormat>, agent_config: Option<&str>) -> &'static str {
+    flag.or_else(|| agent_config.map(|c| ConfigFormat::from_path(Path::new(c))))
+        .unwrap_or(ConfigFormat::Json)
+        .extension()
 }
 
 /// Pull every non-archived, non-main branch for an agent into config files
 /// tracked under its `agents.json` entry. Ports v0's `pullAllBranches`.
+/// Returns how many branch configs couldn't be written.
 fn pull_all_branches(
     ctx: &AppContext,
     agent_id: &str,
@@ -1137,13 +1232,16 @@ fn pull_all_branches(
     entry_idx: usize,
     registry: &mut project::AgentsConfig,
     output_dir: &str,
-) -> Result<(), CliError> {
+    config_format: Option<ConfigFormat>,
+) -> Result<usize, CliError> {
     println!("  Fetching branches for '{agent_name}'...");
     let branches = api::list_branches(ctx, agent_id, false)?;
     if branches.is_empty() {
         println!("  No branches found for '{agent_name}'");
-        return Ok(());
+        return Ok(0);
     }
+
+    let mut failed = 0;
 
     let parent_branch_id = registry.agents[entry_idx].branch_id.clone();
     for branch in &branches {
@@ -1183,11 +1281,16 @@ fn pull_all_branches(
             .and_then(|m| m.get(bname))
             .map(|b| b.config.clone());
         let branch_path = existing_path.unwrap_or_else(|| {
-            project::generate_unique_filename(output_dir, &format!("{agent_name}.{bname}"), ".json")
+            let ext = new_config_ext(config_format, Some(&registry.agents[entry_idx].config));
+            project::generate_unique_filename(output_dir, &format!("{agent_name}.{bname}"), ext)
                 .display()
                 .to_string()
         });
-        project::write_json_in_project(&branch_path, &branch_config)?;
+        if let Err(e) = project::write_config_in_project(&branch_path, &branch_config) {
+            println!("  ✗ Error saving branch '{bname}': {e}");
+            failed += 1;
+            continue;
+        }
 
         let map = registry.agents[entry_idx]
             .branches
@@ -1211,7 +1314,7 @@ fn pull_all_branches(
     if count > 0 {
         println!("  {count} branch(es) stored");
     }
-    Ok(())
+    Ok(failed)
 }
 
 /// Extract the on-disk config (name + conversation_config + platform_settings

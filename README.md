@@ -169,7 +169,7 @@ For production, prefer setting `webhook` on `create` and handling the webhook ev
 
 ## Agents as Code
 
-Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live as JSON on disk and sync to ElevenLabs. Pulled configs are stored as raw wire JSON and pushed back verbatim, so they round-trip losslessly.
+Manage Conversational AI agents from local configuration files. `elevenlabs agents init` scaffolds a project; agent configs live on disk as JSON, YAML or TOML and sync to ElevenLabs. Pulled configs keep the raw wire fields and are pushed back verbatim, so they round-trip losslessly.
 
 ### Project structure
 
@@ -190,7 +190,7 @@ your_project/
 elevenlabs agents init [path] [--override]
 
 # Create an agent from a template (or an existing file), upload it, and register it
-elevenlabs agents add <name> [--template <template>] [--output-path <path>]
+elevenlabs agents add <name> [--template <template>] [--output-path <path> | --config-format json|yaml|toml]
 elevenlabs agents add [name] --from-file <path>
 
 # Show the status of locally-configured agents
@@ -198,7 +198,7 @@ elevenlabs agents status
 
 # Sync configs with ElevenLabs (push force-overrides main + registered branches)
 elevenlabs agents push [--agent <agent_id>] [--branch <name|id>] [--version-description <text>] [--dry-run]
-elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--dry-run]
+elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--config-format json|yaml|toml] [--dry-run]
 
 # List available agent templates, or print one's full configuration
 elevenlabs agents templates list
@@ -217,6 +217,14 @@ elevenlabs agents workflow diagram <config-path|agent_id|name> [--format ascii|m
 elevenlabs agents graph [config-path|agent_id|name] [--format ascii|mermaid|mermaid-md]
 elevenlabs agents graph --uses <id|name>
 ```
+
+### Config file formats
+
+A config file's extension sets its format: `.json`, `.yaml`/`.yml` or `.toml`. The registry files (`agents.json`, `tools.json`, `tests.json`) stay JSON, and their `config` paths can point at any of the three, so you can convert a config by hand and update its path.
+
+New files are JSON unless you pick another format. `agents pull --config-format toml` writes new agents as TOML, and a new branch file follows the format of its agent's config. Files that already exist keep their format. `agents add --from-file support.yaml` saves the agent's config as YAML too; `--config-format` overrides that.
+
+TOML has no `null`, so writing TOML drops null fields. For agents nothing is lost: `push` only changes the fields it sends, and a null field was unset already. What TOML can't do is clear a field, because deleting its line leaves the value on ElevenLabs unchanged. To clear one, set it to `null` in a JSON or YAML config. Some nulls are data rather than unset fields: one inside a list (an item, or a field of an object in a list of mixed values), or anywhere within a free-form value such as a tool parameter's `constant_value`. A config with one of those can't be saved as TOML; the CLI says so and names the field.
 
 ### Two surfaces in one namespace
 
