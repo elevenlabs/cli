@@ -8,6 +8,9 @@ pub struct ConversationHistoryTranscriptOtherToolsResultCommonModel {
     pub request_id: String,
     #[serde(default)]
     pub tool_name: String,
+    /// ID of the tool that produced this result: a workspace tool ID, 'mcp:<server_id>:<tool_name>' for MCP tools, or '__system_<tool_name>' for system tools. Not set for conversations recorded before tool IDs were tracked.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_id: Option<String>,
     #[serde(default)]
     pub result_value: String,
     #[serde(default)]
@@ -41,6 +44,7 @@ impl ConversationHistoryTranscriptOtherToolsResultCommonModel {
 pub struct ConversationHistoryTranscriptOtherToolsResultCommonModelBuilder {
     request_id: Option<String>,
     tool_name: Option<String>,
+    tool_id: Option<String>,
     result_value: Option<String>,
     is_error: Option<bool>,
     is_blocked: Option<bool>,
@@ -60,6 +64,11 @@ impl ConversationHistoryTranscriptOtherToolsResultCommonModelBuilder {
 
     pub fn tool_name(mut self, value: impl Into<String>) -> Self {
         self.tool_name = Some(value.into());
+        self
+    }
+
+    pub fn tool_id(mut self, value: impl Into<String>) -> Self {
+        self.tool_id = Some(value.into());
         self
     }
 
@@ -119,6 +128,7 @@ impl ConversationHistoryTranscriptOtherToolsResultCommonModelBuilder {
         Ok(ConversationHistoryTranscriptOtherToolsResultCommonModel {
             request_id: self.request_id.ok_or_else(|| BuildError::missing_field("request_id"))?,
             tool_name: self.tool_name.ok_or_else(|| BuildError::missing_field("tool_name"))?,
+            tool_id: self.tool_id,
             result_value: self.result_value.ok_or_else(|| BuildError::missing_field("result_value"))?,
             is_error: self.is_error.ok_or_else(|| BuildError::missing_field("is_error"))?,
             is_blocked: self.is_blocked,

@@ -56,6 +56,12 @@ pub struct AgentsConversationsListQueryRequest {
     /// Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value. Names containing ':' cannot be expressed.
     #[serde(default)]
     pub dynamic_variable_params: Vec<Option<String>>,
+    /// A single data collection filter, for callers that can only send one scalar value per query param. Same format as data_collection_params (id:op:value); combined with it when both are given.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection_filter: Option<String>,
+    /// A single dynamic variable filter, for callers that can only send one scalar value per query param. Same format as dynamic_variable_params (name:op:value); combined with it when both are given.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_variable_filter: Option<String>,
     /// Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.
     #[serde(default)]
     pub data_collection_ids: Vec<Option<String>>,
@@ -71,12 +77,27 @@ pub struct AgentsConversationsListQueryRequest {
     /// Filter conversations by tool names that had errored calls.
     #[serde(default)]
     pub tool_names_errored: Vec<Option<String>>,
+    /// Filter conversations by IDs of tools used during the call. Use '__system_<tool_name>' for system tools. Unlike tool_names, distinguishes between tools that share a name.
+    #[serde(default)]
+    pub tool_ids: Vec<Option<String>>,
+    /// Filter conversations by IDs of tools that had successful calls.
+    #[serde(default)]
+    pub tool_ids_successful: Vec<Option<String>>,
+    /// Filter conversations by IDs of tools that had errored calls.
+    #[serde(default)]
+    pub tool_ids_errored: Vec<Option<String>>,
     /// Also match tool calls that never ran.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include_invalid_tool_calls: Option<bool>,
     /// Filter conversations by detected main language (language code).
     #[serde(default)]
     pub main_languages: Vec<Option<String>>,
+    /// Filter conversations by agent phone number IDs.
+    #[serde(default)]
+    pub phone_number_ids: Vec<Option<String>>,
+    /// Filter conversations by agent WhatsApp number IDs.
+    #[serde(default)]
+    pub whatsapp_phone_number_ids: Vec<Option<String>>,
     /// How many conversations to return at maximum. Can not exceed 100, defaults to 30.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
@@ -154,13 +175,20 @@ pub struct AgentsConversationsListQueryRequestBuilder {
     evaluation_params: Option<Vec<Option<String>>>,
     data_collection_params: Option<Vec<Option<String>>>,
     dynamic_variable_params: Option<Vec<Option<String>>>,
+    data_collection_filter: Option<String>,
+    dynamic_variable_filter: Option<String>,
     data_collection_ids: Option<Vec<Option<String>>>,
     evaluation_criteria_ids: Option<Vec<Option<String>>>,
     tool_names: Option<Vec<Option<String>>>,
     tool_names_successful: Option<Vec<Option<String>>>,
     tool_names_errored: Option<Vec<Option<String>>>,
+    tool_ids: Option<Vec<Option<String>>>,
+    tool_ids_successful: Option<Vec<Option<String>>>,
+    tool_ids_errored: Option<Vec<Option<String>>>,
     include_invalid_tool_calls: Option<bool>,
     main_languages: Option<Vec<Option<String>>>,
+    phone_number_ids: Option<Vec<Option<String>>>,
+    whatsapp_phone_number_ids: Option<Vec<Option<String>>>,
     page_size: Option<i64>,
     summary_mode: Option<ConversationsListRequestSummaryMode>,
     search: Option<String>,
@@ -266,6 +294,16 @@ impl AgentsConversationsListQueryRequestBuilder {
         self
     }
 
+    pub fn data_collection_filter(mut self, value: impl Into<String>) -> Self {
+        self.data_collection_filter = Some(value.into());
+        self
+    }
+
+    pub fn dynamic_variable_filter(mut self, value: impl Into<String>) -> Self {
+        self.dynamic_variable_filter = Some(value.into());
+        self
+    }
+
     pub fn data_collection_ids(mut self, value: Vec<Option<String>>) -> Self {
         self.data_collection_ids = Some(value);
         self
@@ -291,6 +329,21 @@ impl AgentsConversationsListQueryRequestBuilder {
         self
     }
 
+    pub fn tool_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.tool_ids = Some(value);
+        self
+    }
+
+    pub fn tool_ids_successful(mut self, value: Vec<Option<String>>) -> Self {
+        self.tool_ids_successful = Some(value);
+        self
+    }
+
+    pub fn tool_ids_errored(mut self, value: Vec<Option<String>>) -> Self {
+        self.tool_ids_errored = Some(value);
+        self
+    }
+
     pub fn include_invalid_tool_calls(mut self, value: bool) -> Self {
         self.include_invalid_tool_calls = Some(value);
         self
@@ -298,6 +351,16 @@ impl AgentsConversationsListQueryRequestBuilder {
 
     pub fn main_languages(mut self, value: Vec<Option<String>>) -> Self {
         self.main_languages = Some(value);
+        self
+    }
+
+    pub fn phone_number_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.phone_number_ids = Some(value);
+        self
+    }
+
+    pub fn whatsapp_phone_number_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.whatsapp_phone_number_ids = Some(value);
         self
     }
 
@@ -399,7 +462,12 @@ impl AgentsConversationsListQueryRequestBuilder {
     /// - [`tool_names`](AgentsConversationsListQueryRequestBuilder::tool_names)
     /// - [`tool_names_successful`](AgentsConversationsListQueryRequestBuilder::tool_names_successful)
     /// - [`tool_names_errored`](AgentsConversationsListQueryRequestBuilder::tool_names_errored)
+    /// - [`tool_ids`](AgentsConversationsListQueryRequestBuilder::tool_ids)
+    /// - [`tool_ids_successful`](AgentsConversationsListQueryRequestBuilder::tool_ids_successful)
+    /// - [`tool_ids_errored`](AgentsConversationsListQueryRequestBuilder::tool_ids_errored)
     /// - [`main_languages`](AgentsConversationsListQueryRequestBuilder::main_languages)
+    /// - [`phone_number_ids`](AgentsConversationsListQueryRequestBuilder::phone_number_ids)
+    /// - [`whatsapp_phone_number_ids`](AgentsConversationsListQueryRequestBuilder::whatsapp_phone_number_ids)
     /// - [`topic_ids`](AgentsConversationsListQueryRequestBuilder::topic_ids)
     /// - [`exclude_statuses`](AgentsConversationsListQueryRequestBuilder::exclude_statuses)
     /// - [`tag_ids`](AgentsConversationsListQueryRequestBuilder::tag_ids)
@@ -425,13 +493,20 @@ impl AgentsConversationsListQueryRequestBuilder {
             evaluation_params: self.evaluation_params.ok_or_else(|| BuildError::missing_field("evaluation_params"))?,
             data_collection_params: self.data_collection_params.ok_or_else(|| BuildError::missing_field("data_collection_params"))?,
             dynamic_variable_params: self.dynamic_variable_params.ok_or_else(|| BuildError::missing_field("dynamic_variable_params"))?,
+            data_collection_filter: self.data_collection_filter,
+            dynamic_variable_filter: self.dynamic_variable_filter,
             data_collection_ids: self.data_collection_ids.ok_or_else(|| BuildError::missing_field("data_collection_ids"))?,
             evaluation_criteria_ids: self.evaluation_criteria_ids.ok_or_else(|| BuildError::missing_field("evaluation_criteria_ids"))?,
             tool_names: self.tool_names.ok_or_else(|| BuildError::missing_field("tool_names"))?,
             tool_names_successful: self.tool_names_successful.ok_or_else(|| BuildError::missing_field("tool_names_successful"))?,
             tool_names_errored: self.tool_names_errored.ok_or_else(|| BuildError::missing_field("tool_names_errored"))?,
+            tool_ids: self.tool_ids.ok_or_else(|| BuildError::missing_field("tool_ids"))?,
+            tool_ids_successful: self.tool_ids_successful.ok_or_else(|| BuildError::missing_field("tool_ids_successful"))?,
+            tool_ids_errored: self.tool_ids_errored.ok_or_else(|| BuildError::missing_field("tool_ids_errored"))?,
             include_invalid_tool_calls: self.include_invalid_tool_calls,
             main_languages: self.main_languages.ok_or_else(|| BuildError::missing_field("main_languages"))?,
+            phone_number_ids: self.phone_number_ids.ok_or_else(|| BuildError::missing_field("phone_number_ids"))?,
+            whatsapp_phone_number_ids: self.whatsapp_phone_number_ids.ok_or_else(|| BuildError::missing_field("whatsapp_phone_number_ids"))?,
             page_size: self.page_size,
             summary_mode: self.summary_mode,
             search: self.search,

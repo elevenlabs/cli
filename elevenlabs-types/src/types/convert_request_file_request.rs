@@ -13,6 +13,10 @@ pub struct ConvertRequest3 {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub secondary_language_codes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub numbers_format: Option<SpeechToTextConvertRequestNumbersFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transcript_edit: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag_audio_events: Option<bool>,
@@ -86,6 +90,18 @@ impl ConvertRequest3 {
 
     if let Some(ref value) = self.language_code {
         form = form.text("language_code", value.clone());
+    }
+
+    if let Some(ref value) = self.secondary_language_codes {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("secondary_language_codes", json_str);
+        }
+    }
+
+    if let Some(ref value) = self.numbers_format {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            form = form.text("numbers_format", json_str);
+        }
     }
 
     if let Some(ref value) = self.transcript_edit {
@@ -238,6 +254,8 @@ pub struct ConvertRequest3Builder {
     model_id: Option<String>,
     file: Option<Vec<u8>>,
     language_code: Option<String>,
+    secondary_language_codes: Option<Vec<String>>,
+    numbers_format: Option<SpeechToTextConvertRequestNumbersFormat>,
     transcript_edit: Option<String>,
     tag_audio_events: Option<bool>,
     num_speakers: Option<i64>,
@@ -279,6 +297,16 @@ impl ConvertRequest3Builder {
 
     pub fn language_code(mut self, value: impl Into<String>) -> Self {
         self.language_code = Some(value.into());
+        self
+    }
+
+    pub fn secondary_language_codes(mut self, value: Vec<String>) -> Self {
+        self.secondary_language_codes = Some(value);
+        self
+    }
+
+    pub fn numbers_format(mut self, value: SpeechToTextConvertRequestNumbersFormat) -> Self {
+        self.numbers_format = Some(value);
         self
     }
 
@@ -420,6 +448,8 @@ impl ConvertRequest3Builder {
             model_id: self.model_id.ok_or_else(|| BuildError::missing_field("model_id"))?,
             file: self.file,
             language_code: self.language_code,
+            secondary_language_codes: self.secondary_language_codes,
+            numbers_format: self.numbers_format,
             transcript_edit: self.transcript_edit,
             tag_audio_events: self.tag_audio_events,
             num_speakers: self.num_speakers,

@@ -6,6 +6,7 @@ use super::*;
 pub struct OpenAiAudioInputFormat {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<OpenAiAudioFormat>,
+    /// Sample rate in Hz of `audio/pcm` input. Only 24000 is supported; G.711 formats are always 8000 and ignore this field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rate: Option<i64>,
 }

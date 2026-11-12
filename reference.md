@@ -40,6 +40,11 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents mcp-servers tool-configs`](#elevenlabs-agents-mcp-servers-tool-configs)
 - [`elevenlabs agents mcp-servers tools`](#elevenlabs-agents-mcp-servers-tools)
 - [`elevenlabs agents merge-proposals`](#elevenlabs-agents-merge-proposals)
+- [`elevenlabs agents outbound-campaigns`](#elevenlabs-agents-outbound-campaigns)
+- [`elevenlabs agents outbound-campaigns attention`](#elevenlabs-agents-outbound-campaigns-attention)
+- [`elevenlabs agents outbound-campaigns calls`](#elevenlabs-agents-outbound-campaigns-calls)
+- [`elevenlabs agents outbound-campaigns config`](#elevenlabs-agents-outbound-campaigns-config)
+- [`elevenlabs agents outbound-campaigns leads`](#elevenlabs-agents-outbound-campaigns-leads)
 - [`elevenlabs agents phone-numbers`](#elevenlabs-agents-phone-numbers)
 - [`elevenlabs agents procedures`](#elevenlabs-agents-procedures)
 - [`elevenlabs agents procedures drafts`](#elevenlabs-agents-procedures-drafts)
@@ -508,7 +513,7 @@ Permanently delete a batch call and all recipient records. Conversations remain 
 
 #### `elevenlabs agents batch-calls export`
 
-Download all recipients and conversation results for a terminal batch call as CSV.
+Download all recipients and conversation results for a batch call as CSV, including calls that are still in progress.
 
 `GET /v1/convai/batch-calling/{batch_id}/export`
 
@@ -774,13 +779,20 @@ Get all conversations of agents that user owns. With option to restrict to a spe
 | `--evaluation-params` | `string` | No | Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success\|failure\|unknown. Example: eval=value_framing:success |
 | `--data-collection-params` | `string` | No | Data collection filters. Repeat param. Format: id:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt\|gte\|lt\|lte require a numeric value. |
 | `--dynamic-variable-params` | `string` | No | Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq\|neq\|gt\|gte\|lt\|lte\|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt\|gte\|lt\|lte require a numeric value. Names containing ':' cannot be expressed. |
+| `--data-collection-filter` | `string` | No | A single data collection filter, for callers that can only send one scalar value per query param. Same format as data_collection_params (id:op:value); combined with it when both are given. |
+| `--dynamic-variable-filter` | `string` | No | A single dynamic variable filter, for callers that can only send one scalar value per query param. Same format as dynamic_variable_params (name:op:value); combined with it when both are given. |
 | `--data-collection-ids` | `string` | No | Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned. |
 | `--evaluation-criteria-ids` | `string` | No | Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned. |
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
 | `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
 | `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
+| `--tool-ids` | `string` | No | Filter conversations by IDs of tools used during the call. Use '__system_<tool_name>' for system tools. Unlike tool_names, distinguishes between tools that share a name. |
+| `--tool-ids-successful` | `string` | No | Filter conversations by IDs of tools that had successful calls. |
+| `--tool-ids-errored` | `string` | No | Filter conversations by IDs of tools that had errored calls. |
 | `--include-invalid-tool-calls` | `boolean` | No | Also match tool calls that never ran. |
 | `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
+| `--phone-number-ids` | `string` | No | Filter conversations by agent phone number IDs. |
+| `--whatsapp-phone-number-ids` | `string` | No | Filter conversations by agent WhatsApp number IDs. |
 | `--page-size` | `integer` | No | How many conversations to return at maximum. Can not exceed 100, defaults to 30. |
 | `--summary-mode` | `exclude | include` | No | Whether to include transcript summaries in the response. |
 | `--search` | `string` | No | Full-text or fuzzy search over transcript messages |
@@ -897,6 +909,18 @@ Remove a file upload from a conversation. Only possible if the file hasn't alrea
 | `--conversation-id` | `string` | Yes |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
+#### `elevenlabs agents conversations files get`
+
+Download a file the user attached to a conversation, including while the conversation is still active.
+
+`GET /v1/convai/conversations/{conversation_id}/files/{file_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
+| `--file-id` | `string` | Yes | The file ID returned when it was uploaded. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
 ---
 
 ### `elevenlabs agents conversations messages`
@@ -944,8 +968,13 @@ Search through conversation transcript messages by full-text and fuzzy search
 | `--tool-names` | `string` | No | Filter conversations by tool names used during the call. |
 | `--tool-names-successful` | `string` | No | Filter conversations by tool names that had successful calls. |
 | `--tool-names-errored` | `string` | No | Filter conversations by tool names that had errored calls. |
+| `--tool-ids` | `string` | No | Filter conversations by IDs of tools used during the call. Use '__system_<tool_name>' for system tools. Unlike tool_names, distinguishes between tools that share a name. |
+| `--tool-ids-successful` | `string` | No | Filter conversations by IDs of tools that had successful calls. |
+| `--tool-ids-errored` | `string` | No | Filter conversations by IDs of tools that had errored calls. |
 | `--include-invalid-tool-calls` | `boolean` | No | Also match tool calls that never ran. |
 | `--main-languages` | `string` | No | Filter conversations by detected main language (language code). |
+| `--phone-number-ids` | `string` | No | Filter conversations by agent phone number IDs. |
+| `--whatsapp-phone-number-ids` | `string` | No | Filter conversations by agent WhatsApp number IDs. |
 | `--exclude-statuses` | `string` | No | Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views. |
 | `--termination-reasons` | `string` | No | Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several. |
 | `--page-size` | `integer` | No | Number of results per page. Max 50. |
@@ -1876,6 +1905,267 @@ Edit an open merge_proposal's title or description, or close it. The author clos
 
 ---
 
+### `elevenlabs agents outbound-campaigns`
+
+#### `elevenlabs agents outbound-campaigns create`
+
+Create an outbound campaign that calls or messages each recipient with the agent, within the policy's calling windows, retrying and following up as it allows. Returns `201` for a new campaign. A repeated request, matched by `idempotency_key` or else by its body, returns the existing campaign with `created` false.
+
+`POST /v1/convai/outbound-campaigns/campaigns/submit`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents outbound-campaigns get`
+
+Get an outbound campaign and its lead counts.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns get-follow-up-requests`
+
+Count the callbacks and redirects contacts asked for during an outbound campaign's calls.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}/follow-up-requests`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns get-progress`
+
+Get where an outbound campaign's leads and calls stand, and when its next call is due.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}/progress`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns list`
+
+List the workspace's outbound campaigns, newest first.
+
+`GET /v1/convai/outbound-campaigns/campaigns`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--page-size` | `integer` | No | How many items to return at most. |
+| `--status` | `string` | No | Only campaigns in one of these statuses. |
+| `--agent-id` | `string` | No | Only campaigns run by this agent. |
+| `--channel` | `string` | No | Only campaigns on this channel. |
+| `--mode` | `string` | No | Only voice or only message campaigns. |
+| `--search` | `string` | No | Only campaigns whose name contains this text. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns pause`
+
+Pause an outbound campaign. It places no new calls until resumed; calls already placed carry on.
+
+`POST /v1/convai/outbound-campaigns/campaigns/{campaign_id}/pause`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns pause-all`
+
+Pause every running outbound campaign in the workspace. Paused campaigns place no new calls until resumed.
+
+`POST /v1/convai/outbound-campaigns/campaigns/pause-all`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns resume`
+
+Resume a paused outbound campaign, including calls an attention item held back.
+
+`POST /v1/convai/outbound-campaigns/campaigns/{campaign_id}/resume`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns stop`
+
+Stop an outbound campaign for good: queued calls are cancelled and no lead is called again. Returns `202` with the campaign `stopping` while calls already placed are still finishing.
+
+`POST /v1/convai/outbound-campaigns/campaigns/{campaign_id}/stop`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns stop-all`
+
+Stop every outbound campaign in the workspace that hasn't finished. Returns `202` while calls already placed are still finishing.
+
+`POST /v1/convai/outbound-campaigns/campaigns/stop-all`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents outbound-campaigns attention`
+
+#### `elevenlabs agents outbound-campaigns attention list`
+
+List problems in the workspace's outbound campaigns that need you to act, such as an agent or phone number that can no longer be used, newest first. A campaign with an open item holds back the calls it affects.
+
+`GET /v1/convai/outbound-campaigns/attention`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | No | Only this campaign's items. |
+| `--include-resolved` | `boolean` | No | Include items that are already resolved. |
+| `--page-size` | `integer` | No | How many items to return at most. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns attention resolve`
+
+Close an attention item that can't be retried, recording how it was handled.
+
+`POST /v1/convai/outbound-campaigns/attention/{attention_id}/resolve`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--attention-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents outbound-campaigns attention retry`
+
+Place the calls a retryable attention item holds back, once its cause is fixed. Resumes the campaign.
+
+`POST /v1/convai/outbound-campaigns/attention/{attention_id}/retry`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--attention-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents outbound-campaigns calls`
+
+#### `elevenlabs agents outbound-campaigns calls export`
+
+Download every call of a campaign, with its lead and conversation results, as CSV.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}/export`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--limit` | `string` | No | Only export the first N calls; used to preview the columns. Omit to export every call. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns calls list`
+
+List the calls of an outbound campaign, newest first: first contacts, retries, callbacks and redirects, whether queued, under way or done.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}/calls`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--page-size` | `integer` | No | How many items to return at most. |
+| `--lead-id` | `string` | No | Only this lead's calls. |
+| `--status` | `string` | No | Only calls in this status. |
+| `--call-result` | `string` | No | Only calls that ended in one of these results. |
+| `--stage` | `string` | No | Only messages at this delivery stage. Message campaigns only. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs agents outbound-campaigns config`
+
+#### `elevenlabs agents outbound-campaigns config get`
+
+Get the workspace's outbound campaign configuration: the default policy new campaigns take, and per-agent overrides.
+
+`GET /v1/convai/outbound-campaigns/config`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns config update`
+
+Create or replace the workspace's outbound campaign configuration. Send the `version` you last read as `expected_version`, or omit it to create the first configuration. A configuration changed since you read it is not replaced. Campaigns keep the policy they started with.
+
+`PUT /v1/convai/outbound-campaigns/config`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs agents outbound-campaigns leads`
+
+#### `elevenlabs agents outbound-campaigns leads delete`
+
+Remove a lead from an outbound campaign so it is never called again. Returns `202` when a call already placed may still go through.
+
+`DELETE /v1/convai/outbound-campaigns/campaigns/{campaign_id}/leads/{lead_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--lead-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns leads get`
+
+Get one lead of an outbound campaign.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}/leads/{lead_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--lead-id` | `string` | Yes |  |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents outbound-campaigns leads list`
+
+List the leads of an outbound campaign, one per recipient.
+
+`GET /v1/convai/outbound-campaigns/campaigns/{campaign_id}/leads`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--campaign-id` | `string` | Yes |  |
+| `--page-size` | `integer` | No | How many items to return at most. |
+| `--search` | `string` | No | Only leads whose ID, user ID or phone number contains this text. |
+| `--status` | `string` | No | `in_progress` for leads still being called, `finished` for leads that won't be called again. |
+| `--disposition` | `string` | No | Only leads that finished in one of these ways. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
 ### `elevenlabs agents phone-numbers`
 
 #### `elevenlabs agents phone-numbers create`
@@ -2714,7 +3004,7 @@ List an agent's conversation triage tickets, ordered by most recently created fi
 | `--status` | `string` | No | Filter tickets by status. |
 | `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
 | `--priorities` | `string` | No | Filter tickets by priority. Repeat the parameter to filter by multiple priorities. |
-| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, or by priority (most urgent first, then most recently created). |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation). |
 | `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
 | `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
 | `--issue-type` | `string` | No | Filter clusters by issue type. |
@@ -2748,7 +3038,7 @@ List conversation triage tickets across every agent in the workspace, ordered by
 | `--status` | `string` | No | Filter tickets by status. |
 | `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
 | `--priorities` | `string` | No | Filter tickets by priority. Repeat the parameter to filter by multiple priorities. |
-| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, or by priority (most urgent first, then most recently created). |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation). |
 | `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
 | `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
 | `--issue-type` | `string` | No | Filter clusters by issue type. |
@@ -4492,7 +4782,7 @@ Removes a sample by its ID.
 
 #### `elevenlabs service-accounts create`
 
-Create a new service account in the workspace. By default, a workspace can have up to 20 service accounts. Enterprise customers may request an increase to this limit, up to 100.
+Create a new service account in the workspace. By default, a workspace can have up to 20 service accounts. Enterprise customers may request an increase to this limit.
 
 `POST /v1/service-accounts`
 
@@ -4676,7 +4966,7 @@ Defaults to None.
  |
 | `--output-format` | `alaw_8000 | mp3_22050_32 | mp3_24000_48 | mp3_44100_128 | mp3_44100_192 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | opus_48000_128 | opus_48000_192 | opus_48000_32 | opus_48000_64 | opus_48000_96 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | pcm_8000 | ulaw_8000 | wav_16000 | wav_22050 | wav_24000 | wav_32000 | wav_44100 | wav_48000 | wav_8000` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM and WAV formats with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
 #### `elevenlabs speech-to-speech stream`
 
@@ -4699,7 +4989,7 @@ Defaults to None.
  |
 | `--output-format` | `mp3_22050_32 | mp3_24000_48 | mp3_44100_32 | mp3_44100_64 | mp3_44100_96 | mp3_44100_128 | mp3_44100_192 | pcm_8000 | pcm_16000 | pcm_22050 | pcm_24000 | pcm_32000 | pcm_44100 | pcm_48000 | ulaw_8000 | alaw_8000 | opus_48000_32 | opus_48000_64 | opus_48000_96 | opus_48000_128 | opus_48000_192` | No | Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
-| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+| `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
 ---
 
@@ -5949,8 +6239,8 @@ Returns the audit log for the workspace. Requires enterprise tier and the audit_
 | `--time-from-unix-ms` | `string` | No | Only include entries at or after this time (ms since epoch) |
 | `--time-to-unix-ms` | `string` | No | Only include entries at or before this time (ms since epoch) |
 | `--actor-uid` | `string` | No | Filter by actor user ID |
-| `--class-name` | `string` | No | Filter by OCSF event class name (e.g. Account Change) |
-| `--activity-name` | `string` | No | Filter by audit activity name (e.g. Subscription Creation) |
+| `--class-name` | `string` | No | Filter by OCSF event class name |
+| `--activity-name` | `string` | No | Filter by audit activity name |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -6116,6 +6406,18 @@ Updates attributes of a workspace member. Apart from the email identifier, all p
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
+#### `elevenlabs workspace members update-usage-limit`
+
+Sets or clears the monthly credit usage limit of a workspace member or service account. This endpoint may only be called by workspace administrators.
+
+`PUT /v1/workspace/members/{user_id}/usage-limit`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--user-id` | `string` | Yes | User ID of the target user. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 ---
 
 ### `elevenlabs workspace resources`
@@ -6160,9 +6462,20 @@ Removes any existing role on a workspace resource from a user, group, or workspa
 
 ### `elevenlabs workspace usage`
 
+#### `elevenlabs workspace usage get-usage`
+
+Returns the cost of the workspace's usage over time, for workspaces billed by cost. Usage is bucketed by UTC day. The response is a tabular structure with columns, column_types, column_units, and rows, with one row per group and bucket. `total_cost` is the cost in the workspace's currency and `total_charge_count` the billed quantity. Usage can be grouped or filtered by at most two of `user_id`, `hashed_xi_api_key`, `region`, `reporting_workspace_id`, `billing_group_id`, `product_type`, `surface` and `actor`, and grouping by two of them requires an `eq` or `in` filter on one. `model`, `request_source`, `fiat_charge_type` and `fiat_currency` can always be added. Some id columns also get a display-name column, such as user_label, appended after the existing columns. Workspaces billed in credits should use /v1/workspace/analytics/query/usage-by-product-over-time.
+
+`POST /v1/workspace/analytics/usage`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 #### `elevenlabs workspace usage get-usage-by-product-over-time`
 
-Returns credit usage broken down by product type over time. The response is a tabular structure with columns, column_types, column_units, and rows. Some id columns also get a display-name column, such as user_label or voice_name, appended after the existing columns.
+Returns credit usage broken down by product type over time, for workspaces billed in credits. The response is a tabular structure with columns, column_types, column_units, and rows. Some id columns also get a display-name column, such as user_label or voice_name, appended after the existing columns. For workspaces billed by cost, ranges that reach the date the workspace moved to cost billing return an error; use /v1/workspace/analytics/usage instead.
 
 `POST /v1/workspace/analytics/query/usage-by-product-over-time`
 

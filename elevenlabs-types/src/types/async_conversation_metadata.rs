@@ -3,7 +3,7 @@ pub use crate::prelude::*;
 use super::*;
 
 /// Metadata for async conversation delivery (Zendesk, Slack, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AsyncConversationMetadata {
     pub delivery_status: AsyncConversationMetadataDeliveryStatus,
     #[serde(default)]
@@ -22,6 +22,10 @@ pub struct AsyncConversationMetadata {
     pub last_retry_timestamp: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_processed_external_message_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub integration_trigger_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform_metadata: Option<AsyncConversationMetadataPlatformMetadata>,
 }
 
 impl AsyncConversationMetadata {
@@ -42,6 +46,8 @@ pub struct AsyncConversationMetadataBuilder {
     retry_count: Option<i64>,
     last_retry_timestamp: Option<i64>,
     last_processed_external_message_id: Option<String>,
+    integration_trigger_id: Option<String>,
+    platform_metadata: Option<AsyncConversationMetadataPlatformMetadata>,
 }
 
 impl AsyncConversationMetadataBuilder {
@@ -90,6 +96,16 @@ impl AsyncConversationMetadataBuilder {
         self
     }
 
+    pub fn integration_trigger_id(mut self, value: impl Into<String>) -> Self {
+        self.integration_trigger_id = Some(value.into());
+        self
+    }
+
+    pub fn platform_metadata(mut self, value: AsyncConversationMetadataPlatformMetadata) -> Self {
+        self.platform_metadata = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AsyncConversationMetadata`].
     /// This method will fail if any of the following fields are not set:
     /// - [`delivery_status`](AsyncConversationMetadataBuilder::delivery_status)
@@ -107,6 +123,8 @@ impl AsyncConversationMetadataBuilder {
             retry_count: self.retry_count,
             last_retry_timestamp: self.last_retry_timestamp,
             last_processed_external_message_id: self.last_processed_external_message_id,
+            integration_trigger_id: self.integration_trigger_id,
+            platform_metadata: self.platform_metadata,
         })
     }
 }

@@ -4,12 +4,16 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct LlmInputOutputTokensUsage {
+    /// Input (prompt) tokens not served from the prompt cache.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input: Option<LlmTokensCategoryUsage>,
+    /// Input tokens read from the prompt cache.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_cache_read: Option<LlmTokensCategoryUsage>,
+    /// Input tokens written to the prompt cache.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_cache_write: Option<LlmTokensCategoryUsage>,
+    /// Output (completion) tokens.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_total: Option<LlmTokensCategoryUsage>,
 }

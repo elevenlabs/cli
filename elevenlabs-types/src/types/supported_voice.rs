@@ -28,6 +28,10 @@ pub struct SupportedVoice {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub similarity_boost: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub clone_strength: Option<f64>,
 }
 
 impl SupportedVoice {
@@ -48,6 +52,7 @@ pub struct SupportedVoiceBuilder {
     stability: Option<f64>,
     speed: Option<f64>,
     similarity_boost: Option<f64>,
+    clone_strength: Option<f64>,
 }
 
 impl SupportedVoiceBuilder {
@@ -96,6 +101,11 @@ impl SupportedVoiceBuilder {
         self
     }
 
+    pub fn clone_strength(mut self, value: f64) -> Self {
+        self.clone_strength = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`SupportedVoice`].
     /// This method will fail if any of the following fields are not set:
     /// - [`label`](SupportedVoiceBuilder::label)
@@ -111,6 +121,7 @@ impl SupportedVoiceBuilder {
             stability: self.stability,
             speed: self.speed,
             similarity_boost: self.similarity_boost,
+            clone_strength: self.clone_strength,
         })
     }
 }

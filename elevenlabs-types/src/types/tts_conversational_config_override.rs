@@ -28,6 +28,11 @@ pub struct TtsConversationalConfigOverride {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub similarity_boost: Option<f64>,
+    /// The clone strength for generated speech
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub clone_strength: Option<f64>,
     /// The pronunciation dictionary locators
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pronunciation_dictionary_locators: Option<Vec<PydanticPronunciationDictionaryVersionLocator>>,
@@ -48,6 +53,7 @@ pub struct TtsConversationalConfigOverrideBuilder {
     stability: Option<f64>,
     speed: Option<f64>,
     similarity_boost: Option<f64>,
+    clone_strength: Option<f64>,
     pronunciation_dictionary_locators: Option<Vec<PydanticPronunciationDictionaryVersionLocator>>,
 }
 
@@ -82,6 +88,11 @@ impl TtsConversationalConfigOverrideBuilder {
         self
     }
 
+    pub fn clone_strength(mut self, value: f64) -> Self {
+        self.clone_strength = Some(value);
+        self
+    }
+
     pub fn pronunciation_dictionary_locators(mut self, value: Vec<PydanticPronunciationDictionaryVersionLocator>) -> Self {
         self.pronunciation_dictionary_locators = Some(value);
         self
@@ -96,6 +107,7 @@ impl TtsConversationalConfigOverrideBuilder {
             stability: self.stability,
             speed: self.speed,
             similarity_boost: self.similarity_boost,
+            clone_strength: self.clone_strength,
             pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
         })
     }

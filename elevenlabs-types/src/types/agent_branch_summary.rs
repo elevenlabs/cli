@@ -22,6 +22,9 @@ pub struct AgentBranchSummary {
     pub protection_status: Option<BranchProtectionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_rebase: Option<bool>,
+    /// Set while the branch is kept in sync with another branch (Main today), pulling in its new versions automatically. Null when it is not synced.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sync_status: Option<BranchSyncStatus>,
     /// Access information for the branch
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_info: Option<ResourceAccessInfo>,
@@ -75,6 +78,7 @@ pub struct AgentBranchSummaryBuilder {
     is_archived: Option<bool>,
     protection_status: Option<BranchProtectionStatus>,
     auto_rebase: Option<bool>,
+    sync_status: Option<BranchSyncStatus>,
     access_info: Option<ResourceAccessInfo>,
     current_live_percentage: Option<f64>,
     parent_branch_id: Option<String>,
@@ -130,6 +134,11 @@ impl AgentBranchSummaryBuilder {
 
     pub fn auto_rebase(mut self, value: bool) -> Self {
         self.auto_rebase = Some(value);
+        self
+    }
+
+    pub fn sync_status(mut self, value: BranchSyncStatus) -> Self {
+        self.sync_status = Some(value);
         self
     }
 
@@ -203,6 +212,7 @@ impl AgentBranchSummaryBuilder {
             is_archived: self.is_archived.ok_or_else(|| BuildError::missing_field("is_archived"))?,
             protection_status: self.protection_status,
             auto_rebase: self.auto_rebase,
+            sync_status: self.sync_status,
             access_info: self.access_info,
             current_live_percentage: self.current_live_percentage,
             parent_branch_id: self.parent_branch_id,

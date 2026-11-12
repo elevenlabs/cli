@@ -10,6 +10,9 @@ pub struct PromptAgentApiModelOverrideConfig {
     /// Whether to allow overriding the llm field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm: Option<bool>,
+    /// Whether to allow overriding the reasoning_effort field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<bool>,
     /// Whether to allow overriding the tool_ids field.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_ids: Option<bool>,
@@ -35,6 +38,7 @@ impl PromptAgentApiModelOverrideConfig {
 pub struct PromptAgentApiModelOverrideConfigBuilder {
     prompt: Option<bool>,
     llm: Option<bool>,
+    reasoning_effort: Option<bool>,
     tool_ids: Option<bool>,
     tool_ids_strict: Option<bool>,
     native_mcp_server_ids: Option<bool>,
@@ -49,6 +53,11 @@ impl PromptAgentApiModelOverrideConfigBuilder {
 
     pub fn llm(mut self, value: bool) -> Self {
         self.llm = Some(value);
+        self
+    }
+
+    pub fn reasoning_effort(mut self, value: bool) -> Self {
+        self.reasoning_effort = Some(value);
         self
     }
 
@@ -77,6 +86,7 @@ impl PromptAgentApiModelOverrideConfigBuilder {
         Ok(PromptAgentApiModelOverrideConfig {
             prompt: self.prompt,
             llm: self.llm,
+            reasoning_effort: self.reasoning_effort,
             tool_ids: self.tool_ids,
             tool_ids_strict: self.tool_ids_strict,
             native_mcp_server_ids: self.native_mcp_server_ids,

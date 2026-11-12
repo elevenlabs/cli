@@ -24,7 +24,7 @@ pub struct AgentKnowledgeBaseRagChunkResponseModel {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub vector_distance: Option<f64>,
-    /// Format of the chunk text. Markdown chunks contain raw markdown; HTML chunks contain HTML.
+    /// Format of the chunk text. Markdown chunks contain raw markdown; HTML chunks contain HTML. Keyword search always returns markdown, including the plain text it indexes for HTML documents.
     pub content_format: ContentFormat,
     /// Type of the source knowledge base document.
     pub document_type: KnowledgeBaseDocumentType,

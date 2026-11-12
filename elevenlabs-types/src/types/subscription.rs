@@ -79,6 +79,9 @@ pub struct Subscription {
     /// Whether the user has open invoices.
     #[serde(default)]
     pub has_open_invoices: bool,
+    /// Whether cancelling the subscription now ends it immediately, because an unpaid invoice is being collected, rather than at the end of the billing period.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancels_immediately: Option<bool>,
     /// The pending change for the user.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pending_change: Option<SubscriptionPendingChange>,
@@ -128,6 +131,7 @@ pub struct SubscriptionBuilder {
     next_invoice: Option<InvoiceResponse>,
     open_invoices: Option<Vec<InvoiceResponse>>,
     has_open_invoices: Option<bool>,
+    cancels_immediately: Option<bool>,
     pending_change: Option<SubscriptionPendingChange>,
     has_used_starter_coupon_on_account: Option<bool>,
     has_used_creator_coupon_on_account: Option<bool>,
@@ -265,6 +269,11 @@ impl SubscriptionBuilder {
         self
     }
 
+    pub fn cancels_immediately(mut self, value: bool) -> Self {
+        self.cancels_immediately = Some(value);
+        self
+    }
+
     pub fn pending_change(mut self, value: SubscriptionPendingChange) -> Self {
         self.pending_change = Some(value);
         self
@@ -334,6 +343,7 @@ impl SubscriptionBuilder {
             next_invoice: self.next_invoice,
             open_invoices: self.open_invoices.ok_or_else(|| BuildError::missing_field("open_invoices"))?,
             has_open_invoices: self.has_open_invoices.ok_or_else(|| BuildError::missing_field("has_open_invoices"))?,
+            cancels_immediately: self.cancels_immediately,
             pending_change: self.pending_change,
             has_used_starter_coupon_on_account: self.has_used_starter_coupon_on_account,
             has_used_creator_coupon_on_account: self.has_used_creator_coupon_on_account,

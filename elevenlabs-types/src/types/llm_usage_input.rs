@@ -4,6 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct LlmUsageInput {
+    /// Token usage and USD price per LLM, keyed by model ID and broken down by token category.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_usage: Option<HashMap<String, LlmInputOutputTokensUsage>>,
 }

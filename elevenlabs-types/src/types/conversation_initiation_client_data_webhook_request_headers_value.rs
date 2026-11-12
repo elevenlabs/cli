@@ -8,6 +8,8 @@ pub enum ConversationInitiationClientDataWebhookRequestHeadersValue {
         String(String),
 
         ConvAiSecretLocator(ConvAiSecretLocator),
+
+        ConvAiEnvVarLocator(ConvAiEnvVarLocator),
 }
 
 impl ConversationInitiationClientDataWebhookRequestHeadersValue {
@@ -17,6 +19,10 @@ impl ConversationInitiationClientDataWebhookRequestHeadersValue {
 
     pub fn is_conv_ai_secret_locator(&self) -> bool {
         matches!(self, Self::ConvAiSecretLocator(_))
+    }
+
+    pub fn is_conv_ai_env_var_locator(&self) -> bool {
+        matches!(self, Self::ConvAiEnvVarLocator(_))
     }
 
 
@@ -47,6 +53,20 @@ impl ConversationInitiationClientDataWebhookRequestHeadersValue {
                     _ => None,
                 }
     }
+
+    pub fn as_conv_ai_env_var_locator(&self) -> Option<&ConvAiEnvVarLocator> {
+        match self {
+                    Self::ConvAiEnvVarLocator(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_conv_ai_env_var_locator(self) -> Option<ConvAiEnvVarLocator> {
+        match self {
+                    Self::ConvAiEnvVarLocator(value) => Some(value),
+                    _ => None,
+                }
+    }
 }
 
 impl fmt::Display for ConversationInitiationClientDataWebhookRequestHeadersValue {
@@ -54,6 +74,7 @@ impl fmt::Display for ConversationInitiationClientDataWebhookRequestHeadersValue
         match self {
             Self::String(value) => write!(f, "{}", value),
             Self::ConvAiSecretLocator(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::ConvAiEnvVarLocator(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
         }
     }
 }

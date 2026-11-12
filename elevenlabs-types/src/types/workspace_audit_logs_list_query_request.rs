@@ -20,12 +20,12 @@ pub struct WorkspaceAuditLogsListQueryRequest {
     /// Filter by actor user ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub actor_uid: Option<String>,
-    /// Filter by OCSF event class name (e.g. Account Change)
+    /// Filter by OCSF event class name
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub class_name: Option<String>,
-    /// Filter by audit activity name (e.g. Subscription Creation)
+    pub class_name: Option<AuditClassName>,
+    /// Filter by audit activity name
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub activity_name: Option<String>,
+    pub activity_name: Option<AuditActivityName>,
 }
 
 impl WorkspaceAuditLogsListQueryRequest {
@@ -42,8 +42,8 @@ pub struct WorkspaceAuditLogsListQueryRequestBuilder {
     time_from_unix_ms: Option<i64>,
     time_to_unix_ms: Option<i64>,
     actor_uid: Option<String>,
-    class_name: Option<String>,
-    activity_name: Option<String>,
+    class_name: Option<AuditClassName>,
+    activity_name: Option<AuditActivityName>,
 }
 
 impl WorkspaceAuditLogsListQueryRequestBuilder {
@@ -72,13 +72,13 @@ impl WorkspaceAuditLogsListQueryRequestBuilder {
         self
     }
 
-    pub fn class_name(mut self, value: impl Into<String>) -> Self {
-        self.class_name = Some(value.into());
+    pub fn class_name(mut self, value: AuditClassName) -> Self {
+        self.class_name = Some(value);
         self
     }
 
-    pub fn activity_name(mut self, value: impl Into<String>) -> Self {
-        self.activity_name = Some(value.into());
+    pub fn activity_name(mut self, value: AuditActivityName) -> Self {
+        self.activity_name = Some(value);
         self
     }
 
