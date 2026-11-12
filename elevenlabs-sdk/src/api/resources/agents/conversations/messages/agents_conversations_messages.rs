@@ -37,8 +37,13 @@ impl MessagesClient {
     /// * `tool_names` - Filter conversations by tool names used during the call.
     /// * `tool_names_successful` - Filter conversations by tool names that had successful calls.
     /// * `tool_names_errored` - Filter conversations by tool names that had errored calls.
+    /// * `tool_ids` - Filter conversations by IDs of tools used during the call. Use '__system_<tool_name>' for system tools. Unlike tool_names, distinguishes between tools that share a name.
+    /// * `tool_ids_successful` - Filter conversations by IDs of tools that had successful calls.
+    /// * `tool_ids_errored` - Filter conversations by IDs of tools that had errored calls.
     /// * `include_invalid_tool_calls` - Also match tool calls that never ran.
     /// * `main_languages` - Filter conversations by detected main language (language code).
+    /// * `phone_number_ids` - Filter conversations by agent phone number IDs.
+    /// * `whatsapp_phone_number_ids` - Filter conversations by agent WhatsApp number IDs.
     /// * `exclude_statuses` - Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views.
     /// * `termination_reasons` - Filter conversations by their stored termination_reason (metadata.termination_reason). Repeat param to match any of several.
     /// * `page_size` - Number of results per page. Max 50.
@@ -92,8 +97,13 @@ impl MessagesClient {
     ///                 tool_names: vec![Some("tool_names".to_string())],
     ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
     ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
+    ///                 tool_ids: vec![Some("tool_ids".to_string())],
+    ///                 tool_ids_successful: vec![Some("tool_ids_successful".to_string())],
+    ///                 tool_ids_errored: vec![Some("tool_ids_errored".to_string())],
     ///                 include_invalid_tool_calls: Some(true),
     ///                 main_languages: vec![Some("main_languages".to_string())],
+    ///                 phone_number_ids: vec![Some("phone_number_ids".to_string())],
+    ///                 whatsapp_phone_number_ids: vec![Some("whatsapp_phone_number_ids".to_string())],
     ///                 exclude_statuses: vec![Some(
     ///                     MessagesTextSearchRequestExcludeStatusesItem::Initiated,
     ///                 )],
@@ -172,11 +182,19 @@ impl MessagesClient {
                         request.tool_names_successful.clone(),
                     )
                     .string_array("tool_names_errored", request.tool_names_errored.clone())
+                    .string_array("tool_ids", request.tool_ids.clone())
+                    .string_array("tool_ids_successful", request.tool_ids_successful.clone())
+                    .string_array("tool_ids_errored", request.tool_ids_errored.clone())
                     .bool(
                         "include_invalid_tool_calls",
                         request.include_invalid_tool_calls.clone(),
                     )
                     .string_array("main_languages", request.main_languages.clone())
+                    .string_array("phone_number_ids", request.phone_number_ids.clone())
+                    .string_array(
+                        "whatsapp_phone_number_ids",
+                        request.whatsapp_phone_number_ids.clone(),
+                    )
                     .serialize_array("exclude_statuses", request.exclude_statuses.clone())
                     .string_array("termination_reasons", request.termination_reasons.clone())
                     .int("page_size", request.page_size.clone())

@@ -12,6 +12,9 @@ pub enum CreatePrivateKeyJwtRequestAlgorithm {
     Rs256,
     Rs384,
     Rs512,
+    Ps256,
+    Ps384,
+    Ps512,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -26,6 +29,9 @@ impl Serialize for CreatePrivateKeyJwtRequestAlgorithm {
             Self::Rs256 => serializer.serialize_str("RS256"),
             Self::Rs384 => serializer.serialize_str("RS384"),
             Self::Rs512 => serializer.serialize_str("RS512"),
+            Self::Ps256 => serializer.serialize_str("PS256"),
+            Self::Ps384 => serializer.serialize_str("PS384"),
+            Self::Ps512 => serializer.serialize_str("PS512"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -41,6 +47,9 @@ impl<'de> Deserialize<'de> for CreatePrivateKeyJwtRequestAlgorithm {
             "RS256" => Ok(Self::Rs256),
             "RS384" => Ok(Self::Rs384),
             "RS512" => Ok(Self::Rs512),
+            "PS256" => Ok(Self::Ps256),
+            "PS384" => Ok(Self::Ps384),
+            "PS512" => Ok(Self::Ps512),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -55,6 +64,9 @@ impl fmt::Display for CreatePrivateKeyJwtRequestAlgorithm {
             Self::Rs256 => write!(f, "RS256"),
             Self::Rs384 => write!(f, "RS384"),
             Self::Rs512 => write!(f, "RS512"),
+            Self::Ps256 => write!(f, "PS256"),
+            Self::Ps384 => write!(f, "PS384"),
+            Self::Ps512 => write!(f, "PS512"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

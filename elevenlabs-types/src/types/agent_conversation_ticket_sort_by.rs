@@ -7,6 +7,7 @@ use super::*;
 pub enum AgentConversationTicketSortBy {
     CreatedAt,
     Priority,
+    LastReported,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -17,6 +18,7 @@ impl Serialize for AgentConversationTicketSortBy {
         match self {
             Self::CreatedAt => serializer.serialize_str("created_at"),
             Self::Priority => serializer.serialize_str("priority"),
+            Self::LastReported => serializer.serialize_str("last_reported"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -28,6 +30,7 @@ impl<'de> Deserialize<'de> for AgentConversationTicketSortBy {
         match value.as_str() {
             "created_at" => Ok(Self::CreatedAt),
             "priority" => Ok(Self::Priority),
+            "last_reported" => Ok(Self::LastReported),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -38,6 +41,7 @@ impl fmt::Display for AgentConversationTicketSortBy {
         match self {
             Self::CreatedAt => write!(f, "created_at"),
             Self::Priority => write!(f, "priority"),
+            Self::LastReported => write!(f, "last_reported"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

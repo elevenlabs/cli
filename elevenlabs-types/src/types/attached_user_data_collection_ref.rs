@@ -7,7 +7,7 @@ pub struct AttachedUserDataCollectionRef {
     /// Id of the referenced user data-collection item.
     #[serde(default)]
     pub analysis_item_id: String,
-    /// Pinned item version. None tracks the item's latest published version.
+    /// Pinned item version. 'latest' tracks the item's latest published version.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version_id: Option<String>,
     /// Transcript context ('conversation' or 'agent') used when running this item.

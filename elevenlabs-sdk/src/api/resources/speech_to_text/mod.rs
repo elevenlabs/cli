@@ -49,6 +49,8 @@ impl SpeechToTextClient {
     ///                 file: b"test file content".to_vec(),
     ///                 model_id: "scribe_v2".to_string(),
     ///                 language_code: None,
+    ///                 secondary_language_codes: None,
+    ///                 numbers_format: None,
     ///                 transcript_edit: None,
     ///                 tag_audio_events: None,
     ///                 num_speakers: None,

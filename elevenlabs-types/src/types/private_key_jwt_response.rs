@@ -30,6 +30,9 @@ pub struct PrivateKeyJwtResponse {
     /// Additional custom claims to include in the JWT
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_params: Option<HashMap<String, String>>,
+    /// Additional JWT header parameters (e.g. x5t). 'alg' and 'kid' are set from algorithm and key_id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_headers: Option<HashMap<String, String>>,
     #[serde(default)]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,6 +63,7 @@ pub struct PrivateKeyJwtResponseBuilder {
     subject: Option<String>,
     expiration_seconds: Option<i64>,
     extra_params: Option<HashMap<String, String>>,
+    extra_headers: Option<HashMap<String, String>>,
     id: Option<String>,
     used_by: Option<AuthConnectionDependencies>,
     status: Option<AuthConnectionStatus>,
@@ -113,6 +117,11 @@ impl PrivateKeyJwtResponseBuilder {
         self
     }
 
+    pub fn extra_headers(mut self, value: HashMap<String, String>) -> Self {
+        self.extra_headers = Some(value);
+        self
+    }
+
     pub fn id(mut self, value: impl Into<String>) -> Self {
         self.id = Some(value.into());
         self
@@ -157,6 +166,7 @@ impl PrivateKeyJwtResponseBuilder {
             subject: self.subject.ok_or_else(|| BuildError::missing_field("subject"))?,
             expiration_seconds: self.expiration_seconds,
             extra_params: self.extra_params,
+            extra_headers: self.extra_headers,
             id: self.id.ok_or_else(|| BuildError::missing_field("id"))?,
             used_by: self.used_by,
             status: self.status,
