@@ -77,7 +77,12 @@ impl ConfigFormat {
     pub fn parse(self, text: &str) -> Result<Value, String> {
         match self {
             Self::Json => serde_json::from_str(text).map_err(|e| e.to_string()),
-            Self::Yaml => serde_yaml::from_str(text).map_err(|e| e.to_string()),
+            Self::Yaml => {
+                let yaml: serde_yaml::Value =
+                    serde_yaml::from_str(text).map_err(|e| e.to_string())?;
+                check_yaml_numbers(&yaml, "")?;
+                serde_yaml::from_value(yaml).map_err(|e| e.to_string())
+            }
             Self::Toml => {
                 let doc: DocumentMut = text.parse().map_err(|e| format!("{e}"))?;
                 table_to_json(doc.as_table())
@@ -94,6 +99,35 @@ impl ConfigFormat {
                 .map_err(|e| CliError::Other(anyhow::anyhow!("Could not serialize YAML: {e}"))),
             Self::Toml => json_to_toml(value).map_err(CliError::Validation),
         }
+    }
+}
+
+// ── YAML → JSON ─────────────────────────────────────────────────────
+
+/// YAML's `.nan` and `.inf` would quietly become `null` in JSON, which
+/// `push` then sends as a cleared field. Refuse them, as the TOML reader does.
+fn check_yaml_numbers(value: &serde_yaml::Value, path: &str) -> Result<(), String> {
+    use serde_yaml::Value as Y;
+    match value {
+        Y::Number(n) if n.is_nan() || n.is_infinite() => {
+            let at = if path.is_empty() { "value" } else { path };
+            Err(format!("{at}: {n} has no JSON equivalent"))
+        }
+        Y::Sequence(items) => items
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, item)| check_yaml_numbers(item, &format!("{path}[{i}]"))),
+        Y::Mapping(map) => map.iter().try_for_each(|(key, item)| {
+            let key = match key {
+                Y::String(s) => s.clone(),
+                other => serde_yaml::to_string(other)
+                    .map(|s| s.trim_end().to_string())
+                    .unwrap_or_default(),
+            };
+            check_yaml_numbers(item, &join(path, &key))
+        }),
+        Y::Tagged(tagged) => check_yaml_numbers(&tagged.value, path),
+        _ => Ok(()),
     }
 }
 
@@ -394,6 +428,25 @@ mod tests {
             .to_string()
             .contains("too large"));
         assert!(ConfigFormat::Toml.parse("x = nan").is_err());
+    }
+
+    #[test]
+    fn yaml_rejects_non_finite_numbers() {
+        // These would otherwise read as null and clear the field on push.
+        for text in ["temperature: .nan", "a:\n  b: [1, .inf]", "x: -.inf"] {
+            assert!(
+                ConfigFormat::Yaml.parse(text).is_err(),
+                "{text} should be refused"
+            );
+        }
+        let err = ConfigFormat::Yaml
+            .parse("tts:\n  stability: .nan")
+            .unwrap_err();
+        assert!(err.starts_with("tts.stability:"), "{err}");
+        assert_eq!(
+            ConfigFormat::Yaml.parse("t: 0.5").unwrap(),
+            json!({"t": 0.5})
+        );
     }
 
     #[test]
