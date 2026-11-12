@@ -10,9 +10,10 @@
 //! loses nothing: `push` sends a PATCH, where a missing field is left as it
 //! is, and a field that pulled as null was unset already. What TOML can't
 //! express is *clearing* a field: deleting its line leaves the remote value
-//! alone. That needs `null` in a JSON or YAML config. A null array element is
-//! data rather than an unset field, so a config with one can't be written as
-//! TOML at all.
+//! alone. That needs `null` in a JSON or YAML config. A null anywhere inside
+//! an array that isn't a plain array of objects (an element, or a field of an
+//! object mixed in with other values) is data rather than an unset field, so
+//! a config with one can't be written as TOML at all.
 
 use std::path::Path;
 
@@ -125,11 +126,12 @@ fn join(path: &str, key: &str) -> String {
     }
 }
 
-/// A null in an array is data (a constant value, say), not an unset field:
-/// dropping it would change what `push` sends, so refuse instead.
+/// A null inside an inline array is data (a constant value, say), not an
+/// unset field: dropping it would change what `push` sends, so refuse
+/// instead. `path` is where the null is.
 fn null_in_array(path: &str) -> String {
     format!(
-        "{path} holds a null in an array, which TOML can't represent. \
+        "{path} is a null inside an array, which TOML can't represent. \
          Use a JSON or YAML config for this one"
     )
 }
@@ -163,7 +165,8 @@ fn to_item(value: &Value, path: &str) -> Result<Option<Item>, String> {
 }
 
 /// An inline TOML value: used for scalars, and for objects and arrays nested
-/// inside an array that isn't a plain array of objects.
+/// inside an array that isn't a plain array of objects. Any object reached
+/// here is inside such an array, so its null fields are refused too.
 fn to_value(value: &Value, path: &str) -> Result<Option<toml_edit::Value>, String> {
     Ok(Some(match value {
         Value::Null => return Ok(None),
@@ -178,9 +181,10 @@ fn to_value(value: &Value, path: &str) -> Result<Option<toml_edit::Value>, Strin
         Value::Array(items) => {
             let mut array = Array::new();
             for (i, item) in items.iter().enumerate() {
-                match to_value(item, &format!("{path}[{i}]"))? {
+                let item_path = format!("{path}[{i}]");
+                match to_value(item, &item_path)? {
                     Some(v) => array.push(v),
-                    None => return Err(null_in_array(path)),
+                    None => return Err(null_in_array(&item_path)),
                 }
             }
             array.into()
@@ -188,9 +192,11 @@ fn to_value(value: &Value, path: &str) -> Result<Option<toml_edit::Value>, Strin
         Value::Object(map) => {
             let mut table = InlineTable::new();
             for (key, item) in map {
-                if let Some(v) = to_value(item, &join(path, key))? {
-                    table.insert(key, v);
-                }
+                let item_path = join(path, key);
+                match to_value(item, &item_path)? {
+                    Some(v) => table.insert(key, v),
+                    None => return Err(null_in_array(&item_path)),
+                };
             }
             table.into()
         }
@@ -360,6 +366,9 @@ mod tests {
             json!({"tool": {"constant_value": [1, null, 2]}}),
             json!({"tables": [{"a": 1}, null]}),
             json!({"nested": [[null]]}),
+            // An object mixed in with other values is literal data too.
+            json!({"mixed": [1, {"a": null}]}),
+            json!({"nested": [[{"a": {"b": null}}]]}),
         ] {
             let err = ConfigFormat::Toml.render(&value).unwrap_err().to_string();
             assert!(err.contains("Use a JSON or YAML config"), "{err}");
@@ -368,7 +377,12 @@ mod tests {
             .render(&json!({"tool": {"constant_value": [1, null]}}))
             .unwrap_err()
             .to_string();
-        assert!(err.starts_with("tool.constant_value holds a null"), "{err}");
+        assert!(err.starts_with("tool.constant_value[1] is a null"), "{err}");
+        let err = ConfigFormat::Toml
+            .render(&json!({"mixed": [1, {"a": null}]}))
+            .unwrap_err()
+            .to_string();
+        assert!(err.starts_with("mixed[1].a is a null"), "{err}");
     }
 
     #[test]
