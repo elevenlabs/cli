@@ -185,6 +185,72 @@ async fn pull_keeps_an_existing_files_format() {
 }
 
 #[tokio::test]
+async fn pull_reuses_a_registered_branch_file() {
+    let server = MockServer::start().await;
+    serve_agent(&server).await;
+    Mock::given(method("GET"))
+        .and(path("/v1/convai/agents/agent_1/branches"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(json!({"results": [{"id": "agtbrch_1", "name": "staging"}]})),
+        )
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    ok(cli(dir, &server.uri(), &["agents", "init"]), "init");
+    std::fs::write(
+        dir.join("agents.json"),
+        r#"{"agents": [{"config": "agent_configs/support.yaml", "id": "agent_1",
+            "branches": {"staging": {"config": "agent_configs/support.staging.yaml",
+                                     "branch_id": "agtbrch_1"}}}]}"#,
+    )
+    .unwrap();
+    // Asked by ID this time, and for TOML: the registered YAML file still wins.
+    ok(
+        cli(
+            dir,
+            &server.uri(),
+            &[
+                "agents",
+                "pull",
+                "--all",
+                "--agent",
+                "agent_1",
+                "--branch",
+                "agtbrch_1",
+                "--config-format",
+                "toml",
+                "--yes",
+            ],
+        ),
+        "pull",
+    );
+
+    let index: Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("agents.json")).unwrap()).unwrap();
+    let branches = index["agents"][0]["branches"].as_object().unwrap();
+    assert_eq!(branches.len(), 1, "{branches:?}");
+    assert_eq!(
+        branches["staging"]["config"],
+        "agent_configs/support.staging.yaml"
+    );
+    let text = std::fs::read_to_string(dir.join("agent_configs/support.staging.yaml")).unwrap();
+    let parsed: Value = serde_yaml::from_str(&text).unwrap();
+    assert_eq!(
+        parsed["conversation_config"],
+        live_agent()["conversation_config"]
+    );
+    let stray: Vec<_> = std::fs::read_dir(dir.join("agent_configs"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .filter(|n| !n.starts_with("support."))
+        .collect();
+    assert!(stray.is_empty(), "{stray:?}");
+}
+
+#[tokio::test]
 async fn add_from_a_yaml_file_creates_a_yaml_config() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

@@ -6,11 +6,13 @@
 //! isn't `.yaml`/`.yml`/`.toml` is JSON, so existing projects read exactly as
 //! before. Index files (`agents.json` & co.) are always JSON.
 //!
-//! TOML has no `null`, so writing TOML drops null fields (and null array
-//! elements). For an agent that loses nothing: `push` sends a PATCH, where a
-//! missing field is left as it is, and a field that pulled as null was unset
-//! already. What TOML can't express is *clearing* a field: deleting its line
-//! leaves the remote value alone. That needs `null` in a JSON or YAML config.
+//! TOML has no `null`, so writing TOML drops null fields. For an agent that
+//! loses nothing: `push` sends a PATCH, where a missing field is left as it
+//! is, and a field that pulled as null was unset already. What TOML can't
+//! express is *clearing* a field: deleting its line leaves the remote value
+//! alone. That needs `null` in a JSON or YAML config. A null array element is
+//! data rather than an unset field, so a config with one can't be written as
+//! TOML at all.
 
 use std::path::Path;
 
@@ -101,52 +103,68 @@ fn json_to_toml(value: &Value) -> Result<String, String> {
         return Err("A TOML config must be an object at the top level".to_string());
     };
     let mut doc = DocumentMut::new();
-    fill_table(doc.as_table_mut(), map)?;
+    fill_table(doc.as_table_mut(), map, "")?;
     Ok(doc.to_string())
 }
 
-fn fill_table(table: &mut Table, map: &Map<String, Value>) -> Result<(), String> {
+/// `path` is the dotted key path of `map`, for error messages.
+fn fill_table(table: &mut Table, map: &Map<String, Value>, path: &str) -> Result<(), String> {
     for (key, value) in map {
-        if let Some(item) = to_item(value)? {
+        if let Some(item) = to_item(value, &join(path, key))? {
             table.insert(key, item);
         }
     }
     Ok(())
 }
 
+fn join(path: &str, key: &str) -> String {
+    if path.is_empty() {
+        key.to_string()
+    } else {
+        format!("{path}.{key}")
+    }
+}
+
+/// A null in an array is data (a constant value, say), not an unset field:
+/// dropping it would change what `push` sends, so refuse instead.
+fn null_in_array(path: &str) -> String {
+    format!(
+        "{path} holds a null in an array, which TOML can't represent. \
+         Use a JSON or YAML config for this one"
+    )
+}
+
 /// Objects become `[table]` sections and arrays of objects `[[array]]`
 /// sections, which keeps a deeply nested agent config readable. `None` for
-/// null, which TOML can't hold.
-fn to_item(value: &Value) -> Result<Option<Item>, String> {
+/// a null field, which TOML can't hold.
+fn to_item(value: &Value, path: &str) -> Result<Option<Item>, String> {
     match value {
         Value::Object(map) => {
             let mut table = Table::new();
-            fill_table(&mut table, map)?;
+            fill_table(&mut table, map, path)?;
             // An implicit table prints no header of its own when it holds
             // only subtables. An empty one must keep its header, or the
-            // (empty) object would vanish from the file.
-            table.set_implicit(!map.is_empty());
+            // (empty) object would vanish from the file. Checked after
+            // filling, since an object of nulls ends up empty too.
+            table.set_implicit(!table.is_empty());
             Ok(Some(Item::Table(table)))
         }
-        Value::Array(items)
-            if items.iter().any(Value::is_object)
-                && items.iter().all(|v| v.is_object() || v.is_null()) =>
-        {
+        Value::Array(items) if !items.is_empty() && items.iter().all(Value::is_object) => {
             let mut tables = ArrayOfTables::new();
-            for map in items.iter().filter_map(Value::as_object) {
+            for (i, map) in items.iter().filter_map(Value::as_object).enumerate() {
                 let mut table = Table::new();
-                fill_table(&mut table, map)?;
+                fill_table(&mut table, map, &format!("{path}[{i}]"))?;
                 tables.push(table);
             }
             Ok(Some(Item::ArrayOfTables(tables)))
         }
-        other => Ok(to_value(other)?.map(Item::Value)),
+        other => Ok(to_value(other, path)?.map(Item::Value)),
     }
 }
 
 /// An inline TOML value: used for scalars, and for objects and arrays nested
 /// inside an array that isn't a plain array of objects.
-fn to_value(value: &Value) -> Result<Option<toml_edit::Value>, String> {
+fn to_value(value: &Value, path: &str) -> Result<Option<toml_edit::Value>, String> {
     Ok(Some(match value {
         Value::Null => return Ok(None),
         Value::Bool(b) => (*b).into(),
@@ -154,14 +172,15 @@ fn to_value(value: &Value) -> Result<Option<toml_edit::Value>, String> {
             (Some(i), _) => i.into(),
             // A u64 above i64::MAX would silently lose precision as a float.
             (None, Some(f)) if n.is_f64() => f.into(),
-            _ => return Err(format!("{n} is too large for a TOML integer")),
+            _ => return Err(format!("{path}: {n} is too large for a TOML integer")),
         },
         Value::String(s) => s.as_str().into(),
         Value::Array(items) => {
             let mut array = Array::new();
-            for item in items {
-                if let Some(v) = to_value(item)? {
-                    array.push(v);
+            for (i, item) in items.iter().enumerate() {
+                match to_value(item, &format!("{path}[{i}]"))? {
+                    Some(v) => array.push(v),
+                    None => return Err(null_in_array(path)),
                 }
             }
             array.into()
@@ -169,7 +188,7 @@ fn to_value(value: &Value) -> Result<Option<toml_edit::Value>, String> {
         Value::Object(map) => {
             let mut table = InlineTable::new();
             for (key, item) in map {
-                if let Some(v) = to_value(item)? {
+                if let Some(v) = to_value(item, &join(path, key))? {
                     table.insert(key, v);
                 }
             }
@@ -311,13 +330,13 @@ mod tests {
     }
 
     #[test]
-    fn toml_drops_nulls() {
+    fn toml_drops_null_fields() {
         let value = json!({
             "name": "x",
             "language": null,
             "nested": {"keep": 1, "drop": null},
-            "list": [1, null, 2],
-            "tables": [{"a": 1}, null]
+            "only_nulls": {"drop": null},
+            "tables": [{"a": 1, "b": null}]
         });
         let rendered = ConfigFormat::Toml.render(&value).unwrap();
         assert_eq!(
@@ -325,10 +344,31 @@ mod tests {
             json!({
                 "name": "x",
                 "nested": {"keep": 1},
-                "list": [1, 2],
+                // Kept as an empty object rather than vanishing.
+                "only_nulls": {},
                 "tables": [{"a": 1}]
-            })
+            }),
+            "{rendered}"
         );
+    }
+
+    #[test]
+    fn toml_refuses_nulls_in_arrays() {
+        // A null array element is data, so dropping it would change the
+        // config: a tool's constant value, for instance.
+        for value in [
+            json!({"tool": {"constant_value": [1, null, 2]}}),
+            json!({"tables": [{"a": 1}, null]}),
+            json!({"nested": [[null]]}),
+        ] {
+            let err = ConfigFormat::Toml.render(&value).unwrap_err().to_string();
+            assert!(err.contains("Use a JSON or YAML config"), "{err}");
+        }
+        let err = ConfigFormat::Toml
+            .render(&json!({"tool": {"constant_value": [1, null]}}))
+            .unwrap_err()
+            .to_string();
+        assert!(err.starts_with("tool.constant_value holds a null"), "{err}");
     }
 
     #[test]

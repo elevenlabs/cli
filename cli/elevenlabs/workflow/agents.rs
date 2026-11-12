@@ -1118,19 +1118,33 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
         // --branch: persist the branch config alongside the main one.
         if let (Some(branch), Some(bid)) = (&branch, &branch_id) {
-            let branch_path = project::generate_unique_filename(
-                &output_dir,
-                &format!("{name}.{branch}"),
-                new_config_ext(config_format, Some(&registry.agents[entry_idx].config)),
-            )
-            .display()
-            .to_string();
+            // A branch pulled before keeps its file (and so its format), found
+            // by the name or ID it was registered under, rather than gaining a
+            // second file next to a stale one.
+            let registered = registry.agents[entry_idx].branches.as_ref().and_then(|m| {
+                m.iter()
+                    .find(|(key, def)| *key == branch || def.branch_id == *bid)
+                    .map(|(key, def)| (key.clone(), def.config.clone()))
+            });
+            let (branch_key, branch_path) = match registered {
+                Some(found) => found,
+                None => (
+                    branch.clone(),
+                    project::generate_unique_filename(
+                        &output_dir,
+                        &format!("{name}.{branch}"),
+                        new_config_ext(config_format, Some(&registry.agents[entry_idx].config)),
+                    )
+                    .display()
+                    .to_string(),
+                ),
+            };
             project::write_config_in_project(&branch_path, &config)?;
             let branches = registry.agents[entry_idx]
                 .branches
                 .get_or_insert_with(Default::default);
             branches.insert(
-                branch.clone(),
+                branch_key,
                 project::BranchDefinition {
                     config: branch_path.clone(),
                     branch_id: bid.clone(),
