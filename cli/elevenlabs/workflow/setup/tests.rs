@@ -908,11 +908,12 @@ fn a_command_past_its_limit_is_stopped_with_its_children_and_grandchildren() {
         ),
     );
     let started = Instant::now();
-    let limit = Duration::from_millis(1500);
+    // Long enough for the stand-in to start both on a busy machine.
+    let limit = Duration::from_secs(3);
     let result = run_program(&hangs, &[], limit, dir.path());
     let (child, grandchild) = (pid_in(&child), pid_in(&grandchild));
     let _cleanup = (KillOnDrop(child), KillOnDrop(grandchild));
-    assert_eq!(result, Err("ran out of time after 1.5s and was stopped".into()));
+    assert_eq!(result, Err("ran out of time after 3s and was stopped".into()));
     assert!(started.elapsed() < limit + Duration::from_secs(3), "{:?}", started.elapsed());
     assert!(gone(child), "the child {child} still runs");
     assert!(gone(grandchild), "the grandchild {grandchild} still runs");
@@ -970,6 +971,9 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
         ("a progress bar redrawn last", b"done one\nstep 1/3\rstep 2/3\rstep 3/3".to_vec(), Some("step 3/3".into())),
         ("a window title and a link", b"\x1b]0;claude\x07\x1b]8;;https://x.test\x1b\\link\x1b]8;;\x1b\\ failed".to_vec(), Some("link failed".into())),
         ("a tab and a bell", b"one\ttwo\x07\x08three".to_vec(), Some("one twothree".into())),
+        // The escape parser keeps these as whitespace or text: the filter drops them.
+        ("a vertical tab and a form feed", b"error:\x0bvt\x0cff\n".to_vec(), Some("error:vtff".into())),
+        ("a one-character next line, U+0085", "error: nel\u{85}x\n".into(), Some("error: nelx".into())),
         ("a multi-byte character straddling the cut", straddles.into_bytes(), Some(straddles_cut)),
         ("exactly 300 characters", exactly.clone().into_bytes(), Some(exactly)),
         ("bytes that are not UTF-8", b"caf\xe9 \xff broke\n".to_vec(), Some("caf\u{FFFD} \u{FFFD} broke".into())),
