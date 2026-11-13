@@ -214,6 +214,42 @@ fn agents_not_reached_in_time_count_as_failed() {
     assert!(outcomes[2].ok, "Cursor runs nothing");
 }
 
+/// A fraction of a second written as digits before `s`, such as `12.6s`.
+fn has_fractional_seconds(text: &str) -> bool {
+    text.split('.').skip(1).any(|rest| {
+        let after = rest.trim_start_matches(|c: char| c.is_ascii_digit());
+        after.len() < rest.len() && after.starts_with('s')
+    })
+}
+
+#[test]
+fn a_limit_cut_short_reads_as_whole_seconds() {
+    // (the limit, as shown): the whole run's cap shortens a command's limit,
+    // and `onboard setup` takes its account request's time off the run's.
+    let rows = [
+        (Duration::from_nanos(12_642_639_792), "13s"),
+        (Duration::from_nanos(99_999_912_542), "100s"),
+        (Duration::from_nanos(99_873_421_000), "100s"),
+        (Duration::from_millis(1_499), "1s"),
+        (Duration::from_secs(50), "50s"),
+        (Duration::from_millis(999), "999ms"),
+        (Duration::from_millis(200), "200ms"),
+    ];
+    for (total, shown) in rows {
+        let limits = Limits { command: Duration::from_secs(30), total };
+        let outcomes = install(&all_agents()[..1], limits, &|_, _, _| Ok(()), &|| total);
+        assert_eq!(outcomes[0].message, format!("ran out of time: setup stops after {shown}"));
+    }
+    // `onboard setup`'s cap, as onboard/mod.rs makes it.
+    let total = LIMITS.total.saturating_sub(Duration::from_nanos(126_578_458));
+    let limits = Limits { total, ..LIMITS };
+    let outcomes = install(&all_agents()[1..2], limits, &|_, _, _| Ok(()), &|| LIMITS.total);
+    let (said, _) = report(&outcomes);
+    assert_eq!(said[0], "Codex: failed: ran out of time: setup stops after 100s.");
+    assert!(!has_fractional_seconds(&said.join(" ")), "{said:?}");
+    assert!(has_fractional_seconds("after 12.642639792s"), "the check finds what it looks for");
+}
+
 #[test]
 fn a_result_line_ends_in_one_full_stop() {
     let cut = format!("{}…", "q".repeat(LINE_MAX - 1));
@@ -292,6 +328,8 @@ fn a_command_past_its_limit_is_stopped_and_fails() {
         started.elapsed()
     );
     assert_eq!(err, "ran out of time after 200ms and was stopped");
+    let err = run_program(&hangs, &[], Duration::from_millis(1_600), dir.path()).unwrap_err();
+    assert_eq!(err, "ran out of time after 2s and was stopped", "not 1.6s");
 
     let outcomes = install(
         &[Agent::ClaudeCode(hangs), Agent::Cursor],

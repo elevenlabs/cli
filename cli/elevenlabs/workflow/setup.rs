@@ -261,7 +261,7 @@ pub(super) fn run_program(
             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
             _ => {
                 stop_all(&mut child);
-                return Err(format!("ran out of time after {limit:?} and was stopped"));
+                return Err(format!("ran out of time after {} and was stopped", seconds(limit)));
             }
         }
     };
@@ -276,6 +276,15 @@ pub(super) fn run_program(
         Some(line) => format!("exited with {code}: {line}"),
         None => format!("exited with {code}"),
     })
+}
+
+/// `limit` in whole seconds, rounded to the nearest, such as `13s`, or in
+/// milliseconds when under a second: limits are cut short by the whole run's.
+fn seconds(limit: Duration) -> String {
+    match limit.as_millis() {
+        ms if ms < 1000 => format!("{ms}ms"),
+        ms => format!("{}s", (ms + 500) / 1000),
+    }
 }
 
 /// Stop `child` and the programs it started, and wait for it: the npm
@@ -435,7 +444,7 @@ pub(super) fn install(
             for step in agent.steps() {
                 let left = limits.total.saturating_sub(elapsed());
                 if left.is_zero() {
-                    let message = format!("ran out of time: setup stops after {:?}", limits.total);
+                    let message = format!("ran out of time: setup stops after {}", seconds(limits.total));
                     return outcome(false, message);
                 }
                 if let Err(why) = run(program, step.args, limits.command.min(left)) {
