@@ -97,9 +97,10 @@ jobs:
 
           elevenlabs setup --yes
           expect "$bin/claude.log" "$(printf '%s\n' \
+            "plugin marketplace add elevenlabs/plugin" \
             "plugin marketplace update elevenlabs" \
-            "plugin install elevenlabs --marketplace elevenlabs/plugin --scope user" \
-            "plugin update elevenlabs@elevenlabs")" "Expected the three Claude Code commands"
+            "plugin install elevenlabs@elevenlabs" \
+            "plugin update elevenlabs@elevenlabs")" "Expected the four Claude Code commands"
           expect "$bin/codex.log" "$(printf '%s\n' \
             "plugin marketplace add elevenlabs/plugin" \
             "plugin marketplace upgrade elevenlabs" \
@@ -113,14 +114,15 @@ jobs:
             echo "::error::setup --yes with a failing install exited with $code, not 1"
             exit 1
           fi
-          refused='Claude Code: failed: `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user` exited with 1: install refused'
+          refused='Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: install refused'
           if [[ "$out" != *"$refused"* ]]; then
             echo "::error::setup --yes didn't show the install's error"
             exit 1
           fi
           expect "$failing/claude.log" "$(printf '%s\n' \
+            "plugin marketplace add elevenlabs/plugin" \
             "plugin marketplace update elevenlabs" \
-            "plugin install elevenlabs --marketplace elevenlabs/plugin --scope user")" \
+            "plugin install elevenlabs@elevenlabs")" \
             "Expected Claude Code to stop at the failed install"
 
       # PowerShell and cmd pass the search path as `Path`; Git Bash passes `PATH`.
@@ -183,10 +185,11 @@ jobs:
           elevenlabs setup --yes
           if ($LASTEXITCODE -ne 0) { throw "setup --yes exited with $LASTEXITCODE" }
           Assert-Ran $bin 'claude' @(
+            'plugin marketplace add elevenlabs/plugin'
             'plugin marketplace update elevenlabs'
-            'plugin install elevenlabs --marketplace elevenlabs/plugin --scope user'
+            'plugin install elevenlabs@elevenlabs'
             'plugin update elevenlabs@elevenlabs'
-          ) 'Expected the three Claude Code commands'
+          ) 'Expected the four Claude Code commands'
           Assert-Ran $bin 'codex' @(
             'plugin marketplace add elevenlabs/plugin'
             'plugin marketplace upgrade elevenlabs'
@@ -198,11 +201,12 @@ jobs:
           $code = $LASTEXITCODE
           Write-Host $out
           if ($code -ne 1) { throw "setup --yes with a failing install exited with $code, not 1" }
-          $refused = 'Claude Code: failed: `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user` exited with 1: install refused'
+          $refused = 'Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: install refused'
           if (-not $out.Contains($refused)) { throw "setup --yes didn't show the install's error" }
           Assert-Ran $failing 'claude' @(
+            'plugin marketplace add elevenlabs/plugin'
             'plugin marketplace update elevenlabs'
-            'plugin install elevenlabs --marketplace elevenlabs/plugin --scope user'
+            'plugin install elevenlabs@elevenlabs'
           ) 'Expected Claude Code to stop at the failed install'
           # The failed setup above exited 1 on purpose, and pwsh would end the step with it.
           exit 0
