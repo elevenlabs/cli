@@ -50,6 +50,8 @@ pub struct ConversationHistoryTranscriptCommonModelOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at_unix_ms: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
 }
 
@@ -85,6 +87,7 @@ pub struct ConversationHistoryTranscriptCommonModelOutputBuilder {
     used_static_kb_document_ids: Option<Vec<String>>,
     user_identifier: Option<String>,
     id: Option<String>,
+    created_at_unix_ms: Option<i64>,
     triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
 }
 
@@ -204,6 +207,11 @@ impl ConversationHistoryTranscriptCommonModelOutputBuilder {
         self
     }
 
+    pub fn created_at_unix_ms(mut self, value: i64) -> Self {
+        self.created_at_unix_ms = Some(value);
+        self
+    }
+
     pub fn triggered_guardrails(mut self, value: Vec<TriggeredGuardrailCommonModel>) -> Self {
         self.triggered_guardrails = Some(value);
         self
@@ -238,6 +246,7 @@ impl ConversationHistoryTranscriptCommonModelOutputBuilder {
             used_static_kb_document_ids: self.used_static_kb_document_ids,
             user_identifier: self.user_identifier,
             id: self.id,
+            created_at_unix_ms: self.created_at_unix_ms,
             triggered_guardrails: self.triggered_guardrails,
         })
     }

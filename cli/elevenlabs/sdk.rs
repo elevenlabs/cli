@@ -185,10 +185,10 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             conversations: elevenlabs_sdk::api::resources::agents::ConversationsClient {
                 http_client: http_client.clone(),
                 audio: elevenlabs_sdk::api::resources::agents::conversations::AudioClient { http_client: http_client.clone() },
+                files: elevenlabs_sdk::api::resources::agents::conversations::FilesClient { http_client: http_client.clone() },
                 feedback: elevenlabs_sdk::api::resources::agents::conversations::FeedbackClient { http_client: http_client.clone() },
                 messages: elevenlabs_sdk::api::resources::agents::conversations::MessagesClient { http_client: http_client.clone() },
                 tags: elevenlabs_sdk::api::resources::agents::conversations::TagsClient { http_client: http_client.clone() },
-                files: elevenlabs_sdk::api::resources::agents::conversations::FilesClient { http_client: http_client.clone() },
                 topics: elevenlabs_sdk::api::resources::agents::conversations::TopicsClient { http_client: http_client.clone() },
                 analysis: elevenlabs_sdk::api::resources::agents::conversations::AnalysisClient { http_client: http_client.clone() },
             },
@@ -248,6 +248,13 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             deployments: elevenlabs_sdk::api::resources::agents::DeploymentsClient { http_client: http_client.clone() },
             drafts: elevenlabs_sdk::api::resources::agents::DraftsClient { http_client: http_client.clone() },
             merge_proposals: elevenlabs_sdk::api::resources::agents::MergeProposalsClient { http_client: http_client.clone() },
+            outbound_campaigns: elevenlabs_sdk::api::resources::agents::OutboundCampaignsClient {
+                http_client: http_client.clone(),
+                config: elevenlabs_sdk::api::resources::agents::outbound_campaigns::ConfigClient { http_client: http_client.clone() },
+                leads: elevenlabs_sdk::api::resources::agents::outbound_campaigns::LeadsClient { http_client: http_client.clone() },
+                calls: elevenlabs_sdk::api::resources::agents::outbound_campaigns::CallsClient { http_client: http_client.clone() },
+                attention: elevenlabs_sdk::api::resources::agents::outbound_campaigns::AttentionClient { http_client: http_client.clone() },
+            },
             procedures: elevenlabs_sdk::api::resources::agents::ProceduresClient {
                 http_client: http_client.clone(),
                 drafts: elevenlabs_sdk::api::resources::agents::procedures::DraftsClient2 { http_client: http_client.clone() },

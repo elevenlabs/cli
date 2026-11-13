@@ -10,6 +10,9 @@ pub struct AddVoiceIvcResponseModel {
     /// Whether the voice requires verification
     #[serde(default)]
     pub requires_verification: bool,
+    /// Set when the samples match a protected voice that is available in the Voice Library. The new voice requires verification before use; adding the library voice is the alternative.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub library_voice_match: Option<LibraryVoiceMatchResponseModel>,
 }
 
 impl AddVoiceIvcResponseModel {
@@ -23,6 +26,7 @@ impl AddVoiceIvcResponseModel {
 pub struct AddVoiceIvcResponseModelBuilder {
     voice_id: Option<String>,
     requires_verification: Option<bool>,
+    library_voice_match: Option<LibraryVoiceMatchResponseModel>,
 }
 
 impl AddVoiceIvcResponseModelBuilder {
@@ -36,6 +40,11 @@ impl AddVoiceIvcResponseModelBuilder {
         self
     }
 
+    pub fn library_voice_match(mut self, value: LibraryVoiceMatchResponseModel) -> Self {
+        self.library_voice_match = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`AddVoiceIvcResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`voice_id`](AddVoiceIvcResponseModelBuilder::voice_id)
@@ -44,6 +53,7 @@ impl AddVoiceIvcResponseModelBuilder {
         Ok(AddVoiceIvcResponseModel {
             voice_id: self.voice_id.ok_or_else(|| BuildError::missing_field("voice_id"))?,
             requires_verification: self.requires_verification.ok_or_else(|| BuildError::missing_field("requires_verification"))?,
+            library_voice_match: self.library_voice_match,
         })
     }
 }

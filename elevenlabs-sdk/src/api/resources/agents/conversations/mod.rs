@@ -4,14 +4,14 @@ use reqwest::Method;
 
 pub mod audio;
 pub use audio::AudioClient;
+pub mod files;
+pub use files::FilesClient;
 pub mod feedback;
 pub use feedback::FeedbackClient;
 pub mod messages;
 pub use messages::MessagesClient;
 pub mod tags;
 pub use tags::TagsClient;
-pub mod files;
-pub use files::FilesClient;
 pub mod topics;
 pub use topics::TopicsClient;
 pub mod analysis;
@@ -19,10 +19,10 @@ pub use analysis::AnalysisClient;
 pub struct ConversationsClient {
     pub http_client: HttpClient,
     pub audio: AudioClient,
+    pub files: FilesClient,
     pub feedback: FeedbackClient,
     pub messages: MessagesClient,
     pub tags: TagsClient,
-    pub files: FilesClient,
     pub topics: TopicsClient,
     pub analysis: AnalysisClient,
 }
@@ -32,10 +32,10 @@ impl ConversationsClient {
         Ok(Self {
             http_client: HttpClient::new(config.clone())?,
             audio: AudioClient::new(config.clone())?,
+            files: FilesClient::new(config.clone())?,
             feedback: FeedbackClient::new(config.clone())?,
             messages: MessagesClient::new(config.clone())?,
             tags: TagsClient::new(config.clone())?,
-            files: FilesClient::new(config.clone())?,
             topics: TopicsClient::new(config.clone())?,
             analysis: AnalysisClient::new(config.clone())?,
         })
@@ -199,13 +199,20 @@ impl ConversationsClient {
     /// * `evaluation_params` - Evaluation filters. Repeat param. Format: criteria_id:result where result is one of success|failure|unknown. Example: eval=value_framing:success
     /// * `data_collection_params` - Data collection filters. Repeat param. Format: id:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the field was not collected (id:eq:), and neq with an empty value matches where it was (id:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value.
     /// * `dynamic_variable_params` - Dynamic variable filters. Repeat param. Format: name:op:value where op is one of eq|neq|gt|gte|lt|lte|in. For in, pipe-delimit values. An empty value matches conversations where the variable was not set (name:eq:), and neq with an empty value matches where it was (name:neq:). eq is exact equality. gt|gte|lt|lte require a numeric value. Names containing ':' cannot be expressed.
+    /// * `data_collection_filter` - A single data collection filter, for callers that can only send one scalar value per query param. Same format as data_collection_params (id:op:value); combined with it when both are given.
+    /// * `dynamic_variable_filter` - A single dynamic variable filter, for callers that can only send one scalar value per query param. Same format as dynamic_variable_params (name:op:value); combined with it when both are given.
     /// * `data_collection_ids` - Data collection field IDs to include in each conversation summary. Repeat param. When omitted, data_collection_results is not returned.
     /// * `evaluation_criteria_ids` - Evaluation criteria IDs to include in each conversation summary. Repeat param. When omitted, evaluation_criteria_results is not returned.
     /// * `tool_names` - Filter conversations by tool names used during the call.
     /// * `tool_names_successful` - Filter conversations by tool names that had successful calls.
     /// * `tool_names_errored` - Filter conversations by tool names that had errored calls.
+    /// * `tool_ids` - Filter conversations by IDs of tools used during the call. Use '__system_<tool_name>' for system tools. Unlike tool_names, distinguishes between tools that share a name.
+    /// * `tool_ids_successful` - Filter conversations by IDs of tools that had successful calls.
+    /// * `tool_ids_errored` - Filter conversations by IDs of tools that had errored calls.
     /// * `include_invalid_tool_calls` - Also match tool calls that never ran.
     /// * `main_languages` - Filter conversations by detected main language (language code).
+    /// * `phone_number_ids` - Filter conversations by agent phone number IDs.
+    /// * `whatsapp_phone_number_ids` - Filter conversations by agent WhatsApp number IDs.
     /// * `page_size` - How many conversations to return at maximum. Can not exceed 100, defaults to 30.
     /// * `summary_mode` - Whether to include transcript summaries in the response.
     /// * `search` - Full-text or fuzzy search over transcript messages
@@ -260,13 +267,20 @@ impl ConversationsClient {
     ///                 evaluation_params: vec![Some("evaluation_params".to_string())],
     ///                 data_collection_params: vec![Some("data_collection_params".to_string())],
     ///                 dynamic_variable_params: vec![Some("dynamic_variable_params".to_string())],
+    ///                 data_collection_filter: Some("data_collection_filter".to_string()),
+    ///                 dynamic_variable_filter: Some("dynamic_variable_filter".to_string()),
     ///                 data_collection_ids: vec![Some("data_collection_ids".to_string())],
     ///                 evaluation_criteria_ids: vec![Some("evaluation_criteria_ids".to_string())],
     ///                 tool_names: vec![Some("tool_names".to_string())],
     ///                 tool_names_successful: vec![Some("tool_names_successful".to_string())],
     ///                 tool_names_errored: vec![Some("tool_names_errored".to_string())],
+    ///                 tool_ids: vec![Some("tool_ids".to_string())],
+    ///                 tool_ids_successful: vec![Some("tool_ids_successful".to_string())],
+    ///                 tool_ids_errored: vec![Some("tool_ids_errored".to_string())],
     ///                 include_invalid_tool_calls: Some(true),
     ///                 main_languages: vec![Some("main_languages".to_string())],
+    ///                 phone_number_ids: vec![Some("phone_number_ids".to_string())],
+    ///                 whatsapp_phone_number_ids: vec![Some("whatsapp_phone_number_ids".to_string())],
     ///                 page_size: Some(1),
     ///                 summary_mode: Some(ConversationsListRequestSummaryMode::Exclude),
     ///                 search: Some("search".to_string()),
@@ -344,6 +358,14 @@ impl ConversationsClient {
                         "dynamic_variable_params",
                         request.dynamic_variable_params.clone(),
                     )
+                    .string(
+                        "data_collection_filter",
+                        request.data_collection_filter.clone(),
+                    )
+                    .string(
+                        "dynamic_variable_filter",
+                        request.dynamic_variable_filter.clone(),
+                    )
                     .string_array("data_collection_ids", request.data_collection_ids.clone())
                     .string_array(
                         "evaluation_criteria_ids",
@@ -355,11 +377,19 @@ impl ConversationsClient {
                         request.tool_names_successful.clone(),
                     )
                     .string_array("tool_names_errored", request.tool_names_errored.clone())
+                    .string_array("tool_ids", request.tool_ids.clone())
+                    .string_array("tool_ids_successful", request.tool_ids_successful.clone())
+                    .string_array("tool_ids_errored", request.tool_ids_errored.clone())
                     .bool(
                         "include_invalid_tool_calls",
                         request.include_invalid_tool_calls.clone(),
                     )
                     .string_array("main_languages", request.main_languages.clone())
+                    .string_array("phone_number_ids", request.phone_number_ids.clone())
+                    .string_array(
+                        "whatsapp_phone_number_ids",
+                        request.whatsapp_phone_number_ids.clone(),
+                    )
                     .int("page_size", request.page_size.clone())
                     .serialize("summary_mode", request.summary_mode.clone())
                     .string("search", request.search.clone())

@@ -581,7 +581,7 @@ dependencies = [
 
 [[package]]
 name = "elevenlabs_sdk"
-version = "1.9.0"
+version = "1.11.0"
 dependencies = [
  "base64",
  "bytes",
@@ -599,7 +599,7 @@ dependencies = [
 
 [[package]]
 name = "elevenlabs_types"
-version = "1.9.0"
+version = "1.11.0"
 dependencies = [
  "base64",
  "chrono",

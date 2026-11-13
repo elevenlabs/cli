@@ -307,7 +307,7 @@ impl BatchCallsClient {
             .await
     }
 
-    /// Download all recipients and conversation results for a terminal batch call as CSV.
+    /// Download all recipients and conversation results for a batch call as CSV, including calls that are still in progress.
     ///
     /// # Arguments
     ///
@@ -334,7 +334,7 @@ impl BatchCallsClient {
     ///         .batch_calls
     ///         .export(
     ///             &"batch_id".to_string(),
-    ///             &ExportQueryRequest {
+    ///             &AgentsBatchCallsExportQueryRequest {
     ///                 ..Default::default()
     ///             },
     ///             None,
@@ -345,7 +345,7 @@ impl BatchCallsClient {
     pub async fn export(
         &self,
         batch_id: &str,
-        request: &ExportQueryRequest,
+        request: &AgentsBatchCallsExportQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<ByteStream, ApiError> {
         self.http_client

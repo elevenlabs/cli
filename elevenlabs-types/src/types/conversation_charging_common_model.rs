@@ -10,12 +10,15 @@ pub struct ConversationChargingCommonModel {
     pub is_burst: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tier: Option<String>,
+    /// Per-model LLM token usage and USD price for the conversation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_usage: Option<LlmCategoryUsage>,
+    /// Total LLM price in USD. Equals the sum of the prices in `llm_usage.initiated_generation`.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub llm_price: Option<f64>,
+    /// Credits charged for LLM usage.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_charge: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -23,6 +23,9 @@ pub struct UnitTestRunResponseModel {
     pub status: TestRunStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_responses: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
+    /// Guardrails observed during this run, including blocks before an agent response.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
     #[serde(default)]
     pub test_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,6 +69,7 @@ pub struct UnitTestRunResponseModelBuilder {
     workflow_node_id: Option<String>,
     status: Option<TestRunStatus>,
     agent_responses: Option<Vec<ConversationHistoryTranscriptCommonModelOutput>>,
+    triggered_guardrails: Option<Vec<TriggeredGuardrailCommonModel>>,
     test_id: Option<String>,
     test_name: Option<String>,
     condition_result: Option<TestConditionResultCommonModel>,
@@ -126,6 +130,11 @@ impl UnitTestRunResponseModelBuilder {
 
     pub fn agent_responses(mut self, value: Vec<ConversationHistoryTranscriptCommonModelOutput>) -> Self {
         self.agent_responses = Some(value);
+        self
+    }
+
+    pub fn triggered_guardrails(mut self, value: Vec<TriggeredGuardrailCommonModel>) -> Self {
+        self.triggered_guardrails = Some(value);
         self
     }
 
@@ -198,6 +207,7 @@ impl UnitTestRunResponseModelBuilder {
             workflow_node_id: self.workflow_node_id,
             status: self.status.ok_or_else(|| BuildError::missing_field("status"))?,
             agent_responses: self.agent_responses,
+            triggered_guardrails: self.triggered_guardrails,
             test_id: self.test_id.ok_or_else(|| BuildError::missing_field("test_id"))?,
             test_name: self.test_name,
             condition_result: self.condition_result,

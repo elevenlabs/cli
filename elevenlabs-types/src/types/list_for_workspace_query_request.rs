@@ -20,7 +20,7 @@ pub struct ListForWorkspaceQueryRequest {
     /// Filter tickets by priority. Repeat the parameter to filter by multiple priorities.
     #[serde(default)]
     pub priorities: Vec<Option<AgentConversationTicketPriority>>,
-    /// Order by most recently created, or by priority (most urgent first, then most recently created).
+    /// Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_by: Option<AgentConversationTicketSortBy>,
     /// Filter tickets by creator. Use 'agent' for agent-raised tickets.

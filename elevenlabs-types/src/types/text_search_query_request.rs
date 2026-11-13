@@ -65,12 +65,27 @@ pub struct TextSearchQueryRequest {
     /// Filter conversations by tool names that had errored calls.
     #[serde(default)]
     pub tool_names_errored: Vec<Option<String>>,
+    /// Filter conversations by IDs of tools used during the call. Use '__system_<tool_name>' for system tools. Unlike tool_names, distinguishes between tools that share a name.
+    #[serde(default)]
+    pub tool_ids: Vec<Option<String>>,
+    /// Filter conversations by IDs of tools that had successful calls.
+    #[serde(default)]
+    pub tool_ids_successful: Vec<Option<String>>,
+    /// Filter conversations by IDs of tools that had errored calls.
+    #[serde(default)]
+    pub tool_ids_errored: Vec<Option<String>>,
     /// Also match tool calls that never ran.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include_invalid_tool_calls: Option<bool>,
     /// Filter conversations by detected main language (language code).
     #[serde(default)]
     pub main_languages: Vec<Option<String>>,
+    /// Filter conversations by agent phone number IDs.
+    #[serde(default)]
+    pub phone_number_ids: Vec<Option<String>>,
+    /// Filter conversations by agent WhatsApp number IDs.
+    #[serde(default)]
+    pub whatsapp_phone_number_ids: Vec<Option<String>>,
     /// Exclude conversations with the given statuses. Useful for hiding in-progress / processing conversations from list views.
     #[serde(default)]
     pub exclude_statuses: Vec<Option<MessagesTextSearchRequestExcludeStatusesItem>>,
@@ -136,8 +151,13 @@ pub struct TextSearchQueryRequestBuilder {
     tool_names: Option<Vec<Option<String>>>,
     tool_names_successful: Option<Vec<Option<String>>>,
     tool_names_errored: Option<Vec<Option<String>>>,
+    tool_ids: Option<Vec<Option<String>>>,
+    tool_ids_successful: Option<Vec<Option<String>>>,
+    tool_ids_errored: Option<Vec<Option<String>>>,
     include_invalid_tool_calls: Option<bool>,
     main_languages: Option<Vec<Option<String>>>,
+    phone_number_ids: Option<Vec<Option<String>>>,
+    whatsapp_phone_number_ids: Option<Vec<Option<String>>>,
     exclude_statuses: Option<Vec<Option<MessagesTextSearchRequestExcludeStatusesItem>>>,
     termination_reasons: Option<Vec<Option<String>>>,
     page_size: Option<i64>,
@@ -253,6 +273,21 @@ impl TextSearchQueryRequestBuilder {
         self
     }
 
+    pub fn tool_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.tool_ids = Some(value);
+        self
+    }
+
+    pub fn tool_ids_successful(mut self, value: Vec<Option<String>>) -> Self {
+        self.tool_ids_successful = Some(value);
+        self
+    }
+
+    pub fn tool_ids_errored(mut self, value: Vec<Option<String>>) -> Self {
+        self.tool_ids_errored = Some(value);
+        self
+    }
+
     pub fn include_invalid_tool_calls(mut self, value: bool) -> Self {
         self.include_invalid_tool_calls = Some(value);
         self
@@ -260,6 +295,16 @@ impl TextSearchQueryRequestBuilder {
 
     pub fn main_languages(mut self, value: Vec<Option<String>>) -> Self {
         self.main_languages = Some(value);
+        self
+    }
+
+    pub fn phone_number_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.phone_number_ids = Some(value);
+        self
+    }
+
+    pub fn whatsapp_phone_number_ids(mut self, value: Vec<Option<String>>) -> Self {
+        self.whatsapp_phone_number_ids = Some(value);
         self
     }
 
@@ -335,7 +380,12 @@ impl TextSearchQueryRequestBuilder {
     /// - [`tool_names`](TextSearchQueryRequestBuilder::tool_names)
     /// - [`tool_names_successful`](TextSearchQueryRequestBuilder::tool_names_successful)
     /// - [`tool_names_errored`](TextSearchQueryRequestBuilder::tool_names_errored)
+    /// - [`tool_ids`](TextSearchQueryRequestBuilder::tool_ids)
+    /// - [`tool_ids_successful`](TextSearchQueryRequestBuilder::tool_ids_successful)
+    /// - [`tool_ids_errored`](TextSearchQueryRequestBuilder::tool_ids_errored)
     /// - [`main_languages`](TextSearchQueryRequestBuilder::main_languages)
+    /// - [`phone_number_ids`](TextSearchQueryRequestBuilder::phone_number_ids)
+    /// - [`whatsapp_phone_number_ids`](TextSearchQueryRequestBuilder::whatsapp_phone_number_ids)
     /// - [`exclude_statuses`](TextSearchQueryRequestBuilder::exclude_statuses)
     /// - [`termination_reasons`](TextSearchQueryRequestBuilder::termination_reasons)
     /// - [`topic_ids`](TextSearchQueryRequestBuilder::topic_ids)
@@ -361,8 +411,13 @@ impl TextSearchQueryRequestBuilder {
             tool_names: self.tool_names.ok_or_else(|| BuildError::missing_field("tool_names"))?,
             tool_names_successful: self.tool_names_successful.ok_or_else(|| BuildError::missing_field("tool_names_successful"))?,
             tool_names_errored: self.tool_names_errored.ok_or_else(|| BuildError::missing_field("tool_names_errored"))?,
+            tool_ids: self.tool_ids.ok_or_else(|| BuildError::missing_field("tool_ids"))?,
+            tool_ids_successful: self.tool_ids_successful.ok_or_else(|| BuildError::missing_field("tool_ids_successful"))?,
+            tool_ids_errored: self.tool_ids_errored.ok_or_else(|| BuildError::missing_field("tool_ids_errored"))?,
             include_invalid_tool_calls: self.include_invalid_tool_calls,
             main_languages: self.main_languages.ok_or_else(|| BuildError::missing_field("main_languages"))?,
+            phone_number_ids: self.phone_number_ids.ok_or_else(|| BuildError::missing_field("phone_number_ids"))?,
+            whatsapp_phone_number_ids: self.whatsapp_phone_number_ids.ok_or_else(|| BuildError::missing_field("whatsapp_phone_number_ids"))?,
             exclude_statuses: self.exclude_statuses.ok_or_else(|| BuildError::missing_field("exclude_statuses"))?,
             termination_reasons: self.termination_reasons.ok_or_else(|| BuildError::missing_field("termination_reasons"))?,
             page_size: self.page_size,

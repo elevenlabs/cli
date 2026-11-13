@@ -40,6 +40,11 @@ pub struct TtsConversationalConfigInput {
     #[serde(default)]
     #[serde(with = "crate::core::number_serializers::option")]
     pub similarity_boost: Option<f64>,
+    /// The clone strength for generated speech
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub clone_strength: Option<f64>,
     /// Method for converting numbers to words before converting text to speech. If set to SYSTEM_PROMPT, the system prompt will be updated to include normalization instructions. If set to ELEVENLABS, the text will be normalized after generation, incurring slight additional latency.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text_normalisation_type: Option<TextNormalisationType>,
@@ -73,6 +78,7 @@ pub struct TtsConversationalConfigInputBuilder {
     stability: Option<f64>,
     speed: Option<f64>,
     similarity_boost: Option<f64>,
+    clone_strength: Option<f64>,
     text_normalisation_type: Option<TextNormalisationType>,
     pronunciation_dictionary_locators: Option<Vec<PydanticPronunciationDictionaryVersionLocator>>,
     enable_phoneme_tags: Option<bool>,
@@ -130,6 +136,11 @@ impl TtsConversationalConfigInputBuilder {
         self
     }
 
+    pub fn clone_strength(mut self, value: f64) -> Self {
+        self.clone_strength = Some(value);
+        self
+    }
+
     pub fn text_normalisation_type(mut self, value: TextNormalisationType) -> Self {
         self.text_normalisation_type = Some(value);
         self
@@ -163,6 +174,7 @@ impl TtsConversationalConfigInputBuilder {
             stability: self.stability,
             speed: self.speed,
             similarity_boost: self.similarity_boost,
+            clone_strength: self.clone_strength,
             text_normalisation_type: self.text_normalisation_type,
             pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
             enable_phoneme_tags: self.enable_phoneme_tags,

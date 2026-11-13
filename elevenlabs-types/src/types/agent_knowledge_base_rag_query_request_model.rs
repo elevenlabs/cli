@@ -4,9 +4,15 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct AgentKnowledgeBaseRagQueryRequestModel {
-    /// Query to run against the agent's knowledge base RAG index.
-    #[serde(default)]
-    pub query: String,
+    /// Retrieval strategy to run, as in the agent's knowledge_base tool: semantic or keyword search for a query, cat to read one document in full, or ls to list the entries of a folder. Any strategy runs, whether or not the agent has it enabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strategy: Option<SearchStrategy>,
+    /// Query to search the knowledge base for. Required for the semantic and keyword strategies.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    /// IDs or names of knowledge base documents or folders. Semantic and keyword search only search these entries; cat reads the single document given; ls lists the single folder given, or the top level of the knowledge base when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documents: Option<Vec<String>>,
     /// When true (the default), retrieval uses the agent's own RAG settings, reproducing exactly what the agent would retrieve. Set to false to retrieve with neutral default RAG settings instead (the agent's embedding model is always kept, since it determines which vector index exists). Useful for auditing the knowledge base independently of how a particular agent is tuned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_agent_defaults: Option<bool>,
@@ -27,15 +33,27 @@ impl AgentKnowledgeBaseRagQueryRequestModel {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct AgentKnowledgeBaseRagQueryRequestModelBuilder {
+    strategy: Option<SearchStrategy>,
     query: Option<String>,
+    documents: Option<Vec<String>>,
     use_agent_defaults: Option<bool>,
     max_documents_length: Option<i64>,
     max_retrieved_rag_chunks_count: Option<i64>,
 }
 
 impl AgentKnowledgeBaseRagQueryRequestModelBuilder {
+    pub fn strategy(mut self, value: SearchStrategy) -> Self {
+        self.strategy = Some(value);
+        self
+    }
+
     pub fn query(mut self, value: impl Into<String>) -> Self {
         self.query = Some(value.into());
+        self
+    }
+
+    pub fn documents(mut self, value: Vec<String>) -> Self {
+        self.documents = Some(value);
         self
     }
 
@@ -55,11 +73,11 @@ impl AgentKnowledgeBaseRagQueryRequestModelBuilder {
     }
 
     /// Consumes the builder and constructs a [`AgentKnowledgeBaseRagQueryRequestModel`].
-    /// This method will fail if any of the following fields are not set:
-    /// - [`query`](AgentKnowledgeBaseRagQueryRequestModelBuilder::query)
     pub fn build(self) -> Result<AgentKnowledgeBaseRagQueryRequestModel, BuildError> {
         Ok(AgentKnowledgeBaseRagQueryRequestModel {
-            query: self.query.ok_or_else(|| BuildError::missing_field("query"))?,
+            strategy: self.strategy,
+            query: self.query,
+            documents: self.documents,
             use_agent_defaults: self.use_agent_defaults,
             max_documents_length: self.max_documents_length,
             max_retrieved_rag_chunks_count: self.max_retrieved_rag_chunks_count,

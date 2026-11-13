@@ -87,12 +87,16 @@ pub enum AuthConnectionsCreateRequestBody {
             expiration_seconds: Option<i64>,
             #[serde(skip_serializing_if = "Option::is_none")]
             extra_params: Option<HashMap<String, String>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            extra_headers: Option<HashMap<String, String>>,
             #[serde(default)]
             token_url: String,
             #[serde(skip_serializing_if = "Option::is_none")]
             scopes: Option<Vec<String>>,
             #[serde(skip_serializing_if = "Option::is_none")]
             token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>,
             #[serde(default)]
             secret_key: String,
         },
@@ -118,6 +122,8 @@ pub enum AuthConnectionsCreateRequestBody {
             expiration_seconds: Option<i64>,
             #[serde(skip_serializing_if = "Option::is_none")]
             extra_params: Option<HashMap<String, String>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            extra_headers: Option<HashMap<String, String>>,
             #[serde(default)]
             secret_key: String,
         },
@@ -164,11 +170,11 @@ impl AuthConnectionsCreateRequestBody {
     }
 
     pub fn oauth2jwt(name: String, provider: String, issuer: String, audience: String, subject: String, token_url: String, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm: None, key_id: None, issuer, audience, subject, expiration_seconds: None, extra_params: None, token_url, scopes: None, token_response_field: None, secret_key }
+        Self::Oauth2Jwt { name, provider, algorithm: None, key_id: None, issuer, audience, subject, expiration_seconds: None, extra_params: None, extra_headers: None, token_url, scopes: None, token_response_field: None, jwt_usage: None, secret_key }
     }
 
     pub fn private_key_jwt(name: String, provider: String, issuer: String, audience: String, subject: String, secret_key: String) -> Self {
-        Self::PrivateKeyJwt { name, provider, algorithm: None, key_id: None, issuer, audience, subject, expiration_seconds: None, extra_params: None, secret_key }
+        Self::PrivateKeyJwt { name, provider, algorithm: None, key_id: None, issuer, audience, subject, expiration_seconds: None, extra_params: None, extra_headers: None, secret_key }
     }
 
     pub fn mtls(name: String, provider: String, client_certificate: String, client_key: String) -> Self {
@@ -191,44 +197,56 @@ impl AuthConnectionsCreateRequestBody {
         Self::Oauth2ClientCredentials { name, provider, client_id, token_url, scopes, extra_params, basic_auth_in_header, client_secret, custom_headers: Some(custom_headers) }
     }
 
-    pub fn oauth2jwt_with_algorithm(name: String, provider: String, algorithm: CreateOAuth2JwtRequestAlgorithm, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm: Some(algorithm), key_id, issuer, audience, subject, expiration_seconds, extra_params, token_url, scopes, token_response_field, secret_key }
+    pub fn oauth2jwt_with_algorithm(name: String, provider: String, algorithm: CreateOAuth2JwtRequestAlgorithm, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm: Some(algorithm), key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers, token_url, scopes, token_response_field, jwt_usage, secret_key }
     }
 
-    pub fn oauth2jwt_with_key_id(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: String, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm, key_id: Some(key_id), issuer, audience, subject, expiration_seconds, extra_params, token_url, scopes, token_response_field, secret_key }
+    pub fn oauth2jwt_with_key_id(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: String, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id: Some(key_id), issuer, audience, subject, expiration_seconds, extra_params, extra_headers, token_url, scopes, token_response_field, jwt_usage, secret_key }
     }
 
-    pub fn oauth2jwt_with_expiration_seconds(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: i64, extra_params: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds: Some(expiration_seconds), extra_params, token_url, scopes, token_response_field, secret_key }
+    pub fn oauth2jwt_with_expiration_seconds(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: i64, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds: Some(expiration_seconds), extra_params, extra_headers, token_url, scopes, token_response_field, jwt_usage, secret_key }
     }
 
-    pub fn oauth2jwt_with_extra_params(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: HashMap<String, String>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params: Some(extra_params), token_url, scopes, token_response_field, secret_key }
+    pub fn oauth2jwt_with_extra_params(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: HashMap<String, String>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params: Some(extra_params), extra_headers, token_url, scopes, token_response_field, jwt_usage, secret_key }
     }
 
-    pub fn oauth2jwt_with_scopes(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, token_url: String, scopes: Vec<String>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, token_url, scopes: Some(scopes), token_response_field, secret_key }
+    pub fn oauth2jwt_with_extra_headers(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: HashMap<String, String>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers: Some(extra_headers), token_url, scopes, token_response_field, jwt_usage, secret_key }
     }
 
-    pub fn oauth2jwt_with_token_response_field(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: CreateOAuth2JwtRequestTokenResponseField, secret_key: String) -> Self {
-        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, token_url, scopes, token_response_field: Some(token_response_field), secret_key }
+    pub fn oauth2jwt_with_scopes(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Vec<String>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers, token_url, scopes: Some(scopes), token_response_field, jwt_usage, secret_key }
     }
 
-    pub fn private_key_jwt_with_algorithm(name: String, provider: String, algorithm: CreatePrivateKeyJwtRequestAlgorithm, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, secret_key: String) -> Self {
-        Self::PrivateKeyJwt { name, provider, algorithm: Some(algorithm), key_id, issuer, audience, subject, expiration_seconds, extra_params, secret_key }
+    pub fn oauth2jwt_with_token_response_field(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: CreateOAuth2JwtRequestTokenResponseField, jwt_usage: Option<CreateOAuth2JwtRequestJwtUsage>, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers, token_url, scopes, token_response_field: Some(token_response_field), jwt_usage, secret_key }
     }
 
-    pub fn private_key_jwt_with_key_id(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: String, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, secret_key: String) -> Self {
-        Self::PrivateKeyJwt { name, provider, algorithm, key_id: Some(key_id), issuer, audience, subject, expiration_seconds, extra_params, secret_key }
+    pub fn oauth2jwt_with_jwt_usage(name: String, provider: String, algorithm: Option<CreateOAuth2JwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, token_url: String, scopes: Option<Vec<String>>, token_response_field: Option<CreateOAuth2JwtRequestTokenResponseField>, jwt_usage: CreateOAuth2JwtRequestJwtUsage, secret_key: String) -> Self {
+        Self::Oauth2Jwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers, token_url, scopes, token_response_field, jwt_usage: Some(jwt_usage), secret_key }
     }
 
-    pub fn private_key_jwt_with_expiration_seconds(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: i64, extra_params: Option<HashMap<String, String>>, secret_key: String) -> Self {
-        Self::PrivateKeyJwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds: Some(expiration_seconds), extra_params, secret_key }
+    pub fn private_key_jwt_with_algorithm(name: String, provider: String, algorithm: CreatePrivateKeyJwtRequestAlgorithm, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, secret_key: String) -> Self {
+        Self::PrivateKeyJwt { name, provider, algorithm: Some(algorithm), key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers, secret_key }
     }
 
-    pub fn private_key_jwt_with_extra_params(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: HashMap<String, String>, secret_key: String) -> Self {
-        Self::PrivateKeyJwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params: Some(extra_params), secret_key }
+    pub fn private_key_jwt_with_key_id(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: String, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, secret_key: String) -> Self {
+        Self::PrivateKeyJwt { name, provider, algorithm, key_id: Some(key_id), issuer, audience, subject, expiration_seconds, extra_params, extra_headers, secret_key }
+    }
+
+    pub fn private_key_jwt_with_expiration_seconds(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: i64, extra_params: Option<HashMap<String, String>>, extra_headers: Option<HashMap<String, String>>, secret_key: String) -> Self {
+        Self::PrivateKeyJwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds: Some(expiration_seconds), extra_params, extra_headers, secret_key }
+    }
+
+    pub fn private_key_jwt_with_extra_params(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: HashMap<String, String>, extra_headers: Option<HashMap<String, String>>, secret_key: String) -> Self {
+        Self::PrivateKeyJwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params: Some(extra_params), extra_headers, secret_key }
+    }
+
+    pub fn private_key_jwt_with_extra_headers(name: String, provider: String, algorithm: Option<CreatePrivateKeyJwtRequestAlgorithm>, key_id: Option<String>, issuer: String, audience: String, subject: String, expiration_seconds: Option<i64>, extra_params: Option<HashMap<String, String>>, extra_headers: HashMap<String, String>, secret_key: String) -> Self {
+        Self::PrivateKeyJwt { name, provider, algorithm, key_id, issuer, audience, subject, expiration_seconds, extra_params, extra_headers: Some(extra_headers), secret_key }
     }
 
     pub fn mtls_with_ca_certificate(name: String, provider: String, client_certificate: String, client_key: String, ca_certificate: String, key_passphrase: Option<String>) -> Self {

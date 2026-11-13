@@ -18,6 +18,14 @@ pub struct ConversationSummaryResponseModel {
     pub start_time_unix_secs: i64,
     #[serde(default)]
     pub call_duration_secs: i64,
+    /// Total cost of the conversation in credits.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost: Option<i64>,
+    /// Total fiat cost of the conversation in USD. `None` for conversations that predate fiat cost tracking.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(with = "crate::core::number_serializers::option")]
+    pub cost_fiat: Option<f64>,
     /// Number of transcript turns with text; tool-only turns are not counted.
     #[serde(default)]
     pub message_count: i64,
@@ -78,6 +86,8 @@ pub struct ConversationSummaryResponseModelBuilder {
     conversation_id: Option<String>,
     start_time_unix_secs: Option<i64>,
     call_duration_secs: Option<i64>,
+    cost: Option<i64>,
+    cost_fiat: Option<f64>,
     message_count: Option<i64>,
     user_message_count: Option<i64>,
     agent_message_count: Option<i64>,
@@ -131,6 +141,16 @@ impl ConversationSummaryResponseModelBuilder {
 
     pub fn call_duration_secs(mut self, value: i64) -> Self {
         self.call_duration_secs = Some(value);
+        self
+    }
+
+    pub fn cost(mut self, value: i64) -> Self {
+        self.cost = Some(value);
+        self
+    }
+
+    pub fn cost_fiat(mut self, value: f64) -> Self {
+        self.cost_fiat = Some(value);
         self
     }
 
@@ -242,6 +262,8 @@ impl ConversationSummaryResponseModelBuilder {
             conversation_id: self.conversation_id.ok_or_else(|| BuildError::missing_field("conversation_id"))?,
             start_time_unix_secs: self.start_time_unix_secs.ok_or_else(|| BuildError::missing_field("start_time_unix_secs"))?,
             call_duration_secs: self.call_duration_secs.ok_or_else(|| BuildError::missing_field("call_duration_secs"))?,
+            cost: self.cost,
+            cost_fiat: self.cost_fiat,
             message_count: self.message_count.ok_or_else(|| BuildError::missing_field("message_count"))?,
             user_message_count: self.user_message_count,
             agent_message_count: self.agent_message_count,
