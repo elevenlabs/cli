@@ -214,6 +214,37 @@ fn agents_not_reached_in_time_count_as_failed() {
     assert!(outcomes[2].ok, "Cursor runs nothing");
 }
 
+#[test]
+fn a_result_line_ends_in_one_full_stop() {
+    let cut = format!("{}…", "q".repeat(LINE_MAX - 1));
+    let upgrade = "Codex: failed: `codex plugin marketplace upgrade elevenlabs` exited with 1:";
+    // (the error line, what follows `upgrade`): Codex's real one first, as
+    // its upgrade and then its add fail.
+    let rows = [
+        ("Error: 1 upgrade failure(s) occurred.", " Error: 1 upgrade failure(s) occurred."),
+        ("Error: no such plugin!", " Error: no such plugin!"),
+        ("is the plugin there?", " is the plugin there?"),
+        ("error: no such plugin", " error: no such plugin."),
+    ];
+    for (error, said) in rows {
+        let fails = |_: &Path, a: &[&str], _: Duration| match a {
+            ["plugin", "marketplace", "upgrade", ..] | ["plugin", "add", ..] => {
+                Err(format!("exited with 1: {error}"))
+            }
+            _ => Ok(()),
+        };
+        let outcomes = install(&all_agents()[1..2], LIMITS_FOR_TESTS, &fails, &|| Duration::ZERO);
+        assert_eq!(report(&outcomes).0[0], format!("{upgrade}{said}"));
+    }
+    let fails = |_: &Path, _: &[&str], _: Duration| Err(format!("exited with 1: {cut}"));
+    let outcomes = install(&all_agents()[1..2], LIMITS_FOR_TESTS, &fails, &|| Duration::ZERO);
+    assert_eq!(
+        report(&outcomes).0[0],
+        format!("Codex: failed: `codex plugin marketplace add elevenlabs/plugin` exited with 1: {cut}"),
+        "a line cut at {LINE_MAX} characters ends in `…`"
+    );
+}
+
 /// A shell script at `dir/name`, written by a short-lived `sh`, never by this
 /// process. Tests run as threads of one process: if one forks while another
 /// holds a script open for writing, the forked child keeps that descriptor

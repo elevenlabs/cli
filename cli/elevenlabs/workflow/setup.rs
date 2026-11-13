@@ -503,7 +503,9 @@ pub(super) fn report(outcomes: &[Outcome]) -> (Vec<String>, bool) {
         .iter()
         .map(|o| {
             let failed = if o.ok { "" } else { "failed: " };
-            let mut line = format!("{}: {failed}{}.", o.agent, o.message);
+            // An error line can end a sentence of its own, or be cut with `…`.
+            let stop = if o.message.ends_with(['.', '!', '?', '…']) { "" } else { "." };
+            let mut line = format!("{}: {failed}{}{stop}", o.agent, o.message);
             if let Some(finish) = o.finish {
                 line.push_str(&format!(" To finish, {finish}."));
             }
