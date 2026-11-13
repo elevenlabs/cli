@@ -453,12 +453,14 @@ elevenlabs setup         # say what it would do, and change nothing (so does --d
 elevenlabs setup --yes   # do it
 ```
 
-- **Claude Code** (when run inside it, the program in `CLAUDE_CODE_EXECPATH` if that is `claude`, else `claude` on `PATH`): `claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user`, then `claude plugin update elevenlabs@elevenlabs`.
-- **Codex** (`codex` on `PATH`): `codex plugin marketplace add elevenlabs/plugin`, then `codex plugin add elevenlabs@elevenlabs`.
+- **Claude Code** (when run inside it, the program in `CLAUDE_CODE_EXECPATH` if that is `claude`, else `claude` on `PATH`): `claude plugin marketplace add elevenlabs/plugin`, `claude plugin marketplace update elevenlabs`, `claude plugin install elevenlabs@elevenlabs`, then `claude plugin update elevenlabs@elevenlabs`.
+- **Codex** (`codex` on `PATH`): `codex plugin marketplace add elevenlabs/plugin`, `codex plugin marketplace upgrade elevenlabs`, then `codex plugin add elevenlabs@elevenlabs`.
 - **Cursor** (a `~/.cursor` folder, or run inside Cursor) has no install command: `setup` prints the link to [its marketplace page](https://cursor.com/marketplace/elevenlabs), where you select Install.
-- **None of these**: `setup` copies the [ElevenLabs skills](https://github.com/elevenlabs/skills) into `~/.agents/skills`, one folder per skill. A folder there that `setup` didn't write is left as it is, and named in the output.
+- **None of these**: `setup` changes nothing and says how to install only the [ElevenLabs skills](https://github.com/elevenlabs/skills), with `npx skills add elevenlabs/skills`.
 
-Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again. Agent commands run in your home folder, never in the project, and pressing Ctrl-C stops the one running along with anything it started. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
+A terminal can't see a Claude Code that lives only in the Claude desktop app, so there, ask Claude to run `elevenlabs setup --yes` for you.
+
+Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again (a failed marketplace command alone doesn't fail an agent). Agent commands run in your home folder, never in the project, and pressing Ctrl-C stops the one running along with anything it started. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
 
 When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), the flow can end by offering to do this for you; saying yes runs `onboard setup`, which does what `setup --yes` does.
 
