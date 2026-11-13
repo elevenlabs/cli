@@ -2053,7 +2053,7 @@ async fn onboard_setup_installs_in_each_agent_and_never_makes_speech() {
         "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
          Claude Code, then run /mcp and sign in to the ElevenLabs MCP server. Codex: installed the ElevenLabs \
          plugin (skills and the hosted MCP server). To finish, restart Codex, then run `codex mcp login \
-         elevenlabs` to sign in to the ElevenLabs MCP server."
+         elevenlabs` in a terminal to sign in to the ElevenLabs MCP server."
     );
     let results = r["details"]["setup"].as_array().unwrap();
     assert_eq!(results.len(), 2, "{r}");
@@ -2264,7 +2264,7 @@ const CURSOR_PLAN: &str = "Cursor: open https://cursor.com/marketplace/elevenlab
 const CLAUDE_DONE: &str = "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, \
     restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server.\n";
 const CODEX_DONE: &str = "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
-    Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server.\n";
+    Codex, then run `codex mcp login elevenlabs` in a terminal to sign in to the ElevenLabs MCP server.\n";
 const CURSOR_DONE: &str = "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install.\n";
 const TRY_AGAIN: &str = "To try again, run `elevenlabs setup --yes`.\n";
 const NO_AGENT: &str = "No Claude Code, Codex or Cursor found. If you use Claude Code in the Claude desktop app, ask it \

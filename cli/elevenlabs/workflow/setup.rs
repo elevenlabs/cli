@@ -74,7 +74,8 @@ impl Agent {
                 Some("restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server")
             }
             Agent::Codex(_) => Some(
-                "restart Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server",
+                "restart Codex, then run `codex mcp login elevenlabs` in a terminal to sign in to the ElevenLabs MCP \
+                 server",
             ),
             Agent::Cursor => None,
         }

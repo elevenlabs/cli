@@ -460,7 +460,7 @@ elevenlabs setup --yes   # do it
 
 A terminal can't see a Claude Code that lives only in the Claude desktop app, so there, ask Claude to run `elevenlabs setup --yes` for you.
 
-Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again (a failed marketplace command alone doesn't fail an agent). Agent commands run in your home folder, never in the project, and pressing Ctrl-C stops the one running along with anything it started. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` for Codex.
+Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again (a failed marketplace command alone doesn't fail an agent). Agent commands run in your home folder, never in the project, and pressing Ctrl-C stops the one running along with anything it started. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` in a terminal for Codex.
 
 When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), the flow can end by offering to do this for you; saying yes runs `onboard setup`, which does what `setup --yes` does.
 

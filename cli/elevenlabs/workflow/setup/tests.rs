@@ -150,7 +150,7 @@ fn install_runs_each_agents_own_commands_in_order_and_says_how_to_finish() {
                  restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server."
                     .to_string(),
                 "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
-                 Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server."
+                 Codex, then run `codex mcp login elevenlabs` in a terminal to sign in to the ElevenLabs MCP server."
                     .to_string(),
                 "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install.".to_string(),
             ],
@@ -167,7 +167,7 @@ fn install_runs_each_agents_own_commands_in_order_and_says_how_to_finish() {
                 "Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: boom."
                     .to_string(),
                 "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
-                 Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server."
+                 Codex, then run `codex mcp login elevenlabs` in a terminal to sign in to the ElevenLabs MCP server."
                     .to_string(),
                 "To try again, run `elevenlabs setup --yes`.".to_string(),
             ],
