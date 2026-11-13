@@ -1070,6 +1070,18 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
     }
 }
 
+#[test]
+fn only_the_last_64_kb_of_a_capture_is_read() {
+    use std::io::Write;
+    let mut file = tempfile::tempfile().unwrap();
+    // A whole-file read would find the line starting with `A`.
+    let tail = format!("A{}", "q".repeat(70_000));
+    file.write_all(&vec![b'z'; 10_000_000]).unwrap();
+    file.write_all(format!("\n{tail}").as_bytes()).unwrap();
+    let line = last_line(file).unwrap();
+    assert_eq!(line, format!("{}…", "q".repeat(LINE_MAX - 1)));
+}
+
 #[cfg(unix)]
 #[test]
 fn a_missing_home_folder_is_named_and_the_agent_is_not_blamed() {
