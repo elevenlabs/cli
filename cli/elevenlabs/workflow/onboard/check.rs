@@ -8,7 +8,6 @@ use serde_json::Value;
 
 use super::super::say::run_async as block_on;
 use super::super::settings;
-use super::super::setup::SKILLS_ARCHIVE;
 use super::auth::{api_base, check_key, sign_in_config, KeyCheck};
 use super::connect;
 use super::env_file::{self, API_KEY_ENV};
@@ -245,6 +244,9 @@ pub(super) fn app_origin_for(residency: &str, authorize_url: &str) -> Result<Str
 /// Asked every time, so the agent never picks a product for the developer.
 pub(super) const WHAT_TO_BUILD: &str =
     "What would you like to build with ElevenLabs, or should I just add the SDK for now?";
+
+/// The ElevenLabs skills, the whole repo in one download.
+const SKILLS_ARCHIVE: &str = "https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz";
 
 /// The question, from `connect` or `check`, whenever the code doesn't use the
 /// SDK yet: `say` ends with [`WHAT_TO_BUILD`]. Its `run` passes `--answered`,

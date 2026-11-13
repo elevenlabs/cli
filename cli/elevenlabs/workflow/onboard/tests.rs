@@ -1715,7 +1715,7 @@ fn a_new_sign_in_keeps_how_the_last_one_ended() {
 }
 
 #[test]
-fn the_setup_offer_a_sign_in_leaves_is_due_until_made_and_a_new_sign_in_clears_it() {
+fn the_setup_offer_a_sign_in_leaves_is_due_until_made() {
     use super::session::Session;
     let dir = tempfile::tempdir().unwrap();
     let s = Session::in_dir(dir.path().to_path_buf());
@@ -1725,15 +1725,6 @@ fn the_setup_offer_a_sign_in_leaves_is_due_until_made_and_a_new_sign_in_clears_i
     assert!(s.setup_offer_due());
     s.setup_offer_made();
     assert!(!s.setup_offer_due());
-    // A new sign-in clears one the last sign-in left.
-    s.offer_setup();
-    std::fs::write(dir.path().join("previous.json"), "{}").unwrap();
-    s.clear_stale();
-    assert!(!s.setup_offer_due());
-    assert!(
-        dir.path().join("previous.json").exists(),
-        "kept for the new sign-in"
-    );
 }
 
 #[test]

@@ -49,14 +49,6 @@ const PREVIOUS: &str = "previous.json";
 /// Left by every sign-in, so the flow ends on the offer to set up the
 /// developer's coding agents; removed when the offer is made.
 const SETUP_OFFER: &str = "setup-offer";
-/// What a new sign-in clears of the last one's.
-const STALE: &[&str] = &[
-    "result.json",
-    "worker.log",
-    "worker.pid",
-    "signed-in",
-    SETUP_OFFER,
-];
 
 /// Every label a sign-in's outcome can have (see [`outcome_label`]): fixed
 /// words, so nothing the developer typed or the machine holds is reported.
@@ -208,7 +200,9 @@ impl Session {
             restarted = true;
         }
         self.keep_last_sign_in(restarted);
-        self.clear_stale();
+        for stale in ["result.json", "worker.log", "worker.pid", "signed-in", SETUP_OFFER] {
+            let _ = std::fs::remove_file(self.path(stale));
+        }
         std::fs::write(self.path("request"), request).map_err(io(&self.path("request")))?;
         self.stop_others();
         keep_stdio_from_children();
@@ -322,13 +316,6 @@ impl Session {
     /// The offer was made: once per sign-in.
     pub fn setup_offer_made(&self) {
         let _ = std::fs::remove_file(self.path(SETUP_OFFER));
-    }
-
-    /// Clear the last sign-in's files, for a new one.
-    pub(super) fn clear_stale(&self) {
-        for stale in STALE {
-            let _ = std::fs::remove_file(self.path(stale));
-        }
     }
 
     /// The worker's last act: its reply, for whoever is waiting.
