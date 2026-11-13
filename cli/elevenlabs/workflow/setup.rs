@@ -372,82 +372,38 @@ const LINE_MAX: usize = 300;
 fn last_line(mut file: std::fs::File) -> Option<String> {
     use std::io::{Read, Seek, SeekFrom};
     let len = file.seek(SeekFrom::End(0)).ok()?;
-    let from = len.saturating_sub(TAIL);
-    file.seek(SeekFrom::Start(from)).ok()?;
+    file.seek(SeekFrom::Start(len.saturating_sub(TAIL))).ok()?;
     let mut bytes = Vec::new();
     file.take(TAIL).read_to_end(&mut bytes).ok()?;
-    // Cut mid-file, the tail can start inside a character.
-    let partial = if from > 0 {
-        bytes.iter().take(3).take_while(|b| (0x80..0xc0).contains(*b)).count()
-    } else {
-        0
-    };
-    clean_last_line(&bytes[partial..])
+    clean_last_line(&bytes)
 }
 
 /// The last line with text in `bytes`, where a line ends at `\n` or `\r` (a
-/// progress bar redraws itself after `\r`), without terminal escapes or other
-/// control characters, and at most [`LINE_MAX`] characters long.
+/// progress bar redraws itself after `\r`), without terminal escapes, bidi
+/// formatting characters or control characters (a tab becomes a space), and
+/// at most [`LINE_MAX`] characters long.
 fn clean_last_line(bytes: &[u8]) -> Option<String> {
-    let text = without_escapes(&String::from_utf8_lossy(bytes));
+    // U+009B and U+009D are one-character forms of ESC [ and ESC ], which
+    // the parser sees only as their two-character forms.
+    let text = String::from_utf8_lossy(bytes)
+        .replace('\u{9b}', "\u{1b}[")
+        .replace('\u{9d}', "\u{1b}]");
+    let text: String = anstream::adapter::strip_str(&text)
+        .to_string()
+        .chars()
+        .filter_map(|c| match c {
+            '\t' => Some(' '),
+            '\n' | '\r' => Some(c),
+            '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => None,
+            c if c.is_control() => None,
+            c => Some(c),
+        })
+        .collect();
     let line = text.split(['\n', '\r']).map(str::trim).rfind(|l| !l.is_empty())?;
     Some(match line.char_indices().nth(LINE_MAX - 1) {
         Some((at, _)) if line[at..].chars().nth(1).is_some() => format!("{}…", &line[..at]),
         _ => line.to_string(),
     })
-}
-
-/// `text` without escape sequences (colours, titles, links and the rest),
-/// bidi formatting characters or control characters other than line ends;
-/// a tab becomes a space.
-fn without_escapes(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut chars = text.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '\u{1b}' | '\u{9b}' | '\u{9d}' => {
-                // U+009B and U+009D are one-character forms of ESC [ and ESC ].
-                let kind = match c {
-                    '\u{9b}' => Some('['),
-                    '\u{9d}' => Some(']'),
-                    _ => chars.next_if(|c| matches!(c, '[' | ']' | 'P' | 'X' | '^' | '_')),
-                };
-                match kind {
-                    // Parameters, then one final character from @ to ~.
-                    Some('[') => {
-                        for c in chars.by_ref() {
-                            if ('@'..='~').contains(&c) {
-                                break;
-                            }
-                        }
-                    }
-                    // A string, up to BEL or ESC \.
-                    Some(_) => {
-                        while let Some(c) = chars.next() {
-                            if c == '\u{7}' {
-                                break;
-                            }
-                            if c == '\u{1b}' {
-                                chars.next();
-                                break;
-                            }
-                        }
-                    }
-                    // Characters from space to /, then one final character from 0 to ~.
-                    None => {
-                        while chars.next_if(|c| (' '..='/').contains(c)).is_some() {}
-                        chars.next_if(|c| ('0'..='~').contains(c));
-                    }
-                }
-            }
-            '\n' | '\r' => out.push(c),
-            '\t' => out.push(' '),
-            '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => {}
-            c if c.is_control() => {}
-            c => out.push(c),
-        }
-    }
-    out
 }
 
 /// Install the plugin into each agent with `run`, which gets the program,

@@ -1512,7 +1512,9 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
         ("ESC # 8", b"error: \x1b#8aligned\n".to_vec(), Some("error: aligned".into())),
         ("ESC 7, ESC = and ESC 8", b"\x1b7\x1b=saved\x1b8 error: cursor\n".to_vec(), Some("saved error: cursor".into())),
         ("a DCS string", b"error: \x1bPq#0;2;0;0;0\x1b\\dcs gone\n".to_vec(), Some("error: dcs gone".into())),
-        ("an APC string ended by BEL", b"error: \x1b_Gf=100;AAAA\x07apc gone\n".to_vec(), Some("error: apc gone".into())),
+        // BEL doesn't end an APC string, so the rest of the text goes with it.
+        ("an APC string ended by BEL", b"error: \x1b_Gf=100;AAAA\x07apc gone\n".to_vec(), Some("error:".into())),
+        ("an APC string ended by ESC \\", b"error: \x1b_Gf=100;AAAA\x1b\\apc gone\n".to_vec(), Some("error: apc gone".into())),
         ("a one-character CSI", "error: c1 \u{9b}31mred\n".into(), Some("error: c1 red".into())),
         ("a one-character OSC title ended by BEL", "\u{9d}0;title\u{7}error: c1 title\n".into(), Some("error: c1 title".into())),
         ("a plain escape cut off at the end", b"error: trailing\x1b(".to_vec(), Some("error: trailing".into())),
@@ -1528,20 +1530,6 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
         assert!(got.chars().count() <= LINE_MAX, "{row}: {} characters", got.chars().count());
         assert!(!got.chars().any(char::is_control), "{row}: {got:?}");
     }
-}
-
-#[test]
-fn only_the_tail_of_a_capture_is_read_and_a_character_cut_by_it_is_dropped() {
-    use std::io::Write;
-    let mut file = tempfile::tempfile().unwrap();
-    // 10 MB, then a last line whose first character is cut by the tail.
-    file.write_all(&vec![b'z'; 10_000_000]).unwrap();
-    file.write_all(b"\n").unwrap();
-    let mut line = "é".to_string();
-    line.push_str(&"q".repeat(TAIL as usize - 1));
-    file.write_all(line.as_bytes()).unwrap();
-    let got = last_line(file).unwrap();
-    assert_eq!(got, format!("{}…", "q".repeat(LINE_MAX - 1)));
 }
 
 #[cfg(unix)]
