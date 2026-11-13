@@ -49,6 +49,8 @@ fn cli(home: &Path, cwd: &Path, server: &str, args: &[&str]) -> Command {
         "REMOTE_CONTAINERS",
         "CLAUDECODE",
         "CLAUDE_CODE_ENTRYPOINT",
+        // Names the developer's own Claude Code, which `setup` would install into.
+        "CLAUDE_CODE_EXECPATH",
         "CODEX_THREAD_ID",
         "CODEX_SANDBOX",
         "CODEX_SANDBOX_NETWORK_DISABLED",
@@ -76,7 +78,7 @@ fn all_output(output: &Output) -> String {
 /// Run and parse stdout as the reply, failing with both streams when the CLI did not succeed.
 fn reply(cmd: &mut Command) -> Value {
     let output = cmd.output().unwrap();
-    assert!(output.status.success(), "{}", all_output(&output));
+    assert!(output.status.success(), "{}{}", all_output(&output), worker_log_named_in(&output));
     assert!(
         !all_output(&output).contains(KEY),
         "the key never appears in the output"
@@ -90,6 +92,20 @@ fn reply(cmd: &mut Command) -> Value {
         "the reply is one line"
     );
     serde_json::from_slice(&output.stdout).expect("stdout is JSON")
+}
+
+/// The sign-in worker's log a failed command points at, since its folder is
+/// gone once the test ends.
+fn worker_log_named_in(output: &Output) -> String {
+    let text = all_output(output);
+    let Some(log) = text.split("see ").nth(1).and_then(|t| t.split('"').next()) else {
+        return String::new();
+    };
+    if !log.ends_with("worker.log") {
+        return String::new();
+    }
+    let kept = std::fs::read_to_string(log).unwrap_or_else(|e| format!("({e})"));
+    format!("\n--- {log} ---\n{kept}")
 }
 
 fn say(reply: &Value) -> &str {
@@ -1383,10 +1399,45 @@ fn link(reply: &Value) -> String {
     say[at..].trim().to_string()
 }
 
-/// The tests that sign in take turns: each listens on the callback ports.
-async fn signing_in() -> tokio::sync::MutexGuard<'static, ()> {
+/// The tests that sign in take turns, on the whole machine: each listens on
+/// the callback ports, which two runs of this suite would otherwise share.
+struct SigningIn(#[allow(dead_code)] tokio::sync::MutexGuard<'static, ()>, std::fs::File);
+
+impl Drop for SigningIn {
+    fn drop(&mut self) {
+        let _ = self.1.unlock();
+    }
+}
+
+async fn signing_in() -> SigningIn {
     static PORTS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-    PORTS.lock().await
+    let turn = PORTS.lock().await;
+    let path = std::env::temp_dir().join("elevenlabs-cli-onboard-test-sign-in.lock");
+    let file = tokio::task::spawn_blocking(move || {
+        let file = std::fs::OpenOptions::new().create(true).truncate(false).write(true).open(&path).unwrap();
+        file.lock().unwrap();
+        file
+    })
+    .await
+    .unwrap();
+    SigningIn(turn, file)
+}
+
+/// Waits a while for the callback ports to be free. When they never are, it
+/// fails on CI, where a skipped sign-in test would go unseen, and says so.
+async fn callback_ports_still_busy() -> bool {
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while callback_ports_busy() {
+        if Instant::now() >= deadline {
+            assert!(
+                std::env::var_os("CI").is_none(),
+                "the callback ports 8482 to 8484 are busy, so this sign-in test can't run"
+            );
+            return true;
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    false
 }
 
 /// Something already listens on the sign-in's callback ports (another sign-in
@@ -1728,5 +1779,1264 @@ async fn with_telemetry_off_nothing_is_said_about_the_machine_or_the_last_sign_i
         assert!(!agent.contains("signin/"), "{agent}");
         assert!(!agent.contains("agent/"), "{agent}");
         assert!(!agent.contains("os/"), "{agent}");
+    }
+}
+
+// ── setup, and the offer at the end of the flow ─────────────────────
+
+/// The sign-in folder `onboard` keeps for the project in `cwd`, named as
+/// `Session::for_project` names it.
+fn session_dir(home: &Path, cwd: &Path) -> PathBuf {
+    use sha2::Digest;
+    let canonical = cwd.canonicalize().unwrap();
+    let id: String = sha2::Sha256::digest(canonical.to_string_lossy().as_bytes())
+        .iter()
+        .take(8)
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    home.join(".elevenlabs").join("onboard").join(id)
+}
+
+/// A program at `path`, written by a short-lived `sh`, never by this process.
+/// Tests run as threads of one process: if one forks while another holds a
+/// script open for writing, the forked child keeps that descriptor until it
+/// execs, and Linux then refuses to start the script with "Text file busy"
+/// (rust-lang/rust#114554). A file this process never opens can't be held.
+#[cfg(unix)]
+fn program(path: &Path, text: &str) {
+    let status = Command::new("/bin/sh")
+        .args(["-c", "printf '%s' \"$1\" > \"$2\" && chmod 755 \"$2\"", "sh", text])
+        .arg(path)
+        .stdin(std::process::Stdio::null())
+        .status()
+        .unwrap();
+    assert!(status.success(), "writing {}", path.display());
+}
+
+/// What a sign-in leaves: the `setup` offer is due.
+fn setup_offer_due(home: &Path, cwd: &Path) -> PathBuf {
+    let dir = session_dir(home, cwd);
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("setup-offer");
+    std::fs::write(&file, "").unwrap();
+    file
+}
+
+/// Stand-ins for the agents' programs in a folder of their own, each adding
+/// the command it was given to `record`, and failing those whose arguments
+/// contain one of `fail`. Returns a PATH with only them and the system's tools.
+#[cfg(unix)]
+fn stand_ins(dir: &Path, names: &[&str], record: &Path, fail: &[&str]) -> String {
+    for name in names {
+        let fails = match fail {
+            [] => String::new(),
+            args => format!(
+                "case \"$*\" in {}) echo 'something broke' >&2; echo 'install refused' >&2; exit 1;; esac\n",
+                args.iter().map(|a| format!("*\"{a}\"*")).collect::<Vec<_>>().join("|")
+            ),
+        };
+        let script = format!(
+            "#!/bin/sh\necho \"{name} $*\" >> '{}'\n{fails}exit 0\n",
+            record.display()
+        );
+        program(&dir.join(name), &script);
+    }
+    format!("{}:/usr/bin:/bin", dir.display())
+}
+
+fn recorded(record: &Path) -> Vec<String> {
+    std::fs::read_to_string(record)
+        .unwrap_or_default()
+        .lines()
+        .map(str::to_string)
+        .collect()
+}
+
+/// The same reply, apart from the clip, whose file is new each time.
+fn without_clip(reply: &Value) -> String {
+    let clip = reply["details"]["audio_file"].as_str().unwrap();
+    say(reply).replace(clip, "<clip>")
+}
+
+const PLUGIN_QUESTION: &str = "Want me to set ElevenLabs up in {} too? It installs the ElevenLabs plugin \
+    (skills and the hosted MCP server), so new sessions can use ElevenLabs right away.";
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_test_request_that_worked_offers_setup_once_after_a_sign_in() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3-fake-mp3".to_vec()))
+        .mount(&server)
+        .await;
+    let failing = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(
+            ResponseTemplate::new(500).set_body_json(json!({"detail": {"message": "down"}})),
+        )
+        .mount(&failing)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude"], &record, &[]);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let test = |server: &str| {
+        reply(
+            cli(home.path(), cwd.path(), server, &["onboard", "test"]).env("PATH", &path),
+        )
+    };
+
+    let plain = test(&server.uri());
+    assert_eq!(plain["next"], "done", "no offer without a sign-in: {plain}");
+
+    let offer = setup_offer_due(home.path(), cwd.path());
+    // A test request that failed ends as it always has, and the offer waits.
+    let r = test(&failing.uri());
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r["details"].get("question").is_none(), "{r}");
+    assert!(offer.exists());
+
+    let r = test(&server.uri());
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(
+        r["details"]["question"],
+        PLUGIN_QUESTION.replace("{}", "Claude Code")
+    );
+    assert_eq!(r["run"], "elevenlabs onboard setup --env-path .env.local");
+    assert_eq!(without_clip(&r), without_clip(&plain), "the same say");
+    assert_eq!(r["details"]["status"], 200);
+    assert!(std::path::Path::new(r["details"]["audio_file"].as_str().unwrap()).exists());
+    assert!(r["instruction"].as_str().unwrap().contains("details.question"), "{r}");
+    assert!(!offer.exists(), "made once");
+    assert!(recorded(&record).is_empty(), "offering runs nothing");
+
+    let r = test(&server.uri());
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r["details"].get("question").is_none(), "{r}");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_voice_agent_project_offers_setup_at_its_link() {
+    const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    agent_endpoint(
+        &server,
+        KEY,
+        MINE,
+        "Store helper",
+        json!({"enable_auth": false, "allowlist": []}),
+    )
+    .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let path = stand_ins(bin.path(), &["codex"], &bin.path().join("ran"), &[]);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    write(cwd.path(), "index.html", &embed(MINE));
+    let check = || {
+        reply(
+            cli(
+                home.path(),
+                cwd.path(),
+                &server.uri(),
+                &["onboard", "check", "--answered", "--no-browser"],
+            )
+            .env("PATH", &path),
+        )
+    };
+    // The first check also fixes the file, which the details say once.
+    check();
+    let plain = check();
+    assert_eq!(plain["next"], "done", "{plain}");
+
+    let offer = setup_offer_due(home.path(), cwd.path());
+    let r = check();
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(r["details"]["question"], PLUGIN_QUESTION.replace("{}", "Codex"));
+    assert_eq!(
+        r["run"],
+        "elevenlabs onboard setup --env-path .env.local --no-browser"
+    );
+    assert_eq!(r["say"], plain["say"]);
+    let mut details = r["details"].clone();
+    details.as_object_mut().unwrap().remove("question");
+    assert_eq!(details, plain["details"], "the same details, and the question");
+    assert!(!offer.exists());
+    assert_eq!(check()["next"], "done");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn with_only_cursor_or_no_agent_found_there_is_no_offer() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3".to_vec()))
+        .mount(&server)
+        .await;
+    for (row, cursor) in [("only Cursor", true), ("none of the three", false)] {
+        let (home, cwd) = temp();
+        if cursor {
+            std::fs::create_dir(home.path().join(".cursor")).unwrap();
+        }
+        write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+        let offer = setup_offer_due(home.path(), cwd.path());
+        let r = reply(
+            cli(home.path(), cwd.path(), &server.uri(), &["onboard", "test"]).env("PATH", "/usr/bin:/bin"),
+        );
+        assert_eq!(r["next"], "done", "{row}: {r}");
+        assert!(r["details"].get("question").is_none(), "{row}: {r}");
+        assert!(offer.exists(), "{row}: kept, with nothing to install into");
+    }
+}
+
+/// The seven commands, in order, that install the plugin in Claude Code and Codex.
+const INSTALLS: [&str; 7] = [
+    "claude plugin marketplace add elevenlabs/plugin",
+    "claude plugin marketplace update elevenlabs",
+    "claude plugin install elevenlabs@elevenlabs",
+    "claude plugin update elevenlabs@elevenlabs",
+    "codex plugin marketplace add elevenlabs/plugin",
+    "codex plugin marketplace upgrade elevenlabs",
+    "codex plugin add elevenlabs@elevenlabs",
+];
+
+#[cfg(unix)]
+#[tokio::test]
+async fn onboard_setup_installs_in_each_agent_and_never_makes_speech() {
+    let server = MockServer::start().await;
+    user_endpoint_accepting(&server, KEY).await;
+    Mock::given(method("POST"))
+        .and(path_regex("^/v1/text-to-speech"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, &[]);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let setup = |args: &[&str], env: &[(&str, &str)]| {
+        reply(
+            cli(
+                home.path(),
+                cwd.path(),
+                &server.uri(),
+                &[&["onboard", "setup", "--env-path", ".env.local"][..], args].concat(),
+            )
+            .env("PATH", &path)
+            .envs(env.iter().copied()),
+        )
+    };
+    let user_requests = || async {
+        server
+            .received_requests()
+            .await
+            .unwrap()
+            .into_iter()
+            .filter(|r| r.url.path() == "/v1/user")
+            .map(|r| r.headers["user-agent"].to_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+
+    let r = setup(&["--no-browser"], &[]);
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r.get("run").is_none(), "{r}");
+    assert_eq!(recorded(&record), INSTALLS);
+    assert_eq!(
+        say(&r),
+        "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
+         Claude Code, then run /mcp and sign in to the ElevenLabs MCP server. Codex: installed the ElevenLabs \
+         plugin (skills and the hosted MCP server). To finish, restart Codex, then run `codex mcp login \
+         elevenlabs` in a terminal to sign in to the ElevenLabs MCP server."
+    );
+    let results = r["details"]["setup"].as_array().unwrap();
+    assert_eq!(results.len(), 2, "{r}");
+    assert!(results.iter().all(|a| a["ok"] == true), "{r}");
+    let agents = user_requests().await;
+    assert_eq!(agents.len(), 1, "one account request with telemetry on: {agents:?}");
+    assert!(agents[0].contains("cmd/onboard.setup"), "{}", agents[0]);
+
+    std::fs::remove_file(&record).unwrap();
+    for off in [&[("ELEVENLABS_TELEMETRY", "off")][..], &[("DO_NOT_TRACK", "1")][..]] {
+        let r = setup(&[], off);
+        assert_eq!(r["next"], "done", "{r}");
+    }
+    assert_eq!(recorded(&record).len(), 14, "installed both times");
+    assert_eq!(user_requests().await.len(), 1, "none with telemetry off");
+
+    // Cursor gets its link with the rest.
+    std::fs::create_dir(home.path().join(".cursor")).unwrap();
+    let r = setup(&[], &[]);
+    assert!(
+        say(&r).ends_with("Cursor: open https://cursor.com/marketplace/elevenlabs and select Install."),
+        "{r}"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_failed_install_ends_on_the_command_to_run_later() {
+    let server = MockServer::start().await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, &["plugin install"]);
+    for (npm, later) in [
+        (None, "elevenlabs setup --yes"),
+        (Some("exec"), "npx -y @elevenlabs/cli@latest setup --yes"),
+    ] {
+        let mut cmd = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"]);
+        cmd.env("PATH", &path);
+        if let Some(npm) = npm {
+            cmd.env("npm_command", npm);
+        }
+        let r = reply(&mut cmd);
+        assert_eq!(r["next"], "done", "{r}");
+        assert!(
+            say(&r).starts_with(
+                "Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: install refused. \
+                 Codex: installed"
+            ),
+            "{r}"
+        );
+        assert!(
+            say(&r).ends_with(&format!("To try again, run `{later}`.")),
+            "{r}"
+        );
+        assert_eq!(r["details"]["setup"][0]["ok"], false, "{r}");
+    }
+    // No request without a key, telemetry on or not.
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+/// Kills the process when the test ends, passed or not.
+#[cfg(unix)]
+struct KillOnDrop(i32);
+
+#[cfg(unix)]
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        unsafe { libc::kill(self.0, libc::SIGKILL) };
+    }
+}
+
+/// Stops the child when the test ends, unless it has already exited.
+#[cfg(unix)]
+struct StopOnDrop(std::process::Child);
+
+#[cfg(unix)]
+impl Drop for StopOnDrop {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn with_dry_run_setup_installs_nothing() {
+    let server = MockServer::start().await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, &[]);
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+
+    let out = cli(home.path(), cwd.path(), &server.uri(), &["setup", "--yes", "--dry-run"])
+        .env("PATH", &path)
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert!(
+        String::from_utf8_lossy(&out.stdout)
+            .ends_with("Nothing was changed. Run `elevenlabs setup --yes` to do it.\n"),
+        "{}",
+        all_output(&out)
+    );
+
+    let r = reply(
+        cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup", "--env-path", ".env.local", "--dry-run"])
+            .env("PATH", &path),
+    );
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(
+        say(&r),
+        "Nothing was installed in the coding agents, because of --dry-run. To set them up, run \
+         `elevenlabs setup --yes`."
+    );
+    assert!(recorded(&record).is_empty(), "nothing ran");
+    assert!(server.received_requests().await.unwrap().is_empty(), "no account request");
+}
+
+#[test]
+fn onboard_setup_without_a_home_folder_says_so_and_ends() {
+    let (home, cwd) = temp();
+    let r = reply(
+        cli(home.path(), cwd.path(), OFFLINE, &["onboard", "setup"])
+            .env_remove("HOME")
+            .env_remove("USERPROFILE")
+            .env("PATH", "/usr/bin:/bin"),
+    );
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(
+        say(&r),
+        "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
+         later, run `elevenlabs setup --yes`."
+    );
+}
+
+/// A token endpoint that accepts any code, for a sign-in through the callback.
+async fn token_endpoint(server: &MockServer) {
+    Mock::given(method("POST"))
+        .and(path("/v1/oauth/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "token",
+            "token_type": "Bearer",
+            "expires_in": 3600
+        })))
+        .mount(server)
+        .await;
+}
+
+/// A sign-in with telemetry off, run as the agent runs it: `connect`, the
+/// browser's callback carrying `params` (the code or the page's error) to the
+/// real loopback listener, then `connect --wait` until it ends with `key_status`.
+fn sign_in_through_the_callback(home: &Path, cwd: &Path, server: &str, params: &str, key_status: &str) {
+    sign_in_with(home, cwd, server, params, key_status, &[])
+}
+
+/// [`sign_in_through_the_callback`], with `args` added to each `connect`.
+fn sign_in_with(home: &Path, cwd: &Path, server: &str, params: &str, key_status: &str, args: &[&str]) {
+    let authorize = format!("{server}/app/oauth/authorize");
+    let first = reply(&mut cli(
+        home,
+        cwd,
+        server,
+        &[&["onboard", "connect", "--no-browser", "--authorize-url", &authorize, "--telemetry", "off"], args].concat(),
+    ));
+    let url = link(&first);
+    assert!(!url.contains("setup_offer"), "the sign-in link is as it always was: {url}");
+    callback(&url, params);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    loop {
+        let r = connect(home, cwd, &[&["--wait", "--no-browser"], args].concat());
+        if r["next"] != "wait" || Instant::now() >= deadline {
+            assert_eq!(r["details"]["key_status"], key_status, "{r}");
+            break;
+        }
+    }
+}
+
+#[tokio::test]
+async fn every_sign_in_leaves_the_setup_offer_and_a_new_one_clears_the_last_ones() {
+    let _turn = signing_in().await;
+    if callback_ports_still_busy().await {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    token_endpoint(&server).await;
+    let (home, cwd) = temp();
+    let sign_in = |params: &str, key_status: &str| {
+        sign_in_through_the_callback(home.path(), cwd.path(), &server.uri(), params, key_status)
+    };
+    let offer = session_dir(home.path(), cwd.path()).join("setup-offer");
+    sign_in("code=approved", "no_key");
+    assert!(offer.exists(), "a sign-in that worked leaves the offer");
+    sign_in("error=access_denied&error_description=declined", "sign_in_failed");
+    assert!(!offer.exists(), "a new sign-in clears the last one's, and a declined one leaves none");
+    sign_in("code=approved", "no_key");
+    assert!(offer.exists(), "the next sign-in that works leaves it again");
+}
+
+// ── setup through the binary, for every combination of agents ───────
+
+const NOTHING_CHANGED: &str = "Nothing was changed. Run `elevenlabs setup --yes` to do it.\n";
+const CLAUDE_PLAN: &str = "Claude Code ({bin}/claude): install the ElevenLabs plugin (skills and the hosted MCP server)\n";
+const CODEX_PLAN: &str = "Codex ({bin}/codex): install the ElevenLabs plugin (skills and the hosted MCP server)\n";
+const CURSOR_PLAN: &str = "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install\n";
+const CLAUDE_DONE: &str = "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, \
+    restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server.\n";
+const CODEX_DONE: &str = "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
+    Codex, then run `codex mcp login elevenlabs` in a terminal to sign in to the ElevenLabs MCP server.\n";
+const CURSOR_DONE: &str = "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install.\n";
+const TRY_AGAIN: &str = "To try again, run `elevenlabs setup --yes`.\n";
+const NO_AGENT: &str = "No Claude Code, Codex or Cursor found. If you use Claude Code in the Claude desktop app, ask it \
+    to run \"elevenlabs setup --yes\" for you. For other coding agents, install the ElevenLabs skills with: npx skills \
+    add elevenlabs/skills\n";
+
+/// What `setup` printed, with the stand-ins' folder written `{bin}`.
+fn stdout_of(out: &Output, bin: &Path) -> String {
+    String::from_utf8_lossy(&out.stdout).replace(&bin.display().to_string(), "{bin}")
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_for_every_combination_of_agents_and_flags() {
+    // (agents, what `setup` prints without installing, what `setup --yes`
+    // prints, the commands `setup --yes` runs)
+    let rows: [(&[&str], String, String, &[&str]); 8] = [
+        (&[], NO_AGENT.into(), NO_AGENT.into(), &[]),
+        (&["claude"], format!("{CLAUDE_PLAN}{NOTHING_CHANGED}"), CLAUDE_DONE.into(), &INSTALLS[..4]),
+        (&["codex"], format!("{CODEX_PLAN}{NOTHING_CHANGED}"), CODEX_DONE.into(), &INSTALLS[4..]),
+        (
+            &["claude", "codex"],
+            format!("{CLAUDE_PLAN}{CODEX_PLAN}{NOTHING_CHANGED}"),
+            format!("{CLAUDE_DONE}{CODEX_DONE}"),
+            &INSTALLS,
+        ),
+        (&["cursor"], format!("{CURSOR_PLAN}{NOTHING_CHANGED}"), CURSOR_DONE.into(), &[]),
+        (
+            &["claude", "cursor"],
+            format!("{CLAUDE_PLAN}{CURSOR_PLAN}{NOTHING_CHANGED}"),
+            format!("{CLAUDE_DONE}{CURSOR_DONE}"),
+            &INSTALLS[..4],
+        ),
+        (
+            &["codex", "cursor"],
+            format!("{CODEX_PLAN}{CURSOR_PLAN}{NOTHING_CHANGED}"),
+            format!("{CODEX_DONE}{CURSOR_DONE}"),
+            &INSTALLS[4..],
+        ),
+        (
+            &["claude", "codex", "cursor"],
+            format!("{CLAUDE_PLAN}{CODEX_PLAN}{CURSOR_PLAN}{NOTHING_CHANGED}"),
+            format!("{CLAUDE_DONE}{CODEX_DONE}{CURSOR_DONE}"),
+            &INSTALLS,
+        ),
+    ];
+    let mut runs = 0;
+    for (agents, plan, done, installs) in &rows {
+        // (flags, whether they install)
+        for (args, install) in [(&[][..], false), (&["--yes"], true), (&["--yes", "--dry-run"], false), (&["--dry-run"], false)] {
+            let row = format!("{agents:?} with {args:?}");
+            let (home, cwd) = temp();
+            let bin = tempfile::tempdir().unwrap();
+            let record = bin.path().join("ran");
+            let programs: Vec<&str> = agents.iter().copied().filter(|a| *a != "cursor").collect();
+            let path = stand_ins(bin.path(), &programs, &record, &[]);
+            if agents.contains(&"cursor") {
+                std::fs::create_dir(home.path().join(".cursor")).unwrap();
+            }
+            let out = cli(home.path(), cwd.path(), OFFLINE, &[&["setup"][..], args].concat())
+                .env("PATH", &path)
+                .output()
+                .unwrap();
+            assert_eq!(out.status.code(), Some(0), "{row}: {}", all_output(&out));
+            assert_eq!(&stdout_of(&out, bin.path()), if install { done } else { plan }, "{row}");
+            let ran: &[&str] = if install { installs } else { &[] };
+            assert_eq!(recorded(&record), ran, "{row}");
+            let written: Vec<_> = std::fs::read_dir(home.path()).unwrap().flatten().map(|e| e.file_name()).collect();
+            let cursor_only: &[&str] = if agents.contains(&"cursor") { &[".cursor"] } else { &[] };
+            assert_eq!(written, cursor_only, "{row}: setup itself writes nothing in the home folder");
+            runs += 1;
+        }
+    }
+    assert_eq!(runs, 32);
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_with_a_stand_in_failing_at_each_step() {
+    let claude_failed = |command: &str| {
+        format!("Claude Code: failed: `claude {command}` exited with 1: install refused.\n")
+    };
+    // (what fails, exit code, output, the commands that ran)
+    let rows: [(&[&str], i32, String, Vec<&str>); 7] = [
+        (&["marketplace add"], 0, format!("{CLAUDE_DONE}{CODEX_DONE}"), INSTALLS.to_vec()),
+        (&["marketplace update"], 0, format!("{CLAUDE_DONE}{CODEX_DONE}"), INSTALLS.to_vec()),
+        (
+            &["plugin install"],
+            1,
+            format!("{}{CODEX_DONE}{TRY_AGAIN}", claude_failed("plugin install elevenlabs@elevenlabs")),
+            [&INSTALLS[..3], &INSTALLS[4..]].concat(),
+        ),
+        (
+            &["plugin update"],
+            1,
+            format!("{}{CODEX_DONE}{TRY_AGAIN}", claude_failed("plugin update elevenlabs@elevenlabs")),
+            INSTALLS.to_vec(),
+        ),
+        (&["marketplace upgrade"], 0, format!("{CLAUDE_DONE}{CODEX_DONE}"), INSTALLS.to_vec()),
+        (
+            &["plugin add"],
+            1,
+            format!(
+                "{CLAUDE_DONE}Codex: failed: `codex plugin add elevenlabs@elevenlabs` exited with 1: install refused.\n\
+                 {TRY_AGAIN}"
+            ),
+            INSTALLS.to_vec(),
+        ),
+        // The install fails for want of the marketplace: its own error is the cause.
+        (
+            &["marketplace add", "plugin install"],
+            1,
+            format!("{}{CODEX_DONE}{TRY_AGAIN}", claude_failed("plugin marketplace add elevenlabs/plugin")),
+            [&INSTALLS[..3], &INSTALLS[4..]].concat(),
+        ),
+    ];
+    for (fails, code, says, ran) in rows {
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let record = bin.path().join("ran");
+        let path = stand_ins(bin.path(), &["claude", "codex"], &record, fails);
+        let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+            .env("PATH", &path)
+            .output()
+            .unwrap();
+        assert_eq!(out.status.code(), Some(code), "{fails:?} failing: {}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), says, "{fails:?} failing");
+        assert_eq!(recorded(&record), ran, "{fails:?} failing");
+    }
+}
+
+/// With none of the three found, every way of running `setup` says how to get
+/// the skills, and nothing is run, written or requested.
+#[cfg(unix)]
+#[tokio::test]
+async fn with_no_agent_found_setup_says_how_to_get_the_skills_and_changes_nothing() {
+    let server = MockServer::start().await;
+    let (home, cwd) = temp();
+    for args in [&["setup"][..], &["setup", "--yes"], &["setup", "--dry-run"], &["setup", "--yes", "--dry-run"]] {
+        let out = cli(home.path(), cwd.path(), &server.uri(), args).env("PATH", "/usr/bin:/bin").output().unwrap();
+        assert_eq!(out.status.code(), Some(0), "{args:?}: {}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), NO_AGENT, "{args:?}");
+    }
+    let r = reply(cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"]).env("PATH", "/usr/bin:/bin"));
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(say(&r), NO_AGENT.trim_end());
+    assert_eq!(r["details"]["setup"], json!([]), "{r}");
+    let written: Vec<_> = std::fs::read_dir(home.path()).unwrap().flatten().map(|e| e.file_name()).collect();
+    assert!(written.is_empty(), "nothing written in the home folder: {written:?}");
+    assert!(server.received_requests().await.unwrap().is_empty(), "no request");
+}
+
+/// Inside the Claude desktop app, `claude` is on no PATH: the program the
+/// app names is the one installed into, and without it nothing is found.
+#[cfg(unix)]
+#[test]
+fn claude_code_named_by_claude_code_execpath_is_installed_with_no_claude_on_path() {
+    let (home, cwd) = temp();
+    let app = tempfile::tempdir().unwrap();
+    let dir = app.path().join("claude.app").join("Contents").join("MacOS");
+    std::fs::create_dir_all(&dir).unwrap();
+    let record = app.path().join("ran");
+    program(&dir.join("claude"), &format!("#!/bin/sh\necho \"claude $*\" >> '{}'\n", record.display()));
+    let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+        .env("PATH", "/usr/bin:/bin")
+        .env("CLAUDE_CODE_EXECPATH", dir.join("claude"))
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), CLAUDE_DONE);
+    assert_eq!(recorded(&record), INSTALLS[..4]);
+
+    let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]).env("PATH", "/usr/bin:/bin").output().unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), NO_AGENT);
+    assert_eq!(recorded(&record).len(), 4, "nothing more ran");
+}
+
+/// The longest error line `setup` repeats.
+const LINE_MAX: usize = 300;
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_failed_install_shows_a_short_clean_error_however_much_it_printed() {
+    let server = MockServer::start().await;
+    // (row, what the failing `claude plugin install` prints on stderr, the error line shown)
+    let rows = [
+        (
+            "5 MB with no newline",
+            "head -c 5000000 /dev/zero | tr '\\0' e >&2",
+            format!("{}…", "e".repeat(LINE_MAX - 1)),
+        ),
+        (
+            "megabytes, then a short last line",
+            "head -c 5000000 /dev/zero | tr '\\0' e >&2; printf '\\nthe real error\\n' >&2",
+            "the real error".to_string(),
+        ),
+        (
+            "a progress bar, then a coloured error",
+            "i=0; while [ $i -lt 3000 ]; do printf 'downloading %d%%\\r' $i >&2; i=$((i+1)); done; \
+             printf '\\033[31merror:\\033[0m install refused\\r\\n' >&2",
+            "error: install refused".to_string(),
+        ),
+        (
+            "a coloured error ended as tput sgr0 does, with ESC ( B",
+            "printf '\\033[31merror: sgr0 reset\\033(B\\033[m\\n' >&2",
+            "error: sgr0 reset".to_string(),
+        ),
+    ];
+    for (row, prints, line) in rows {
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        program(
+            &bin.path().join("claude"),
+            &format!("#!/bin/sh\ncase \"$*\" in *\"plugin install\"*) {prints}; exit 1;; esac\nexit 0\n"),
+        );
+        let path = format!("{}:/usr/bin:/bin", bin.path().display());
+        let failed = format!("Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: {line}");
+        // A line cut with `…` gets no full stop after it.
+        let said = if line.ends_with('…') { failed } else { format!("{failed}.") };
+
+        let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]).env("PATH", &path).output().unwrap();
+        assert_eq!(out.status.code(), Some(1), "{row}");
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert_eq!(stdout, format!("{said}\nTo try again, run `elevenlabs setup --yes`.\n"), "{row}");
+        assert!(stdout.len() < 1000, "{row}: {} bytes", stdout.len());
+
+        let out = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"])
+            .env("PATH", &path)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "{row}: {}", all_output(&out));
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert_eq!(stdout.trim_end().lines().count(), 1, "{row}: one line of JSON");
+        assert!(stdout.len() < 2000, "{row}: {} bytes", stdout.len());
+        assert!(!stdout.contains('\r') && !stdout.contains("\\r"), "{row}: {stdout}");
+        assert!(!stdout.contains('\u{1b}') && !stdout.contains("\\u001b"), "{row}: {stdout}");
+        let r: Value = serde_json::from_str(&stdout).unwrap();
+        assert!(say(&r).starts_with(&said), "{row}: {r}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_from_folders_with_spaces_and_non_ascii_names() {
+    let base = tempfile::tempdir().unwrap();
+    let (home, cwd, bin) = (
+        base.path().join("home dir ü 日本"),
+        base.path().join("project (été)"),
+        base.path().join("agents dir é 日本"),
+    );
+    for dir in [&home, &cwd, &bin] {
+        std::fs::create_dir(dir).unwrap();
+    }
+    let record = bin.join("ran");
+    let path = stand_ins(&bin, &["claude", "codex"], &record, &[]);
+    let run = |args: &[&str]| cli(&home, &cwd, OFFLINE, args).env("PATH", &path).output().unwrap();
+    let out = run(&["setup"]);
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(stdout_of(&out, &bin), format!("{CLAUDE_PLAN}{CODEX_PLAN}{NOTHING_CHANGED}"));
+    let out = run(&["setup", "--yes"]);
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), format!("{CLAUDE_DONE}{CODEX_DONE}"));
+    assert_eq!(recorded(&record), INSTALLS);
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_through_the_binary_ten_runs_in_a_row_and_two_at_once() {
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, &[]);
+    let says = format!("{CLAUDE_DONE}{CODEX_DONE}");
+    let start = || {
+        cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+            .env("PATH", &path)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap()
+    };
+    for run in 0..10 {
+        let out = start().wait_with_output().unwrap();
+        assert!(out.status.success(), "run {run}: {}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), says, "run {run}");
+    }
+    assert_eq!(recorded(&record), INSTALLS.repeat(10));
+
+    std::fs::remove_file(&record).unwrap();
+    let (first, second) = (start(), start());
+    for out in [first.wait_with_output().unwrap(), second.wait_with_output().unwrap()] {
+        assert!(out.status.success(), "{}", all_output(&out));
+        assert_eq!(String::from_utf8_lossy(&out.stdout), says);
+    }
+    let mut ran = recorded(&record);
+    ran.sort();
+    let mut want: Vec<String> = INSTALLS.repeat(2).iter().map(|c| c.to_string()).collect();
+    want.sort();
+    assert_eq!(ran, want, "each run ran all seven commands");
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_starts_agents_from_the_shells_environment_never_the_projects_env() {
+    let (home, cwd) = temp();
+    let (bin, project_bin) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let record = bin.path().join("ran");
+    for (dir, said) in [(bin.path(), "shell's"), (project_bin.path(), "project's")] {
+        program(
+            &dir.join("claude"),
+            &format!(
+                "#!/bin/sh\necho \"{said} claude $* [${{ELEVENLABS_SETUP_TEST:-unset}}]\" >> '{}'\n",
+                record.display()
+            ),
+        );
+    }
+    write(
+        cwd.path(),
+        ".env",
+        &format!("PATH={}:/usr/bin:/bin\nELEVENLABS_SETUP_TEST=from-the-project\n", project_bin.path().display()),
+    );
+    let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"])
+        .env("PATH", format!("{}:/usr/bin:/bin", bin.path().display()))
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    let want: Vec<String> = INSTALLS[..4].iter().map(|c| format!("shell's {c} [unset]")).collect();
+    assert_eq!(recorded(&record), want);
+}
+
+// ── the offer, as whole flows ───────────────────────────────────────
+
+/// `GET /v1/user` requests the server has had, by their User-Agent, and
+/// how many text-to-speech requests.
+async fn requests(server: &MockServer) -> (Vec<String>, usize) {
+    let all = server.received_requests().await.unwrap();
+    let users = all
+        .iter()
+        .filter(|r| r.url.path() == "/v1/user")
+        .map(|r| r.headers["user-agent"].to_str().unwrap().to_string())
+        .collect();
+    let speech = all.iter().filter(|r| r.url.path().starts_with("/v1/text-to-speech")).count();
+    (users, speech)
+}
+
+/// The arguments of a reply's `run`, without the program.
+fn run_args(reply: &Value) -> Vec<String> {
+    let run = reply["run"].as_str().unwrap();
+    run.strip_prefix("elevenlabs ").unwrap_or(run).split(' ').map(str::to_string).collect()
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_whole_flow_signs_in_tests_and_sets_up_offering_once_per_sign_in() {
+    let _turn = signing_in().await;
+    if callback_ports_still_busy().await {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    token_endpoint(&server).await;
+    user_endpoint_accepting(&server, KEY).await;
+    // The first test request fails; the next ones work.
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(500).set_body_json(json!({"detail": {"message": "down"}})))
+        .up_to_n_times(1)
+        .with_priority(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3-fake-mp3".to_vec()))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let path = stand_ins(bin.path(), &["claude", "codex"], &record, &[]);
+    let onboard = |args: &[String]| {
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        reply(cli(home.path(), cwd.path(), &server.uri(), &args).env("PATH", &path))
+    };
+    let test = || onboard(&["onboard".into(), "test".into()]);
+    let offer = session_dir(home.path(), cwd.path()).join("setup-offer");
+
+    sign_in_through_the_callback(home.path(), cwd.path(), &server.uri(), "code=approved", "no_key");
+    assert!(offer.exists());
+    // The clipboard hand-off can't run here: the key arrives as the page would leave it.
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+
+    let r = test();
+    assert_eq!((r["next"].as_str(), r["details"]["status"].as_u64()), (Some("done"), Some(500)), "{r}");
+    assert!(r["details"].get("question").is_none(), "no offer after a failed test request: {r}");
+    assert!(offer.exists(), "the offer waits for one that works");
+
+    let r = test();
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(r["details"]["question"], PLUGIN_QUESTION.replace("{}", "Claude Code and Codex"));
+    assert_eq!(r["run"], "elevenlabs onboard setup --env-path .env.local");
+    assert!(!offer.exists());
+    let accept = run_args(&r);
+    assert_eq!(test()["next"], "done", "made once");
+
+    let (users, speech) = requests(&server).await;
+    let r = onboard(&accept);
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r.get("run").is_none(), "{r}");
+    assert_eq!(recorded(&record), INSTALLS);
+    let (users_after, speech_after) = requests(&server).await;
+    assert_eq!(speech_after, speech, "onboard setup makes no speech");
+    let new: Vec<&String> = users_after[users.len()..].iter().collect();
+    assert_eq!(new.len(), 1, "one account request: {new:?}");
+    assert!(new[0].contains("cmd/onboard.setup"), "{}", new[0]);
+
+    // Signing in again in a project that has a key replaces it, as the developer asks.
+    sign_in_with(home.path(), cwd.path(), &server.uri(), "code=approved", "no_key", &["--replace"]);
+    let r = test();
+    assert_eq!(r["next"], "offer_setup", "again after a second sign-in: {r}");
+    assert_eq!(test()["next"], "done");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn the_offers_run_keeps_the_flags_and_npx() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"ID3".to_vec()))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let path = stand_ins(bin.path(), &["codex"], &bin.path().join("ran"), &[]);
+    write(cwd.path(), "other.env", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    // (row, npm_command, the run it offers)
+    let rows = [
+        ("installed", None, "elevenlabs onboard setup --env-path other.env --no-browser"),
+        (
+            "through npx",
+            Some("exec"),
+            "npx -y @elevenlabs/cli@latest onboard setup --env-path other.env --no-browser",
+        ),
+    ];
+    for (row, npm, run) in rows {
+        setup_offer_due(home.path(), cwd.path());
+        let mut cmd = cli(
+            home.path(),
+            cwd.path(),
+            &server.uri(),
+            &["onboard", "test", "--env-path", "other.env", "--no-browser"],
+        );
+        cmd.env("PATH", &path);
+        if let Some(npm) = npm {
+            cmd.env("npm_command", npm);
+        }
+        let r = reply(&mut cmd);
+        assert_eq!(r["next"], "offer_setup", "{row}: {r}");
+        assert_eq!(r["details"]["question"], PLUGIN_QUESTION.replace("{}", "Codex"), "{row}");
+        assert_eq!(r["run"], run, "{row}");
+    }
+}
+
+/// A reply with the paths and port of one run replaced, as the replies in
+/// `tests/fixtures/no_sign_in_replies.json` are.
+fn normalised(reply: &Value, home: &Path, cwd: &Path, server: &str) -> Value {
+    let mut text = reply.to_string();
+    let mut paths: Vec<(String, &str)> = Vec::new();
+    for (dir, name) in [(home, "<home>"), (cwd, "<project>")] {
+        paths.push((dir.display().to_string(), name));
+        paths.push((dir.canonicalize().unwrap().display().to_string(), name));
+    }
+    paths.sort_by_key(|(p, _)| std::cmp::Reverse(p.len()));
+    for (path, name) in paths {
+        text = text.replace(&path, name);
+    }
+    text = text.replace(server, "<server>");
+    let clip = regex_lite_clip(&text);
+    serde_json::from_str(&clip).unwrap()
+}
+
+/// `elevenlabs-hello-XXXXXX.mp3`, the test request's clip, with its random part replaced.
+fn regex_lite_clip(text: &str) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(at) = rest.find("elevenlabs-hello-") {
+        let start = at + "elevenlabs-hello-".len();
+        out.push_str(&rest[..start]);
+        rest = &rest[start..];
+        if rest.len() > 6 && rest[6..].starts_with(".mp3") {
+            out.push_str("<clip>");
+            rest = &rest[6..];
+        }
+    }
+    out + rest
+}
+
+/// Set to rewrite `tests/fixtures/no_sign_in_replies.json` from the replies
+/// [`a_project_that_has_not_signed_in_gets_the_replies_it_always_has`] collects.
+const REWRITE_NO_SIGN_IN_REPLIES: &str = "ELEVENLABS_TEST_REWRITE_NO_SIGN_IN_REPLIES";
+
+/// The offer is made only after a sign-in, so a project that has not signed
+/// in must get every onboarding reply it got before the offer existed.
+/// `tests/fixtures/no_sign_in_replies.json` holds those replies: for each
+/// scenario below, the reply to each command in turn, as CLI 1.10.0 (commit
+/// d697e6c) gave them, with the run's paths, server and clip name replaced as
+/// [`normalised`] does. To regenerate it, build the CLI whose replies are
+/// wanted and run this test with `ELEVENLABS_TEST_REWRITE_NO_SIGN_IN_REPLIES=1`:
+/// it writes the replies it collected into the fixture before comparing.
+/// Rewrite it only on purpose, when a change to those replies is meant.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_project_that_has_not_signed_in_gets_the_replies_it_always_has() {
+    const MINE: &str = "agent_7101k5zvyjhmfg983brhmhkd98n6";
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/no_sign_in_replies.json");
+    let mut collected = serde_json::Map::new();
+    let tts = |status: u16| async move {
+        let server = MockServer::start().await;
+        user_endpoint_accepting(&server, KEY).await;
+        agent_endpoint(&server, KEY, MINE, "Store helper", json!({"enable_auth": false, "allowlist": []})).await;
+        let answer = match status {
+            200 => ResponseTemplate::new(200).set_body_bytes(b"ID3-fake-mp3".to_vec()),
+            402 => ResponseTemplate::new(402)
+                .set_body_json(json!({"detail": {"status": "payment_required", "message": "no credits"}})),
+            _ => ResponseTemplate::new(status).set_body_json(json!({"detail": {"message": "down"}})),
+        };
+        Mock::given(method("POST"))
+            .and(path_regex("^/v1/text-to-speech/"))
+            .respond_with(answer)
+            .mount(&server)
+            .await;
+        server
+    };
+    let (ok, no_credits, down) = (tts(200).await, tts(402).await, tts(500).await);
+    let with_key = |p: &Path| write(p, ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+    let wired = |p: &Path| {
+        with_key(p);
+        write(
+            p,
+            "package.json",
+            r#"{"scripts":{"start":"node --env-file=.env.local src/speak.js"},"dependencies":{"@elevenlabs/elevenlabs-js":"^2"}}"#,
+        );
+        write(p, "src/speak.js", "import { ElevenLabsClient } from \"@elevenlabs/elevenlabs-js\";\n");
+    };
+    let voice_agent = |p: &Path| {
+        with_key(p);
+        write(p, "index.html", &embed(MINE));
+    };
+    let nothing = |_: &Path| {};
+    let check: &[&str] = &["onboard", "check"];
+    let agent_check: &[&str] = &["onboard", "check", "--answered", "--no-browser"];
+    let test: &[&str] = &["onboard", "test"];
+    // (scenario, the project, the server, the commands run in turn)
+    let scenarios: [(&str, &dyn Fn(&Path), String, Vec<&[&str]>); 9] = [
+        ("init_in_an_empty_project", &nothing, ok.uri(), vec![&["onboard", "init"]]),
+        ("check_with_no_key", &nothing, ok.uri(), vec![check]),
+        ("check_with_a_working_key_and_no_sdk", &with_key, ok.uri(), vec![check]),
+        ("check_with_the_sdk_wired", &wired, ok.uri(), vec![check]),
+        ("test_that_works", &wired, ok.uri(), vec![test]),
+        ("test_with_no_credits", &wired, no_credits.uri(), vec![test]),
+        ("test_failing_with_500", &wired, down.uri(), vec![test]),
+        ("test_unreachable", &wired, OFFLINE.into(), vec![test]),
+        ("voice_agent_check", &voice_agent, ok.uri(), vec![agent_check, agent_check]),
+    ];
+    for (name, project, server, commands) in scenarios {
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let record = bin.path().join("ran");
+        // A Claude Code on PATH: with no sign-in it changes nothing.
+        let path = stand_ins(bin.path(), &["claude"], &record, &[]);
+        project(cwd.path());
+        let got: Vec<Value> = commands
+            .iter()
+            .map(|args| {
+                let r = reply(cli(home.path(), cwd.path(), &server, args).env("PATH", &path));
+                normalised(&r, home.path(), cwd.path(), &server)
+            })
+            .collect();
+        collected.insert(name.to_string(), Value::from(got));
+        assert!(recorded(&record).is_empty(), "{name}");
+    }
+    if std::env::var_os(REWRITE_NO_SIGN_IN_REPLIES).is_some() {
+        let text = serde_json::to_string_pretty(&collected).unwrap() + "\n";
+        std::fs::write(&fixture, text).unwrap();
+    }
+    let want: serde_json::Map<String, Value> =
+        serde_json::from_str(&std::fs::read_to_string(&fixture).unwrap()).unwrap();
+    assert_eq!(collected.keys().collect::<Vec<_>>(), want.keys().collect::<Vec<_>>());
+    for (name, got) in &collected {
+        assert_eq!(got, &want[name], "{name}");
+    }
+}
+
+// ── interrupts through the binary ───────────────────────────────────
+
+/// Stand-ins for Claude Code and Codex that run every command at once but
+/// `hang_on`, which starts `sleep <marker>`, writes its pid to `pid`, and
+/// waits. Returns a PATH with only them and the system's tools.
+#[cfg(unix)]
+fn hanging_stand_ins(dir: &Path, hang_on: &str, marker: &str) -> String {
+    let pid = dir.join("pid");
+    for name in ["claude", "codex"] {
+        let script = format!(
+            "#!/bin/sh\nif [ \"{name} $*\" = \"{hang_on}\" ]; then\n  sleep {marker} &\n  echo $! > '{0}.new'\n  \
+             mv '{0}.new' '{0}'\n  wait\nfi\nexit 0\n",
+            pid.display()
+        );
+        program(&dir.join(name), &script);
+    }
+    format!("{}:/usr/bin:/bin", dir.display())
+}
+
+/// The processes whose command line contains `marker`.
+#[cfg(unix)]
+fn running(marker: &str) -> Vec<String> {
+    let out = Command::new("ps").args(["-axo", "pid=,command="]).output().unwrap();
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|l| l.contains(marker) && !l.contains("ps -axo"))
+        .map(str::to_string)
+        .collect()
+}
+
+/// `cmd` started with SIGINT at its default, as from a terminal (these tests
+/// may run with it ignored), or ignored when `ignore_sigint`.
+#[cfg(unix)]
+fn start_with_sigint(mut cmd: Command, ignore_sigint: bool) -> StopOnDrop {
+    use std::os::unix::process::CommandExt;
+    let disposition = if ignore_sigint { libc::SIG_IGN } else { libc::SIG_DFL };
+    unsafe {
+        cmd.pre_exec(move || {
+            libc::signal(libc::SIGINT, disposition);
+            Ok(())
+        });
+    }
+    StopOnDrop(cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().unwrap())
+}
+
+#[cfg(unix)]
+fn pid_in(file: &Path) -> i32 {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if let Some(pid) = std::fs::read_to_string(file).ok().and_then(|t| t.trim().parse().ok()) {
+            return pid;
+        }
+        assert!(Instant::now() < deadline, "the stand-in never started its child");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(unix)]
+fn exit_of(child: &mut std::process::Child, within: Duration) -> std::process::ExitStatus {
+    let deadline = Instant::now() + within;
+    loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            return status;
+        }
+        assert!(Instant::now() < deadline, "still running after {within:?}");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// A `sleep` time no other run of these tests on this machine uses, so what
+/// one run leaves is never taken for another's: `<seconds>.<this process's
+/// id>`, the id at a fixed width so one marker never contains another.
+#[cfg(unix)]
+fn marker(seconds: u32) -> String {
+    format!("{seconds}.{:010}", std::process::id())
+}
+
+/// Nothing whose command line holds `marker` (the stand-in's child) or the
+/// stand-ins' folder is left running.
+#[cfg(unix)]
+fn nothing_left(marker: &str, bin: &Path, row: &str) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let mut left = running(&format!("sleep {marker}"));
+        left.extend(running(&bin.display().to_string()));
+        if left.is_empty() {
+            return;
+        }
+        assert!(Instant::now() < deadline, "{row}: left running: {left:?}");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn an_interrupt_during_each_agent_command_stops_it_and_exits_as_interrupted() {
+    let mut rows: Vec<(String, &str, &[&str], Vec<i32>, i32)> = Vec::new();
+    for command in INSTALLS {
+        for (signal, code) in [(libc::SIGINT, 130), (libc::SIGTERM, 143)] {
+            rows.push((format!("signal {signal} during `{command}`"), command, &["setup", "--yes"], vec![signal], code));
+        }
+    }
+    rows.push(("two SIGINTs in a row".into(), INSTALLS[1], &["setup", "--yes"], vec![libc::SIGINT; 2], 130));
+    rows.push(("two SIGTERMs in a row".into(), INSTALLS[5], &["setup", "--yes"], vec![libc::SIGTERM; 2], 143));
+    rows.push(("SIGINT during `onboard setup`".into(), INSTALLS[3], &["onboard", "setup"], vec![libc::SIGINT], 130));
+    for (n, (row, command, args, signals, code)) in rows.into_iter().enumerate() {
+        let marker = marker(3200 + n as u32);
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let path = hanging_stand_ins(bin.path(), command, &marker);
+        let mut cmd = cli(home.path(), cwd.path(), OFFLINE, args);
+        cmd.env("PATH", &path);
+        let mut setup = start_with_sigint(cmd, false);
+        let sleep = pid_in(&bin.path().join("pid"));
+        let _sleep = KillOnDrop(sleep);
+        for signal in &signals {
+            unsafe { libc::kill(setup.0.id() as i32, *signal) };
+        }
+        let status = exit_of(&mut setup.0, Duration::from_secs(10));
+        assert_eq!(status.code(), Some(code), "{row}: {status:?}");
+        nothing_left(&marker, bin.path(), &row);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn with_sigint_ignored_an_interrupt_changes_nothing_and_sigterm_still_stops_it() {
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let marker = marker(3300);
+    let path = hanging_stand_ins(bin.path(), INSTALLS[1], &marker);
+    let mut cmd = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]);
+    cmd.env("PATH", &path);
+    let mut setup = start_with_sigint(cmd, true);
+    let sleep = pid_in(&bin.path().join("pid"));
+    let _sleep = KillOnDrop(sleep);
+    unsafe { libc::kill(setup.0.id() as i32, libc::SIGINT) };
+    // Ignored: for a while, both keep running.
+    let until = Instant::now() + Duration::from_millis(300);
+    while Instant::now() < until {
+        assert!(setup.0.try_wait().unwrap().is_none(), "setup stopped on an ignored SIGINT");
+        assert_eq!(unsafe { libc::kill(sleep, 0) }, 0, "the agent command stopped on an ignored SIGINT");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    unsafe { libc::kill(setup.0.id() as i32, libc::SIGTERM) };
+    let status = exit_of(&mut setup.0, Duration::from_secs(10));
+    assert_eq!(status.code(), Some(143), "{status:?}");
+    nothing_left(&marker, bin.path(), "SIGTERM after an ignored SIGINT");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn an_interrupt_with_no_agent_command_running_ends_the_cli_as_before() {
+    use std::os::unix::process::ExitStatusExt;
+    for signal in [libc::SIGINT, libc::SIGTERM] {
+        let server = MockServer::start().await;
+        // The account request `onboard setup` makes first, held open.
+        Mock::given(method("GET"))
+            .and(path("/v1/user"))
+            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(30)))
+            .mount(&server)
+            .await;
+        let (home, cwd) = temp();
+        let bin = tempfile::tempdir().unwrap();
+        let record = bin.path().join("ran");
+        let path = stand_ins(bin.path(), &["claude", "codex"], &record, &[]);
+        write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
+        let mut cmd = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"]);
+        cmd.env("PATH", &path);
+        let mut setup = start_with_sigint(cmd, false);
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while server.received_requests().await.unwrap().is_empty() {
+            assert!(Instant::now() < deadline, "the account request never came");
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        unsafe { libc::kill(setup.0.id() as i32, signal) };
+        let status = exit_of(&mut setup.0, Duration::from_secs(10));
+        assert_eq!(status.signal(), Some(signal), "signal {signal}: {status:?}");
+        assert!(recorded(&record).is_empty(), "signal {signal}: no agent command ran");
     }
 }

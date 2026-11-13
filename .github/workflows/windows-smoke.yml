@@ -17,6 +17,8 @@ on:
     paths:
       - cli/elevenlabs/workflow/onboard/**
       - cli/elevenlabs/workflow/loopback.rs
+      - cli/elevenlabs/workflow/setup.rs
+      - cli/elevenlabs/workflow/setup/**
       - .github/workflows/windows-smoke.yml
 
 jobs:
@@ -49,6 +51,165 @@ jobs:
         run: |
           cargo build --bin elevenlabs
           cygpath -w "$PWD/target/debug" >> "$GITHUB_PATH"
+
+      # npm installs agents as .cmd shims, often under a user folder such as
+      # `C:\Users\Ann (Work)`, whose parentheses break a hand-built `cmd /C`.
+      - name: Set up coding agents installed in a folder with parentheses
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          base_path="$PATH"
+          bin="$(mktemp -d)/agents (test) dir"
+          mkdir -p "$bin"
+          # Stand-ins for `claude` and `codex` that log their arguments, one
+          # line per run; the claude in $failing refuses `plugin install`.
+          stand_in() {
+            cat > "$1/$2.cmd" <<EOF
+          @echo off
+          echo %*>>"$(cygpath -w "$1/$2.log")"
+          $3
+          exit /b 0
+          EOF
+          }
+          stand_in "$bin" claude ""
+          stand_in "$bin" codex ""
+          failing="$(mktemp -d)/failing agent"
+          mkdir -p "$failing"
+          stand_in "$failing" claude 'echo %* | findstr /C:"plugin install" >nul && (>&2 echo install refused& exit /b 1)'
+          for var in USERPROFILE HOME CLAUDE_CONFIG_DIR CODEX_HOME; do
+            export "$var=$(cygpath -w "$(mktemp -d)")"
+          done
+          unset CLAUDE_CODE_EXECPATH
+          # Quotes std may add around an argument, and cmd's line endings, aside.
+          ran() { tr -d '"\r' < "$1" 2>/dev/null || true; }
+          expect() {
+            if [[ "$(ran "$1")" != "$2" ]]; then
+              echo "::error::$3, got:"
+              ran "$1"
+              exit 1
+            fi
+          }
+
+          export PATH="$bin:$base_path"
+          elevenlabs setup
+          expect "$bin/claude.log" "" "setup without --yes ran a Claude Code command"
+          expect "$bin/codex.log" "" "setup without --yes ran a Codex command"
+
+          elevenlabs setup --yes
+          expect "$bin/claude.log" "$(printf '%s\n' \
+            "plugin marketplace add elevenlabs/plugin" \
+            "plugin marketplace update elevenlabs" \
+            "plugin install elevenlabs@elevenlabs" \
+            "plugin update elevenlabs@elevenlabs")" "Expected the four Claude Code commands"
+          expect "$bin/codex.log" "$(printf '%s\n' \
+            "plugin marketplace add elevenlabs/plugin" \
+            "plugin marketplace upgrade elevenlabs" \
+            "plugin add elevenlabs@elevenlabs")" "Expected the three Codex commands"
+
+          export PATH="$failing:$base_path"
+          code=0
+          out=$(elevenlabs setup --yes) || code=$?
+          echo "$out"
+          if [[ "$code" != 1 ]]; then
+            echo "::error::setup --yes with a failing install exited with $code, not 1"
+            exit 1
+          fi
+          refused='Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: install refused'
+          if [[ "$out" != *"$refused"* ]]; then
+            echo "::error::setup --yes didn't show the install's error"
+            exit 1
+          fi
+          expect "$failing/claude.log" "$(printf '%s\n' \
+            "plugin marketplace add elevenlabs/plugin" \
+            "plugin marketplace update elevenlabs" \
+            "plugin install elevenlabs@elevenlabs")" \
+            "Expected Claude Code to stop at the failed install"
+
+      # PowerShell and cmd pass the search path as `Path`; Git Bash passes `PATH`.
+      - name: Set up coding agents from PowerShell
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function New-TempFolder {
+            New-Item -ItemType Directory (Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid()))
+          }
+          # A stand-in that logs its arguments, one line per run, and runs $also first.
+          function New-StandIn($folder, $name, $also) {
+            Set-Content -Encoding ascii -Path (Join-Path $folder "$name.cmd") -Value @(
+              '@echo off'
+              "echo %*>>`"$(Join-Path $folder "$name.log")`""
+              $also
+              'exit /b 0'
+            )
+          }
+          # What a stand-in ran, quotes std may add around an argument aside.
+          function Get-Ran($folder, $name) {
+            $log = Join-Path $folder "$name.log"
+            if (-not (Test-Path $log)) { return '' }
+            @(Get-Content $log | ForEach-Object { $_.Replace('"', '').Trim() }) -join "`n"
+          }
+          function Assert-Ran($folder, $name, $expected, $what) {
+            $ran = Get-Ran $folder $name
+            if ($ran -cne ($expected -join "`n")) {
+              Write-Host "::error::$what, got:"
+              Write-Host $ran
+              exit 1
+            }
+          }
+          $bin = (New-TempFolder).FullName
+          New-StandIn $bin 'claude' ''
+          New-StandIn $bin 'codex' ''
+          $failing = (New-TempFolder).FullName
+          New-StandIn $failing 'claude' 'echo %* | findstr /C:"plugin install" >nul && (>&2 echo install refused& exit /b 1)'
+          $basePath = $env:Path
+          # Spelled `Path` whatever the runner passed.
+          function Set-SearchPath($first) {
+            Remove-Item env:Path
+            [Environment]::SetEnvironmentVariable('Path', "$first;$basePath")
+          }
+          foreach ($var in 'USERPROFILE', 'HOME', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME') {
+            Set-Item "env:$var" (New-TempFolder).FullName
+          }
+          Remove-Item env:CLAUDE_CODE_EXECPATH -ErrorAction SilentlyContinue
+          Set-SearchPath $bin
+          $name = [Environment]::GetEnvironmentVariables().Keys | Where-Object { $_ -ieq 'path' }
+          Write-Host "The search path variable is spelled: $name"
+          if ($name -cne 'Path') { throw "Expected the search path variable spelled Path, got $name" }
+
+          elevenlabs setup
+          if ($LASTEXITCODE -ne 0) { throw "setup exited with $LASTEXITCODE" }
+          Assert-Ran $bin 'claude' @() 'setup without --yes ran a Claude Code command'
+          Assert-Ran $bin 'codex' @() 'setup without --yes ran a Codex command'
+
+          elevenlabs setup --yes
+          if ($LASTEXITCODE -ne 0) { throw "setup --yes exited with $LASTEXITCODE" }
+          Assert-Ran $bin 'claude' @(
+            'plugin marketplace add elevenlabs/plugin'
+            'plugin marketplace update elevenlabs'
+            'plugin install elevenlabs@elevenlabs'
+            'plugin update elevenlabs@elevenlabs'
+          ) 'Expected the four Claude Code commands'
+          Assert-Ran $bin 'codex' @(
+            'plugin marketplace add elevenlabs/plugin'
+            'plugin marketplace upgrade elevenlabs'
+            'plugin add elevenlabs@elevenlabs'
+          ) 'Expected the three Codex commands'
+
+          Set-SearchPath $failing
+          $out = (elevenlabs setup --yes) -join "`n"
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 1) { throw "setup --yes with a failing install exited with $code, not 1" }
+          $refused = 'Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: install refused'
+          if (-not $out.Contains($refused)) { throw "setup --yes didn't show the install's error" }
+          Assert-Ran $failing 'claude' @(
+            'plugin marketplace add elevenlabs/plugin'
+            'plugin marketplace update elevenlabs'
+            'plugin install elevenlabs@elevenlabs'
+          ) 'Expected Claude Code to stop at the failed install'
+          # The failed setup above exited 1 on purpose, and pwsh would end the step with it.
+          exit 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

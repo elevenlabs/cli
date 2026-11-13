@@ -6,6 +6,8 @@
 //! - `connect`: sign in in the browser and store an API key for the project
 //! - `check`: confirm the key and the integration (`status` is an alias)
 //! - `test`: a short text-to-speech request, only when the developer says yes
+//! - `setup`: install ElevenLabs in the developer's coding agents, when the
+//!   flow offered it and they said yes
 
 mod auth;
 mod browser;
@@ -44,6 +46,7 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
             "init" => "onboard.init",
             "connect" => "onboard.connect",
             "check" => "onboard.check",
+            "setup" => "onboard.setup",
             _ => "onboard.test",
         },
         sign_in_tag(last.as_ref()),
@@ -52,11 +55,73 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
         "init" => Some(init::handle(sub, ctx)?.to_value()),
         "connect" => connect::handle(sub, ctx)?,
         "check" => Some(check::handle(sub, ctx)?.to_value()),
+        "setup" => Some(setup(sub, ctx)?.to_value()),
         _ => Some(test_request::handle(sub, ctx)?.to_value()),
     };
     match reply {
         Some(reply) => reply::emit(&reply),
         None => Ok(()),
+    }
+}
+
+/// `onboard setup`: what `setup --yes` does, as a `done` reply. With
+/// telemetry on it first makes the account request `check` makes, so the
+/// offers accepted can be counted; its answer changes nothing.
+fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, CliError> {
+    let started = std::time::Instant::now();
+    let later = super::setup::later_command();
+    if super::util::dry_run_flag(matches) {
+        return Ok(reply::Reply::new(
+            reply::Next::Done,
+            format!(
+                "Nothing was installed in the coding agents, because of --dry-run. To set them up, run `{later}`."
+            ),
+        ));
+    }
+    let project = project::Project::open(matches)?;
+    if super::telemetry::enabled() {
+        if let Some(key) = project.key() {
+            let _ = auth::check_key(ctx, &key.value);
+        }
+    }
+    let Some(home) = super::setup::home() else {
+        return Ok(reply::Reply::new(
+            reply::Next::Done,
+            format!(
+                "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
+                 later, run `{later}`."
+            ),
+        ));
+    };
+    // The request's time comes out of the whole run's, so the reply still comes in time.
+    let limits = super::setup::Limits {
+        total: super::setup::LIMITS.total.saturating_sub(started.elapsed()),
+        ..super::setup::LIMITS
+    };
+    let outcomes = super::setup::run(&super::setup::found_here(&home), &home, limits);
+    let (say, _) = super::setup::report(&outcomes);
+    Ok(reply::Reply::new(reply::Next::Done, say.join(" ")).detail("setup", &outcomes))
+}
+
+/// `done`, the end of the flow, or, after a sign-in in this project, when a
+/// coding agent can take the plugin, the question that offers `setup`. Made
+/// once per sign-in.
+fn or_offer_setup(project: &project::Project, done: reply::Reply) -> reply::Reply {
+    let Ok(session) = session::Session::for_project(&project.dir) else {
+        return done;
+    };
+    if !session.setup_offer_due() {
+        return done;
+    }
+    let Some(home) = super::setup::home() else {
+        return done;
+    };
+    match super::setup::question(&super::setup::found_here(&home)) {
+        Some(question) => {
+            session.setup_offer_made();
+            done.offer_setup(question, &project.next("setup"))
+        }
+        None => done,
     }
 }
 
@@ -144,6 +209,14 @@ fn onboard_command() -> clap::Command {
                 .arg(env_file_arg())
                 .arg(no_browser_arg()),
         )
+        .subcommand(
+            clap::Command::new("setup")
+                // Run only when the flow offers it and the developer says yes.
+                .hide(true)
+                .about("Install ElevenLabs in the coding agents on this machine, as `elevenlabs setup --yes` does")
+                .arg(env_file_arg())
+                .arg(no_browser_arg()),
+        )
 }
 
 /// The environment as the shell gave it, from before the runtime loads a
@@ -151,7 +224,7 @@ fn onboard_command() -> clap::Command {
 static SHELL_ENV: OnceLock<HashMap<OsString, OsString>> = OnceLock::new();
 
 /// The shell's own environment, once `register` has run (always, but in unit tests).
-fn shell_env() -> Option<&'static HashMap<OsString, OsString>> {
+pub(super) fn shell_env() -> Option<&'static HashMap<OsString, OsString>> {
     SHELL_ENV.get()
 }
 

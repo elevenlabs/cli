@@ -52,7 +52,8 @@ pub(super) fn handle(
             super::sign_in_tag(previous.as_ref()),
         );
         let reply = sign_in_and_store(matches, ctx, &project, previous.as_ref(), || {
-            session.signed_in(&lock)
+            session.signed_in(&lock);
+            session.offer_setup();
         })
         .unwrap_or_else(|e| failed(&project, &e.to_string(), replace));
         session.finish(&lock, &reply.to_value())?;

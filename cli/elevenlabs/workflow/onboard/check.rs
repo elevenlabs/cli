@@ -77,7 +77,7 @@ pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Res
             load_key(project, &ending, &name, say)
         }
         (true, _, None) => match own_agent(ctx, project, &key) {
-            Some(agent) => agent_ready(&ending, file, &agent, reads_key)?,
+            Some(agent) => super::or_offer_setup(project, agent_ready(&ending, file, &agent, reads_key)?),
             None => offer_test(project, &ending, file),
         },
         (false, false, _) => ask_what_to_build(project, &ending, file, "Your key works."),

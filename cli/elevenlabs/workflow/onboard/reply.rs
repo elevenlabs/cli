@@ -18,6 +18,7 @@ pub(super) enum Next {
     WriteCode,
     LoadKey,
     OfferTest,
+    OfferSetup,
     Done,
 }
 
@@ -67,6 +68,11 @@ impl Next {
                  packages you added. Then end your reply with the question in `say`, as it is, and stop \
                  there: until they answer, don't run the app or its start script, or make speech to try \
                  it. Run `run` only if they say yes."
+            }
+            Next::OfferSetup => {
+                "Tell the user `say`, then anything they still have to do themselves, like installing the \
+                 packages you added, in one or two concrete steps. Then end your reply with the question in \
+                 `details.question`, as it is, and stop there. Run `run` only if they say yes."
             }
             Next::Done => {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \
@@ -126,6 +132,14 @@ impl Reply {
         self
     }
 
+    /// This `done` reply, ending instead on the question that offers to set
+    /// ElevenLabs up in the developer's coding agents, which `run` does.
+    pub fn offer_setup(mut self, question: String, run: &str) -> Self {
+        self.next = Next::OfferSetup;
+        self.instruction = Next::OfferSetup.instruction();
+        self.run(run).detail("question", question)
+    }
+
     pub fn with_rules(mut self) -> Self {
         self.rules = RULES;
         self
@@ -140,12 +154,7 @@ impl Reply {
 /// started this process (it sets `npm_command=exec`), so the agent keeps
 /// running the same, latest CLI; otherwise the installed `elevenlabs`.
 pub(super) fn command(args: &str) -> String {
-    let cli = if std::env::var("npm_command").is_ok_and(|c| c == "exec") {
-        "npx -y @elevenlabs/cli@latest"
-    } else {
-        "elevenlabs"
-    };
-    format!("{cli} onboard {args}")
+    format!("{} onboard {args}", super::super::setup::cli_prefix())
 }
 
 /// Print a reply (or one a background sign-in saved). Always JSON, whatever

@@ -1,0 +1,143 @@
+{
+  "check_with_a_working_key_and_no_sdk": [
+    {
+      "details": {
+        "api_key_source": "env_file",
+        "env_file": ".env.local",
+        "fixed": [
+          "added .env.local to .gitignore",
+          "made .env.local readable only by you"
+        ],
+        "key_last4": "4567",
+        "sdk_declared": false,
+        "sdk_imported": false
+      },
+      "instruction": "Tell the user `say`, then end your turn and wait for their answer to its question. Ask it even if they already said what they want, even just the SDK: their answer confirms it. Write no code before they answer. When they have, run `run` before anything else, without installing or writing anything first: its reply says how to write the code. If you already asked and they answered, don't ask again, just run `run`.",
+      "next": "ask_what_to_build",
+      "run": "elevenlabs onboard check --answered --env-path .env.local",
+      "say": "Your key works. What would you like to build with ElevenLabs, or should I just add the SDK for now?"
+    }
+  ],
+  "check_with_no_key": [
+    {
+      "instruction": "Tell the user `say`, then run `run`.",
+      "next": "run",
+      "run": "elevenlabs onboard connect --env-path .env.local",
+      "say": "There's no ElevenLabs API key in this project yet, so I'll open the approval page to create one."
+    }
+  ],
+  "check_with_the_sdk_wired": [
+    {
+      "details": {
+        "api_key_source": "env_file",
+        "fixed": [
+          "added .env.local to .gitignore",
+          "made .env.local readable only by you"
+        ],
+        "key_last4": "4567",
+        "sdk_declared": true,
+        "sdk_imported": true
+      },
+      "instruction": "Say what you set up and anything the user still has to do themselves, like installing the packages you added. Then end your reply with the question in `say`, as it is, and stop there: until they answer, don't run the app or its start script, or make speech to try it. Run `run` only if they say yes.",
+      "next": "offer_test",
+      "run": "elevenlabs onboard test --env-path .env.local",
+      "say": "ElevenLabs is set up: a working key ending in 4567 in .env.local, and ElevenLabs in your code. Want me to send a test request? It makes a short text-to-speech clip with your key and uses a few credits."
+    }
+  ],
+  "init_in_an_empty_project": [
+    {
+      "details": {
+        "env_file": ".env.local"
+      },
+      "instruction": "Tell the user `say`, then run `run`.",
+      "next": "run",
+      "rules": [
+        "Never open, print or cat the env file; run `onboard check` to verify it.",
+        "Never ask for an API key in chat, and never accept one pasted there.",
+        "Never put the key in code; the SDK reads ELEVENLABS_API_KEY.",
+        "Never run git clean or delete untracked files.",
+        "Don't write or change any code until a reply's `next` is `write_code` or `load_key`.",
+        "Put anything you download only to read, like a package or an archive, in a temp folder, never in the project.",
+        "Don't run the app (or its start script) or make speech to try it until the user says yes to the test request. API calls that what they asked for needs, like creating an agent, are fine. Once the code is written, run `onboard check` before you finish: it verifies the key and the code."
+      ],
+      "run": "elevenlabs onboard connect --env-path .env.local",
+      "say": "Next, I'll open the ElevenLabs approval page in your browser. Sign in (or create an account) and click Authorize."
+    }
+  ],
+  "test_failing_with_500": [
+    {
+      "details": {
+        "status": 500
+      },
+      "instruction": "Tell the user `say`, then anything they still have to do themselves, like installing the packages you added, in one or two concrete steps. There's nothing left to run.",
+      "next": "done",
+      "say": "The test request failed (500: down); ask me to try again later. ElevenLabs is set up: your key is in .env.local and ElevenLabs is in your code."
+    }
+  ],
+  "test_that_works": [
+    {
+      "details": {
+        "audio_file": "<home>/elevenlabs-hello-<clip>.mp3",
+        "status": 200
+      },
+      "instruction": "Tell the user `say`, then anything they still have to do themselves, like installing the packages you added, in one or two concrete steps. There's nothing left to run.",
+      "next": "done",
+      "say": "Your first request worked. Play <home>/elevenlabs-hello-<clip>.mp3 to hear it. ElevenLabs is set up: your key is in .env.local and ElevenLabs is in your code."
+    }
+  ],
+  "test_unreachable": [
+    {
+      "details": {
+        "status": null
+      },
+      "instruction": "Tell the user `say`, then anything they still have to do themselves, like installing the packages you added, in one or two concrete steps. There's nothing left to run.",
+      "next": "done",
+      "say": "I couldn't reach ElevenLabs for the test request; ask me to try again later. ElevenLabs is set up: your key is in .env.local and ElevenLabs is in your code."
+    }
+  ],
+  "test_with_no_credits": [
+    {
+      "details": {
+        "status": 402
+      },
+      "instruction": "Tell the user `say`, then anything they still have to do themselves, like installing the packages you added, in one or two concrete steps. There's nothing left to run.",
+      "next": "done",
+      "say": "The test request needs credits on your account. Add some at https://elevenlabs.io/app/subscription, then ask me to try again. ElevenLabs is set up: your key is in .env.local and ElevenLabs is in your code."
+    }
+  ],
+  "voice_agent_check": [
+    {
+      "details": {
+        "agent_id": "agent_7101k5zvyjhmfg983brhmhkd98n6",
+        "agent_url": "https://elevenlabs.io/app/agents/agents/agent_7101k5zvyjhmfg983brhmhkd98n6",
+        "api_key_source": "env_file",
+        "fixed": [
+          "added .env.local to .gitignore",
+          "made .env.local readable only by you"
+        ],
+        "key_last4": "4567",
+        "sdk_declared": false,
+        "sdk_imported": false,
+        "talk_to_url": "https://elevenlabs.io/app/talk-to?agent_id=agent_7101k5zvyjhmfg983brhmhkd98n6"
+      },
+      "instruction": "Tell the user `say`, then anything they still have to do themselves, like installing the packages you added, in one or two concrete steps. There's nothing left to run.",
+      "next": "done",
+      "say": "ElevenLabs is set up: a working key ending in 4567 in .env.local, and your agent \"Store helper\" in your code. Talk to it at https://elevenlabs.io/app/talk-to?agent_id=agent_7101k5zvyjhmfg983brhmhkd98n6, and change it at https://elevenlabs.io/app/agents/agents/agent_7101k5zvyjhmfg983brhmhkd98n6."
+    },
+    {
+      "details": {
+        "agent_id": "agent_7101k5zvyjhmfg983brhmhkd98n6",
+        "agent_url": "https://elevenlabs.io/app/agents/agents/agent_7101k5zvyjhmfg983brhmhkd98n6",
+        "api_key_source": "env_file",
+        "fixed": [],
+        "key_last4": "4567",
+        "sdk_declared": false,
+        "sdk_imported": false,
+        "talk_to_url": "https://elevenlabs.io/app/talk-to?agent_id=agent_7101k5zvyjhmfg983brhmhkd98n6"
+      },
+      "instruction": "Tell the user `say`, then anything they still have to do themselves, like installing the packages you added, in one or two concrete steps. There's nothing left to run.",
+      "next": "done",
+      "say": "ElevenLabs is set up: a working key ending in 4567 in .env.local, and your agent \"Store helper\" in your code. Talk to it at https://elevenlabs.io/app/talk-to?agent_id=agent_7101k5zvyjhmfg983brhmhkd98n6, and change it at https://elevenlabs.io/app/agents/agents/agent_7101k5zvyjhmfg983brhmhkd98n6."
+    }
+  ]
+}
