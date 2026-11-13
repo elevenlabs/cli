@@ -2483,11 +2483,13 @@ async fn a_failed_install_shows_a_short_clean_error_however_much_it_printed() {
         );
         let path = format!("{}:/usr/bin:/bin", bin.path().display());
         let failed = format!("Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: {line}");
+        // A line cut with `…` gets no full stop after it.
+        let said = if line.ends_with('…') { failed } else { format!("{failed}.") };
 
         let out = cli(home.path(), cwd.path(), OFFLINE, &["setup", "--yes"]).env("PATH", &path).output().unwrap();
         assert_eq!(out.status.code(), Some(1), "{row}");
         let stdout = String::from_utf8_lossy(&out.stdout);
-        assert_eq!(stdout, format!("{failed}.\nTo try again, run `elevenlabs setup --yes`.\n"), "{row}");
+        assert_eq!(stdout, format!("{said}\nTo try again, run `elevenlabs setup --yes`.\n"), "{row}");
         assert!(stdout.len() < 1000, "{row}: {} bytes", stdout.len());
 
         let out = cli(home.path(), cwd.path(), &server.uri(), &["onboard", "setup"])
@@ -2501,7 +2503,7 @@ async fn a_failed_install_shows_a_short_clean_error_however_much_it_printed() {
         assert!(!stdout.contains('\r') && !stdout.contains("\\r"), "{row}: {stdout}");
         assert!(!stdout.contains('\u{1b}') && !stdout.contains("\\u001b"), "{row}: {stdout}");
         let r: Value = serde_json::from_str(&stdout).unwrap();
-        assert!(say(&r).starts_with(&format!("{failed}.")), "{row}: {r}");
+        assert!(say(&r).starts_with(&said), "{row}: {r}");
     }
 }
 
