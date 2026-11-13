@@ -99,24 +99,13 @@ fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, C
         ..super::setup::LIMITS
     };
     let outcomes = super::setup::run(&super::setup::found_here(&home), &home, limits);
-    let mut say: Vec<String> = Vec::new();
-    for outcome in &outcomes {
-        let mut line = format!("{}.", super::setup::result_line(outcome));
-        if let Some(finish) = super::setup::finish(outcome) {
-            line.push_str(&format!(" To finish, {finish}."));
-        }
-        say.push(line);
-    }
-    if outcomes.iter().any(|o| !o.ok) {
-        say.push(format!("To try again later, run `{later}`."));
-    }
+    let (say, _) = super::setup::report(&outcomes);
     Ok(reply::Reply::new(reply::Next::Done, say.join(" ")).detail("setup", &outcomes))
 }
 
 /// `done`, the end of the flow, or, after a sign-in in this project, when a
-/// coding agent can take the plugin (or none of the three is there and the
-/// skills can be copied), the question that offers `setup`. Made once per
-/// sign-in.
+/// coding agent can take the plugin, the question that offers `setup`. Made
+/// once per sign-in.
 fn or_offer_setup(project: &project::Project, done: reply::Reply) -> reply::Reply {
     let Ok(session) = session::Session::for_project(&project.dir) else {
         return done;

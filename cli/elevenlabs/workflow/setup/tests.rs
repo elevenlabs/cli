@@ -21,94 +21,6 @@ fn path_with(programs: &[&str]) -> impl Fn(&str) -> Option<PathBuf> {
     }
 }
 
-#[test]
-fn agents_are_found_by_program_variable_and_folder() {
-    let home = tempfile::tempdir().unwrap();
-    let none = env_of(&[]);
-    assert_eq!(found(&none, &path_with(&[]), home.path()), vec![]);
-    assert_eq!(
-        found(&none, &path_with(&["claude", "codex"]), home.path()),
-        vec![
-            Agent::ClaudeCode("/bin/claude".into()),
-            Agent::Codex("/bin/codex".into())
-        ]
-    );
-    assert_eq!(
-        found(&none, &path_with(&["codex"]), home.path()),
-        vec![Agent::Codex("/bin/codex".into())]
-    );
-    for var in ["CURSOR_AGENT", "CURSOR_TRACE_ID"] {
-        assert_eq!(
-            found(&env_of(&[(var, "1")]), &path_with(&[]), home.path()),
-            vec![Agent::Cursor],
-            "{var}"
-        );
-    }
-    assert_eq!(
-        found(
-            &env_of(&[("CURSOR_AGENT", "")]),
-            &path_with(&[]),
-            home.path()
-        ),
-        vec![]
-    );
-    std::fs::create_dir(home.path().join(".cursor")).unwrap();
-    assert_eq!(
-        found(&none, &path_with(&["claude"]), home.path()),
-        vec![Agent::ClaudeCode("/bin/claude".into()), Agent::Cursor]
-    );
-}
-
-#[test]
-fn claude_code_is_the_program_it_names_when_that_is_claude() {
-    let home = tempfile::tempdir().unwrap();
-    for name in ["claude", "Claude.exe", "CLAUDE"] {
-        let dir = tempfile::tempdir().unwrap();
-        let program = dir.path().join(name);
-        std::fs::write(&program, "").unwrap();
-        let inside = env_of(&[("CLAUDE_CODE_EXECPATH", program.to_str().unwrap())]);
-        assert_eq!(
-            found(&inside, &path_with(&["claude"]), home.path()),
-            vec![Agent::ClaudeCode(program.clone())],
-            "{name}"
-        );
-        assert_eq!(
-            found(&inside, &path_with(&[]), home.path()),
-            vec![Agent::ClaudeCode(program)],
-            "{name}"
-        );
-    }
-    let gone = env_of(&[("CLAUDE_CODE_EXECPATH", "/nowhere/claude")]);
-    assert_eq!(found(&gone, &path_with(&[]), home.path()), vec![]);
-    assert_eq!(
-        found(&gone, &path_with(&["claude"]), home.path()),
-        vec![Agent::ClaudeCode("/bin/claude".into())]
-    );
-}
-
-/// Claude Code installed by npm names the runtime that runs it, which
-/// would load the project's own `plugin.js` given `plugin install`.
-#[test]
-fn a_runtime_named_by_claude_code_is_never_started() {
-    let home = tempfile::tempdir().unwrap();
-    for name in ["node", "bun", "node.exe", "claude-desktop", "claude.cmd"] {
-        let dir = tempfile::tempdir().unwrap();
-        let program = dir.path().join(name);
-        std::fs::write(&program, "").unwrap();
-        let inside = env_of(&[("CLAUDE_CODE_EXECPATH", program.to_str().unwrap())]);
-        assert_eq!(
-            found(&inside, &path_with(&["claude"]), home.path()),
-            vec![Agent::ClaudeCode("/bin/claude".into())],
-            "{name}: claude on PATH instead"
-        );
-        assert_eq!(
-            found(&inside, &path_with(&[]), home.path()),
-            vec![],
-            "{name}"
-        );
-    }
-}
-
 #[cfg(unix)]
 #[test]
 fn a_program_on_path_is_an_executable_file() {
@@ -172,12 +84,10 @@ const LIMITS_FOR_TESTS: Limits = Limits {
     total: Duration::from_secs(100),
 };
 
-/// Runs nothing; records each command and fails the ones `fails` names,
-/// or, made with [`Recorder::exactly`], only that one command.
+/// Runs nothing; records each command and fails those in `fails`.
 struct Recorder {
     ran: RefCell<Vec<String>>,
     fails: Vec<&'static str>,
-    exactly: bool,
 }
 
 impl Recorder {
@@ -185,14 +95,6 @@ impl Recorder {
         Self {
             ran: RefCell::new(Vec::new()),
             fails: fails.to_vec(),
-            exactly: false,
-        }
-    }
-
-    fn exactly(fails: &'static str) -> Self {
-        Self {
-            exactly: true,
-            ..Self::new(&[fails])
         }
     }
 
@@ -200,8 +102,7 @@ impl Recorder {
         assert!(limit <= Duration::from_secs(30));
         let line = format!("{} {}", program.display(), args.join(" "));
         self.ran.borrow_mut().push(line.clone());
-        let fails = |f: &&str| if self.exactly { line == *f } else { line.contains(f) };
-        match self.fails.iter().any(fails) {
+        match self.fails.contains(&line.as_str()) {
             true => Err("exited with 1: boom".into()),
             false => Ok(()),
         }
@@ -209,6 +110,11 @@ impl Recorder {
 
     fn ran(&self) -> Vec<String> {
         self.ran.borrow().clone()
+    }
+
+    /// [`install`] with this recorder, the time used never counting.
+    fn install(&self, agents: &[Agent]) -> Vec<Outcome> {
+        install(agents, LIMITS_FOR_TESTS, &|p, a, l| self.run(p, a, l), &|| Duration::ZERO)
     }
 }
 
@@ -221,75 +127,66 @@ fn all_agents() -> Vec<Agent> {
 }
 
 #[test]
-fn install_runs_each_agents_own_commands_in_order() {
+fn install_runs_each_agents_own_commands_in_order_and_says_how_to_finish() {
     let recorder = Recorder::new(&[]);
-    let outcomes = install(&all_agents(), LIMITS_FOR_TESTS, &|p, a, l| {
-        recorder.run(p, a, l)
-    });
+    let outcomes = recorder.install(&all_agents());
     assert_eq!(
         recorder.ran(),
         [
+            "claude plugin marketplace add elevenlabs/plugin",
             "claude plugin marketplace update elevenlabs",
-            "claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user",
+            "claude plugin install elevenlabs@elevenlabs",
             "claude plugin update elevenlabs@elevenlabs",
             "codex plugin marketplace add elevenlabs/plugin",
             "codex plugin marketplace upgrade elevenlabs",
             "codex plugin add elevenlabs@elevenlabs",
         ]
     );
-    assert!(outcomes.iter().all(|o| o.ok), "{outcomes:?}");
     assert_eq!(
-        outcomes.iter().map(result_line).collect::<Vec<_>>(),
-        [
-            "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server)",
-            "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server)",
-            "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install",
-        ]
+        report(&outcomes),
+        (
+            vec![
+                "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, \
+                 restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server."
+                    .to_string(),
+                "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
+                 Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server."
+                    .to_string(),
+                "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install.".to_string(),
+            ],
+            false
+        )
+    );
+
+    let recorder = Recorder::new(&["claude plugin install elevenlabs@elevenlabs"]);
+    let outcomes = recorder.install(&all_agents()[..2]);
+    assert_eq!(
+        report(&outcomes),
+        (
+            vec![
+                "Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: boom."
+                    .to_string(),
+                "Codex: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
+                 Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server."
+                    .to_string(),
+                "To try again, run `elevenlabs setup --yes`.".to_string(),
+            ],
+            true
+        ),
+        "no finishing step for the agent that failed"
     );
     assert_eq!(
-        outcomes.iter().filter_map(finish).collect::<Vec<_>>(),
-        [
-            "restart Claude Code, then run /mcp and sign in to the ElevenLabs MCP server",
-            "restart Codex, then run `codex mcp login elevenlabs` to sign in to the ElevenLabs MCP server",
-        ]
+        report(&[]),
+        (
+            vec![
+                "No Claude Code, Codex or Cursor found. If you use Claude Code in the Claude desktop app, ask it \
+                 to run \"elevenlabs setup --yes\" for you. For other coding agents, install the ElevenLabs \
+                 skills with: npx skills add elevenlabs/skills"
+                    .to_string()
+            ],
+            false
+        )
     );
-}
-
-#[test]
-fn only_the_install_commands_decide_an_agents_result() {
-    let refresh_fails = Recorder::new(&["marketplace update", "marketplace upgrade"]);
-    let outcomes = install(&all_agents(), LIMITS_FOR_TESTS, &|p, a, l| {
-        refresh_fails.run(p, a, l)
-    });
-    assert!(outcomes.iter().all(|o| o.ok), "{outcomes:?}");
-    assert_eq!(refresh_fails.ran().len(), 6);
-
-    for (fails, agent) in [
-        ("plugin install", "Claude Code"),
-        ("plugin update", "Claude Code"),
-        ("marketplace add", "Codex"),
-        ("plugin add", "Codex"),
-    ] {
-        let recorder = Recorder::new(&[fails]);
-        let outcomes = install(&all_agents(), LIMITS_FOR_TESTS, &|p, a, l| {
-            recorder.run(p, a, l)
-        });
-        let failed: Vec<_> = outcomes.iter().filter(|o| !o.ok).collect();
-        assert_eq!(failed.len(), 1, "{fails}: {outcomes:?}");
-        assert_eq!(failed[0].agent, agent);
-        assert!(failed[0].message.contains(fails), "{failed:?}");
-        assert!(
-            result_line(failed[0]).starts_with(&format!("{agent}: failed: `"))
-                && result_line(failed[0]).ends_with("` exited with 1: boom"),
-            "{}",
-            result_line(failed[0])
-        );
-        assert_eq!(
-            finish(failed[0]),
-            None,
-            "no finishing steps for a failed agent"
-        );
-    }
 }
 
 #[test]
@@ -305,16 +202,15 @@ fn agents_not_reached_in_time_count_as_failed() {
         command: Duration::from_secs(30),
         total: Duration::from_secs(50),
     };
-    let outcomes = install_timed(&all_agents(), limits, &slow, &|| used.get());
+    let outcomes = install(&all_agents(), limits, &slow, &|| used.get());
     assert_eq!(recorder.ran().len(), 2, "{:?}", recorder.ran());
-    assert!(
-        !outcomes[0].ok && outcomes[0].message.contains("ran out of time"),
-        "{outcomes:?}"
-    );
-    assert!(
-        !outcomes[1].ok && outcomes[1].message.contains("ran out of time"),
-        "{outcomes:?}"
-    );
+    for outcome in &outcomes[..2] {
+        assert_eq!(
+            (outcome.ok, outcome.message.as_str()),
+            (false, "ran out of time: setup stops after 50s"),
+            "{outcomes:?}"
+        );
+    }
     assert!(outcomes[2].ok, "Cursor runs nothing");
 }
 
@@ -364,7 +260,7 @@ fn a_command_past_its_limit_is_stopped_and_fails() {
         "{:?}",
         started.elapsed()
     );
-    assert_eq!(err, "ran out of time after 200 ms and was stopped");
+    assert_eq!(err, "ran out of time after 200ms and was stopped");
 
     let outcomes = install(
         &[Agent::ClaudeCode(hangs), Agent::Cursor],
@@ -373,6 +269,7 @@ fn a_command_past_its_limit_is_stopped_and_fails() {
             total: Duration::from_millis(300),
         },
         &|p, a, l| run_program(p, a, l, dir.path()),
+        &|| started.elapsed(),
     );
     assert!(
         started.elapsed() < Duration::from_secs(5),
@@ -387,26 +284,6 @@ fn a_command_past_its_limit_is_stopped_and_fails() {
     assert!(outcomes[1].ok);
 }
 
-#[cfg(unix)]
-#[test]
-fn a_failing_command_reports_its_last_line_and_stdin_is_closed() {
-    let dir = tempfile::tempdir().unwrap();
-    let fails = script(
-        dir.path(),
-        "codex",
-        "echo working; echo 'first' >&2; echo 'no such plugin' >&2; exit 3",
-    );
-    assert_eq!(
-        run_program(&fails, &[], Duration::from_secs(10), dir.path()),
-        Err("exited with 3: no such plugin".into())
-    );
-    let reads = script(dir.path(), "reads", "read line && exit 1; exit 0");
-    assert_eq!(
-        run_program(&reads, &[], Duration::from_secs(10), dir.path()),
-        Ok(())
-    );
-}
-
 /// Kills the process when the test ends, passed or not.
 #[cfg(unix)]
 struct KillOnDrop(i32);
@@ -415,29 +292,6 @@ struct KillOnDrop(i32);
 impl Drop for KillOnDrop {
     fn drop(&mut self) {
         unsafe { libc::kill(self.0, libc::SIGKILL) };
-    }
-}
-
-#[cfg(unix)]
-#[test]
-fn a_command_past_its_limit_is_stopped_with_everything_it_started() {
-    let dir = tempfile::tempdir().unwrap();
-    let pid = dir.path().join("pid");
-    let hangs = script(
-        dir.path(),
-        "codex",
-        &format!("sleep 300 &\necho $! > '{}'\nwait", pid.display()),
-    );
-    // Long enough for the stand-in to start its child on a busy machine.
-    let result = run_program(&hangs, &[], Duration::from_secs(2), dir.path());
-    let pid: i32 = std::fs::read_to_string(&pid).unwrap().trim().parse().unwrap();
-    let _cleanup = KillOnDrop(pid);
-    let err = result.unwrap_err();
-    assert!(err.contains("ran out of time"), "{err}");
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while unsafe { libc::kill(pid, 0) } == 0 {
-        assert!(Instant::now() < deadline, "sleep {pid} still runs");
-        std::thread::sleep(Duration::from_millis(20));
     }
 }
 
@@ -461,85 +315,6 @@ fn agents_run_in_the_home_folder_not_the_project() {
     assert_eq!(lines, [home.clone(), home]);
 }
 
-fn skill(dir: &Path, name: &str, text: &str) {
-    std::fs::create_dir_all(dir.join(name).join("references")).unwrap();
-    std::fs::write(dir.join(name).join("SKILL.md"), text).unwrap();
-    std::fs::write(dir.join(name).join("references").join("a.md"), "ref").unwrap();
-}
-
-#[test]
-fn the_skills_go_into_agents_skills_marked_as_setups() {
-    let (unpacked, home) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
-    skill(unpacked.path(), "text-to-speech", "new tts");
-    skill(unpacked.path(), "music", "new music");
-    skill(unpacked.path(), "dubbing", "new dubbing");
-    std::fs::create_dir_all(unpacked.path().join("evals").join("cases")).unwrap();
-    std::fs::write(unpacked.path().join("README.md"), "readme").unwrap();
-    let root = home.path().join(".agents").join("skills");
-
-    // One of the developer's own, and one setup wrote before.
-    std::fs::create_dir_all(root.join("music")).unwrap();
-    std::fs::write(root.join("music").join("SKILL.md"), "mine").unwrap();
-    std::fs::create_dir_all(root.join("dubbing")).unwrap();
-    std::fs::write(root.join("dubbing").join("SKILL.md"), "old dubbing").unwrap();
-    std::fs::write(root.join("dubbing").join("stale.md"), "old").unwrap();
-    std::fs::write(root.join("dubbing").join(MARKER), "").unwrap();
-
-    let copied = copy_skills(unpacked.path(), home.path()).unwrap();
-    assert_eq!(
-        copied,
-        Copied {
-            written: vec!["dubbing".into(), "text-to-speech".into()],
-            kept: vec!["music".into()],
-        }
-    );
-    let read = |p: &[&str]| {
-        std::fs::read_to_string(p.iter().fold(root.clone(), |a, b| a.join(b))).unwrap()
-    };
-    assert_eq!(read(&["text-to-speech", "SKILL.md"]), "new tts");
-    assert_eq!(read(&["text-to-speech", "references", "a.md"]), "ref");
-    assert_eq!(read(&["text-to-speech", MARKER]), "");
-    assert_eq!(read(&["dubbing", "SKILL.md"]), "new dubbing");
-    assert!(
-        !root.join("dubbing").join("stale.md").exists(),
-        "replaced whole"
-    );
-    assert_eq!(read(&["music", "SKILL.md"]), "mine");
-    assert!(!root.join("music").join(MARKER).exists());
-    assert_eq!(std::fs::read_dir(root.join("music")).unwrap().count(), 1);
-    assert!(!root.join("evals").exists() && !root.join("README.md").exists());
-
-    // Again: everything setup wrote is replaced, the developer's still left.
-    let again = copy_skills(unpacked.path(), home.path()).unwrap();
-    assert_eq!(again, copied);
-}
-
-#[cfg(unix)]
-#[test]
-fn a_copy_that_stops_partway_is_replaced_next_time() {
-    use std::os::unix::fs::PermissionsExt;
-    if unsafe { libc::geteuid() } == 0 {
-        // Root reads a file whatever its mode, so the copy can't be made to stop.
-        return;
-    }
-    let (unpacked, home) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
-    skill(unpacked.path(), "music", "new music");
-    let unreadable = unpacked.path().join("music").join("references").join("a.md");
-    std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o000)).unwrap();
-    let target = skills_root(home.path()).join("music");
-
-    assert!(copy_skills(unpacked.path(), home.path()).is_err());
-    assert!(target.join(MARKER).is_file(), "marked before the copy");
-
-    std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o644)).unwrap();
-    let copied = copy_skills(unpacked.path(), home.path()).unwrap();
-    assert_eq!(copied.written, ["music"]);
-    assert_eq!(
-        std::fs::read_to_string(target.join("references").join("a.md")).unwrap(),
-        "ref"
-    );
-}
-
 #[test]
 fn the_offer_names_the_agents_that_can_take_the_plugin() {
     let claude = Agent::ClaudeCode("claude".into());
@@ -556,10 +331,7 @@ fn the_offer_names_the_agents_that_can_take_the_plugin() {
         question(&[claude, codex, Agent::Cursor]),
         plugin("Claude Code and Codex")
     );
-    assert_eq!(
-        question(&[]),
-        Some("Want me to install the ElevenLabs skills for your coding agents?".into())
-    );
+    assert_eq!(question(&[]), None, "nothing to install into");
     assert_eq!(
         question(&[Agent::Cursor]),
         None,
@@ -587,16 +359,13 @@ fn the_later_command_runs_the_cli_the_way_this_run_was_started() {
 
 #[test]
 fn the_plan_says_what_would_happen_for_each_agent() {
-    let home = Path::new("/home/dev");
     assert_eq!(
-        plan(&[Agent::ClaudeCode("/bin/claude".into()), Agent::Cursor], home),
+        plan(&[Agent::ClaudeCode("/bin/claude".into()), Agent::Cursor]),
         [
             "Claude Code (/bin/claude): install the ElevenLabs plugin (skills and the hosted MCP server)",
             "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install",
         ]
     );
-    assert_eq!(plan(&[], home).len(), 1);
-    assert!(plan(&[], home)[0].contains(&skills_root(home).display().to_string()));
 }
 
 // ── finding agents, as a table ──────────────────────────────────────
@@ -616,6 +385,8 @@ enum CursorBy {
     Folder,
     AgentVariable,
     TraceVariable,
+    /// `CURSOR_AGENT` set but empty, which doesn't count.
+    EmptyVariable,
     Nothing,
 }
 
@@ -631,6 +402,7 @@ fn every_combination_of_claude_code_codex_and_cursor_is_found() {
                 CursorBy::Folder,
                 CursorBy::AgentVariable,
                 CursorBy::TraceVariable,
+                CursorBy::EmptyVariable,
                 CursorBy::Nothing,
             ] {
                 let (home, bin) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
@@ -653,9 +425,10 @@ fn every_combination_of_claude_code_codex_and_cursor_is_found() {
                     CursorBy::Folder => std::fs::create_dir(home.path().join(".cursor")).unwrap(),
                     CursorBy::AgentVariable => vars.push(("CURSOR_AGENT", "1")),
                     CursorBy::TraceVariable => vars.push(("CURSOR_TRACE_ID", "a1b2")),
+                    CursorBy::EmptyVariable => vars.push(("CURSOR_AGENT", "")),
                     CursorBy::Nothing => {}
                 }
-                if !matches!(cursor, CursorBy::Nothing) {
+                if !matches!(cursor, CursorBy::EmptyVariable | CursorBy::Nothing) {
                     want.push(Agent::Cursor);
                 }
                 let path = std::env::join_paths([bin.path()]).unwrap();
@@ -665,7 +438,7 @@ fn every_combination_of_claude_code_codex_and_cursor_is_found() {
             }
         }
     }
-    assert_eq!(rows, 32);
+    assert_eq!(rows, 40);
 }
 
 /// A path to `to` relative to this process's folder, as a PATH entry can be.
@@ -766,11 +539,24 @@ fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
     // the home folder, or on Windows from the project, would not be them.
     let relative = relative_to_here(odd.parent().unwrap()).join("claude");
     let dot_relative = Path::new(".").join(&relative);
+    // Each in a folder of its own, so the names differ even where case doesn't.
+    let named = |name: &str| {
+        let dir = base.path().join(format!("named {name}"));
+        std::fs::create_dir(&dir).unwrap();
+        script(&dir, name, "exit 0")
+    };
+    let (claude_exe, upper) = (named("Claude.exe"), named("CLAUDE"));
+    let (node_exe, claude_cmd, desktop) = (named("node.exe"), named("claude.cmd"), named("claude-desktop"));
 
     // (row, CLAUDE_CODE_EXECPATH, the program it names when it counts)
-    let rows: [(&str, &Path, Option<&Path>); 9] = [
+    let rows: [(&str, &Path, Option<&Path>); 14] = [
+        ("Claude.exe, as Windows spells it", &claude_exe, Some(&claude_exe)),
+        ("CLAUDE, in capitals", &upper, Some(&upper)),
         ("node", &node, None),
+        ("node.exe", &node_exe, None),
         ("bun", &bun, None),
+        ("claude.cmd, a shim that would run node", &claude_cmd, None),
+        ("claude-desktop", &desktop, None),
         ("a missing file", &missing, None),
         ("a folder named claude", &named_folder, None),
         ("an empty value", Path::new(""), None),
@@ -792,15 +578,20 @@ fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
 
 // ── installing, as a table and as a randomized run ──────────────────
 
-/// The six commands, in the order `install` runs them.
-const COMMANDS: [&str; 6] = [
+/// The seven commands, in the order `install` runs them.
+const COMMANDS: [&str; 7] = [
+    "claude plugin marketplace add elevenlabs/plugin",
     "claude plugin marketplace update elevenlabs",
-    "claude plugin install elevenlabs --marketplace elevenlabs/plugin --scope user",
+    "claude plugin install elevenlabs@elevenlabs",
     "claude plugin update elevenlabs@elevenlabs",
     "codex plugin marketplace add elevenlabs/plugin",
     "codex plugin marketplace upgrade elevenlabs",
     "codex plugin add elevenlabs@elevenlabs",
 ];
+
+/// The commands of [`COMMANDS`] whose result decides their agent's: Claude
+/// Code's `plugin install` and `plugin update`, and Codex's `plugin add`.
+const DECIDES: [usize; 3] = [2, 3, 6];
 
 const INSTALLED: &str = "installed the ElevenLabs plugin (skills and the hosted MCP server)";
 
@@ -809,37 +600,56 @@ fn each_failing_command_stops_its_own_agent_and_no_other() {
     let claude = Agent::ClaudeCode("claude".into());
     let codex = Agent::Codex("codex".into());
     let both = [claude.clone(), codex.clone(), Agent::Cursor];
-    // (agents, the command that fails, the commands that ran, each agent's result)
-    let rows: [(&[Agent], usize, &[usize], &[bool]); 12] = [
-        (&[claude.clone()], 0, &[0, 1, 2], &[true]),
-        (&[claude.clone()], 1, &[0, 1], &[false]),
-        (&[claude.clone()], 2, &[0, 1, 2], &[false]),
-        (&[codex.clone()], 3, &[3], &[false]),
-        (&[codex.clone()], 4, &[3, 4, 5], &[true]),
-        (&[codex.clone()], 5, &[3, 4, 5], &[false]),
-        (&both, 0, &[0, 1, 2, 3, 4, 5], &[true, true, true]),
-        (&both, 1, &[0, 1, 3, 4, 5], &[false, true, true]),
-        (&both, 2, &[0, 1, 2, 3, 4, 5], &[false, true, true]),
-        (&both, 3, &[0, 1, 2, 3], &[true, false, true]),
-        (&both, 4, &[0, 1, 2, 3, 4, 5], &[true, true, true]),
-        (&both, 5, &[0, 1, 2, 3, 4, 5], &[true, false, true]),
+    // (agents, the commands that fail, the commands that ran, each agent's
+    // result: `None` for success, else the command whose error it shows)
+    let rows: [(&[Agent], &[usize], &[usize], &[Option<usize>]); 18] = [
+        (&[claude.clone()], &[0], &[0, 1, 2, 3], &[None]),
+        (&[claude.clone()], &[1], &[0, 1, 2, 3], &[None]),
+        (&[claude.clone()], &[0, 1], &[0, 1, 2, 3], &[None]),
+        (&[claude.clone()], &[2], &[0, 1, 2], &[Some(2)]),
+        (&[claude.clone()], &[3], &[0, 1, 2, 3], &[Some(3)]),
+        (&[claude.clone()], &[0, 2], &[0, 1, 2], &[Some(0)]),
+        (&[claude.clone()], &[1, 3], &[0, 1, 2, 3], &[Some(1)]),
+        (&[codex.clone()], &[4], &[4, 5, 6], &[None]),
+        (&[codex.clone()], &[5], &[4, 5, 6], &[None]),
+        (&[codex.clone()], &[6], &[4, 5, 6], &[Some(6)]),
+        (&[codex.clone()], &[4, 6], &[4, 5, 6], &[Some(4)]),
+        (&both, &[], &[0, 1, 2, 3, 4, 5, 6], &[None, None, None]),
+        (&both, &[0, 4], &[0, 1, 2, 3, 4, 5, 6], &[None, None, None]),
+        (&both, &[2], &[0, 1, 2, 4, 5, 6], &[Some(2), None, None]),
+        (&both, &[3], &[0, 1, 2, 3, 4, 5, 6], &[Some(3), None, None]),
+        (&both, &[5], &[0, 1, 2, 3, 4, 5, 6], &[None, None, None]),
+        (&both, &[6], &[0, 1, 2, 3, 4, 5, 6], &[None, Some(6), None]),
+        (&both, &[0, 2, 6], &[0, 1, 2, 4, 5, 6], &[Some(0), Some(6), None]),
     ];
-    for (agents, fails, ran, ok) in rows {
-        let row = format!("{:?} with `{}` failing", agents.iter().map(Agent::name).collect::<Vec<_>>(), COMMANDS[fails]);
-        let recorder = Recorder::exactly(COMMANDS[fails]);
-        let outcomes = install(agents, LIMITS_FOR_TESTS, &|p, a, l| recorder.run(p, a, l));
+    for (agents, fails, ran, results) in rows {
+        let fails: Vec<&str> = fails.iter().map(|&i| COMMANDS[i]).collect();
+        let row = format!("{:?} with {fails:?} failing", agents.iter().map(Agent::name).collect::<Vec<_>>());
+        let recorder = Recorder::new(&fails);
+        let outcomes = recorder.install(agents);
         let want: Vec<String> = ran.iter().map(|&i| COMMANDS[i].to_string()).collect();
         assert_eq!(recorder.ran(), want, "{row}");
         let want: Vec<Outcome> = agents
             .iter()
-            .zip(ok)
-            .map(|(agent, &ok)| Outcome {
-                agent: agent.name(),
-                ok,
-                message: match (agent, ok) {
-                    (Agent::Cursor, _) => format!("open {CURSOR_PAGE} and select Install"),
-                    (_, true) => INSTALLED.into(),
-                    (_, false) => format!("`{}` exited with 1: boom", COMMANDS[fails]),
+            .zip(results)
+            .map(|(agent, shows)| match (agent, shows) {
+                (Agent::Cursor, _) => Outcome {
+                    agent: "Cursor",
+                    ok: true,
+                    message: format!("open {CURSOR_PAGE} and select Install"),
+                    finish: None,
+                },
+                (_, None) => Outcome {
+                    agent: agent.name(),
+                    ok: true,
+                    message: INSTALLED.into(),
+                    finish: agent.finish(),
+                },
+                (_, Some(i)) => Outcome {
+                    agent: agent.name(),
+                    ok: false,
+                    message: format!("`{}` exited with 1: boom", COMMANDS[*i]),
+                    finish: None,
                 },
             })
             .collect();
@@ -894,7 +704,7 @@ fn install_keeps_its_rules_under_2000_random_failure_patterns() {
         let rng = RefCell::new(Rng(rng.next() | 1));
         let clock = std::cell::Cell::new(Duration::ZERO);
         let calls = RefCell::new(Vec::<Call>::new());
-        let outcomes = install_timed(
+        let outcomes = install(
             &agents,
             limits,
             &|program, args, limit| {
@@ -949,12 +759,12 @@ fn install_keeps_its_rules_under_2000_random_failure_patterns() {
                     "{why}: {call:?}"
                 );
             }
-            let decides = |line: &str| {
-                agent.steps().iter().any(|(args, decides)| *decides && line.ends_with(&args.join(" ")))
-            };
+            let decides = |line: &str| DECIDES.iter().any(|&i| COMMANDS[i] == line);
             let deciding_failure = mine.iter().position(|c| c.failed && decides(&c.line));
             if let Some(at) = deciding_failure {
                 assert_eq!(at + 1, mine.len(), "{why}: nothing runs after a deciding command fails");
+                let first = mine.iter().find(|c| c.failed).unwrap();
+                assert_eq!(outcome.message, format!("`{}` failed", first.line), "{why}: the first failed command shows");
             }
             let finished = mine.len() == planned.len();
             if !finished && deciding_failure.is_none() {
@@ -963,363 +773,15 @@ fn install_keeps_its_rules_under_2000_random_failure_patterns() {
                     "{why}: stopped early only when time ran out: {outcome:?}"
                 );
             }
-            let every_deciding_command_worked = agent
-                .steps()
+            let every_deciding_command_worked = planned
                 .iter()
-                .filter(|(_, decides)| *decides)
-                .all(|(args, _)| mine.iter().any(|c| c.line.ends_with(&args.join(" ")) && !c.failed));
+                .filter(|c| decides(c))
+                .all(|c| mine.iter().any(|m| &m.line == c && !m.failed));
             let want_ok = matches!(agent, Agent::Cursor) || every_deciding_command_worked;
             assert_eq!(outcome.ok, want_ok, "{why}: {outcome:?} after {lines:?}");
         }
         assert_eq!(next, calls.len(), "{why}: every command belongs to an agent, in their order");
     }
-}
-
-// ── the skills copy, against a local server standing in for GitHub ──
-
-/// Everything under `root` but `<root>/.agents/skills`: each path with its
-/// kind, its bytes or its link's target, and its permissions. The `.agents`
-/// folder that holds it is left out too, so making it counts as no change.
-#[cfg(unix)]
-fn outside_the_skills(root: &Path) -> std::collections::BTreeMap<PathBuf, String> {
-    let mut all = tree(root, &[skills_root(Path::new(""))]);
-    if all.get(Path::new(".agents")).is_some_and(|what| what.starts_with("folder")) {
-        all.remove(Path::new(".agents"));
-    }
-    all
-}
-
-/// Every path under `root` but those under `skip`, with what it holds.
-#[cfg(unix)]
-fn tree(root: &Path, skip: &[PathBuf]) -> std::collections::BTreeMap<PathBuf, String> {
-    use std::os::unix::fs::PermissionsExt;
-    fn walk(root: &Path, at: &Path, skip: &[PathBuf], out: &mut std::collections::BTreeMap<PathBuf, String>) {
-        for entry in std::fs::read_dir(at).unwrap().flatten() {
-            let path = entry.path();
-            let relative = path.strip_prefix(root).unwrap().to_path_buf();
-            if skip.contains(&relative) {
-                continue;
-            }
-            let meta = std::fs::symlink_metadata(&path).unwrap();
-            let mode = meta.permissions().mode() & 0o7777;
-            let what = if meta.file_type().is_symlink() {
-                format!("link to {}", std::fs::read_link(&path).unwrap().display())
-            } else if meta.is_dir() {
-                format!("folder {mode:o}")
-            } else {
-                format!("file {mode:o} {:?}", std::fs::read(&path).unwrap())
-            };
-            out.insert(relative, what);
-            if meta.is_dir() && !meta.file_type().is_symlink() {
-                walk(root, &path, skip, out);
-            }
-        }
-    }
-    let mut out = std::collections::BTreeMap::new();
-    walk(root, root, skip, &mut out);
-    out
-}
-
-/// A `.tar.gz` of `files` (path and text; a path ending in `/` is a folder,
-/// text starting with `->` a symlink) under `skills-main/`, made with the
-/// system's tar as GitHub's archive is laid out.
-#[cfg(unix)]
-fn archive(files: &[(&str, &str)]) -> Vec<u8> {
-    let dir = tempfile::tempdir().unwrap();
-    let top = dir.path().join("skills-main");
-    std::fs::create_dir(&top).unwrap();
-    for (path, text) in files {
-        let at = top.join(path);
-        std::fs::create_dir_all(if path.ends_with('/') { &at } else { at.parent().unwrap() }).unwrap();
-        if let Some(target) = text.strip_prefix("->") {
-            std::os::unix::fs::symlink(target, &at).unwrap();
-        } else if !path.ends_with('/') {
-            std::fs::write(&at, text).unwrap();
-        }
-    }
-    let out = dir.path().join("skills.tar.gz");
-    let status = Command::new("tar")
-        .arg("-czf")
-        .arg(&out)
-        .arg("-C")
-        .arg(dir.path())
-        .arg("skills-main")
-        .status()
-        .unwrap();
-    assert!(status.success());
-    std::fs::read(out).unwrap()
-}
-
-#[cfg(unix)]
-const TWO_SKILLS: &[(&str, &str)] = &[
-    ("music/SKILL.md", "# music"),
-    ("music/references/api.md", "the api"),
-    ("text-to-speech/SKILL.md", "# tts"),
-    ("README.md", "readme"),
-    ("evals/cases/a.json", "{}"),
-];
-
-/// A server standing in for GitHub that answers `GET /<name>` with each of
-/// `answers`, and the URL of the first.
-#[cfg(unix)]
-async fn github(answers: Vec<(&str, wiremock::ResponseTemplate)>) -> (wiremock::MockServer, String) {
-    let server = wiremock::MockServer::start().await;
-    let first = format!("{}/{}", server.uri(), answers[0].0);
-    for (name, answer) in answers {
-        wiremock::Mock::given(wiremock::matchers::method("GET"))
-            .and(wiremock::matchers::path(format!("/{name}")))
-            .respond_with(answer)
-            .mount(&server)
-            .await;
-    }
-    (server, first)
-}
-
-#[cfg(unix)]
-fn body(bytes: Vec<u8>) -> wiremock::ResponseTemplate {
-    wiremock::ResponseTemplate::new(200).set_body_bytes(bytes)
-}
-
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread")]
-async fn the_skills_download_is_copied_or_fails_with_what_went_wrong() {
-    let good = archive(TWO_SKILLS);
-    let truncated = good[..good.len() / 2].to_vec();
-    let odd = archive(&[
-        ("music/SKILL.md", "# music"),
-        ("music/hosts", "->/etc/hosts"),
-        ("music/up", "->../../outside"),
-        ("linked", "->music"),
-        ("notes", "a file where a skill folder would be"),
-        ("weird/SKILL.md/", ""),
-        ("weird/other.md", "no SKILL.md file"),
-    ]);
-    let none = archive(&[("README.md", "readme"), ("evals/a.json", "{}")]);
-    let copied = |n: usize| move |root: &Path| format!("copied {n} ElevenLabs skills into {}", root.display());
-    type Want = Box<dyn Fn(&str, &Path) -> (bool, String)>;
-    let ok = |n: usize| -> Want { Box::new(move |_, root| (true, copied(n)(root))) };
-    let starts = |ok: bool, prefix: &'static str| -> Want {
-        Box::new(move |url, _| (ok, prefix.replace("{url}", url)))
-    };
-    // (row, how the server answers, the outcome, the skill folders left)
-    let rows: Vec<(&str, Vec<(&str, wiremock::ResponseTemplate)>, Want, &[&str])> = vec![
-        ("a good archive", vec![("main.tar.gz", body(good.clone()))], ok(2), &["music", "text-to-speech"]),
-        (
-            "a redirect to it",
-            vec![
-                ("archive", wiremock::ResponseTemplate::new(302).insert_header("Location", "/codeload.tar.gz")),
-                ("codeload.tar.gz", body(good.clone())),
-            ],
-            ok(2),
-            &["music", "text-to-speech"],
-        ),
-        (
-            "HTTP 404",
-            vec![("main.tar.gz", wiremock::ResponseTemplate::new(404))],
-            starts(false, "couldn't download the skills from {url}: HTTP status client error (404 Not Found)"),
-            &[],
-        ),
-        (
-            "HTTP 500",
-            vec![("main.tar.gz", wiremock::ResponseTemplate::new(500))],
-            starts(false, "couldn't download the skills from {url}: HTTP status server error (500 Internal Server Error)"),
-            &[],
-        ),
-        (
-            "a body that is not gzip",
-            vec![("main.tar.gz", body(b"<html>not here</html>".to_vec()))],
-            starts(false, "tar couldn't unpack the skills: "),
-            &[],
-        ),
-        (
-            "a truncated archive",
-            vec![("main.tar.gz", body(truncated))],
-            starts(false, "tar couldn't unpack the skills: "),
-            &[],
-        ),
-        (
-            "an archive with no skills",
-            vec![("main.tar.gz", body(none))],
-            starts(false, "the download from {url} held no skills"),
-            &[],
-        ),
-        (
-            "links, a file and a SKILL.md folder where skills would be",
-            vec![("main.tar.gz", body(odd))],
-            ok(1),
-            &["music"],
-        ),
-    ];
-    for (row, answers, want, left) in rows {
-        let (_server, url) = github(answers).await;
-        let home = tempfile::tempdir().unwrap();
-        std::fs::write(home.path().join(".profile"), "mine").unwrap();
-        let before = outside_the_skills(home.path());
-        let outcome = skills_from(&url, home.path());
-        let root = skills_root(home.path());
-        let (ok, message) = want(&url, &root);
-        assert_eq!(outcome.ok, ok, "{row}: {outcome:?}");
-        assert!(outcome.message.starts_with(&message), "{row}: {:?} should start {message:?}", outcome.message);
-        assert_eq!(outside_the_skills(home.path()), before, "{row}: nothing else in the home folder changed");
-        let mut there: Vec<String> = std::fs::read_dir(&root)
-            .map(|d| d.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect())
-            .unwrap_or_default();
-        there.sort();
-        assert_eq!(there, left, "{row}");
-        if left.contains(&"music") {
-            let music = tree(&root.join("music"), &[]);
-            let names: Vec<String> = music.keys().map(|p| p.display().to_string()).collect();
-            let want: &[&str] = if row.starts_with("links") {
-                &[MARKER, "SKILL.md"]
-            } else {
-                &[MARKER, "SKILL.md", "references", "references/api.md"]
-            };
-            assert_eq!(names, want, "{row}: no link is followed or copied");
-        }
-    }
-}
-
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread")]
-async fn the_skills_land_whatever_the_home_folder_already_holds() {
-    use std::os::unix::fs::PermissionsExt;
-    let (_server, url) = github(vec![("main.tar.gz", body(archive(TWO_SKILLS)))]).await;
-    type Prepare = fn(&Path);
-    // (row, the home folder before, ok, what the message says after the root)
-    let rows: [(&str, Prepare, bool, &str); 7] = [
-        ("a fresh home folder", |_| {}, true, ""),
-        (
-            "an .agents folder holding other things",
-            |h| {
-                std::fs::create_dir_all(h.join(".agents/other")).unwrap();
-                std::fs::write(h.join(".agents/other/keep.md"), "keep").unwrap();
-            },
-            true,
-            "",
-        ),
-        (
-            "a skill folder setup wrote",
-            |h| {
-                let music = skills_root(h).join("music");
-                std::fs::create_dir_all(&music).unwrap();
-                std::fs::write(music.join(MARKER), "").unwrap();
-                std::fs::write(music.join("stale.md"), "old").unwrap();
-            },
-            true,
-            "",
-        ),
-        (
-            "a skill folder of the developer's own",
-            |h| {
-                let music = skills_root(h).join("music");
-                std::fs::create_dir_all(&music).unwrap();
-                std::fs::write(music.join("SKILL.md"), "mine").unwrap();
-            },
-            true,
-            "; left alone, since setup didn't write them: music",
-        ),
-        (
-            "a skill folder that is a symlink to a marked folder",
-            |h| {
-                let elsewhere = h.join("elsewhere");
-                std::fs::create_dir_all(&elsewhere).unwrap();
-                std::fs::write(elsewhere.join(MARKER), "").unwrap();
-                std::fs::create_dir_all(skills_root(h)).unwrap();
-                std::os::unix::fs::symlink(&elsewhere, skills_root(h).join("music")).unwrap();
-            },
-            true,
-            "; left alone, since setup didn't write them: music",
-        ),
-        (
-            "an .agents that is a file",
-            |h| std::fs::write(h.join(".agents"), "not a folder").unwrap(),
-            false,
-            "",
-        ),
-        (
-            "a read-only skill folder setup wrote",
-            |h| {
-                let music = skills_root(h).join("music");
-                std::fs::create_dir_all(&music).unwrap();
-                std::fs::write(music.join(MARKER), "").unwrap();
-                std::fs::write(music.join("SKILL.md"), "old").unwrap();
-                std::fs::set_permissions(&music, std::fs::Permissions::from_mode(0o555)).unwrap();
-            },
-            false,
-            "",
-        ),
-    ];
-    for (row, prepare, ok, kept) in rows {
-        let home = tempfile::tempdir().unwrap();
-        prepare(home.path());
-        let root = skills_root(home.path());
-        let before = outside_the_skills(home.path());
-        let skills_before = root.is_dir().then(|| tree(&root, &[]));
-        let outcome = skills_from(&url, home.path());
-        assert_eq!(outcome.ok, ok, "{row}: {outcome:?}");
-        assert_eq!(outside_the_skills(home.path()), before, "{row}: nothing outside the skills folder changed");
-        if ok {
-            let written = if kept.is_empty() { 2 } else { 1 };
-            assert_eq!(
-                outcome.message,
-                format!("copied {written} ElevenLabs skills into {}{kept}", root.display()),
-                "{row}"
-            );
-            let tts = tree(&root.join("text-to-speech"), &[]);
-            assert_eq!(tts.len(), 2, "{row}: {tts:?}");
-        } else if row.contains("read-only") {
-            assert!(outcome.message.starts_with(&root.join("music").display().to_string()), "{row}: {outcome:?}");
-            assert_eq!(Some(tree(&root, &[])), skills_before, "{row}: left as it was");
-            std::fs::set_permissions(root.join("music"), std::fs::Permissions::from_mode(0o755)).unwrap();
-        } else {
-            assert!(outcome.message.contains(".agents"), "{row}: {outcome:?}");
-        }
-        if row.contains("own") || row.contains("symlink") {
-            assert_eq!(Some(tree(&root, &[]).into_iter().filter(|(p, _)| p.starts_with("music")).collect()),
-                skills_before.map(|t| t.into_iter().filter(|(p, _)| p.starts_with("music")).collect::<std::collections::BTreeMap<_, _>>()),
-                "{row}: the folder is left as it was");
-        }
-    }
-}
-
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread")]
-async fn five_runs_give_byte_identical_skills_with_nested_folders_and_odd_names() {
-    let files: &[(&str, &str)] = &[
-        ("music/SKILL.md", "# music"),
-        ("music/a/b/c/deep.md", "deep"),
-        ("music/with space.md", "space"),
-        ("music/ünï 日本.md", "unicode"),
-        ("music/-dash.md", "dash"),
-        ("music/.hidden", "hidden"),
-        ("music/empty/", ""),
-        ("dubbing/SKILL.md", "# dubbing"),
-    ];
-    let (_server, url) = github(vec![("main.tar.gz", body(archive(files)))]).await;
-    let home = tempfile::tempdir().unwrap();
-    let before = outside_the_skills(home.path());
-    let root = skills_root(home.path());
-    let mut first = None;
-    for run in 0..5 {
-        let outcome = skills_from(&url, home.path());
-        assert!(outcome.ok, "run {run}: {outcome:?}");
-        let now = tree(&root, &[]);
-        match &first {
-            None => first = Some(now),
-            Some(first) => assert_eq!(&now, first, "run {run}"),
-        }
-        assert_eq!(outside_the_skills(home.path()), before, "run {run}");
-    }
-    // Read back by name: macOS's tar may store a name in another Unicode form.
-    for (path, text) in files {
-        let at = root.join(path.trim_end_matches('/'));
-        if path.ends_with('/') {
-            assert!(at.is_dir(), "{path}");
-        } else {
-            assert_eq!(std::fs::read_to_string(&at).unwrap(), *text, "{path}");
-        }
-    }
-    assert_eq!(first.unwrap().len(), files.len() + 7, "the files, five folders and the two marks");
 }
 
 // ── starting a program, against real child processes ───────────────
@@ -1421,9 +883,12 @@ fn a_program_that_vanished_or_lost_its_execute_bit_since_it_was_found_fails_to_s
     std::fs::remove_file(&program).unwrap();
     let err = run_program(&program, &[], Duration::from_secs(5), home.path()).unwrap_err();
     assert!(err.starts_with("couldn't start it: "), "vanished: {err}");
-    let outcomes = install(&[Agent::Codex(program)], LIMITS_FOR_TESTS, &|p, a, l| {
-        run_program(p, a, l, home.path())
-    });
+    let outcomes = install(
+        &[Agent::Codex(program)],
+        LIMITS_FOR_TESTS,
+        &|p, a, l| run_program(p, a, l, home.path()),
+        &|| Duration::ZERO,
+    );
     assert!(!outcomes[0].ok && outcomes[0].message.contains("couldn't start it"), "{outcomes:?}");
 }
 
@@ -1447,7 +912,7 @@ fn a_command_past_its_limit_is_stopped_with_its_children_and_grandchildren() {
     let result = run_program(&hangs, &[], limit, dir.path());
     let (child, grandchild) = (pid_in(&child), pid_in(&grandchild));
     let _cleanup = (KillOnDrop(child), KillOnDrop(grandchild));
-    assert_eq!(result, Err("ran out of time after 1 seconds and was stopped".into()));
+    assert_eq!(result, Err("ran out of time after 1.5s and was stopped".into()));
     assert!(started.elapsed() < limit + Duration::from_secs(3), "{:?}", started.elapsed());
     assert!(gone(child), "the child {child} still runs");
     assert!(gone(grandchild), "the grandchild {grandchild} still runs");
@@ -1467,7 +932,7 @@ fn fifty_runs_in_a_row_leave_no_process_behind() {
         let (program, limit, want) = match run % 3 {
             0 => (&works, Duration::from_secs(10), Ok(())),
             1 => (&fails, Duration::from_secs(10), Err("exited with 1: broke".to_string())),
-            _ => (&hangs, Duration::from_millis(100), Err("ran out of time after 100 ms and was stopped".to_string())),
+            _ => (&hangs, Duration::from_millis(100), Err("ran out of time after 100ms and was stopped".to_string())),
         };
         assert_eq!(run_program(program, &[], limit, dir.path()), want, "run {run}");
     }
@@ -1534,35 +999,6 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
 
 #[cfg(unix)]
 #[test]
-fn a_failed_command_reports_a_short_clean_line_whatever_it_printed() {
-    let dir = tempfile::tempdir().unwrap();
-    // (row, the stand-in's script, what run_program returns)
-    let rows: [(&str, &str, String); 3] = [
-        (
-            "5 MB on stderr with no newline",
-            "head -c 5000000 /dev/zero | tr '\\0' e >&2; exit 1",
-            format!("exited with 1: {}…", "e".repeat(LINE_MAX - 1)),
-        ),
-        (
-            "megabytes, then a short last line",
-            "head -c 5000000 /dev/zero | tr '\\0' e >&2; printf '\\nthe real error\\n' >&2; exit 1",
-            "exited with 1: the real error".into(),
-        ),
-        (
-            "a progress bar, then a coloured error",
-            "i=0; while [ $i -lt 2000 ]; do printf 'step %d\\r' $i; i=$((i+1)); done; \
-             printf '\\033[31merror:\\033[0m it broke\\r\\n' >&2; exit 2",
-            "exited with 2: error: it broke".into(),
-        ),
-    ];
-    for (row, body, want) in rows {
-        let program = script(dir.path(), "claude", body);
-        assert_eq!(run_program(&program, &[], Duration::from_secs(20), dir.path()), Err(want), "{row}");
-    }
-}
-
-#[cfg(unix)]
-#[test]
 fn a_missing_home_folder_is_named_and_the_agent_is_not_blamed() {
     let dir = tempfile::tempdir().unwrap();
     let program = script(dir.path(), "claude", "exit 0");
@@ -1571,43 +1007,6 @@ fn a_missing_home_folder_is_named_and_the_agent_is_not_blamed() {
         run_program(&program, &[], Duration::from_secs(5), &home),
         Err(format!("couldn't start it: the home folder {} is missing", home.display()))
     );
-}
-
-// ── setup --yes with no agent found ─────────────────────────────────
-
-/// `setup --yes` with no agent found, the skills downloaded from a server
-/// standing in for GitHub: what it prints and whether it fails.
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread")]
-async fn with_no_agent_found_setup_prints_what_the_skills_copy_did() {
-    let empty = archive(&[("README.md", "readme")]);
-    // (row, how the server answers, whether it fails, what it prints)
-    let rows: [(&str, wiremock::ResponseTemplate, bool, &str); 3] = [
-        ("a good archive", body(archive(TWO_SKILLS)), false, "Skills: copied 2 ElevenLabs skills into {root}\n"),
-        (
-            "an archive with no skills",
-            body(empty),
-            true,
-            "Skills: failed: the download from {url} held no skills\n\
-             To try again, run `elevenlabs setup --yes`.\n",
-        ),
-        (
-            "a server error",
-            wiremock::ResponseTemplate::new(500),
-            true,
-            "Skills: failed: couldn't download the skills from {url}: HTTP status server error (500 Internal \
-             Server Error) for url ({url})\nTo try again, run `elevenlabs setup --yes`.\n",
-        ),
-    ];
-    for (row, answer, fails, says) in rows {
-        let (_server, url) = github(vec![("main.tar.gz", answer)]).await;
-        let home = tempfile::tempdir().unwrap();
-        let root = skills_root(home.path());
-        let (text, failed) = report(&run_from(&[], home.path(), LIMITS_FOR_TESTS, &url));
-        assert_eq!(failed, fails, "{row}");
-        let says = says.replace("{root}", &root.display().to_string()).replace("{url}", &url);
-        assert_eq!(text, says, "{row}");
-    }
 }
 
 /// A program that never stops starting new ones while its group is killed:
@@ -1620,7 +1019,7 @@ fn a_program_starting_others_as_it_is_stopped_leaves_none_running() {
     let forks = script(dir.path(), "forks", &format!("while :; do {sleep} & done"));
     for run in 0..20 {
         let got = run_program(&forks, &[], Duration::from_millis(50), dir.path());
-        assert_eq!(got, Err("ran out of time after 50 ms and was stopped".to_string()), "run {run}");
+        assert_eq!(got, Err("ran out of time after 50ms and was stopped".to_string()), "run {run}");
     }
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
@@ -1631,4 +1030,62 @@ fn a_program_starting_others_as_it_is_stopped_leaves_none_running() {
         assert!(Instant::now() < deadline, "left running: {} processes, first {:?}", left.len(), &left[..1]);
         std::thread::sleep(Duration::from_millis(20));
     }
+}
+
+// ── a signal caught during `run` ────────────────────────────────────
+
+/// The variable that makes a test below act as the child it starts.
+#[cfg(unix)]
+const CHILD: &str = "ELEVENLABS_SETUP_TEST_CHILD";
+
+/// Run the test `name` of this module again in a child copy of this test
+/// program, with SIGTERM at its default and [`CHILD`] set, and how the child
+/// ended. A name that matches no test ends it with 0.
+#[cfg(unix)]
+fn in_a_child(name: &str) -> std::process::ExitStatus {
+    use std::os::unix::process::CommandExt;
+    let module = module_path!().split_once("::").unwrap().1;
+    let mut child = Command::new(std::env::current_exe().unwrap());
+    child
+        .args([&format!("{module}::{name}"), "--exact", "--test-threads=1", "-q"])
+        .env(CHILD, "1")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    unsafe {
+        child.pre_exec(|| {
+            libc::signal(libc::SIGTERM, libc::SIG_DFL);
+            Ok(())
+        });
+    }
+    child.status().unwrap()
+}
+
+/// A signal caught between two commands stops the run before the next starts.
+#[cfg(unix)]
+#[test]
+fn a_signal_caught_before_a_command_starts_exits_before_it_starts() {
+    if std::env::var_os(CHILD).is_some() {
+        let _catch = interrupt::Catch::start();
+        unsafe { libc::raise(libc::SIGTERM) };
+        // Started, a missing program would only fail.
+        let _ = run_program(Path::new("/nonexistent/claude"), &[], Duration::from_secs(5), Path::new("/"));
+        std::process::exit(3);
+    }
+    let status = in_a_child("a_signal_caught_before_a_command_starts_exits_before_it_starts");
+    assert_eq!(status.code(), Some(143), "{status:?}");
+}
+
+/// A signal caught after the last command still ends the run as interrupted.
+#[cfg(unix)]
+#[test]
+fn a_signal_caught_after_the_last_command_exits_once_the_handlers_are_back() {
+    if std::env::var_os(CHILD).is_some() {
+        let catch = interrupt::Catch::start();
+        unsafe { libc::raise(libc::SIGTERM) };
+        catch.finish();
+        std::process::exit(3);
+    }
+    let status = in_a_child("a_signal_caught_after_the_last_command_exits_once_the_handlers_are_back");
+    assert_eq!(status.code(), Some(143), "{status:?}");
 }
