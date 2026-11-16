@@ -122,3 +122,79 @@ async fn tools_push_create_no_id_exits_nonzero() {
     let out = cli(dir, &server.uri(), &["tools", "push"]);
     assert!(!out.status.success(), "expected non-zero exit when API returns no ID:\n{}", stdout(&out));
 }
+
+// ── tests push ────────────────────────────────────────────────────
+
+fn test_config() -> Value {
+    json!({
+        "name": "greeting check",
+        "success_condition": "agent greets the user"
+    })
+}
+
+fn setup_tests_project(dir: &Path, tests_json: &Value) {
+    write(dir, "test_configs/greeting.json", &test_config().to_string());
+    write(dir, "tests.json", &tests_json.to_string());
+}
+
+#[tokio::test]
+async fn tests_push_success_exits_zero() {
+    let server = MockServer::start().await;
+    Mock::given(method("PUT"))
+        .and(path("/v1/convai/agent-testing/test_1"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"test_id": "test_1"})),
+        )
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_tests_project(
+        dir,
+        &json!({"tests": [{"config": "test_configs/greeting.json", "id": "test_1"}]}),
+    );
+
+    let out = cli(dir, &server.uri(), &["tests", "push"]);
+    assert!(out.status.success(), "expected exit 0:\n{}", stdout(&out));
+}
+
+#[tokio::test]
+async fn tests_push_api_error_exits_nonzero() {
+    let server = MockServer::start().await;
+    Mock::given(method("PUT"))
+        .and(path("/v1/convai/agent-testing/test_1"))
+        .respond_with(ResponseTemplate::new(500).set_body_json(json!({"detail": "server error"})))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_tests_project(
+        dir,
+        &json!({"tests": [{"config": "test_configs/greeting.json", "id": "test_1"}]}),
+    );
+
+    let out = cli(dir, &server.uri(), &["tests", "push"]);
+    assert!(!out.status.success(), "expected non-zero exit:\n{}", stdout(&out));
+}
+
+#[tokio::test]
+async fn tests_push_create_no_id_exits_nonzero() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v1/convai/agent-testing/create"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"name": "greeting check"})))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_tests_project(
+        dir,
+        &json!({"tests": [{"config": "test_configs/greeting.json"}]}),
+    );
+
+    let out = cli(dir, &server.uri(), &["tests", "push"]);
+    assert!(!out.status.success(), "expected non-zero exit when API returns no ID:\n{}", stdout(&out));
+}
