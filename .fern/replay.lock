@@ -78,7 +78,13 @@ generations:
     cli_version: unknown
     generator_versions:
       fernapi/fern-cli-generator: 0.54.1
-current_generation: 6b85892d4e2ac4fb22baf8a70af4b03ac12e0f30
+  - commit_sha: 6725435ed64f9582c5a75f474656e85796558d91
+    tree_hash: 4c3d0e82345138a761b824bbc4adce55d7609482
+    timestamp: 2026-11-16T13:06:46.962Z
+    cli_version: unknown
+    generator_versions:
+      fernapi/fern-cli-generator: 0.54.1
+current_generation: 6725435ed64f9582c5a75f474656e85796558d91
 patches:
   - id: patch-809b383f
     content_hash: sha256:191df9ddea0badfc844c7d506a1251d62b32e3b4b588b6c299a292f00fca8bf4
@@ -8910,12 +8916,12 @@ patches:
     original_commit: 3acf25c9b0c623f42e135bcbb70b1faea98171bf
     original_message: "feat: Adds new say command (#143)"
     original_author: Paul Asjes <paul.asjes@elevenlabs.io>
-    base_generation: 6b85892d4e2ac4fb22baf8a70af4b03ac12e0f30
+    base_generation: 6725435ed64f9582c5a75f474656e85796558d91
     files:
       - Cargo.toml
     patch_content: |
       diff --git a/Cargo.toml b/Cargo.toml
-      index d7ba5fe..3a1c525 100644
+      index a25a603..f8a4fb9 100644
       --- a/Cargo.toml
       +++ b/Cargo.toml
       @@ -48,12 +48,21 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
@@ -8959,7 +8965,7 @@ patches:
       Cargo.toml: |
         [package]
         name = "elevenlabs-cli"
-        version = "1.11.0"
+        version = "1.12.0"
         edition = "2021"
         description = "CLI for the ElevenLabs API"
         license = "MIT"
@@ -13698,7 +13704,7 @@ patches:
     original_commit: 0d14627a7110baba4937729529e18e4a413c6720
     original_message: "fix: don't send Authorization alongside an explicit API key (#153)"
     original_author: Paul Asjes <paul.asjes@elevenlabs.io>
-    base_generation: 6b85892d4e2ac4fb22baf8a70af4b03ac12e0f30
+    base_generation: 6725435ed64f9582c5a75f474656e85796558d91
     files:
       - src/auth/provider.rs
       - src/openapi/executor.rs
@@ -58109,13 +58115,13 @@ patches:
     original_commit: f48516dc29ef3b53c4ce296a2553c89151ac4180
     original_message: "feat: agents graph maps how agents, tools, tests and documents connect (#180)"
     original_author: Paul Asjes <paul.asjes@elevenlabs.io>
-    base_generation: 6b85892d4e2ac4fb22baf8a70af4b03ac12e0f30
+    base_generation: 6725435ed64f9582c5a75f474656e85796558d91
     files:
       - Cargo.toml
       - tests/agents_graph_test.rs
     patch_content: |
       diff --git a/Cargo.toml b/Cargo.toml
-      index d7ba5fe..3a1c525 100644
+      index a25a603..f8a4fb9 100644
       --- a/Cargo.toml
       +++ b/Cargo.toml
       @@ -48,12 +48,21 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
@@ -58159,7 +58165,7 @@ patches:
       Cargo.toml: |
         [package]
         name = "elevenlabs-cli"
-        version = "1.11.0"
+        version = "1.12.0"
         edition = "2021"
         description = "CLI for the ElevenLabs API"
         license = "MIT"
@@ -62426,18 +62432,18 @@ patches:
         tokio = { version = "1", features = ["full"] }
     status: unresolved
   - id: patch-c375927e
-    content_hash: sha256:a10789b05e404c029de979bec3000e0547d50ca417719edb16aeb798c1a04f51
+    content_hash: sha256:8b84c32f179d15e0c583a46ee3b8375284c923988034c10ab8729efb675b83b2
     original_commit: c375927e3ec055cd9df7208d01d679d6ce84f56d
     original_message: "fix: build Apple Silicon releases on macos-15 (1.9.2) (#189)"
     original_author: Paul Bouchon <mail@bitpshr.net>
-    base_generation: 6b85892d4e2ac4fb22baf8a70af4b03ac12e0f30
+    base_generation: 6725435ed64f9582c5a75f474656e85796558d91
     files:
       - Cargo.lock
       - Cargo.toml
       - dist-workspace.toml
     patch_content: |
       diff --git a/Cargo.lock b/Cargo.lock
-      index a2820b5..0abd09d 100644
+      index 1bbb25e..9a6cb3b 100644
       --- a/Cargo.lock
       +++ b/Cargo.lock
       @@ -82,6 +82,24 @@ version = "1.0.103"
@@ -62557,7 +62563,7 @@ patches:
        [[package]]
        name = "errno"
       @@ -500,12 +547,13 @@ name = "elevenlabs-cli"
-       version = "1.11.0"
+       version = "1.12.0"
        dependencies = [
         "anyhow",
       + "arboard",
@@ -63498,7 +63504,7 @@ patches:
        
        [[package]]
       diff --git a/Cargo.toml b/Cargo.toml
-      index d7ba5fe..3a1c525 100644
+      index a25a603..f8a4fb9 100644
       --- a/Cargo.toml
       +++ b/Cargo.toml
       @@ -48,12 +48,21 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
@@ -64113,7 +64119,7 @@ patches:
 
         [[package]]
         name = "elevenlabs-cli"
-        version = "1.11.0"
+        version = "1.12.0"
         dependencies = [
          "anyhow",
          "arboard",
@@ -67245,7 +67251,7 @@ patches:
 
         [[package]]
         name = "elevenlabs_types"
-        version = "1.11.0"
+        version = "1.12.0"
         dependencies = [
          "base64",
          "chrono",
@@ -67258,7 +67264,7 @@ patches:
 
         [[package]]
         name = "elevenlabs_sdk"
-        version = "1.11.0"
+        version = "1.12.0"
         dependencies = [
          "base64",
          "bytes",
@@ -67276,7 +67282,7 @@ patches:
       Cargo.toml: |
         [package]
         name = "elevenlabs-cli"
-        version = "1.11.0"
+        version = "1.12.0"
         edition = "2021"
         description = "CLI for the ElevenLabs API"
         license = "MIT"
@@ -67492,18 +67498,19 @@ patches:
         # (2026-11-02), and jobs on it are cancelled before they start.
         [dist.github-custom-runners]
         aarch64-apple-darwin = "macos-15"
+    user_owned: true
   - id: patch-898a4752
-    content_hash: sha256:3670358253c58f8bedd0e6f4b76d79482ba9333da5b3200ea1c30a6607add0f6
+    content_hash: sha256:291d0ef6cf34f2e274bcedb091082d0393686736b97d7f061c5de07574011502
     original_commit: 898a47523b81de8d4c8143bc45038b6f5f5dd3cf
     original_message: "fix: say skill points free plans to pre-made voices (1.9.3) (#190)"
     original_author: Paul Bouchon <mail@bitpshr.net>
-    base_generation: 6b85892d4e2ac4fb22baf8a70af4b03ac12e0f30
+    base_generation: 6725435ed64f9582c5a75f474656e85796558d91
     files:
       - Cargo.lock
       - Cargo.toml
     patch_content: |
       diff --git a/Cargo.lock b/Cargo.lock
-      index a2820b5..0abd09d 100644
+      index 1bbb25e..9a6cb3b 100644
       --- a/Cargo.lock
       +++ b/Cargo.lock
       @@ -82,6 +82,24 @@ version = "1.0.103"
@@ -67623,7 +67630,7 @@ patches:
        [[package]]
        name = "errno"
       @@ -500,12 +547,13 @@ name = "elevenlabs-cli"
-       version = "1.11.0"
+       version = "1.12.0"
        dependencies = [
         "anyhow",
       + "arboard",
@@ -68564,7 +68571,7 @@ patches:
        
        [[package]]
       diff --git a/Cargo.toml b/Cargo.toml
-      index d7ba5fe..3a1c525 100644
+      index a25a603..f8a4fb9 100644
       --- a/Cargo.toml
       +++ b/Cargo.toml
       @@ -48,12 +48,21 @@ rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls-tls-nativ
@@ -69152,7 +69159,7 @@ patches:
 
         [[package]]
         name = "elevenlabs-cli"
-        version = "1.11.0"
+        version = "1.12.0"
         dependencies = [
          "anyhow",
          "arboard",
@@ -72284,7 +72291,7 @@ patches:
 
         [[package]]
         name = "elevenlabs_types"
-        version = "1.11.0"
+        version = "1.12.0"
         dependencies = [
          "base64",
          "chrono",
@@ -72297,7 +72304,7 @@ patches:
 
         [[package]]
         name = "elevenlabs_sdk"
-        version = "1.11.0"
+        version = "1.12.0"
         dependencies = [
          "base64",
          "bytes",
@@ -72315,7 +72322,7 @@ patches:
       Cargo.toml: |
         [package]
         name = "elevenlabs-cli"
-        version = "1.11.0"
+        version = "1.12.0"
         edition = "2021"
         description = "CLI for the ElevenLabs API"
         license = "MIT"
@@ -72480,6 +72487,7 @@ patches:
         serial_test = "3.4.0"
         wiremock = "0.6"
         tokio = { version = "1", features = ["full"] }
+    user_owned: true
 dismissals:
   - patch_id: patch-3324bcc8
     original_commit: 3324bcc8a81566c3164c58a1f4b2b626ac9f8906
