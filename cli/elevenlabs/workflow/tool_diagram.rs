@@ -553,7 +553,8 @@ fn response_item(tool: &Value, api: Option<&Value>) -> Option<Item> {
             .and_then(Value::as_array)
             .map(|a| a.iter().filter_map(Value::as_str).collect())
             .unwrap_or_default();
-        if !paths.is_empty() {
+        // Only `allow` mode reads the paths; elsewhere they are leftovers.
+        if mode == "allow" && !paths.is_empty() {
             item.notes
                 .push(vec![span(format!("keeps {}", paths.join(", ")), Tone::Dim)]);
         }
@@ -1374,7 +1375,7 @@ fn render_mermaid(views: &[ToolView]) -> String {
     // chart. Collected first so the IDs are assigned in a stable order.
     let mut keys: Vec<String> = Vec::new();
     for (i, view) in views.iter().enumerate() {
-        let root = root_key(i, view);
+        let root = root_key(i, views.len(), view);
         keys.push(root.clone());
         fn collect(items: &[Item], root: &str, keys: &mut Vec<String>) {
             for item in items {
@@ -1390,7 +1391,7 @@ fn render_mermaid(views: &[ToolView]) -> String {
     let mut edges = String::new();
     let mut classes: BTreeMap<&'static str, Vec<String>> = BTreeMap::new();
     for (i, view) in views.iter().enumerate() {
-        let root = root_key(i, view);
+        let root = root_key(i, views.len(), view);
         let mut lines = vec![format!("{} · {}", view.kind, view.name)];
         lines.extend(view.summary.iter().map(|l| plain_text(l)));
         out.push_str(&format!("    {}[[{}]]\n", ids.get(&root), label(&lines)));
@@ -1438,13 +1439,15 @@ fn render_mermaid(views: &[ToolView]) -> String {
     out
 }
 
-fn root_key(i: usize, view: &ToolView) -> String {
-    // The index keeps two tools of the same name apart; the name keeps IDs
+fn root_key(i: usize, count: usize, view: &ToolView) -> String {
+    // With several tools the index is a segment of its own, so no two tools
+    // share a key (`lookup_1` and a second `lookup` did); the name keeps IDs
     // readable.
-    if i == 0 {
-        view.name.clone()
+    let name = key_segment(&view.name);
+    if count == 1 {
+        name
     } else {
-        format!("{}_{i}", view.name)
+        format!("{i}/{name}")
     }
 }
 
@@ -1600,6 +1603,37 @@ mod tests {
             json!({ "type": "client", "name": "t", "parameters": { "type": "object", "properties": {} } }),
         );
         assert!(!out.contains("Parameters"), "{out}");
+    }
+
+    #[test]
+    fn tools_whose_names_and_indexes_collide_keep_their_own_nodes() {
+        let views: Vec<ToolView> = [
+            json!({ "type": "client", "name": "lookup_1", "description": "first" }),
+            json!({ "type": "client", "name": "lookup", "description": "second" }),
+        ]
+        .iter()
+        .map(view)
+        .collect();
+        let out = render_mermaid(&views);
+        assert!(out.contains("Client tool · lookup_1<br/>first"), "{out}");
+        assert!(out.contains("Client tool · lookup<br/>second"), "{out}");
+        assert_eq!(out.matches("[[").count(), 2, "{out}");
+    }
+
+    #[test]
+    fn filter_paths_only_show_in_allow_mode() {
+        let tool = |mode: &str| {
+            ascii(json!({
+                "type": "webhook", "name": "t",
+                "api_schema": { "url": "https://x", "response_filter": { "mode": mode, "filters": ["a.b"] } }
+            }))
+        };
+        assert!(tool("allow").contains("keeps a.b"));
+        let hidden = tool("hide_all");
+        assert!(
+            hidden.contains("Filter hide_all") && !hidden.contains("keeps"),
+            "{hidden}"
+        );
     }
 
     #[test]
