@@ -974,6 +974,16 @@ fn waiting_gives_the_link_while_the_approval_is_open() {
 
 #[cfg(unix)]
 #[test]
+fn a_held_sign_in_is_waited_on_until_it_ends_unless_the_link_comes_first() {
+    use super::connect::{wait_budget, WAIT};
+    let whole = std::time::Duration::from_secs((super::session::SIGN_IN_MINUTES + 1) * 60);
+    assert_eq!(wait_budget(true, false), whole);
+    assert_eq!(wait_budget(true, true), WAIT);
+    assert_eq!(wait_budget(false, false), WAIT);
+    assert_eq!(wait_budget(false, true), WAIT);
+}
+
+#[test]
 fn starting_a_sign_in_replaces_another_projects() {
     use super::session::Session;
     isolate();
