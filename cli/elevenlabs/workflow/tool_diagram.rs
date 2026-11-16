@@ -453,28 +453,14 @@ fn webhook_items(tool: &Value) -> Vec<Item> {
 
     if let Some(body) = api.get("request_body_schema").filter(|b| b.is_object()) {
         let content_type = str_field(api, "content_type").unwrap_or("application/json");
-        let mut section = Item::new(
+        request.children.push(root_section(
             "request/body",
             vec![
                 span("Body", Tone::Strong),
                 span(format!(" {content_type}"), Tone::Dim),
             ],
-            "t_section",
-        );
-        let source = Source::of(body);
-        if !matches!(source, Source::Llm) {
-            section.head.extend(source.tag());
-        }
-        if let Some(desc) = description(body) {
-            section.notes.push(vec![span(desc, Tone::Dim)]);
-        }
-        section.children = properties(
-            "request/body",
             body,
-            Side::Request,
-            !matches!(source, Source::Llm),
-        );
-        request.children.push(section);
+        ));
     }
 
     if let Some(headers) = api
@@ -660,7 +646,8 @@ fn url_tokens(url: &str) -> Vec<(UrlToken, &str)> {
             }
         }
         // Literal text up to the next brace (or one char, for a stray brace).
-        let next = rest[1..].find('{').map_or(rest.len(), |i| i + 1);
+        let first = rest.chars().next().map_or(1, char::len_utf8);
+        let next = rest[first..].find('{').map_or(rest.len(), |i| i + first);
         out.push((UrlToken::Text, &rest[..next]));
         rest = &rest[next..];
     }
@@ -752,10 +739,14 @@ impl Source {
         if schema.get("is_omitted").and_then(Value::as_bool) == Some(true) {
             return Source::Omitted;
         }
-        // The API returns `""` for an unset constant.
         match schema.get("constant_value") {
             None | Some(Value::Null) => {}
-            Some(Value::String(s)) if s.is_empty() => {}
+            // The API fills every source field with its default, so a
+            // property it returns has `"constant_value": ""` and a
+            // `description` key whether or not either is in use. A config
+            // written by hand or by an SDK has only the fields that are set,
+            // so there `""` is a real constant.
+            Some(Value::String(s)) if s.is_empty() && schema.get("description").is_some() => {}
             Some(v) => return Source::Constant(compact(v)),
         }
         if schema.get("is_system_provided").and_then(Value::as_bool) == Some(true) {
@@ -806,7 +797,7 @@ fn properties(prefix: &str, schema: &Value, side: Side, inherited: bool) -> Vec<
             let req =
                 (side == Side::Request && !inherited).then(|| required.contains(&name.as_str()));
             param(
-                &format!("{prefix}/{name}"),
+                &format!("{prefix}/{}", key_segment(name)),
                 name,
                 prop,
                 req,
@@ -815,6 +806,12 @@ fn properties(prefix: &str, schema: &Value, side: Side, inherited: bool) -> Vec<
             )
         })
         .collect()
+}
+
+/// A property name as one segment of an [`Item::key`], JSON Pointer escaped
+/// so `a/b` and `b` inside `a` stay apart.
+fn key_segment(name: &str) -> String {
+    name.replace('~', "~0").replace('/', "~1")
 }
 
 /// One parameter and, for an object or array, what is inside it.
@@ -877,6 +874,27 @@ fn param(
             span(format!("{{{{{var}}}}}"), Tone::Var),
         ]);
     }
+    item.notes.extend(constraint_notes(schema));
+
+    let inner_inherited = inherited || (own_source && !matches!(source, Source::Llm));
+    if has_props {
+        item.children = properties(key, schema, side, inner_inherited);
+    } else if let Some(items) = schema.get("items").filter(|i| i.is_object()) {
+        item.children.push(param(
+            &format!("{key}/[]"),
+            "[]",
+            items,
+            None,
+            side,
+            inner_inherited,
+        ));
+    }
+    item
+}
+
+/// `required_constraints` on an object, one note per kind.
+fn constraint_notes(schema: &Value) -> Vec<Vec<Span>> {
+    let mut notes = Vec::new();
     if let Some(constraints) = schema.get("required_constraints").filter(|c| c.is_object()) {
         for (key, label) in [("all_of", "requires all of"), ("any_of", "requires one of")] {
             let groups: Vec<String> = constraints
@@ -894,28 +912,34 @@ fn param(
                 })
                 .unwrap_or_default();
             if !groups.is_empty() {
-                item.notes.push(vec![
+                notes.push(vec![
                     span(format!("{label} "), Tone::Dim),
                     span(groups.join(" | "), Tone::Plain),
                 ]);
             }
         }
     }
+    notes
+}
 
-    let inner_inherited = inherited || (own_source && !matches!(source, Source::Llm));
-    if has_props {
-        item.children = properties(key, schema, side, inner_inherited);
-    } else if let Some(items) = schema.get("items").filter(|i| i.is_object()) {
-        item.children.push(param(
-            &format!("{key}/[]"),
-            "[]",
-            items,
-            None,
-            side,
-            inner_inherited,
-        ));
+/// The top of a parameter tree (a webhook body, a client tool's
+/// `parameters`): an object schema that can itself take its whole value from
+/// a variable, a constant or nowhere, in which case its properties inherit
+/// that and have no source of their own.
+fn root_section(key: &str, mut head: Vec<Span>, schema: &Value) -> Item {
+    let source = Source::of(schema);
+    let whole = !matches!(source, Source::Llm);
+    let class = if whole { source.class() } else { "t_section" };
+    if whole {
+        head.extend(source.tag());
     }
-    item
+    let mut section = Item::new(key, head, class);
+    if let Some(desc) = description(schema) {
+        section.notes.push(vec![span(desc, Tone::Dim)]);
+    }
+    section.notes.extend(constraint_notes(schema));
+    section.children = properties(key, schema, Side::Request, whole);
+    section
 }
 
 /// `string`, `integer`, `string|null`, `array<string>`, `object`.
@@ -1135,12 +1159,9 @@ fn client_items(tool: &Value) -> Vec<Item> {
     let Some(params) = tool.get("parameters").filter(|p| p.is_object()) else {
         return Vec::new();
     };
-    let mut section = Item::section("params", "Parameters");
-    if let Some(desc) = description(params) {
-        section.notes.push(vec![span(desc, Tone::Dim)]);
-    }
-    section.children = properties("params", params, Side::Request, false);
-    if section.children.is_empty() {
+    let section = root_section("params", vec![span("Parameters", Tone::Strong)], params);
+    // An empty object the LLM fills means the tool takes no parameters.
+    if section.children.is_empty() && section.class == "t_section" && section.notes.is_empty() {
         return Vec::new();
     }
     vec![section]
@@ -1512,6 +1533,73 @@ mod tests {
             out.contains("g_api_defaults: string optional [LLM]"),
             "{out}"
         );
+    }
+
+    #[test]
+    fn unicode_after_a_placeholder_does_not_panic() {
+        let parts = url_parts("https://example.com/{id}é/{{ünï}}ö{");
+        assert_eq!(parts.placeholders, ["id"]);
+        assert_eq!(parts.templates, ["ünï"]);
+        let out = ascii(json!({
+            "type": "webhook", "name": "t",
+            "api_schema": { "url": "https://x/{id}é", "request_headers": { "A": "{x}ü" } }
+        }));
+        assert!(out.contains("https://x/{id}é"), "{out}");
+    }
+
+    #[test]
+    fn an_empty_constant_counts_unless_the_api_filled_in_defaults() {
+        let out = ascii(json!({
+            "type": "client", "name": "t",
+            "parameters": { "type": "object", "properties": {
+                "sdk": { "type": "string", "constant_value": "" },
+                "api": { "type": "string", "constant_value": "", "description": "", "dynamic_variable": "" }
+            } }
+        }));
+        assert!(
+            out.contains("sdk: string optional [constant \"\"]"),
+            "{out}"
+        );
+        assert!(out.contains("api: string optional [LLM]"), "{out}");
+    }
+
+    #[test]
+    fn a_slash_in_a_property_name_keeps_its_own_node() {
+        let out = mermaid(json!({
+            "type": "client", "name": "t",
+            "parameters": { "type": "object", "properties": {
+                "a/b": { "type": "string", "description": "flat" },
+                "a": { "type": "object", "properties": { "b": { "type": "string", "description": "nested" } } }
+            } }
+        }));
+        assert!(out.contains("a/b: string optional [LLM]"), "{out}");
+        assert!(out.contains("<br/>nested"), "{out}");
+        assert!(out.contains("<br/>flat"), "{out}");
+    }
+
+    #[test]
+    fn client_parameters_can_take_their_whole_value_from_elsewhere() {
+        let out = ascii(json!({
+            "type": "client", "name": "t",
+            "parameters": { "type": "object", "dynamic_variable": "profile" }
+        }));
+        assert!(out.contains("Parameters [var profile]"), "{out}");
+        let out = ascii(json!({
+            "type": "client", "name": "t",
+            "parameters": {
+                "type": "object", "constant_value": { "id": 1 },
+                "properties": { "id": { "type": "integer", "description": "x" } },
+                "required_constraints": { "any_of": [{ "required": ["id"] }] }
+            }
+        }));
+        assert!(out.contains("Parameters [constant {\"id\":1}]"), "{out}");
+        assert!(out.contains("requires one of (id)"), "{out}");
+        assert!(out.contains("── id: integer\n"), "{out}");
+        // No parameters at all draws no section.
+        let out = ascii(
+            json!({ "type": "client", "name": "t", "parameters": { "type": "object", "properties": {} } }),
+        );
+        assert!(!out.contains("Parameters"), "{out}");
     }
 
     #[test]
