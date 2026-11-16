@@ -405,6 +405,111 @@ impl DocumentsClient {
             .await
     }
 
+    /// Get the stored and effective RAG chunking overrides for a document or folder.
+    ///
+    /// # Arguments
+    ///
+    /// * `documentation_id` - The id of a document from the knowledge base. This is returned on document addition.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .knowledge_base
+    ///         .documents
+    ///         .get_chunking_override(&"21m00Tcm4TlvDq8ikWAM".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn get_chunking_override(
+        &self,
+        documentation_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<GetDocumentChunkingOverrideResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::GET,
+                &format!(
+                    "v1/convai/knowledge-base/{}/chunking-override",
+                    documentation_id
+                ),
+                None,
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Set or clear the RAG chunking override for a document or folder.
+    ///
+    /// # Arguments
+    ///
+    /// * `documentation_id` - The id of a document from the knowledge base. This is returned on document addition.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .knowledge_base
+    ///         .documents
+    ///         .update_chunking_override(
+    ///             &"21m00Tcm4TlvDq8ikWAM".to_string(),
+    ///             &UpdateDocumentChunkingOverrideRequestModel {
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn update_chunking_override(
+        &self,
+        documentation_id: &str,
+        request: &UpdateDocumentChunkingOverrideRequestModel,
+        options: Option<RequestOptions>,
+    ) -> Result<UpdateDocumentChunkingOverrideResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::PATCH,
+                &format!(
+                    "v1/convai/knowledge-base/{}/chunking-override",
+                    documentation_id
+                ),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
     /// Get a list of agents depending on this knowledge base document
     ///
     /// # Arguments

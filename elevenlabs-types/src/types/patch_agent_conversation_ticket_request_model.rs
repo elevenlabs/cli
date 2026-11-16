@@ -4,19 +4,19 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct PatchAgentConversationTicketRequestModel {
-    /// If provided, updates the ticket title. Omit to leave unchanged.
+    /// If provided, updates the agent issue's title. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    /// If provided, updates the ticket description. Omit to leave unchanged.
+    /// If provided, updates the agent issue's description. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub qa_comment: Option<String>,
-    /// If provided, updates the ticket status. Omit to leave unchanged.
+    /// If provided, updates the agent issue's status. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<AgentConversationTicketStatus>,
-    /// If provided, updates who is responsible for resolving this ticket. Must be a workspace member with at least viewer access to the agent. Pass null to unassign. Omit to leave unchanged.
+    /// If provided, updates who is responsible for resolving this agent issue. Must be a workspace member with at least viewer access to the agent. Pass null to unassign. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assignee_user_id: Option<String>,
-    /// If provided, updates how urgently the ticket needs attention. Pass null to clear it. Omit to leave unchanged.
+    /// If provided, updates how urgently the agent issue needs attention. Pass null to clear it. Omit to leave unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<AgentConversationTicketPriority>,
 }

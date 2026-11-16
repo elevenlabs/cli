@@ -17,6 +17,8 @@ pub enum ConversationHistoryTranscriptToolCallCommonModelInputToolDetails {
             integration_connection_id: Option<String>,
             #[serde(default)]
             webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            function_details: Option<ConversationHistoryTranscriptToolCallIntegrationFunctionDetails>,
         },
 
         #[serde(rename = "client")]
@@ -49,7 +51,7 @@ pub enum ConversationHistoryTranscriptToolCallCommonModelInputToolDetails {
 
 impl ConversationHistoryTranscriptToolCallCommonModelInputToolDetails {
     pub fn api_integration_webhook(webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails) -> Self {
-        Self::ApiIntegrationWebhook { integration_id: None, credential_id: None, integration_connection_id: None, webhook_details }
+        Self::ApiIntegrationWebhook { integration_id: None, credential_id: None, integration_connection_id: None, webhook_details, function_details: None }
     }
 
     pub fn client(data: ConversationHistoryTranscriptToolCallClientDetails) -> Self {
@@ -64,16 +66,20 @@ impl ConversationHistoryTranscriptToolCallCommonModelInputToolDetails {
         Self::Webhook { data }
     }
 
-    pub fn api_integration_webhook_with_integration_id(integration_id: String, credential_id: Option<String>, integration_connection_id: Option<String>, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails) -> Self {
-        Self::ApiIntegrationWebhook { integration_id: Some(integration_id), credential_id, integration_connection_id, webhook_details }
+    pub fn api_integration_webhook_with_integration_id(integration_id: String, credential_id: Option<String>, integration_connection_id: Option<String>, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails, function_details: Option<ConversationHistoryTranscriptToolCallIntegrationFunctionDetails>) -> Self {
+        Self::ApiIntegrationWebhook { integration_id: Some(integration_id), credential_id, integration_connection_id, webhook_details, function_details }
     }
 
-    pub fn api_integration_webhook_with_credential_id(integration_id: Option<String>, credential_id: String, integration_connection_id: Option<String>, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails) -> Self {
-        Self::ApiIntegrationWebhook { integration_id, credential_id: Some(credential_id), integration_connection_id, webhook_details }
+    pub fn api_integration_webhook_with_credential_id(integration_id: Option<String>, credential_id: String, integration_connection_id: Option<String>, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails, function_details: Option<ConversationHistoryTranscriptToolCallIntegrationFunctionDetails>) -> Self {
+        Self::ApiIntegrationWebhook { integration_id, credential_id: Some(credential_id), integration_connection_id, webhook_details, function_details }
     }
 
-    pub fn api_integration_webhook_with_integration_connection_id(integration_id: Option<String>, credential_id: Option<String>, integration_connection_id: String, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails) -> Self {
-        Self::ApiIntegrationWebhook { integration_id, credential_id, integration_connection_id: Some(integration_connection_id), webhook_details }
+    pub fn api_integration_webhook_with_integration_connection_id(integration_id: Option<String>, credential_id: Option<String>, integration_connection_id: String, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails, function_details: Option<ConversationHistoryTranscriptToolCallIntegrationFunctionDetails>) -> Self {
+        Self::ApiIntegrationWebhook { integration_id, credential_id, integration_connection_id: Some(integration_connection_id), webhook_details, function_details }
+    }
+
+    pub fn api_integration_webhook_with_function_details(integration_id: Option<String>, credential_id: Option<String>, integration_connection_id: Option<String>, webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails, function_details: ConversationHistoryTranscriptToolCallIntegrationFunctionDetails) -> Self {
+        Self::ApiIntegrationWebhook { integration_id, credential_id, integration_connection_id, webhook_details, function_details: Some(function_details) }
     }
 
     pub fn unknown(value: serde_json::Value) -> Self {
