@@ -1,0 +1,37 @@
+name: windows-worker-probe
+
+# Temporary: on Windows, does onboard's background sign-in worker or a
+# foreground sign-in (`auth login`) still answer the browser's callback when
+# an agent runs and ends the command the way agents do? Runs only on pushes
+# to the probe branch, against the published CLI. Not for merging.
+on:
+  push:
+    branches: [paul/windows-worker-vs-foreground-probe]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "lts/Krypton"
+
+      - name: Install the published CLI
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/cli-published" --no-save @elevenlabs/cli-win32-x64@1.12.0 > /dev/null
+          exe=$(find "$RUNNER_TEMP/cli-published/node_modules/@elevenlabs" -name 'elevenlabs.exe' | head -n 1)
+          echo "PUBLISHED_CLI=$(cygpath -w "$exe")" >> "$GITHUB_ENV"
+          "$exe" --version
+
+      - name: Probe worker and foreground sign-ins
+        run: python .github/worker-probe/probe.py "$PUBLISHED_CLI"
