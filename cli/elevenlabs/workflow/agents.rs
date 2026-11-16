@@ -15,7 +15,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::config_format::{ConfigFormat, FORMAT_NAMES};
+use super::config_format::{is_literal_key, ConfigFormat, FORMAT_NAMES};
 use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
 use super::{api, project, settings, templates, verify};
 
@@ -921,8 +921,10 @@ fn pull_command() -> clap::Command {
                 .help(
                     "Keep the authored config shape. An existing file keeps its keys \
                      and gains only live values that are not null or empty; a new file \
-                     drops nulls, empty objects, and empty arrays. Without this flag, \
-                     --update writes the full server representation",
+                     drops nulls, empty objects, and empty arrays. Workflow node and \
+                     edge ids follow the live workflow, and free-form JSON values are \
+                     copied whole. Without this flag, --update writes the full server \
+                     representation",
                 ),
         )
         .arg(
@@ -1447,6 +1449,12 @@ fn stored_pulled_config(full: &Value, local: Option<&Value>, sparse: bool) -> Va
 /// is always kept. A null `workflow` is already absent from `full` and is not
 /// copied back from the local file. `agent_id` and `version_id` are never
 /// written — those stay in `agents.json`.
+///
+/// Two shapes are not ordinary config trees. `workflow.nodes` and
+/// `workflow.edges` are id maps: membership follows the live workflow, so a
+/// node or edge deleted in the dashboard is not written back, while a
+/// surviving entry keeps the local field's shape. A free-form JSON value
+/// ([`is_literal_key`]) is copied whole.
 fn sparse_pulled_config(full: &Value, local: Option<&Value>) -> Value {
     let value = match local {
         Some(local @ Value::Object(_)) => merge_sparse(full, local),
@@ -1459,14 +1467,34 @@ fn sparse_pulled_config(full: &Value, local: Option<&Value>) -> Value {
 /// value, including null, so a key the user authored is still written when
 /// the server clears it.
 fn merge_sparse(full: &Value, local: &Value) -> Value {
+    merge_sparse_at(full, local, "")
+}
+
+fn merge_sparse_at(full: &Value, local: &Value, path: &str) -> Value {
     match (full, local) {
         (Value::Object(full_map), Value::Object(local_map)) => {
+            // Node and edge ids are the map's keys. A key only the local file
+            // has was deleted on the server; copying it back would make the
+            // next push restore it.
+            let id_map = path == "workflow.nodes" || path == "workflow.edges";
             let mut out = serde_json::Map::new();
             for (key, local_value) in local_map {
                 match full_map.get(key) {
-                    Some(full_value) => {
-                        out.insert(key.clone(), merge_sparse(full_value, local_value));
+                    Some(full_value) if is_literal_key(key) => {
+                        // The whole subtree is data, including nulls and empty
+                        // containers. A null for the field itself still records
+                        // that an authored key was cleared.
+                        out.insert(key.clone(), full_value.clone());
                     }
+                    Some(full_value) => {
+                        out.insert(
+                            key.clone(),
+                            merge_sparse_at(full_value, local_value, &join_path(path, key)),
+                        );
+                    }
+                    // The live workflow omitted `nodes` or `edges` entirely.
+                    None if workflow_id_key(path, key) => {}
+                    None if id_map => {}
                     None => {
                         out.insert(key.clone(), local_value.clone());
                     }
@@ -1474,6 +1502,12 @@ fn merge_sparse(full: &Value, local: &Value) -> Value {
             }
             for (key, full_value) in full_map {
                 if local_map.contains_key(key) {
+                    continue;
+                }
+                if is_literal_key(key) {
+                    if !full_value.is_null() {
+                        out.insert(key.clone(), full_value.clone());
+                    }
                     continue;
                 }
                 if let Some(pruned) = prune_defaults(full_value) {
@@ -1486,17 +1520,42 @@ fn merge_sparse(full: &Value, local: &Value) -> Value {
     }
 }
 
+fn join_path(path: &str, key: &str) -> String {
+    if path.is_empty() {
+        key.to_string()
+    } else {
+        format!("{path}.{key}")
+    }
+}
+
+/// `nodes` and `edges` directly under `workflow`. Their keys are ids, not
+/// authored fields.
+fn workflow_id_key(path: &str, key: &str) -> bool {
+    path == "workflow" && (key == "nodes" || key == "edges")
+}
+
 /// `None` when `value` is a default stand-in and should be left out of a
 /// sparse file. Arrays are leaves: a non-empty array is kept whole, null
-/// elements included.
+/// elements included. A free-form JSON value is kept whole too, except a
+/// null for the field itself, which still means unset.
 fn prune_defaults(value: &Value) -> Option<Value> {
+    prune_defaults_in(value, false)
+}
+
+fn prune_defaults_in(value: &Value, literal: bool) -> Option<Value> {
+    if literal {
+        return match value {
+            Value::Null => None,
+            other => Some(other.clone()),
+        };
+    }
     match value {
         Value::Null => None,
         Value::Array(items) if items.is_empty() => None,
         Value::Object(map) => {
             let mut out = serde_json::Map::new();
             for (key, child) in map {
-                if let Some(pruned) = prune_defaults(child) {
+                if let Some(pruned) = prune_defaults_in(child, is_literal_key(key)) {
                     out.insert(key.clone(), pruned);
                 }
             }
@@ -1914,6 +1973,132 @@ mod tests {
                     "nodes": { "start": { "type": "start" } }
                 }
             })
+        );
+    }
+
+    #[test]
+    fn sparse_update_drops_workflow_nodes_and_edges_deleted_remotely() {
+        // Membership of the id maps follows the live workflow. A surviving
+        // entry keeps fields the local file authored and the server did not
+        // return, and does not gain a null the server added.
+        let local = json!({
+            "name": "Support",
+            "workflow": {
+                "nodes": {
+                    "start": { "type": "start", "label": "Start" },
+                    "middle": { "type": "override_agent", "label": "Gone" }
+                },
+                "edges": {
+                    "e1": { "source": "start", "target": "middle" },
+                    "e2": { "source": "middle", "target": "end" }
+                }
+            }
+        });
+        let live = json!({
+            "workflow": {
+                "nodes": {
+                    "start": { "type": "start", "position": null },
+                    "end": { "type": "end", "label": "End" }
+                },
+                "edges": {
+                    "e1": { "source": "start", "target": "end", "forward_condition": null }
+                }
+            }
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            sparse["workflow"],
+            json!({
+                "nodes": {
+                    "start": { "type": "start", "label": "Start" },
+                    "end": { "type": "end", "label": "End" }
+                },
+                "edges": {
+                    "e1": { "source": "start", "target": "end" }
+                }
+            })
+        );
+
+        // The live workflow dropped `edges` entirely, rather than sending the
+        // map with the deleted id removed.
+        let no_edges = json!({
+            "workflow": {
+                "nodes": { "start": { "type": "start" } }
+            }
+        });
+        let full = build_pulled_config("Support", &no_edges);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert!(sparse["workflow"].get("edges").is_none());
+        assert!(sparse["workflow"]["nodes"].get("middle").is_none());
+        assert_eq!(
+            sparse["workflow"]["nodes"]["start"]["label"],
+            json!("Start")
+        );
+    }
+
+    #[test]
+    fn sparse_preserves_literal_placeholder_json() {
+        // Nulls and empty containers inside a placeholder are data. Pruning
+        // them would make the next push overwrite the value on the server.
+        let placeholders = json!({
+            "payload": { "keep": 1, "cleared": null, "items": [] }
+        });
+        let live = json!({
+            "conversation_config": {
+                "agent": {
+                    "prompt": { "prompt": "hi", "tools": [] },
+                    "dynamic_variables": {
+                        "dynamic_variable_placeholders": placeholders
+                    }
+                }
+            },
+            "tags": []
+        });
+        let full = build_pulled_config("Support", &live);
+
+        let created = sparse_pulled_config(&full, None);
+        assert_eq!(
+            created["conversation_config"]["agent"]["dynamic_variables"]
+                ["dynamic_variable_placeholders"],
+            placeholders
+        );
+        assert!(created["conversation_config"]["agent"]["prompt"]
+            .get("tools")
+            .is_none());
+
+        // Added onto an existing file that did not mention the key yet.
+        let local = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "old" } }
+            }
+        });
+        let added = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            added["conversation_config"]["agent"]["dynamic_variables"]
+                ["dynamic_variable_placeholders"],
+            placeholders
+        );
+
+        // An existing partial placeholder is replaced by the live value whole,
+        // not merged in a way that drops the nulls.
+        let partial = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": {
+                    "prompt": { "prompt": "old" },
+                    "dynamic_variables": {
+                        "dynamic_variable_placeholders": { "payload": { "keep": 0 } }
+                    }
+                }
+            }
+        });
+        let merged = sparse_pulled_config(&full, Some(&partial));
+        assert_eq!(
+            merged["conversation_config"]["agent"]["dynamic_variables"]
+                ["dynamic_variable_placeholders"],
+            placeholders
         );
     }
 }
