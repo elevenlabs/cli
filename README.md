@@ -198,7 +198,7 @@ elevenlabs agents status
 
 # Sync configs with ElevenLabs (push force-overrides main + registered branches)
 elevenlabs agents push [--agent <agent_id>] [--branch <name|id>] [--version-description <text>] [--dry-run]
-elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--config-format json|yaml|toml] [--dry-run]
+elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--sparse] [--config-format json|yaml|toml] [--dry-run]
 
 # List available agent templates, or print one's full configuration
 elevenlabs agents templates list
@@ -223,6 +223,8 @@ elevenlabs agents graph --uses <id|name>
 A config file's extension sets its format: `.json`, `.yaml`/`.yml` or `.toml`. The registry files (`agents.json`, `tools.json`, `tests.json`) stay JSON, and their `config` paths can point at any of the three, so you can convert a config by hand and update its path.
 
 New files are JSON unless you pick another format. `agents pull --config-format toml` writes new agents as TOML, and a new branch file follows the format of its agent's config. Files that already exist keep their format. `agents add --from-file support.yaml` saves the agent's config as YAML too; `--config-format` overrides that.
+
+Without `--sparse`, `agents pull --update` writes the full server representation, including every null, empty array, and unchanged default. With `--sparse`, an existing file keeps the keys it already has (their values update from the live agent) and gains only live values that are not null or empty. A new file written with `--sparse` drops nulls, empty objects, and empty arrays too, so the first pull is not the full server document. Two exceptions: workflow node and edge ids follow the live workflow, so one deleted in the dashboard is not written back, and free-form JSON values (dynamic variable placeholders, tool schemas, constant values) are copied whole, nulls included.
 
 TOML has no `null`, so writing TOML drops null fields. For agents nothing is lost: `push` only changes the fields it sends, and a null field was unset already. What TOML can't do is clear a field, because deleting its line leaves the value on ElevenLabs unchanged. To clear one, set it to `null` in a JSON or YAML config. Some nulls are data rather than unset fields: one inside a list (an item, or a field of an object in a list of mixed values), or anywhere within a free-form value such as a tool parameter's `constant_value`. A config with one of those can't be saved as TOML; the CLI says so and names the field.
 
