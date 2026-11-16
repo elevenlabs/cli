@@ -491,6 +491,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     println!("Pushing {} test(s) to ElevenLabs...", indices.len());
     let mut changes_made = discovered > 0 && !dry_run;
+    let mut failed: usize = 0;
 
     for idx in indices {
         let config_path = registry.tests[idx].config.clone();
@@ -504,6 +505,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             Ok(v) => v,
             Err(e) => {
                 println!("Error reading config from {config_path}: {e}");
+                failed += 1;
                 continue;
             }
         };
@@ -532,24 +534,38 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                         registry.tests[idx].id = Some(new_id);
                         changes_made = true;
                     }
-                    None => println!(
-                        "Error: no test ID in the API response for {name}; not saving to tests.json"
-                    ),
+                    None => {
+                        println!(
+                            "Error: no test ID in the API response for {name}; not saving to tests.json"
+                        );
+                        failed += 1;
+                    }
                 },
-                Err(e) => println!("Error processing {name}: {e}"),
+                Err(e) => {
+                    println!("Error processing {name}: {e}");
+                    failed += 1;
+                }
             },
             Some(id) => match api::update_test(ctx, id, &test_config) {
                 Ok(_) => {
                     println!("Updated test {name} (ID: {id})");
                     changes_made = true;
                 }
-                Err(e) => println!("Error processing {name}: {e}"),
+                Err(e) => {
+                    println!("Error processing {name}: {e}");
+                    failed += 1;
+                }
             },
         }
     }
 
     if changes_made {
         project::save_tests(&registry)?;
+    }
+    if failed > 0 {
+        return Err(CliError::Validation(format!(
+            "{failed} resource(s) could not be pushed; see the errors above"
+        )));
     }
     Ok(())
 }

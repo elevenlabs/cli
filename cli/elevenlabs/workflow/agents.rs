@@ -713,6 +713,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     println!("Pushing {} agent(s) to ElevenLabs...", indices.len());
     let mut changes_made = false;
+    let mut failed: usize = 0;
 
     for idx in indices {
         let config_path = registry.agents[idx].config.clone();
@@ -731,6 +732,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             Ok(v) => v,
             Err(e) => {
                 println!("Error reading config for {config_path}: {e}");
+                failed += 1;
                 continue;
             }
         };
@@ -763,6 +765,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 }
                 Err(e) => {
                     println!("Error processing {name}: {e}");
+                    failed += 1;
                     continue;
                 }
             },
@@ -779,6 +782,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 }
                 Err(e) => {
                     println!("Error processing {name}: {e}");
+                    failed += 1;
                     continue;
                 }
             },
@@ -802,6 +806,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 }
                 Err(e) => {
                     println!("Error processing {name}: {e}");
+                    failed += 1;
                     continue;
                 }
             },
@@ -823,6 +828,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                         Ok(v) => v,
                         Err(e) => {
                             println!("  ✗ Error pushing branch '{branch_name}': {e}");
+                            failed += 1;
                             continue;
                         }
                     };
@@ -853,7 +859,10 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                                 Some(&branch_def.branch_id),
                             );
                         }
-                        Err(e) => println!("  ✗ Error pushing branch '{branch_name}': {e}"),
+                        Err(e) => {
+                            println!("  ✗ Error pushing branch '{branch_name}': {e}");
+                            failed += 1;
+                        }
                     }
                 }
             }
@@ -862,6 +871,11 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     if changes_made {
         project::save_agents(&registry)?;
+    }
+    if failed > 0 {
+        return Err(CliError::Validation(format!(
+            "{failed} resource(s) could not be pushed; see the errors above"
+        )));
     }
     Ok(())
 }
