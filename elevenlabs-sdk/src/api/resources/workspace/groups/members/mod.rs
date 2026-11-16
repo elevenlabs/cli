@@ -1,2 +1,2 @@
 pub mod workspace_groups_members;
-pub use workspace_groups_members::MembersClient2;
+pub use workspace_groups_members::MembersClient3;

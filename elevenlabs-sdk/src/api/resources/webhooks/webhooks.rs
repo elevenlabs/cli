@@ -95,6 +95,7 @@ impl WebhooksClient {
     ///                     name: "name".to_string(),
     ///                     webhook_url: "webhook_url".to_string(),
     ///                     request_headers: None,
+    ///                     log_redacted_fields: None,
     ///                 },
     ///             },
     ///             None,
@@ -194,6 +195,7 @@ impl WebhooksClient {
     ///                 retry_enabled: None,
     ///                 request_headers: None,
     ///                 events: None,
+    ///                 log_redacted_fields: None,
     ///             },
     ///             None,
     ///         )
@@ -211,6 +213,106 @@ impl WebhooksClient {
                 Method::PATCH,
                 &format!("v1/workspace/webhooks/{}", webhook_id),
                 Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Sends a sample event of the given type to the webhook once and returns the endpoint's status code, response time, content type and response size. Test events are signed like real ones, are never retried, and share a limit of 10 per webhook per minute with redeliveries.
+    ///
+    /// # Arguments
+    ///
+    /// * `webhook_id` - The ID of the webhook.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .webhooks
+    ///         .test(
+    ///             &"webhook_id".to_string(),
+    ///             &BodySendTestWebhookEventV1WorkspaceWebhooksWebhookIdTestPost {
+    ///                 webhook_type: WebhookTypes::ProjectConversionStatus,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn test(
+        &self,
+        webhook_id: &str,
+        request: &BodySendTestWebhookEventV1WorkspaceWebhooksWebhookIdTestPost,
+        options: Option<RequestOptions>,
+    ) -> Result<WebhookSendResultResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!("v1/workspace/webhooks/{}/test", webhook_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Sends a stored delivery again, once, with the same delivery ID, a new signature and an ElevenLabs-Webhook-Redelivery header. A retry that is already scheduled is still sent. Only workspace admins on a web session can redeliver, and only deliveries whose payload is stored. Redeliveries and test events share a limit of 10 per webhook per minute.
+    ///
+    /// # Arguments
+    ///
+    /// * `webhook_id` - The ID of the webhook.
+    /// * `delivery_id` - The ID of the delivery to send again.
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .webhooks
+    ///         .redeliver(&"webhook_id".to_string(), &"delivery_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn redeliver(
+        &self,
+        webhook_id: &str,
+        delivery_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<WebhookSendResultResponseModel, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!(
+                    "v1/workspace/webhooks/{}/deliveries/{}/redeliver",
+                    webhook_id, delivery_id
+                ),
+                None,
                 None,
                 options,
             )

@@ -36,6 +36,8 @@ pub enum AgentWorkflowRequestModelNodesValue {
             label: String,
             #[serde(skip_serializing_if = "Option::is_none")]
             entry_behavior: Option<EntryBehavior>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            allow_interruptions_on_entry: Option<bool>,
         },
 
         #[serde(rename = "phone_number")]
@@ -56,6 +58,8 @@ pub enum AgentWorkflowRequestModelNodesValue {
             position: Option<PositionInput>,
             #[serde(skip_serializing_if = "Option::is_none")]
             edge_order: Option<Vec<String>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>,
         },
 
         #[serde(rename = "standalone_agent")]
@@ -153,11 +157,11 @@ impl AgentWorkflowRequestModelNodesValue {
     }
 
     pub fn override_agent(label: String) -> Self {
-        Self::OverrideAgent { position: None, edge_order: None, conversation_config: None, additional_prompt: None, additional_knowledge_base: None, additional_tool_ids: None, label, entry_behavior: None }
+        Self::OverrideAgent { position: None, edge_order: None, conversation_config: None, additional_prompt: None, additional_knowledge_base: None, additional_tool_ids: None, label, entry_behavior: None, allow_interruptions_on_entry: None }
     }
 
     pub fn phone_number(transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination) -> Self {
-        Self::PhoneNumber { custom_sip_headers: None, transfer_destination, transfer_type: None, sip_refer_play_dialtone: None, uui: None, post_dial_digits: None, position: None, edge_order: None }
+        Self::PhoneNumber { custom_sip_headers: None, transfer_destination, transfer_type: None, sip_refer_play_dialtone: None, uui: None, post_dial_digits: None, position: None, edge_order: None, provider_configs: None }
     }
 
     pub fn standalone_agent() -> Self {
@@ -192,60 +196,68 @@ impl AgentWorkflowRequestModelNodesValue {
         Self::End { position, edge_order, outcome: Some(outcome) }
     }
 
-    pub fn override_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
-        Self::OverrideAgent { position: Some(position), edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior }
+    pub fn override_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position: Some(position), edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior, allow_interruptions_on_entry }
     }
 
-    pub fn override_agent_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
-        Self::OverrideAgent { position, edge_order: Some(edge_order), conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior }
+    pub fn override_agent_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position, edge_order: Some(edge_order), conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior, allow_interruptions_on_entry }
     }
 
-    pub fn override_agent_with_conversation_config(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: ConversationalConfigApiModelWorkflowOverrideInput, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
-        Self::OverrideAgent { position, edge_order, conversation_config: Some(conversation_config), additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior }
+    pub fn override_agent_with_conversation_config(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: ConversationalConfigApiModelWorkflowOverrideInput, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position, edge_order, conversation_config: Some(conversation_config), additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior, allow_interruptions_on_entry }
     }
 
-    pub fn override_agent_with_additional_prompt(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: String, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
-        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt: Some(additional_prompt), additional_knowledge_base, additional_tool_ids, label, entry_behavior }
+    pub fn override_agent_with_additional_prompt(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: String, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt: Some(additional_prompt), additional_knowledge_base, additional_tool_ids, label, entry_behavior, allow_interruptions_on_entry }
     }
 
-    pub fn override_agent_with_additional_knowledge_base(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Vec<KnowledgeBaseLocator>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
-        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base: Some(additional_knowledge_base), additional_tool_ids, label, entry_behavior }
+    pub fn override_agent_with_additional_knowledge_base(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Vec<KnowledgeBaseLocator>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base: Some(additional_knowledge_base), additional_tool_ids, label, entry_behavior, allow_interruptions_on_entry }
     }
 
-    pub fn override_agent_with_additional_tool_ids(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Vec<String>, label: String, entry_behavior: Option<EntryBehavior>) -> Self {
-        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids: Some(additional_tool_ids), label, entry_behavior }
+    pub fn override_agent_with_additional_tool_ids(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Vec<String>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids: Some(additional_tool_ids), label, entry_behavior, allow_interruptions_on_entry }
     }
 
-    pub fn override_agent_with_entry_behavior(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: EntryBehavior) -> Self {
-        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior: Some(entry_behavior) }
+    pub fn override_agent_with_entry_behavior(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: EntryBehavior, allow_interruptions_on_entry: Option<bool>) -> Self {
+        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior: Some(entry_behavior), allow_interruptions_on_entry }
     }
 
-    pub fn phone_number_with_custom_sip_headers(custom_sip_headers: Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers: Some(custom_sip_headers), transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order }
+    pub fn override_agent_with_allow_interruptions_on_entry(position: Option<PositionInput>, edge_order: Option<Vec<String>>, conversation_config: Option<ConversationalConfigApiModelWorkflowOverrideInput>, additional_prompt: Option<String>, additional_knowledge_base: Option<Vec<KnowledgeBaseLocator>>, additional_tool_ids: Option<Vec<String>>, label: String, entry_behavior: Option<EntryBehavior>, allow_interruptions_on_entry: bool) -> Self {
+        Self::OverrideAgent { position, edge_order, conversation_config, additional_prompt, additional_knowledge_base, additional_tool_ids, label, entry_behavior, allow_interruptions_on_entry: Some(allow_interruptions_on_entry) }
     }
 
-    pub fn phone_number_with_transfer_type(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: TransferTypeEnum, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type: Some(transfer_type), sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order }
+    pub fn phone_number_with_custom_sip_headers(custom_sip_headers: Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers: Some(custom_sip_headers), transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order, provider_configs }
     }
 
-    pub fn phone_number_with_sip_refer_play_dialtone(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: bool, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone: Some(sip_refer_play_dialtone), uui, post_dial_digits, position, edge_order }
+    pub fn phone_number_with_transfer_type(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: TransferTypeEnum, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type: Some(transfer_type), sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order, provider_configs }
     }
 
-    pub fn phone_number_with_uui(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: UuiTransferConfig, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui: Some(uui), post_dial_digits, position, edge_order }
+    pub fn phone_number_with_sip_refer_play_dialtone(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: bool, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone: Some(sip_refer_play_dialtone), uui, post_dial_digits, position, edge_order, provider_configs }
     }
 
-    pub fn phone_number_with_post_dial_digits(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: WorkflowPhoneNumberNodeModelInputPostDialDigits, position: Option<PositionInput>, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits: Some(post_dial_digits), position, edge_order }
+    pub fn phone_number_with_uui(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: UuiTransferConfig, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui: Some(uui), post_dial_digits, position, edge_order, provider_configs }
     }
 
-    pub fn phone_number_with_position(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: PositionInput, edge_order: Option<Vec<String>>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position: Some(position), edge_order }
+    pub fn phone_number_with_post_dial_digits(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: WorkflowPhoneNumberNodeModelInputPostDialDigits, position: Option<PositionInput>, edge_order: Option<Vec<String>>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits: Some(post_dial_digits), position, edge_order, provider_configs }
     }
 
-    pub fn phone_number_with_edge_order(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Vec<String>) -> Self {
-        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order: Some(edge_order) }
+    pub fn phone_number_with_position(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: PositionInput, edge_order: Option<Vec<String>>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position: Some(position), edge_order, provider_configs }
+    }
+
+    pub fn phone_number_with_edge_order(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Vec<String>, provider_configs: Option<Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order: Some(edge_order), provider_configs }
+    }
+
+    pub fn phone_number_with_provider_configs(custom_sip_headers: Option<Vec<WorkflowPhoneNumberNodeModelInputCustomSipHeadersItem>>, transfer_destination: WorkflowPhoneNumberNodeModelInputTransferDestination, transfer_type: Option<TransferTypeEnum>, sip_refer_play_dialtone: Option<bool>, uui: Option<UuiTransferConfig>, post_dial_digits: Option<WorkflowPhoneNumberNodeModelInputPostDialDigits>, position: Option<PositionInput>, edge_order: Option<Vec<String>>, provider_configs: Vec<WorkflowPhoneNumberNodeModelInputProviderConfigsItem>) -> Self {
+        Self::PhoneNumber { custom_sip_headers, transfer_destination, transfer_type, sip_refer_play_dialtone, uui, post_dial_digits, position, edge_order, provider_configs: Some(provider_configs) }
     }
 
     pub fn standalone_agent_with_position(position: PositionInput, edge_order: Option<Vec<String>>, agent_id: Option<String>, branch_id: Option<String>, node_id: Option<String>, delay_ms: Option<i64>, transfer_message: Option<String>, enable_transferred_agent_first_message: Option<bool>, preserve_client_tts_overrides: Option<bool>, preserve_voice_settings: Option<bool>) -> Self {

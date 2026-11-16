@@ -9,9 +9,9 @@ pub use auth_connections::AuthConnectionsClient;
 pub mod groups;
 pub use groups::GroupsClient;
 pub mod invites;
-pub use invites::InvitesClient;
+pub use invites::InvitesClient2;
 pub mod members;
-pub use members::MembersClient;
+pub use members::MembersClient2;
 pub mod resources;
 pub use resources::ResourcesClient;
 pub mod usage;
@@ -23,8 +23,8 @@ pub struct WorkspaceClient {
     pub audit_logs: AuditLogsClient,
     pub auth_connections: AuthConnectionsClient,
     pub groups: GroupsClient,
-    pub invites: InvitesClient,
-    pub members: MembersClient,
+    pub invites: InvitesClient2,
+    pub members: MembersClient2,
     pub resources: ResourcesClient,
     pub usage: UsageClient2,
     pub analytics: AnalyticsClient2,
@@ -37,8 +37,8 @@ impl WorkspaceClient {
             audit_logs: AuditLogsClient::new(config.clone())?,
             auth_connections: AuthConnectionsClient::new(config.clone())?,
             groups: GroupsClient::new(config.clone())?,
-            invites: InvitesClient::new(config.clone())?,
-            members: MembersClient::new(config.clone())?,
+            invites: InvitesClient2::new(config.clone())?,
+            members: MembersClient2::new(config.clone())?,
             resources: ResourcesClient::new(config.clone())?,
             usage: UsageClient2::new(config.clone())?,
             analytics: AnalyticsClient2::new(config.clone())?,

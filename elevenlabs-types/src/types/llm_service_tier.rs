@@ -6,7 +6,8 @@ use super::*;
 /// 
 /// STANDARD: default price and throughput.
 /// FAST: pays a per-token price premium for higher throughput / lower latency.
-/// See OpenAI's fast mode: https://openai.com/api-fast-mode/
+/// See OpenAI's fast mode: https://openai.com/api-fast-mode/ and, for Gemini, Vertex
+/// Priority PayGo: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/priority-paygo
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LlmServiceTier {

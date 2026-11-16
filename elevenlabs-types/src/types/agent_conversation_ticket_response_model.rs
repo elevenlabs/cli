@@ -14,7 +14,7 @@ pub struct AgentConversationTicketResponseModel {
     pub agent_id: String,
     #[serde(default)]
     pub needs_clustering: bool,
-    /// One-line headline for the ticket. None only on tickets created before titles existed.
+    /// One-line headline for the agent issue. None only on issues created before titles existed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -40,7 +40,7 @@ pub struct AgentConversationTicketResponseModel {
     pub priority_changes: Vec<TicketPriorityChangeResponseModel>,
     #[serde(default)]
     pub status_changes: Vec<TicketStatusChangeResponseModel>,
-    /// The ticket this one was merged into, set while its status is 'merged'.
+    /// The agent issue this one was merged into, set while its status is 'merged'.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merged_into_ticket_id: Option<String>,
     pub source: AgentConversationTicketSource,

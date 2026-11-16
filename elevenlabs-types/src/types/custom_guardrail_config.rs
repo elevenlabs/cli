@@ -18,6 +18,9 @@ pub struct CustomGuardrailConfig {
     /// LLM model to use for custom guardrail evaluation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<CustomGuardrailConfigModel>,
+    /// Service tier of the model, trading a per-token price premium for higher token throughput. Only available for some models.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<LlmServiceTier>,
     /// How much recent history the guardrail sees before the reply it evaluates, counted in user messages (the agent replies between them are included too). The guardrail always gets a single <conversation_history> transcript ending in the evaluated reply, marked 'AGENT [current reply]:'. 0 (default) adds no prior history (just that line); 1 adds the latest user message onward.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub history_message_count: Option<i64>,
@@ -42,6 +45,7 @@ pub struct CustomGuardrailConfigBuilder {
     prompt: Option<String>,
     execution_mode: Option<GuardrailExecutionMode>,
     model: Option<CustomGuardrailConfigModel>,
+    service_tier: Option<LlmServiceTier>,
     history_message_count: Option<i64>,
     trigger_action: Option<CustomGuardrailConfigTriggerAction>,
     evaluate_full_response_only: Option<bool>,
@@ -73,6 +77,11 @@ impl CustomGuardrailConfigBuilder {
         self
     }
 
+    pub fn service_tier(mut self, value: LlmServiceTier) -> Self {
+        self.service_tier = Some(value);
+        self
+    }
+
     pub fn history_message_count(mut self, value: i64) -> Self {
         self.history_message_count = Some(value);
         self
@@ -99,6 +108,7 @@ impl CustomGuardrailConfigBuilder {
             prompt: self.prompt.ok_or_else(|| BuildError::missing_field("prompt"))?,
             execution_mode: self.execution_mode,
             model: self.model,
+            service_tier: self.service_tier,
             history_message_count: self.history_message_count,
             trigger_action: self.trigger_action,
             evaluate_full_response_only: self.evaluate_full_response_only,
