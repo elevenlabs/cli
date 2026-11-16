@@ -13,22 +13,22 @@ impl TriageTicketsClient {
         })
     }
 
-    /// List an agent's conversation triage tickets, ordered by most recently created first unless sorted by priority. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
+    /// List an agent's issues, ordered by most recently created first unless sorted by priority. These are issues about the agent's own performance on a conversation (to work on with Architect), not tickets an agent opens for end users.
     ///
     /// # Arguments
     ///
-    /// * `page_size` - How many agent conversation tickets to return. Can not exceed 100.
-    /// * `conversation_id` - Filter tickets by conversation id.
-    /// * `status` - Filter tickets by status.
-    /// * `sources` - Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
-    /// * `priorities` - Filter tickets by priority. Repeat the parameter to filter by multiple priorities.
-    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation).
-    /// * `owner_user_id` - Filter tickets by creator. Use 'agent' for agent-raised tickets.
-    /// * `assignee_user_id` - Filter tickets by assignee. Use 'unassigned' for tickets with no assignee.
-    /// * `issue_type` - Filter clusters by issue type.
-    /// * `label` - Filter tickets by an exact label.
-    /// * `merged_into_ticket_id` - Filter tickets merged into this ticket.
-    /// * `search` - Case-insensitive free-text search across the ticket's title, description, comments, and turn comments.
+    /// * `page_size` - How many agent issues to return. Can not exceed 100.
+    /// * `conversation_id` - Filter agent issues by conversation id.
+    /// * `status` - Filter agent issues by status.
+    /// * `sources` - Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
+    /// * `priorities` - Filter agent issues by priority. Repeat the parameter to filter by multiple priorities.
+    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation).
+    /// * `owner_user_id` - Filter agent issues by creator. Use 'agent' for agent-raised issues.
+    /// * `assignee_user_id` - Filter agent issues by assignee. Use 'unassigned' for issues with no assignee.
+    /// * `issue_type` - Filter agent issues by type.
+    /// * `label` - Filter agent issues by an exact label.
+    /// * `merged_into_ticket_id` - Filter agent issues merged into this issue.
+    /// * `search` - Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
@@ -106,7 +106,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). Without a title, one is derived from the comment. Requires viewer access to the agent.
+    /// Manually raise a follow-up issue against an agent, not tied to any conversation (for example a task like 'add the KB about X'). Without a title, one is derived from the comment. Requires viewer access to the agent.
     ///
     /// # Arguments
     ///
@@ -159,22 +159,22 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller). Supports the same filters, sorting and search as the per-agent endpoint. Tickets for agents the caller cannot access are omitted.
+    /// List agent issues across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, issues assigned to the caller). Supports the same filters, sorting and search as the per-agent endpoint. Issues for agents the caller cannot access are omitted.
     ///
     /// # Arguments
     ///
-    /// * `page_size` - How many agent conversation tickets to return. Can not exceed 100.
-    /// * `agent_id` - Only tickets for this agent.
-    /// * `status` - Filter tickets by status.
-    /// * `sources` - Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
-    /// * `priorities` - Filter tickets by priority. Repeat the parameter to filter by multiple priorities.
-    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation).
-    /// * `owner_user_id` - Filter tickets by creator. Use 'agent' for agent-raised tickets.
-    /// * `assignee_user_id` - Filter tickets by assignee. Use 'unassigned' for tickets with no assignee.
-    /// * `issue_type` - Filter clusters by issue type.
-    /// * `label` - Filter tickets by an exact label.
-    /// * `merged_into_ticket_id` - Filter tickets merged into this ticket.
-    /// * `search` - Case-insensitive free-text search across the ticket's title, description, comments, and turn comments.
+    /// * `page_size` - How many agent issues to return. Can not exceed 100.
+    /// * `agent_id` - Only issues for this agent.
+    /// * `status` - Filter agent issues by status.
+    /// * `sources` - Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
+    /// * `priorities` - Filter agent issues by priority. Repeat the parameter to filter by multiple priorities.
+    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation).
+    /// * `owner_user_id` - Filter agent issues by creator. Use 'agent' for agent-raised issues.
+    /// * `assignee_user_id` - Filter agent issues by assignee. Use 'unassigned' for issues with no assignee.
+    /// * `issue_type` - Filter agent issues by type.
+    /// * `label` - Filter agent issues by an exact label.
+    /// * `merged_into_ticket_id` - Filter agent issues merged into this issue.
+    /// * `search` - Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
@@ -250,7 +250,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Raise a ticket about an agent's performance on a conversation, for triage with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
+    /// Raise an issue about an agent's performance on a conversation, to work on with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
     ///
     /// # Arguments
     ///
@@ -350,7 +350,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Get an agent conversation ticket by ID.
+    /// Get an agent issue by ID.
     ///
     /// # Arguments
     ///
@@ -394,7 +394,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Delete an agent conversation ticket. Restricted to the ticket creator or a workspace admin.
+    /// Delete an agent issue. Restricted to the issue creator or a workspace admin.
     ///
     /// # Arguments
     ///
@@ -438,7 +438,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Update a ticket's title, comment, status, priority, and/or assignee. Requires viewer access to the ticket's agent.
+    /// Update an agent issue's title, comment, status, priority, and/or assignee. Requires viewer access to the issue's agent.
     ///
     /// # Arguments
     ///
@@ -489,7 +489,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Append a comment discussing how to resolve the ticket. Requires viewer access to the ticket's agent.
+    /// Append a comment discussing how to resolve the agent issue. Requires viewer access to the issue's agent.
     ///
     /// # Arguments
     ///
@@ -540,7 +540,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Merge other open tickets of the same agent into this pending, in-progress, or resolved one. Their conversations move onto this ticket, its priority is raised to the highest among them, and they are kept with status 'merged'. Requires viewer access to the ticket's agent.
+    /// Merge other open issues of the same agent into this pending, in-progress, or resolved one. Their conversations move onto this issue, its priority is raised to the highest among them, and they are kept with status 'merged'. Requires viewer access to the issue's agent.
     ///
     /// # Arguments
     ///
@@ -591,7 +591,7 @@ impl TriageTicketsClient {
             .await
     }
 
-    /// Append a turn-level comment to a ticket. Requires viewer access to the ticket's agent.
+    /// Append a turn-level comment to an agent issue. Requires viewer access to the issue's agent.
     ///
     /// # Arguments
     ///

@@ -1,2 +1,2 @@
 pub mod workspace_invites;
-pub use workspace_invites::InvitesClient;
+pub use workspace_invites::InvitesClient2;

@@ -19,7 +19,7 @@ pub struct BodyCreateAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsPost {
     /// User IDs to request a review from.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requested_reviewer_user_ids: Option<Vec<String>>,
-    /// Triage ticket of this agent that the merge_proposal resolves. Merging it resolves the ticket if still open.
+    /// Issue of this agent that the merge_proposal resolves. Merging it resolves the issue if still open.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub triage_ticket_id: Option<String>,
 }

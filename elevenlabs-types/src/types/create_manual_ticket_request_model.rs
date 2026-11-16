@@ -4,13 +4,13 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct CreateManualTicketRequestModel {
-    /// One-line headline shown in the triage list. Defaults to one derived from qa_comment.
+    /// One-line headline shown in the issues list. Defaults to one derived from qa_comment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    /// What the ticket is about, e.g. a follow-up task for the agent.
+    /// What the agent issue is about, e.g. a follow-up task for the agent.
     #[serde(default)]
     pub qa_comment: String,
-    /// How urgently the ticket needs attention.
+    /// How urgently the agent issue needs attention.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<AgentConversationTicketPriority>,
 }

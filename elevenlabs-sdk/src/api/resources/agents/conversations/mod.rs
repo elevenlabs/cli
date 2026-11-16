@@ -1,5 +1,5 @@
 use crate::api::*;
-use crate::{ApiError, ClientConfig, HttpClient, QueryBuilder, RequestOptions};
+use crate::{ApiError, ClientConfig, HttpClient, QueryBuilder, RequestOptions, SseStream};
 use reqwest::Method;
 
 pub mod audio;
@@ -428,6 +428,63 @@ impl ConversationsClient {
             .await
     }
 
+    /// Create a text conversation with an agent. This does not run the agent, and the agent sends no first message. This endpoint is in alpha and may change.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .create(
+    ///             &CreateAgentConversationRequest {
+    ///                 agent: AgentMessagesPersistedAgent {
+    ///                     r#type: "persisted".to_string(),
+    ///                     agent_id: "agent_id".to_string(),
+    ///                     branch_id: None,
+    ///                     overrides: None,
+    ///                 },
+    ///                 environment: None,
+    ///                 user_id: None,
+    ///                 dynamic_variables: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn create(
+        &self,
+        request: &CreateAgentConversationRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<CreateAgentConversationResponse, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                "v1/convai/conversations",
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
     /// Resolve a conversation URL (a Slack message URL or a Zendesk ticket URL) to the deterministic conversation ID for the given agent, then confirm the conversation exists.
     ///
     /// # Arguments
@@ -694,6 +751,232 @@ impl ConversationsClient {
                     .string("cursor", request.cursor.clone())
                     .build(),
                 options,
+            )
+            .await
+    }
+
+    /// Send input to a conversation, and wait until the agent finishes or waits on client tool results. With `background` set to true, the endpoint returns 202 when the server admits the turn. Then stream the turn's events with `Last-Event-ID` set to the `stream_cursor`. This endpoint is in alpha and may change.
+    ///
+    /// # Arguments
+    ///
+    /// * `conversation_id` - The Conversation ID
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .send_message(
+    ///             &"conversation_id".to_string(),
+    ///             &SendConversationMessageRequest {
+    ///                 input: vec![SendConversationMessageRequestInputItem::ClientToolResult {
+    ///                     data: ClientToolResultItem {
+    ///                         tool_call_id: "tool_call_id".to_string(),
+    ///                         result: "result".to_string(),
+    ///                         is_error: true,
+    ///                         ..Default::default()
+    ///                     },
+    ///                 }],
+    ///                 background: None,
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn send_message(
+        &self,
+        conversation_id: &str,
+        request: &SendConversationMessageRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<ConversationTurn, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::POST,
+                &format!("v1/convai/conversations/{}/messages", conversation_id),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Send input to a conversation, and stream the events of the request as server-sent events. The last event is `stream_ended`, which has the outcome of the turn. This endpoint is in alpha and may change.
+    ///
+    /// # Arguments
+    ///
+    /// * `conversation_id` - The Conversation ID
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// Server-Sent Events stream (use StreamExt from the prelude to iterate)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .send_message_stream(
+    ///             &"conversation_id".to_string(),
+    ///             &SendConversationMessageStreamRequest {
+    ///                 input: vec![
+    ///                     SendConversationMessageStreamRequestInputItem::ClientToolResult {
+    ///                         data: ClientToolResultItem {
+    ///                             tool_call_id: "tool_call_id".to_string(),
+    ///                             result: "result".to_string(),
+    ///                             is_error: true,
+    ///                             ..Default::default()
+    ///                         },
+    ///                     },
+    ///                 ],
+    ///             },
+    ///             None,
+    ///         )
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn send_message_stream(
+        &self,
+        conversation_id: &str,
+        request: &SendConversationMessageStreamRequest,
+        options: Option<RequestOptions>,
+    ) -> Result<SseStream<StreamEnvelope>, ApiError> {
+        self.http_client
+            .execute_sse_request(
+                Method::POST,
+                &format!(
+                    "v1/convai/conversations/{}/messages/stream",
+                    conversation_id
+                ),
+                Some(serde_json::to_value(request).map_err(ApiError::Serialization)?),
+                None,
+                options,
+                None,
+            )
+            .await
+    }
+
+    /// Get the status and output of a turn. The status comes from the stored transcript, so a turn that failed after the agent started can show as completed. Only the `stream_ended` event has the real outcome. This endpoint is in alpha and may change.
+    ///
+    /// # Arguments
+    ///
+    /// * `conversation_id` - The Conversation ID
+    /// * `turn_id` - The Turn ID
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// JSON response from the API
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .get_turn(&"conversation_id".to_string(), &"turn_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn get_turn(
+        &self,
+        conversation_id: &str,
+        turn_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<ConversationTurn, ApiError> {
+        self.http_client
+            .execute_request(
+                Method::GET,
+                &format!(
+                    "v1/convai/conversations/{}/turns/{}",
+                    conversation_id, turn_id
+                ),
+                None,
+                None,
+                options,
+            )
+            .await
+    }
+
+    /// Stream the events of a turn as server-sent events. Send `Last-Event-ID` to resume after an event. The server keeps events for about an hour. This endpoint is in alpha and may change.
+    ///
+    /// # Arguments
+    ///
+    /// * `conversation_id` - The Conversation ID
+    /// * `turn_id` - The Turn ID
+    /// * `options` - Additional request options such as headers, timeout, etc.
+    ///
+    /// # Returns
+    ///
+    /// Server-Sent Events stream (use StreamExt from the prelude to iterate)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use elevenlabs_sdk::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = ClientConfig {
+    ///         ..Default::default()
+    ///     };
+    ///     let client = ElevenlabsClient::new(config).expect("Failed to build client");
+    ///     client
+    ///         .agents
+    ///         .conversations
+    ///         .stream_turn_events(&"conversation_id".to_string(), &"turn_id".to_string(), None)
+    ///         .await;
+    /// }
+    /// ```
+    pub async fn stream_turn_events(
+        &self,
+        conversation_id: &str,
+        turn_id: &str,
+        options: Option<RequestOptions>,
+    ) -> Result<SseStream<StreamEnvelope>, ApiError> {
+        self.http_client
+            .execute_sse_request(
+                Method::GET,
+                &format!(
+                    "v1/convai/conversations/{}/turns/{}/events",
+                    conversation_id, turn_id
+                ),
+                None,
+                None,
+                options,
+                None,
             )
             .await
     }

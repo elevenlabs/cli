@@ -1,0 +1,2 @@
+pub mod reception_receptionists_transfer_rules;
+pub use reception_receptionists_transfer_rules::TransferRulesClient;

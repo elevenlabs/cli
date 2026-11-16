@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct TicketSearchMatchResponseModel {
-    /// Which of the ticket's texts matched.
+    /// Which of the agent issue's texts matched.
     pub field: TicketSearchMatchField,
     /// Whitespace-collapsed excerpt around the match, with an ellipsis where it was cut.
     #[serde(default)]
