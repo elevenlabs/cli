@@ -1,0 +1,28 @@
+{
+  "name": "escalate",
+  "type": "system",
+  "params": {
+    "system_tool_type": "transfer_to_number",
+    "transfer_rules": [
+      {
+        "condition": "Caller asks for a human",
+        "provider_configs": [
+          {
+            "type": "twilio",
+            "config": {
+              "type": "twilio_warm_conference_transfer",
+              "transfer_destination": { "type": "phone", "destination": "+15550100" }
+            }
+          },
+          {
+            "type": "sip_trunk",
+            "config": {
+              "type": "sip_cold_refer_transfer",
+              "transfer_destination": { "type": "sip_uri_dynamic_variable", "destination": "escalation_uri" }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

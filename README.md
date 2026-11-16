@@ -310,7 +310,7 @@ A few things keep a busy workflow readable, so lines don't cross or run together
 - When a node's branches would still cross, its box is widened or the branches are reordered, whichever draws without crossings.
 - When the drawing is wider than the terminal (or `COLUMNS`), long IDs are shortened, as in `tool_01j…sfb67`. If it still doesn't fit, a note says so; `--format mermaid` has the full IDs.
 
-`--format mermaid` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
+`--format mermaid` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. A tool node shows each tool's name from `tools.json`, or its ID when the tool isn't local; `elevenlabs tools diagram` draws what is inside a tool. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
 
 ```mermaid
 flowchart TD
@@ -388,7 +388,59 @@ elevenlabs tools pull [--tool <tool_id>] [--output-dir tool_configs] [--update] 
 # Delete a tool locally and in ElevenLabs
 elevenlabs tools delete <tool_id>
 elevenlabs tools delete --all
+
+# Draw one tool's parameters, value sources, headers and response handling
+elevenlabs tools diagram <tool_config.json|tool_id|name> [--format ascii|mermaid|mermaid-md]
 ```
+
+#### Drawing a tool
+
+`tools diagram` shows what is inside a tool, which `agents workflow diagram` (tool nodes by name) and `agents graph` (which agents use which tools) don't:
+
+```bash
+elevenlabs tools diagram tool_configs/issue_refund.json    # a config file, bare or wrapped in "tool_config"
+elevenlabs tools diagram issue_refund                      # a name or ID from tools.json
+elevenlabs tools diagram tool_01jxcrhpk0ehdvnxw3mw4sfb67   # an ID that isn't local is fetched from ElevenLabs
+elevenlabs tools diagram agent_configs/front_desk.json     # an agent's system tools (transfer rules) and inline tools
+elevenlabs tools diagram issue_refund --format mermaid-md  # Mermaid in a fence, for docs or a PR comment
+```
+
+It reads the `tool_configs/*.json` wire format, which is also what the SDKs' tool builders write (`toJSONString()` in JS, `to_json_string()` in Python). Local files need no API key.
+
+- **Webhook tools:** the method and URL, with `{path}` placeholders and `{{system__env_*}}` templates picked out. Then the path, query and body parameters as a tree, with headers, the auth connection, and the response: its documented schema, filter, and `assignments` to dynamic variables.
+- **Client tools:** the parameter tree, and whether the tool waits for a response.
+- **System tools:** transfer conditions and where each goes (agent, phone number, SIP URI or dynamic variable, plus the transfer type), per-provider transfer rules, and any other params.
+
+Each parameter is marked `required` or `optional`, with where its value comes from: `[LLM]` (with the description the LLM reads), `[var name]`, `[constant value]`, `[system]` or `[omitted]`. `enum`, `allowed_values` and `required_constraints` appear under it. Each header shows its source: a plain value, `[secret id]`, `[var name]` or `[env label]`. A URL placeholder with no schema, or a path param the URL doesn't use, is flagged.
+
+```
+issue_refund · Webhook tool
+Refund an order the caller asked to return
+timeout 10s · execution post_tool_speech · pre-tool speech force
+
+POST https://{{system__env_orders_host}}/{tenant}/orders/{order_id}/refunds
+├── URL variables
+│   └── {{system__env_orders_host}} [env orders_host]
+├── Path params
+│   ├── tenant [from auth connection]
+│   └── order_id: string required [LLM]
+│           The order number the caller gives, e.g. A-1042
+├── Body application/json
+│   ├── customer_id: string required [var customer_id]
+│   └── reason: string required [LLM]
+│           Why the caller wants a refund
+│           one of damaged | late | other
+├── Headers
+│   ├── Authorization [secret sec_orders_api]
+│   └── X-Caller [var system__caller_id]
+└── Auth [env orders_oauth]
+
+Response
+└── Assignments
+    └── refund.id → {{refund_id}} (hidden from the LLM)
+```
+
+In a terminal, value sources are coloured (unless `NO_COLOR` is set) and long lines wrap to its width (or `COLUMNS`). `--format mermaid` draws the same tree left to right, one colour per value source.
 
 ### Tests
 

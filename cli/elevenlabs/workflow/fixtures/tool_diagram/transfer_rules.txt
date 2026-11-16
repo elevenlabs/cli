@@ -1,0 +1,6 @@
+escalate · System tool (transfer_to_number)
+
+Transfer rules
+└── "Caller asks for a human"
+    ├── twilio twilio_warm_conference_transfer → phone +15550100
+    └── sip_trunk sip_cold_refer_transfer → SIP {{escalation_uri}}

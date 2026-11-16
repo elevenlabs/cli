@@ -30,7 +30,12 @@ use super::mermaid::{
     terminal_width, text_width, truncate, use_color, Format, MermaidIds, NodeLabel, Style, Target,
     EDGE_LABEL_MAX, NODE_LABEL_MAX, SHORT_ID_MIN,
 };
+use super::tool_diagram::tool_names_by_id;
 use super::{api, project};
+
+/// Tool ID → name, from tools.json: tool nodes are labelled by name where
+/// one is known.
+type ToolNames = BTreeMap<String, String>;
 
 /// Register the `agents workflow` command group.
 pub fn register(app: CliApp) -> CliApp {
@@ -64,16 +69,20 @@ fn handle_diagram(args: DiagramArgs, _ctx: &AppContext) -> Result<(), CliError> 
         return diagram_all(args.format);
     };
     let workflow = load_one(target)?;
+    let names = tool_names_by_id();
     match args.format {
         Format::Ascii => {
             let color = use_color();
             print!(
                 "{}",
-                render_terminal(&workflow.workflow, color, terminal_width())?
+                render_terminal(&workflow.workflow, &names, color, terminal_width())?
             );
         }
-        Format::Mermaid => print!("{}", render_mermaid(&workflow.workflow)),
-        Format::MermaidMd => print!("{}", fence(&render_mermaid(&workflow.workflow))),
+        Format::Mermaid => print!("{}", render_mermaid_named(&workflow.workflow, &names)),
+        Format::MermaidMd => print!(
+            "{}",
+            fence(&render_mermaid_named(&workflow.workflow, &names))
+        ),
     }
     Ok(())
 }
@@ -81,6 +90,7 @@ fn handle_diagram(args: DiagramArgs, _ctx: &AppContext) -> Result<(), CliError> 
 fn diagram_all(format: Format) -> Result<(), CliError> {
     let color = use_color();
     let width = terminal_width();
+    let names = tool_names_by_id();
     for (i, workflow) in load_all()?.iter().enumerate() {
         if i > 0 {
             println!();
@@ -88,18 +98,24 @@ fn diagram_all(format: Format) -> Result<(), CliError> {
         match format {
             Format::Ascii => {
                 println!("── {} ({})\n", workflow.title, workflow.config_path);
-                print!("{}", render_terminal(&workflow.workflow, color, width)?);
+                print!(
+                    "{}",
+                    render_terminal(&workflow.workflow, &names, color, width)?
+                );
             }
             Format::Mermaid => {
                 // Several flowcharts in one stream are not one Mermaid
                 // document; the comment marks where each starts. mermaid-md
                 // is the form meant for this.
                 println!("%% {} ({})", workflow.title, workflow.config_path);
-                print!("{}", render_mermaid(&workflow.workflow));
+                print!("{}", render_mermaid_named(&workflow.workflow, &names));
             }
             Format::MermaidMd => {
                 println!("### {}\n", workflow.title);
-                print!("{}", fence(&render_mermaid(&workflow.workflow)));
+                print!(
+                    "{}",
+                    fence(&render_mermaid_named(&workflow.workflow, &names))
+                );
             }
         }
     }
@@ -247,8 +263,14 @@ fn style_for(node_type: &str, target: Target) -> Style {
 
 /// Render a workflow (`{"nodes": {...}, "edges": {...}}`) as a Mermaid
 /// flowchart. Always ends with a newline.
-pub(super) fn render_mermaid(workflow: &Value) -> String {
-    build(workflow, Target::Export, &Layout::default()).source
+#[cfg(test)]
+fn render_mermaid(workflow: &Value) -> String {
+    render_mermaid_named(workflow, &ToolNames::new())
+}
+
+/// [`render_mermaid`], with tool nodes labelled by their names in `names`.
+fn render_mermaid_named(workflow: &Value, names: &ToolNames) -> String {
+    build_named(workflow, Target::Export, &Layout::default(), names).source
 }
 
 /// Draw a workflow as box-drawing text for a terminal, followed by a legend
@@ -257,13 +279,14 @@ pub(super) fn render_mermaid(workflow: &Value) -> String {
 /// shortened; if even that does not fit, a note on stderr says so.
 fn render_terminal(
     workflow: &Value,
+    names: &ToolNames,
     color: bool,
     width: Option<usize>,
 ) -> Result<String, CliError> {
     // Measure without colour: ANSI codes are not columns.
-    let (mut built, mut out) = least_tangled(workflow, false)?;
+    let (mut built, mut out) = least_tangled(workflow, names, false)?;
     if let Some(width) = width.filter(|w| text_width(&out) > *w) {
-        (built, out) = least_tangled(workflow, true)?;
+        (built, out) = least_tangled(workflow, names, true)?;
         if text_width(&out) > width {
             eprintln!(
                 "This diagram is {} columns wide, more than the {width} available. \
@@ -298,12 +321,16 @@ const FAN_WIDTHS: [usize; 3] = [8, 10, 12];
 /// tangled, every order of its branches, keeping the best before moving to
 /// the next. Ties keep the flow order and natural width. Stops as soon as a
 /// drawing has no tangles.
-fn least_tangled(workflow: &Value, short_ids: bool) -> Result<(Built, String), CliError> {
+fn least_tangled(
+    workflow: &Value,
+    names: &ToolNames,
+    short_ids: bool,
+) -> Result<(Built, String), CliError> {
     let mut layout = Layout {
         short_ids,
         ..Layout::default()
     };
-    let built = build(workflow, Target::Terminal, &layout);
+    let built = build_named(workflow, Target::Terminal, &layout, names);
     let text = draw(&built.source, false)?;
     let mut fewest = tangles(&text);
     let fans = built.fans.clone();
@@ -321,7 +348,7 @@ fn least_tangled(workflow: &Value, short_ids: bool) -> Result<(Built, String), C
         for per_link in FAN_WIDTHS {
             let mut candidate = layout.clone();
             candidate.min_width.insert(node.clone(), per_link * count);
-            let built = build(workflow, Target::Terminal, &candidate);
+            let built = build_named(workflow, Target::Terminal, &candidate, names);
             let text = draw(&built.source, false)?;
             let found = tangles(&text);
             if found < fewest {
@@ -340,7 +367,7 @@ fn least_tangled(workflow: &Value, short_ids: bool) -> Result<(Built, String), C
         for order in permutations(count).into_iter().skip(1) {
             let mut candidate = layout.clone();
             candidate.fan_order.insert(node.clone(), order.clone());
-            let built = build(workflow, Target::Terminal, &candidate);
+            let built = build_named(workflow, Target::Terminal, &candidate, names);
             let text = draw(&built.source, false)?;
             let found = tangles(&text);
             if found < fewest {
@@ -385,7 +412,12 @@ fn draw(source: &str, color: bool) -> Result<String, CliError> {
     )
 }
 
+#[cfg(test)]
 fn build(workflow: &Value, target: Target, layout: &Layout) -> Built {
+    build_named(workflow, target, layout, &ToolNames::new())
+}
+
+fn build_named(workflow: &Value, target: Target, layout: &Layout, names: &ToolNames) -> Built {
     let empty = serde_json::Map::new();
     let nodes = workflow
         .get("nodes")
@@ -453,7 +485,7 @@ fn build(workflow: &Value, target: Target, layout: &Layout) -> Built {
     for (id, node) in &nodes {
         let node_type = str_field(node, "type").unwrap_or("unknown");
         let style = style_for(node_type, target);
-        let mut label = node_label(id, node_type, node);
+        let mut label = node_label(id, node_type, node, names);
         if layout.short_ids {
             label.text = shorten_ids(&label.text);
         }
@@ -520,7 +552,7 @@ fn build(workflow: &Value, target: Target, layout: &Layout) -> Built {
                     || link.to.to_string(),
                     |node| {
                         let node_type = str_field(node, "type").unwrap_or("unknown");
-                        node_label(link.to, node_type, node).text
+                        node_label(link.to, node_type, node, names).text
                     },
                 );
                 let back_to = format!("back to '{}'", truncate(&back_to, NODE_LABEL_MAX));
@@ -712,7 +744,7 @@ fn flow_order<'a>(
 /// A node's label: its own `label` when it has one, otherwise a summary
 /// derived from its type. Tagged with the kind, so types are tellable apart
 /// without colour.
-fn node_label(id: &str, node_type: &str, node: &Value) -> NodeLabel {
+fn node_label(id: &str, node_type: &str, node: &Value, names: &ToolNames) -> NodeLabel {
     let own = str_field(node, "label").filter(|l| !l.trim().is_empty());
     let (kind, text) = match node_type {
         "start" => (None, "Start".to_string()),
@@ -731,7 +763,12 @@ fn node_label(id: &str, node_type: &str, node: &Value) -> NodeLabel {
             let tools: Vec<&str> = node
                 .get("tools")
                 .and_then(Value::as_array)
-                .map(|ts| ts.iter().filter_map(|t| str_field(t, "tool_id")).collect())
+                .map(|ts| {
+                    ts.iter()
+                        .filter_map(|t| str_field(t, "tool_id"))
+                        .map(|id| names.get(id).map_or(id, String::as_str))
+                        .collect()
+                })
                 .unwrap_or_default();
             let text = if tools.is_empty() {
                 id.to_string()
@@ -860,6 +897,20 @@ mod tests {
         );
         // Only classes in use are defined.
         assert!(!out.contains("t_unknown"), "{out}");
+    }
+
+    #[test]
+    fn tool_nodes_are_labelled_by_name_when_known() {
+        let workflow = json!({
+            "nodes": { "t": { "type": "tool", "tools": [{ "tool_id": "tool_1" }, { "tool_id": "tool_2" }] } },
+            "edges": {}
+        });
+        let names = ToolNames::from([("tool_1".to_string(), "lookup_order".to_string())]);
+        let out = render_mermaid_named(&workflow, &names);
+        assert!(
+            out.contains(r#"n_t[["Tool · lookup_order, tool_2"]]"#),
+            "{out}"
+        );
     }
 
     #[test]
@@ -1165,7 +1216,7 @@ mod tests {
             serde_json::from_str(include_str!("fixtures/diagram/busy.json")).unwrap();
         let workflow = workflow_of(&config).unwrap();
         for width in [None, Some(104)] {
-            let drawn = render_terminal(workflow, false, width).expect("draws");
+            let drawn = render_terminal(workflow, &ToolNames::new(), false, width).expect("draws");
             let tangled: Vec<char> = drawn
                 .chars()
                 .filter(|c| super::super::mermaid::TANGLES.contains(c))
@@ -1234,7 +1285,7 @@ mod tests {
             "{}",
             built.source
         );
-        render_terminal(&workflow, false, None).expect("draws");
+        render_terminal(&workflow, &ToolNames::new(), false, None).expect("draws");
         // mermaid.js handles brackets, so export keeps them.
         assert!(render_mermaid(&workflow).contains("Confirm (booking)"));
     }
@@ -1252,7 +1303,7 @@ mod tests {
         ] {
             let config: Value = serde_json::from_str(input).unwrap();
             let workflow = workflow_of(&config).unwrap();
-            let drawn = render_terminal(workflow, false, None).expect("draws");
+            let drawn = render_terminal(workflow, &ToolNames::new(), false, None).expect("draws");
             assert!(drawn.contains("Start"), "{drawn}");
             assert!(
                 !drawn.contains('\u{1b}'),
