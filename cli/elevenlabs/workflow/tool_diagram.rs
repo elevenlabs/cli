@@ -83,10 +83,7 @@ fn load(target: &str, ctx: &AppContext) -> Result<(Vec<Value>, String), CliError
     }
     if Path::new(project::TOOLS_FILE).exists() {
         let registry = project::load_tools()?;
-        let found = registry.tools.iter().find(|t| {
-            t.id.as_deref() == Some(target)
-                || project::config_name(&t.config).as_deref() == Some(target)
-        });
+        let found = find_tool(&registry, target, project::config_name);
         if let Some(tool) = found {
             let value = project::read_value_in_project(&tool.config)?;
             return Ok((tools_in(&value, &tool.config)?, tool.config.clone()));
@@ -113,6 +110,25 @@ fn load(target: &str, ctx: &AppContext) -> Result<(Vec<Value>, String), CliError
         ))
     })?;
     Ok((tools_in(&fetched, target)?, target.to_string()))
+}
+
+/// The tools.json entry for an ID or, failing that, a name (`name_of` reads
+/// a config's name). IDs go first, so a tool whose name is another tool's ID
+/// can't shadow it.
+fn find_tool<'a>(
+    registry: &'a project::ToolsConfig,
+    target: &str,
+    name_of: impl Fn(&str) -> Option<String>,
+) -> Option<&'a project::ToolDefinition> {
+    let tools = &registry.tools;
+    tools
+        .iter()
+        .find(|t| t.id.as_deref() == Some(target))
+        .or_else(|| {
+            tools
+                .iter()
+                .find(|t| name_of(&t.config).as_deref() == Some(target))
+        })
 }
 
 /// The tool configs in a file: the file itself when it is a tool config, its
@@ -215,11 +231,34 @@ struct Span {
     tone: Tone,
 }
 
+/// Every piece of text drawn passes through here, so it is where tool text,
+/// which comes from a file or the API, is made safe to print.
 fn span(text: impl Into<String>, tone: Tone) -> Span {
     Span {
-        text: text.into(),
+        text: terminal_safe(&text.into()),
         tone,
     }
+}
+
+/// `text` without control characters (an escape sequence in a tool name
+/// could otherwise clear or rewrite the terminal, with or without colour)
+/// and without the invisible or reordering Unicode that could disguise what
+/// is drawn: zero-width characters, bidi overrides and isolates, and line
+/// separators. Newlines and tabs become spaces, since a span is one line.
+/// The same policy as the CLI's own output sanitizer.
+fn terminal_safe(text: &str) -> String {
+    text.chars()
+        .filter_map(|c| match c {
+            '\n' | '\r' | '\t' => Some(' '),
+            c if c.is_control() => None,
+            '\u{200B}'..='\u{200D}'
+            | '\u{FEFF}'
+            | '\u{202A}'..='\u{202E}'
+            | '\u{2028}'..='\u{2029}'
+            | '\u{2066}'..='\u{2069}' => None,
+            c => Some(c),
+        })
+        .collect()
 }
 
 fn plain_text(spans: &[Span]) -> String {
@@ -265,7 +304,7 @@ struct ToolView {
 
 fn view(tool: &Value) -> ToolView {
     let tool_type = str_field(tool, "type").unwrap_or("unknown");
-    let name = str_field(tool, "name").unwrap_or("(unnamed)").to_string();
+    let name = terminal_safe(str_field(tool, "name").unwrap_or("(unnamed)"));
     let mut summary = Vec::new();
     if let Some(desc) = str_field(tool, "description").filter(|d| !d.trim().is_empty()) {
         summary.push(vec![span(one_line(desc), Tone::Plain)]);
@@ -1634,6 +1673,67 @@ mod tests {
             hidden.contains("Filter hide_all") && !hidden.contains("keeps"),
             "{hidden}"
         );
+    }
+
+    #[test]
+    fn escape_sequences_and_invisible_unicode_are_never_printed() {
+        let tool = json!({
+            "type": "webhook",
+            "name": "evil\u{1b}[2J\u{202E}name",
+            "description": "a\u{200B}b\u{7}c\nd",
+            "api_schema": {
+                "url": "https://x/\u{1b}]0;title\u{7}{id}",
+                "path_params_schema": { "id": { "type": "string", "description": "\u{1b}[31mred\u{2066}" } },
+                "request_headers": { "X-\u{1b}[1mA": "v\u{9b}2J" }
+            }
+        });
+        let views = [view(&tool)];
+        for color in [false, true] {
+            let out = render_terminal(&views, color, None);
+            // Only the renderer's own colour codes: ESC followed by `[` and
+            // a code from `Tone::ansi`.
+            let stripped = out.replace("\u{1b}[0m", "");
+            let stripped = ["1", "2", "33", "35", "36", "1;33"]
+                .iter()
+                .fold(stripped, |s, code| {
+                    s.replace(&format!("\u{1b}[{code}m"), "")
+                });
+            for c in stripped.chars() {
+                assert!(
+                    c == '\n'
+                        || !(c.is_control() || matches!(c, '\u{200B}' | '\u{202E}' | '\u{2066}')),
+                    "{c:?} in {stripped:?}"
+                );
+            }
+            assert!(stripped.contains("evil[2Jname"), "{stripped}");
+            assert!(stripped.contains("abc d"), "{stripped}");
+        }
+        let mmd = render_mermaid(&views);
+        assert!(!mmd.chars().any(|c| c.is_control() && c != '\n'), "{mmd:?}");
+    }
+
+    #[test]
+    fn an_id_wins_over_a_name_that_matches_it() {
+        let registry: project::ToolsConfig = serde_json::from_value(json!({ "tools": [
+            { "type": "client", "config": "a.json", "id": "tool_1" },
+            { "type": "client", "config": "b.json", "id": "tool_2" }
+        ] }))
+        .unwrap();
+        let name_of = |config: &str| {
+            Some(
+                if config == "a.json" {
+                    "tool_2"
+                } else {
+                    "other"
+                }
+                .to_string(),
+            )
+        };
+        let pick = |target| find_tool(&registry, target, name_of).map(|t| t.config.as_str());
+        assert_eq!(pick("tool_2"), Some("b.json"));
+        assert_eq!(pick("other"), Some("b.json"));
+        assert_eq!(pick("tool_1"), Some("a.json"));
+        assert_eq!(pick("nope"), None);
     }
 
     #[test]
