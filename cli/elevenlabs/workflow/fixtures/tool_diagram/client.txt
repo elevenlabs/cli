@@ -1,0 +1,21 @@
+show_store_map · Client tool
+Show the caller a map of the nearest store
+waits for a response · timeout 20s
+
+Parameters
+├── highlights: array<string> required
+│   │   Aisles to highlight
+│   └── []: string [LLM]
+│           An aisle name
+├── store_id: string required [LLM]
+│       The store to show
+├── user: object required [var user_profile]
+└── zoom: integer required [LLM]
+        Zoom level, 1-20
+
+Response
+└── Assignments
+    └── aisle → {{selected_aisle}}
+
+Dynamic variable defaults
+└── {{user_profile}} = "{}"

@@ -1,0 +1,32 @@
+flowchart LR
+    n_language_detection[["System tool · language_detection"]]
+    n_language_detection_params["Params"]
+    n_language_detection_params_only_at_conversation_start["only_at_conversation_start = true"]
+    n_transfer_to_agent_1[["System tool · transfer_to_agent<br/>Hand the caller to a specialist agent"]]
+    n_transfer_to_agent_1_transfers["Transfers"]
+    n_transfer_to_agent_1_transfers_0["#quot;Caller wants to buy something#quot; → agent agent_sales<br/>after 500ms<br/>says #quot;Connecting you to sales#quot;"]
+    n_transfer_to_agent_1_transfers_1["#quot;Caller has a billing problem#quot; → agent agent_billing<br/>node refunds"]
+    n_transfer_to_number_2[["System tool · transfer_to_number"]]
+    n_transfer_to_number_2_transfers["Transfers"]
+    n_transfer_to_number_2_transfers_0["#quot;Caller asks for billing#quot; → phone +15551234567<br/>conference transfer"]
+    n_transfer_to_number_2_transfers_1["#quot;Caller asks for their account manager#quot; → phone {{manager_phone}}<br/>conference transfer"]
+    n_transfer_to_number_2_transfers_2["#quot;Caller is a reseller partner#quot; → SIP sip:partners@pbx.example.com<br/>sip_refer transfer · plays a dial tone"]
+    n_transfer_to_number_2_client_message["No message to the caller while transferring"]
+    n_language_detection --> n_language_detection_params
+    n_language_detection_params --> n_language_detection_params_only_at_conversation_start
+    n_transfer_to_agent_1 --> n_transfer_to_agent_1_transfers
+    n_transfer_to_agent_1_transfers --> n_transfer_to_agent_1_transfers_0
+    n_transfer_to_agent_1_transfers --> n_transfer_to_agent_1_transfers_1
+    n_transfer_to_number_2 --> n_transfer_to_number_2_transfers
+    n_transfer_to_number_2_transfers --> n_transfer_to_number_2_transfers_0
+    n_transfer_to_number_2_transfers --> n_transfer_to_number_2_transfers_1
+    n_transfer_to_number_2_transfers --> n_transfer_to_number_2_transfers_2
+    n_transfer_to_number_2 --> n_transfer_to_number_2_client_message
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_language_detection,n_transfer_to_agent_1,n_transfer_to_number_2 t_tool
+    classDef t_section fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_language_detection_params,n_transfer_to_agent_1_transfers,n_transfer_to_number_2_transfers,n_transfer_to_number_2_client_message t_section
+    classDef t_const fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    class n_language_detection_params_only_at_conversation_start t_const
+    classDef t_transfer fill:#fce7f3,stroke:#db2777,color:#831843
+    class n_transfer_to_agent_1_transfers_0,n_transfer_to_agent_1_transfers_1,n_transfer_to_number_2_transfers_0,n_transfer_to_number_2_transfers_1,n_transfer_to_number_2_transfers_2 t_transfer
