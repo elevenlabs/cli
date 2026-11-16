@@ -41,6 +41,145 @@ fn write(dir: &Path, file: &str, text: &str) {
     std::fs::write(p, text).unwrap();
 }
 
+// ── agents push ───────────────────────────────────────────────────
+
+fn agent_config(name: &str) -> Value {
+    json!({
+        "name": name,
+        "conversation_config": {
+            "agent": {
+                "first_message": "Hello",
+                "prompt": {"prompt": "You are helpful.", "llm": "gemini-2.5-flash"}
+            }
+        }
+    })
+}
+
+fn setup_agents_project(dir: &Path, agents_json: &Value, configs: &[(&str, &str)]) {
+    for (path, name) in configs {
+        write(dir, path, &agent_config(name).to_string());
+    }
+    write(dir, "agents.json", &agents_json.to_string());
+}
+
+#[tokio::test]
+async fn agents_push_success_exits_zero() {
+    let server = MockServer::start().await;
+    Mock::given(method("PATCH"))
+        .and(path("/v1/convai/agents/agent_1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"agent_id": "agent_1"})))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_agents_project(
+        dir,
+        &json!({"agents": [{"config": "agent_configs/support.json", "id": "agent_1"}]}),
+        &[("agent_configs/support.json", "Support")],
+    );
+
+    let out = cli(dir, &server.uri(), &["agents", "push"]);
+    assert!(out.status.success(), "expected exit 0:\n{}", stdout(&out));
+}
+
+#[tokio::test]
+async fn agents_push_api_error_exits_nonzero() {
+    let server = MockServer::start().await;
+    Mock::given(method("PATCH"))
+        .and(path("/v1/convai/agents/agent_1"))
+        .respond_with(ResponseTemplate::new(500).set_body_json(json!({"detail": "server error"})))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_agents_project(
+        dir,
+        &json!({"agents": [{"config": "agent_configs/support.json", "id": "agent_1"}]}),
+        &[("agent_configs/support.json", "Support")],
+    );
+
+    let out = cli(dir, &server.uri(), &["agents", "push"]);
+    assert!(!out.status.success(), "expected non-zero exit:\n{}", stdout(&out));
+}
+
+#[tokio::test]
+async fn agents_push_partial_failure_pushes_others() {
+    let server = MockServer::start().await;
+    Mock::given(method("PATCH"))
+        .and(path("/v1/convai/agents/agent_1"))
+        .respond_with(ResponseTemplate::new(500).set_body_json(json!({"detail": "server error"})))
+        .mount(&server)
+        .await;
+    Mock::given(method("PATCH"))
+        .and(path("/v1/convai/agents/agent_2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"agent_id": "agent_2"})))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_agents_project(
+        dir,
+        &json!({"agents": [
+            {"config": "agent_configs/support.json", "id": "agent_1"},
+            {"config": "agent_configs/billing.json", "id": "agent_2"}
+        ]}),
+        &[
+            ("agent_configs/support.json", "Support"),
+            ("agent_configs/billing.json", "Billing"),
+        ],
+    );
+
+    let out = cli(dir, &server.uri(), &["agents", "push"]);
+    assert!(!out.status.success(), "expected non-zero exit on partial failure:\n{}", stdout(&out));
+
+    let requests = server.received_requests().await.unwrap();
+    let agent_2_pushed = requests.iter().any(|r| {
+        r.method.as_str() == "PATCH" && r.url.path() == "/v1/convai/agents/agent_2"
+    });
+    assert!(agent_2_pushed, "agent_2 should still be pushed despite agent_1 failing");
+}
+
+#[tokio::test]
+async fn agents_push_branch_failure_exits_nonzero() {
+    let server = MockServer::start().await;
+    // Main update succeeds (once). The second PATCH (the branch push) finds no
+    // matching mock and gets wiremock's default 404, which the CLI treats as an
+    // API error — exactly what we need.
+    Mock::given(method("PATCH"))
+        .and(path("/v1/convai/agents/agent_1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"agent_id": "agent_1"})))
+        .up_to_n_times(1)
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let dir = dir.path();
+    setup_agents_project(
+        dir,
+        &json!({"agents": [{
+            "config": "agent_configs/support.json",
+            "id": "agent_1",
+            "branch_id": "agtbrch_main",
+            "branches": {
+                "beta": {
+                    "config": "agent_configs/support.beta.json",
+                    "branch_id": "agtbrch_beta"
+                }
+            }
+        }]}),
+        &[
+            ("agent_configs/support.json", "Support"),
+            ("agent_configs/support.beta.json", "Support Beta"),
+        ],
+    );
+
+    let out = cli(dir, &server.uri(), &["agents", "push"]);
+    assert!(!out.status.success(), "expected non-zero exit on branch failure:\n{}", stdout(&out));
+}
+
 // ── tools push ─────────────────────────────────────────────────────
 
 fn tool_config() -> Value {
