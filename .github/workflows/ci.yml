@@ -15,6 +15,15 @@ env:
   RUSTFLAGS: "-A warnings"
 
 jobs:
+  fernignore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Check hand-written tests are in .fernignore
+        run: bash scripts/check-fernignore-tests.sh
+
   check:
     runs-on: ubuntu-latest
     steps:
