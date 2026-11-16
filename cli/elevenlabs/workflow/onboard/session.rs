@@ -14,6 +14,11 @@
 //! descendant of the agent's command and survives the agent killing that
 //! command's process tree; it also runs in its own process group.
 //!
+//! On Windows some agents run each command in a Job Object that the worker
+//! isn't allowed to leave and that ends every process in it when the command
+//! returns. There the sign-in can't outlive the command, so `connect` keeps
+//! waiting for as long as the sign-in runs (see [`Session::held`]).
+//!
 //! One session per project folder, under `~/.elevenlabs/onboard/`, and one
 //! sign-in waiting for the browser on the machine at a time, so the tab the
 //! developer approves is the one for the project they're in.
@@ -46,6 +51,8 @@ pub(super) const LAUNCH_FLAG: &str = "launch-worker";
 const REPORT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
 /// Where [`Session::start`] keeps how the sign-in before the new one ended.
 const PREVIOUS: &str = "previous.json";
+/// Written by the launcher when the worker ends with the command that started it.
+const HELD: &str = "held";
 
 /// Every label a sign-in's outcome can have (see [`outcome_label`]): fixed
 /// words, so nothing the developer typed or the machine holds is reported.
@@ -197,7 +204,7 @@ impl Session {
             restarted = true;
         }
         self.keep_last_sign_in(restarted);
-        for stale in ["result.json", "worker.log", "worker.pid", "signed-in"] {
+        for stale in ["result.json", "worker.log", "worker.pid", "signed-in", HELD] {
             let _ = std::fs::remove_file(self.path(stale));
         }
         std::fs::write(self.path("request"), request).map_err(io(&self.path("request")))?;
@@ -273,8 +280,19 @@ impl Session {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(log);
-        spawn_detached(&mut command)
-            .map_err(|e| CliError::Other(anyhow::anyhow!("start the sign-in worker: {e}")))
+        let held = spawn_detached(&mut command)
+            .map_err(|e| CliError::Other(anyhow::anyhow!("start the sign-in worker: {e}")))?;
+        if held {
+            let _ = std::fs::write(self.path(HELD), "");
+        }
+        Ok(())
+    }
+
+    /// The worker couldn't leave the agent's job, and that job ends it when
+    /// the command waiting on it returns: only a command that keeps waiting
+    /// keeps the sign-in alive.
+    pub fn held(&self) -> bool {
+        self.path(HELD).exists()
     }
 
     /// The worker's first act: take the session's lock, and record its pid
@@ -483,17 +501,21 @@ fn keep_stdio_from_children() {
 #[cfg(not(windows))]
 fn keep_stdio_from_children() {}
 
+/// Start the worker on its own. `true` when it still ends with the command
+/// that started it (see [`Session::held`]), which never happens here.
 #[cfg(unix)]
-fn spawn_detached(command: &mut Command) -> std::io::Result<()> {
+fn spawn_detached(command: &mut Command) -> std::io::Result<bool> {
     use std::os::unix::process::CommandExt;
-    command.process_group(0).spawn().map(drop)
+    command.process_group(0).spawn().map(|_| false)
 }
 
 /// Some agents run each command in a Job Object and end the job, and every
 /// process in it, when the command is stopped or times out. The worker
 /// leaves the job when the job allows it; otherwise it starts in the job.
+/// `true` when it started in a job that ends its processes once the agent
+/// lets go of it, which it does when the command returns.
 #[cfg(windows)]
-fn spawn_detached(command: &mut Command) -> std::io::Result<()> {
+fn spawn_detached(command: &mut Command) -> std::io::Result<bool> {
     use std::os::windows::process::CommandExt;
     const DETACHED_PROCESS: u32 = 0x0000_0008;
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
@@ -504,11 +526,68 @@ fn spawn_detached(command: &mut Command) -> std::io::Result<()> {
         .creation_flags(detached | CREATE_BREAKAWAY_FROM_JOB)
         .spawn()
     {
-        Err(e) if e.raw_os_error() == Some(ERROR_ACCESS_DENIED) => {
-            command.creation_flags(detached).spawn().map(drop)
-        }
-        spawned => spawned.map(drop),
+        Err(e) if e.raw_os_error() == Some(ERROR_ACCESS_DENIED) => command
+            .creation_flags(detached)
+            .spawn()
+            .map(|_| job_ends_with_its_handle()),
+        spawned => spawned.map(|_| false),
     }
+}
+
+/// Whether the job this process is in ends its processes when its last
+/// handle is closed (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`). Asked only after
+/// the job refused to let the worker leave. A job that can't be read counts:
+/// waiting longer costs nothing, and a sign-in ended early costs the approval.
+#[cfg(windows)]
+fn job_ends_with_its_handle() -> bool {
+    use std::ffi::c_void;
+    #[repr(C)]
+    #[derive(Default)]
+    struct BasicLimits {
+        per_process_user_time_limit: i64,
+        per_job_user_time_limit: i64,
+        limit_flags: u32,
+        minimum_working_set_size: usize,
+        maximum_working_set_size: usize,
+        active_process_limit: u32,
+        affinity: usize,
+        priority_class: u32,
+        scheduling_class: u32,
+    }
+    #[repr(C)]
+    #[derive(Default)]
+    struct ExtendedLimits {
+        basic: BasicLimits,
+        io_counters: [u64; 6],
+        process_memory_limit: usize,
+        job_memory_limit: usize,
+        peak_process_memory_used: usize,
+        peak_job_memory_used: usize,
+    }
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn QueryInformationJobObject(
+            job: *mut c_void,
+            class: i32,
+            info: *mut c_void,
+            length: u32,
+            returned: *mut u32,
+        ) -> i32;
+    }
+    const EXTENDED_LIMIT_INFORMATION: i32 = 9;
+    const KILL_ON_JOB_CLOSE: u32 = 0x2000;
+    let mut limits = ExtendedLimits::default();
+    // A null job asks about the job this process is in.
+    let read = unsafe {
+        QueryInformationJobObject(
+            std::ptr::null_mut(),
+            EXTENDED_LIMIT_INFORMATION,
+            (&mut limits as *mut ExtendedLimits).cast(),
+            std::mem::size_of::<ExtendedLimits>() as u32,
+            std::ptr::null_mut(),
+        )
+    };
+    read == 0 || limits.basic.limit_flags & KILL_ON_JOB_CLOSE != 0
 }
 
 /// End a worker and wait briefly for it to let go of its port. Only ever one
