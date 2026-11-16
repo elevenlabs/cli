@@ -24,6 +24,9 @@ pub struct AgentConfig {
     /// Per-channel response behavior overrides for text conversations. Built-in channel defaults apply when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text_behavior_overrides: Option<HashMap<String, Option<BehaviorOverride>>>,
+    /// Agents this agent can hand a single turn to. They don't see this conversation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subagent_config: Option<SubagentConfigOutput>,
     /// The prompt for the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt: Option<PromptAgentApiModelOutput>,
@@ -45,6 +48,7 @@ pub struct AgentConfigBuilder {
     disable_first_message_interruptions: Option<bool>,
     max_conversation_duration_message: Option<String>,
     text_behavior_overrides: Option<HashMap<String, Option<BehaviorOverride>>>,
+    subagent_config: Option<SubagentConfigOutput>,
     prompt: Option<PromptAgentApiModelOutput>,
 }
 
@@ -84,6 +88,11 @@ impl AgentConfigBuilder {
         self
     }
 
+    pub fn subagent_config(mut self, value: SubagentConfigOutput) -> Self {
+        self.subagent_config = Some(value);
+        self
+    }
+
     pub fn prompt(mut self, value: PromptAgentApiModelOutput) -> Self {
         self.prompt = Some(value);
         self
@@ -99,6 +108,7 @@ impl AgentConfigBuilder {
             disable_first_message_interruptions: self.disable_first_message_interruptions,
             max_conversation_duration_message: self.max_conversation_duration_message,
             text_behavior_overrides: self.text_behavior_overrides,
+            subagent_config: self.subagent_config,
             prompt: self.prompt,
         })
     }

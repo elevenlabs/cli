@@ -11,12 +11,13 @@ pub mod resources;
 
 pub use resources::{
     AgentsClient, ApiClient, AssetsClient, AudioEffectsClient, AudioIsolationClient,
-    AudioNativeClient, DubbingClient, EnvironmentVariablesClient, EnvironmentsClient, FlowsClient,
-    ForcedAlignmentClient, HistoryClient, ModelsClient, MusicClient, ProductionsClient,
-    PronunciationDictionariesClient, SamplesClient, ServiceAccountsClient, SpeechEngineClient,
-    SpeechToSpeechClient, SpeechToTextClient, StudioClient, TextToDialogueClient,
-    TextToSoundEffectsClient, TextToSpeechClient, TextToVoiceClient, TokensClient, UsageClient,
-    UserClient, VoicesClient, WebhooksClient, WorkspaceClient, WorkspacesClient,
+    AudioNativeClient, ContentProvenanceClient, DubbingClient, EnvironmentVariablesClient,
+    EnvironmentsClient, FlowsClient, ForcedAlignmentClient, HistoryClient, ModelsClient,
+    MusicClient, ProductionsClient, PronunciationDictionariesClient, ReceptionClient,
+    SamplesClient, ServiceAccountsClient, SpeechEngineClient, SpeechToSpeechClient,
+    SpeechToTextClient, StudioClient, TextToDialogueClient, TextToSoundEffectsClient,
+    TextToSpeechClient, TextToVoiceClient, TokensClient, UsageClient, UserClient, VoicesClient,
+    WebhooksClient, WorkspaceClient, WorkspacesClient2,
 };
 
 pub use elevenlabs_types::*;

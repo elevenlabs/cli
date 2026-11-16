@@ -4,19 +4,19 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct CreateAgentConversationTicketRequestModel {
-    /// Conversation this ticket is about.
+    /// Conversation this agent issue is about.
     #[serde(default)]
     pub conversation_id: String,
-    /// One-line headline shown in the triage list. Defaults to one derived from the comments, falling back to the conversation's summary title. Ignored when the comment is added to the conversation's open ticket.
+    /// One-line headline shown in the issues list. Defaults to one derived from the comments, falling back to the conversation's summary title. Ignored when the comment is added to the conversation's open issue.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    /// The issue this ticket is about, covering the whole conversation rather than a single turn.
+    /// The problem this agent issue is about, covering the whole conversation rather than a single turn.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub qa_comment: Option<String>,
     /// Optional turn-level comments on what went wrong.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn_comments: Option<Vec<TurnCommentRequestModel>>,
-    /// How urgently the ticket needs attention. If the conversation already has an open ticket, it is raised to this priority when lower.
+    /// How urgently the agent issue needs attention. If the conversation already has an open issue, it is raised to this priority when lower.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<AgentConversationTicketPriority>,
 }

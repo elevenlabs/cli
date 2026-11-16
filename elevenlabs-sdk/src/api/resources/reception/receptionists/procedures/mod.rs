@@ -1,0 +1,2 @@
+pub mod reception_receptionists_procedures;
+pub use reception_receptionists_procedures::ProceduresClient2;

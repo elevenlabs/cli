@@ -17,6 +17,7 @@
 //! - **Dub audio and video content into other languages while preserving the original speaker's voice.**
 //! - **Access the different models of the platform.**
 //! - **AudioNative**
+//! - **ContentProvenance**
 //! - **Usage**
 //! - **PronunciationDictionaries**
 //! - **workspace**
@@ -32,6 +33,7 @@
 //! - **Assets**
 //! - **Flows**
 //! - **Productions**
+//! - **Reception**
 //! - **Tokens**
 //! - **Workspaces**
 
@@ -42,6 +44,7 @@ pub mod assets;
 pub mod audio_effects;
 pub mod audio_isolation;
 pub mod audio_native;
+pub mod content_provenance;
 pub mod dubbing;
 pub mod environment_variables;
 pub mod environments;
@@ -52,6 +55,7 @@ pub mod models;
 pub mod music;
 pub mod productions;
 pub mod pronunciation_dictionaries;
+pub mod reception;
 pub mod samples;
 pub mod service_accounts;
 pub mod speech_engine;
@@ -86,6 +90,7 @@ pub struct ApiClient {
     pub dubbing: DubbingClient,
     pub models: ModelsClient,
     pub audio_native: AudioNativeClient,
+    pub content_provenance: ContentProvenanceClient,
     pub usage: UsageClient,
     pub pronunciation_dictionaries: PronunciationDictionariesClient,
     pub workspace: WorkspaceClient,
@@ -101,8 +106,9 @@ pub struct ApiClient {
     pub assets: AssetsClient,
     pub flows: FlowsClient,
     pub productions: ProductionsClient,
+    pub reception: ReceptionClient,
     pub tokens: TokensClient,
-    pub workspaces: WorkspacesClient,
+    pub workspaces: WorkspacesClient2,
 }
 
 impl ApiClient {
@@ -124,6 +130,7 @@ impl ApiClient {
             dubbing: DubbingClient::new(config.clone())?,
             models: ModelsClient::new(config.clone())?,
             audio_native: AudioNativeClient::new(config.clone())?,
+            content_provenance: ContentProvenanceClient::new(config.clone())?,
             usage: UsageClient::new(config.clone())?,
             pronunciation_dictionaries: PronunciationDictionariesClient::new(config.clone())?,
             workspace: WorkspaceClient::new(config.clone())?,
@@ -139,8 +146,9 @@ impl ApiClient {
             assets: AssetsClient::new(config.clone())?,
             flows: FlowsClient::new(config.clone())?,
             productions: ProductionsClient::new(config.clone())?,
+            reception: ReceptionClient::new(config.clone())?,
             tokens: TokensClient::new(config.clone())?,
-            workspaces: WorkspacesClient::new(config.clone())?,
+            workspaces: WorkspacesClient2::new(config.clone())?,
         })
     }
 }
@@ -150,6 +158,7 @@ pub use assets::AssetsClient;
 pub use audio_effects::AudioEffectsClient;
 pub use audio_isolation::AudioIsolationClient;
 pub use audio_native::AudioNativeClient;
+pub use content_provenance::ContentProvenanceClient;
 pub use dubbing::DubbingClient;
 pub use environment_variables::EnvironmentVariablesClient;
 pub use environments::EnvironmentsClient;
@@ -160,6 +169,7 @@ pub use models::ModelsClient;
 pub use music::MusicClient;
 pub use productions::ProductionsClient;
 pub use pronunciation_dictionaries::PronunciationDictionariesClient;
+pub use reception::ReceptionClient;
 pub use samples::SamplesClient;
 pub use service_accounts::ServiceAccountsClient;
 pub use speech_engine::SpeechEngineClient;
@@ -176,4 +186,4 @@ pub use user::UserClient;
 pub use voices::VoicesClient;
 pub use webhooks::WebhooksClient;
 pub use workspace::WorkspaceClient;
-pub use workspaces::WorkspacesClient;
+pub use workspaces::WorkspacesClient2;

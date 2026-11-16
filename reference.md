@@ -52,6 +52,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs agents secrets`](#elevenlabs-agents-secrets)
 - [`elevenlabs agents settings`](#elevenlabs-agents-settings)
 - [`elevenlabs agents sip-trunk`](#elevenlabs-agents-sip-trunk)
+- [`elevenlabs agents subagents`](#elevenlabs-agents-subagents)
 - [`elevenlabs agents summaries`](#elevenlabs-agents-summaries)
 - [`elevenlabs agents tests`](#elevenlabs-agents-tests)
 - [`elevenlabs agents tests folders`](#elevenlabs-agents-tests-folders)
@@ -70,6 +71,7 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs audio-effects`](#elevenlabs-audio-effects)
 - [`elevenlabs audio-isolation`](#elevenlabs-audio-isolation)
 - [`elevenlabs audio-native`](#elevenlabs-audio-native)
+- [`elevenlabs content-provenance`](#elevenlabs-content-provenance)
 - [`elevenlabs dubbing`](#elevenlabs-dubbing)
 - [`elevenlabs dubbing audio`](#elevenlabs-dubbing-audio)
 - [`elevenlabs dubbing project`](#elevenlabs-dubbing-project)
@@ -103,6 +105,26 @@ Full command reference for `elevenlabs`.
 - [`elevenlabs productions orders media`](#elevenlabs-productions-orders-media)
 - [`elevenlabs pronunciation-dictionaries`](#elevenlabs-pronunciation-dictionaries)
 - [`elevenlabs pronunciation-dictionaries rules`](#elevenlabs-pronunciation-dictionaries-rules)
+- [`elevenlabs reception assets`](#elevenlabs-reception-assets)
+- [`elevenlabs reception billing`](#elevenlabs-reception-billing)
+- [`elevenlabs reception business-profile`](#elevenlabs-reception-business-profile)
+- [`elevenlabs reception holidays`](#elevenlabs-reception-holidays)
+- [`elevenlabs reception knowledge-sources`](#elevenlabs-reception-knowledge-sources)
+- [`elevenlabs reception locations`](#elevenlabs-reception-locations)
+- [`elevenlabs reception phone-numbers`](#elevenlabs-reception-phone-numbers)
+- [`elevenlabs reception products`](#elevenlabs-reception-products)
+- [`elevenlabs reception products stock`](#elevenlabs-reception-products-stock)
+- [`elevenlabs reception receptionists`](#elevenlabs-reception-receptionists)
+- [`elevenlabs reception receptionists procedures`](#elevenlabs-reception-receptionists-procedures)
+- [`elevenlabs reception receptionists rules`](#elevenlabs-reception-receptionists-rules)
+- [`elevenlabs reception receptionists transfer-rules`](#elevenlabs-reception-receptionists-transfer-rules)
+- [`elevenlabs reception services`](#elevenlabs-reception-services)
+- [`elevenlabs reception staff`](#elevenlabs-reception-staff)
+- [`elevenlabs reception subscriptions`](#elevenlabs-reception-subscriptions)
+- [`elevenlabs reception team invites`](#elevenlabs-reception-team-invites)
+- [`elevenlabs reception team members`](#elevenlabs-reception-team-members)
+- [`elevenlabs reception tiers`](#elevenlabs-reception-tiers)
+- [`elevenlabs reception workspaces`](#elevenlabs-reception-workspaces)
 - [`elevenlabs samples`](#elevenlabs-samples)
 - [`elevenlabs service-accounts`](#elevenlabs-service-accounts)
 - [`elevenlabs service-accounts api-keys`](#elevenlabs-service-accounts-api-keys)
@@ -674,6 +696,17 @@ Update agent branch properties such as name, description, archiving status, prot
 
 ### `elevenlabs agents conversations`
 
+#### `elevenlabs agents conversations create` `[ALPHA]`
+
+Create a text conversation with an agent. This does not run the agent, and the agent sends no first message. This endpoint is in alpha and may change.
+
+`POST /v1/convai/conversations`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
 #### `elevenlabs agents conversations delete`
 
 Delete a particular conversation
@@ -736,6 +769,18 @@ Get a lightweight summary of a conversation: its title, the generated transcript
 |------|------|----------|-------------|
 | `--conversation-id` | `string` | Yes | The id of the conversation you're taking the action on. |
 | `--max-messages` | `integer` | No | Maximum number of chat message turns to include inline. When the conversation has more than this, the messages are omitted and messages_omitted is set. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations get-turn` `[ALPHA]`
+
+Get the status and output of a turn. The status comes from the stored transcript, so a turn that failed after the agent started can show as completed. Only the `stream_ended` event has the real outcome. This endpoint is in alpha and may change.
+
+`GET /v1/convai/conversations/{conversation_id}/turns/{turn_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The Conversation ID |
+| `--turn-id` | `string` | Yes | The Turn ID |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents conversations get-webrtc-token`
@@ -822,6 +867,43 @@ Resolve a conversation URL (a Slack message URL or a Zendesk ticket URL) to the 
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes | Agent id (agent_…) or speech engine external id (seng_), resolved to the same underlying resource. |
 | `--reference` | `string` | Yes | A Slack message URL or a Zendesk ticket URL. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs agents conversations send-message` `[ALPHA]`
+
+Send input to a conversation, and wait until the agent finishes or waits on client tool results. With `background` set to true, the endpoint returns 202 when the server admits the turn. Then stream the turn's events with `Last-Event-ID` set to the `stream_cursor`. This endpoint is in alpha and may change.
+
+`POST /v1/convai/conversations/{conversation_id}/messages`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The Conversation ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents conversations send-message-stream` `[ALPHA]`
+
+Send input to a conversation, and stream the events of the request as server-sent events. The last event is `stream_ended`, which has the outcome of the turn. This endpoint is in alpha and may change.
+
+`POST /v1/convai/conversations/{conversation_id}/messages/stream`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The Conversation ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents conversations stream-turn-events` `[ALPHA]`
+
+Stream the events of a turn as server-sent events. Send `Last-Event-ID` to resume after an event. The server keeps events for about an hour. This endpoint is in alpha and may change.
+
+`GET /v1/convai/conversations/{conversation_id}/turns/{turn_id}/events`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--conversation-id` | `string` | Yes | The Conversation ID |
+| `--turn-id` | `string` | Yes | The Turn ID |
+| `--last-event-id` | `string` | No |  |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -1493,6 +1575,17 @@ Get a list of agents depending on any of the given knowledge base documents.
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
+#### `elevenlabs agents knowledge-base documents get-chunking-override`
+
+Get the stored and effective RAG chunking overrides for a document or folder.
+
+`GET /v1/convai/knowledge-base/{documentation_id}/chunking-override`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
 #### `elevenlabs agents knowledge-base documents get-content`
 
 Get the entire content of a document from the knowledge base
@@ -1538,6 +1631,18 @@ Update the name, content and/or auto-sync settings of a document.
 | `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs agents knowledge-base documents update-chunking-override`
+
+Set or clear the RAG chunking override for a document or folder.
+
+`PATCH /v1/convai/knowledge-base/{documentation_id}/chunking-override`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--documentation-id` | `string` | Yes | The id of a document from the knowledge base. This is returned on document addition. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
 ---
 
@@ -2589,6 +2694,23 @@ Handle an outbound call via SIP trunk
 
 ---
 
+### `elevenlabs agents subagents`
+
+#### `elevenlabs agents subagents get-dependents`
+
+Get a list of agents that use this agent as a subagent.
+
+`GET /v1/convai/agents/{agent_id}/subagent-dependents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
+| `--page-size` | `integer` | No | How many Agents to return at maximum. Can not exceed 100, defaults to 30. |
+| `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
 ### `elevenlabs agents summaries`
 
 #### `elevenlabs agents summaries get`
@@ -2923,7 +3045,7 @@ Get paginated list of tool executions for a specific tool.
 
 #### `elevenlabs agents triage-tickets add-comment`
 
-Append a comment discussing how to resolve the ticket. Requires viewer access to the ticket's agent.
+Append a comment discussing how to resolve the agent issue. Requires viewer access to the issue's agent.
 
 `POST /v1/convai/triage-tickets/{agentqa_ticket_id}/comments`
 
@@ -2935,7 +3057,7 @@ Append a comment discussing how to resolve the ticket. Requires viewer access to
 
 #### `elevenlabs agents triage-tickets add-turn-comment`
 
-Append a turn-level comment to a ticket. Requires viewer access to the ticket's agent.
+Append a turn-level comment to an agent issue. Requires viewer access to the issue's agent.
 
 `POST /v1/convai/triage-tickets/{agentqa_ticket_id}/turn-comments`
 
@@ -2947,7 +3069,7 @@ Append a turn-level comment to a ticket. Requires viewer access to the ticket's 
 
 #### `elevenlabs agents triage-tickets create`
 
-Raise a ticket about an agent's performance on a conversation, for triage with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
+Raise an issue about an agent's performance on a conversation, to work on with Architect. Provide an overall comment and/or turn-level comments describing what went wrong.
 
 `POST /v1/convai/triage-tickets`
 
@@ -2958,7 +3080,7 @@ Raise a ticket about an agent's performance on a conversation, for triage with A
 
 #### `elevenlabs agents triage-tickets create-manual`
 
-Manually raise a follow-up ticket against an agent, not tied to any conversation (for example a task like 'add the KB about X'). Without a title, one is derived from the comment. Requires viewer access to the agent.
+Manually raise a follow-up issue against an agent, not tied to any conversation (for example a task like 'add the KB about X'). Without a title, one is derived from the comment. Requires viewer access to the agent.
 
 `POST /v1/convai/agents/{agent_id}/triage-tickets`
 
@@ -2970,7 +3092,7 @@ Manually raise a follow-up ticket against an agent, not tied to any conversation
 
 #### `elevenlabs agents triage-tickets delete`
 
-Delete an agent conversation ticket. Restricted to the ticket creator or a workspace admin.
+Delete an agent issue. Restricted to the issue creator or a workspace admin.
 
 `DELETE /v1/convai/triage-tickets/{agentqa_ticket_id}`
 
@@ -2981,7 +3103,7 @@ Delete an agent conversation ticket. Restricted to the ticket creator or a works
 
 #### `elevenlabs agents triage-tickets get`
 
-Get an agent conversation ticket by ID.
+Get an agent issue by ID.
 
 `GET /v1/convai/triage-tickets/{agentqa_ticket_id}`
 
@@ -2992,25 +3114,25 @@ Get an agent conversation ticket by ID.
 
 #### `elevenlabs agents triage-tickets list`
 
-List an agent's conversation triage tickets, ordered by most recently created first unless sorted by priority. These are tickets about the agent's own performance on a conversation (for triage with Architect), not tickets an agent opens for end users.
+List an agent's issues, ordered by most recently created first unless sorted by priority. These are issues about the agent's own performance on a conversation (to work on with Architect), not tickets an agent opens for end users.
 
 `GET /v1/convai/agents/{agent_id}/triage-tickets`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--agent-id` | `string` | Yes |  |
-| `--page-size` | `integer` | No | How many agent conversation tickets to return. Can not exceed 100. |
-| `--conversation-id` | `string` | No | Filter tickets by conversation id. |
-| `--status` | `string` | No | Filter tickets by status. |
-| `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
-| `--priorities` | `string` | No | Filter tickets by priority. Repeat the parameter to filter by multiple priorities. |
-| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation). |
-| `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
-| `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
-| `--issue-type` | `string` | No | Filter clusters by issue type. |
-| `--label` | `string` | No | Filter tickets by an exact label. |
-| `--merged-into-ticket-id` | `string` | No | Filter tickets merged into this ticket. |
-| `--search` | `string` | No | Case-insensitive free-text search across the ticket's title, description, comments, and turn comments. |
+| `--page-size` | `integer` | No | How many agent issues to return. Can not exceed 100. |
+| `--conversation-id` | `string` | No | Filter agent issues by conversation id. |
+| `--status` | `string` | No | Filter agent issues by status. |
+| `--sources` | `string` | No | Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
+| `--priorities` | `string` | No | Filter agent issues by priority. Repeat the parameter to filter by multiple priorities. |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation). |
+| `--owner-user-id` | `string` | No | Filter agent issues by creator. Use 'agent' for agent-raised issues. |
+| `--assignee-user-id` | `string` | No | Filter agent issues by assignee. Use 'unassigned' for issues with no assignee. |
+| `--issue-type` | `string` | No | Filter agent issues by type. |
+| `--label` | `string` | No | Filter agent issues by an exact label. |
+| `--merged-into-ticket-id` | `string` | No | Filter agent issues merged into this issue. |
+| `--search` | `string` | No | Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
@@ -3027,30 +3149,30 @@ All non-service-account workspace members, each flagged with whether they curren
 
 #### `elevenlabs agents triage-tickets list-for-workspace`
 
-List conversation triage tickets across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, tickets assigned to the caller). Supports the same filters, sorting and search as the per-agent endpoint. Tickets for agents the caller cannot access are omitted.
+List agent issues across every agent in the workspace, ordered by most recently created first. Use this to build a workspace-wide view (for example, issues assigned to the caller). Supports the same filters, sorting and search as the per-agent endpoint. Issues for agents the caller cannot access are omitted.
 
 `GET /v1/convai/triage-tickets`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
-| `--page-size` | `integer` | No | How many agent conversation tickets to return. Can not exceed 100. |
-| `--agent-id` | `string` | No | Only tickets for this agent. |
-| `--status` | `string` | No | Filter tickets by status. |
-| `--sources` | `string` | No | Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
-| `--priorities` | `string` | No | Filter tickets by priority. Repeat the parameter to filter by multiple priorities. |
-| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation). |
-| `--owner-user-id` | `string` | No | Filter tickets by creator. Use 'agent' for agent-raised tickets. |
-| `--assignee-user-id` | `string` | No | Filter tickets by assignee. Use 'unassigned' for tickets with no assignee. |
-| `--issue-type` | `string` | No | Filter clusters by issue type. |
-| `--label` | `string` | No | Filter tickets by an exact label. |
-| `--merged-into-ticket-id` | `string` | No | Filter tickets merged into this ticket. |
-| `--search` | `string` | No | Case-insensitive free-text search across the ticket's title, description, comments, and turn comments. |
+| `--page-size` | `integer` | No | How many agent issues to return. Can not exceed 100. |
+| `--agent-id` | `string` | No | Only issues for this agent. |
+| `--status` | `string` | No | Filter agent issues by status. |
+| `--sources` | `string` | No | Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
+| `--priorities` | `string` | No | Filter agent issues by priority. Repeat the parameter to filter by multiple priorities. |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation). |
+| `--owner-user-id` | `string` | No | Filter agent issues by creator. Use 'agent' for agent-raised issues. |
+| `--assignee-user-id` | `string` | No | Filter agent issues by assignee. Use 'unassigned' for issues with no assignee. |
+| `--issue-type` | `string` | No | Filter agent issues by type. |
+| `--label` | `string` | No | Filter agent issues by an exact label. |
+| `--merged-into-ticket-id` | `string` | No | Filter agent issues merged into this issue. |
+| `--search` | `string` | No | Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents triage-tickets merge`
 
-Merge other open tickets of the same agent into this pending, in-progress, or resolved one. Their conversations move onto this ticket, its priority is raised to the highest among them, and they are kept with status 'merged'. Requires viewer access to the ticket's agent.
+Merge other open issues of the same agent into this pending, in-progress, or resolved one. Their conversations move onto this issue, its priority is raised to the highest among them, and they are kept with status 'merged'. Requires viewer access to the issue's agent.
 
 `POST /v1/convai/triage-tickets/{agentqa_ticket_id}/merge`
 
@@ -3062,7 +3184,7 @@ Merge other open tickets of the same agent into this pending, in-progress, or re
 
 #### `elevenlabs agents triage-tickets update`
 
-Update a ticket's title, comment, status, priority, and/or assignee. Requires viewer access to the ticket's agent.
+Update an agent issue's title, comment, status, priority, and/or assignee. Requires viewer access to the issue's agent.
 
 `PATCH /v1/convai/triage-tickets/{agentqa_ticket_id}`
 
@@ -3401,6 +3523,21 @@ Updates content for the specific AudioNative Project.
 Finds an AudioNative project matching the provided URL, extracts content from the URL, updates the project content, and queues it for conversion and auto-publishing.
 
 `POST /v1/audio-native/content`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs content-provenance`
+
+#### `elevenlabs content-provenance watermark`
+
+Check an audio file for an embedded ElevenLabs watermark. This endpoint is in beta and may change.
+
+`POST /v1/content-provenance/watermark`
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
@@ -3945,7 +4082,7 @@ Create a new environment variable for the workspace
 
 #### `elevenlabs environment-variables delete`
 
-Delete an environment variable and its values in all environments. WARNING: Agents are not checked. A variable that an agent still uses (custom LLM, webhooks or cloud storage export, on any branch or version) is deleted anyway, and that agent's conversations then fail. The delete is only rejected while tools, MCP servers or the workspace conversation initiation webhook use the variable.
+Delete an environment variable and its values in all environments. The delete is rejected while the latest version of an unarchived agent branch, a tool, an MCP server or the workspace conversation initiation webhook uses the variable. Archived branches and earlier versions are not checked.
 
 `DELETE /v1/convai/environment-variables/{env_var_id}`
 
@@ -4759,6 +4896,1000 @@ Replaces all existing rules on the pronunciation dictionary with the provided on
 | `--pronunciation-dictionary-id` | `string` | Yes | The id of the pronunciation dictionary |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception assets`
+
+#### `elevenlabs reception assets create`
+
+Create a bookable asset, such as a room or a piece of equipment.
+
+`POST /v1/reception/assets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception assets delete`
+
+Delete an asset.
+
+`DELETE /v1/reception/assets/{asset_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--asset-id` | `string` | Yes | ID of the asset. Returned when you create one; list them with `GET /v1/reception/assets`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception assets get`
+
+Get an asset by ID.
+
+`GET /v1/reception/assets/{asset_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--asset-id` | `string` | Yes | ID of the asset. Returned when you create one; list them with `GET /v1/reception/assets`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception assets list`
+
+List the workspace's bookable assets, such as rooms or equipment.
+
+`GET /v1/reception/assets`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception assets update`
+
+Update an asset. Only the fields sent are changed.
+
+`PUT /v1/reception/assets/{asset_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--asset-id` | `string` | Yes | ID of the asset. Returned when you create one; list them with `GET /v1/reception/assets`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception billing`
+
+#### `elevenlabs reception billing get-invoice`
+
+Get one invoice charged to the reseller's card, broken down into the workspace invoice's lines
+
+`GET /v1/reception/reseller/billing/invoices/{invoice_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--invoice-id` | `string` | Yes | ID of the invoice. List them with `GET /v1/reception/reseller/billing/invoices`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs reception billing list-invoices`
+
+List the invoices charged to the reseller's card, newest first, one per workspace invoice
+
+`GET /v1/reception/reseller/billing/invoices`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Pagination cursor from previous response |
+| `--page-size` | `integer` | No | Number of invoices per page |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs reception billing list-upcoming-payments`
+
+List the next workspace renewals the reseller's card will be charged for, soonest first
+
+`GET /v1/reception/reseller/billing/upcoming`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs reception business-profile`
+
+#### `elevenlabs reception business-profile get`
+
+Get the business profile the receptionists answer from, with the current time in the business's timezone.
+
+`GET /v1/reception/agent-info`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception business-profile update`
+
+Update the business profile. Every receptionist is updated to match.
+
+`PUT /v1/reception/agent-info`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception holidays`
+
+#### `elevenlabs reception holidays create`
+
+Create a new holiday
+
+`POST /v1/reception/holidays`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception holidays delete`
+
+Delete a holiday
+
+`DELETE /v1/reception/holidays/{holiday_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--holiday-id` | `string` | Yes | ID of the holiday or time-off entry. Returned when you create one; list them with `GET /v1/reception/holidays`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception holidays get`
+
+Get a specific holiday by ID
+
+`GET /v1/reception/holidays/{holiday_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--holiday-id` | `string` | Yes | ID of the holiday or time-off entry. Returned when you create one; list them with `GET /v1/reception/holidays`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception holidays list`
+
+Get all holidays/time-off entries for the current workspace with optional filters
+
+`GET /v1/reception/holidays`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--start-unix` | `string` | No | Filter entries overlapping from this timestamp |
+| `--end-unix` | `string` | No | Filter entries overlapping before this timestamp |
+| `--time-off-type` | `string` | No | Filter by type: location, staff, or asset |
+| `--resource-id` | `string` | No | Filter by associated resource ID (staff/asset) |
+| `--location-id` | `string` | No | Filter by location ID |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception holidays update`
+
+Update an existing holiday. Only the fields sent are changed.
+
+`PUT /v1/reception/holidays/{holiday_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--holiday-id` | `string` | Yes | ID of the holiday or time-off entry. Returned when you create one; list them with `GET /v1/reception/holidays`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception knowledge-sources`
+
+#### `elevenlabs reception knowledge-sources add-url`
+
+Add a URL as a knowledge source
+
+`POST /v1/reception/knowledge-sources/urls`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception knowledge-sources delete`
+
+Delete a knowledge source
+
+`DELETE /v1/reception/knowledge-sources/{source_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--source-id` | `string` | Yes | ID of the knowledge source. Returned when you add one; list them with `GET /v1/reception/knowledge-sources`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception knowledge-sources get`
+
+Get a specific knowledge source by ID
+
+`GET /v1/reception/knowledge-sources/{source_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--source-id` | `string` | Yes | ID of the knowledge source. Returned when you add one; list them with `GET /v1/reception/knowledge-sources`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception knowledge-sources list`
+
+List all knowledge sources for the current workspace
+
+`GET /v1/reception/knowledge-sources`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception knowledge-sources upload`
+
+Upload a file as a knowledge source
+
+`POST /v1/reception/knowledge-sources`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception locations`
+
+#### `elevenlabs reception locations create`
+
+Add a new business location.
+
+`POST /v1/reception/locations`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception locations delete`
+
+Delete a location.
+
+`DELETE /v1/reception/locations/{location_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--location-id` | `string` | Yes | ID of the location. Returned when you create one; list them with `GET /v1/reception/locations`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception locations get`
+
+Get a single location by ID.
+
+`GET /v1/reception/locations/{location_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--location-id` | `string` | Yes | ID of the location. Returned when you create one; list them with `GET /v1/reception/locations`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception locations list`
+
+List all business locations.
+
+`GET /v1/reception/locations`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception locations update`
+
+Update an existing location. Only the fields sent are changed.
+
+`PUT /v1/reception/locations/{location_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--location-id` | `string` | Yes | ID of the location. Returned when you create one; list them with `GET /v1/reception/locations`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception phone-numbers`
+
+#### `elevenlabs reception phone-numbers create`
+
+Give a receptionist a phone number. A number the workspace already holds but has not attached is used first. Otherwise, in the US and Canada, a number with one of the requested `area_codes` is taken from the pool or bought, falling back to any number in the business's country. In countries that require paperwork, the number is issued right away but takes public calls only once the workspace's own registration is approved (see `accepts_public_calls`). Counts toward the plan's phone number limit, and free plans can take only a few new numbers a day. Returns 404 when no number is available and 403 `telephony_managed_by_reseller` when the reseller supplies the workspace's numbers from its own Twilio account or SIP trunk and none is free.
+
+`POST /v1/reception/phone-numbers/assignments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception phone-numbers delete`
+
+Remove a phone number from the workspace. A pool number goes back to the pool it came from. A number the business brought from its own Twilio account, or one issued in a country that requires paperwork, is released at Twilio and cannot be recovered. Returns 403 `telephony_managed_by_reseller` when the reseller supplies the workspace's numbers from its own Twilio account or SIP trunk.
+
+`DELETE /v1/reception/phone-numbers/assignments/{phone_assignment_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-assignment-id` | `string` | Yes | ID of the phone number assignment. Returned when you assign a number; list them with `GET /v1/reception/phone-numbers/assignments`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception phone-numbers list`
+
+List the workspace's phone numbers and the receptionist each one rings. A number with no `customer_facing_agent_id` is held by the workspace but not attached to a receptionist yet.
+
+`GET /v1/reception/phone-numbers/assignments`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception phone-numbers update`
+
+Move a phone number to a different receptionist in the same workspace, which answers its calls from then on. Returns 409 `phone_number_not_attached` for a number no receptionist answers yet (attach it with `POST /v1/reception/phone-numbers/assignments`).
+
+`PATCH /v1/reception/phone-numbers/assignments/{phone_assignment_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--phone-assignment-id` | `string` | Yes | ID of the phone number assignment. Returned when you assign a number; list them with `GET /v1/reception/phone-numbers/assignments`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception products`
+
+#### `elevenlabs reception products create`
+
+Create a product the receptionist can quote and take orders for. A product created with `track_quantity` starts with nothing on hand; add stock with the stock endpoints.
+
+`POST /v1/reception/products`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception products delete`
+
+Delete a product.
+
+`DELETE /v1/reception/products/{product_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--product-id` | `string` | Yes | ID of the product. Returned when you create one; list them with `GET /v1/reception/products`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception products get`
+
+Get a product by ID.
+
+`GET /v1/reception/products/{product_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--product-id` | `string` | Yes | ID of the product. Returned when you create one; list them with `GET /v1/reception/products`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception products list`
+
+List the workspace's products, optionally filtered by group or active state.
+
+`GET /v1/reception/products`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--group` | `string` | No | Only products filed under the group with this label. |
+| `--is-active` | `string` | No | Only active (`true`) or inactive (`false`) products. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception products update`
+
+Update a product's catalog fields. Only the fields sent are changed. On-hand quantities are not part of this call; use the stock endpoints.
+
+`PUT /v1/reception/products/{product_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--product-id` | `string` | Yes | ID of the product. Returned when you create one; list them with `GET /v1/reception/products`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception products stock`
+
+#### `elevenlabs reception products stock adjust`
+
+Add to or subtract from the on-hand quantity of a counted product at one location, without overwriting orders taken at the same time.
+
+`POST /v1/reception/products/{product_id}/stock/adjust`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--product-id` | `string` | Yes | ID of the product. Returned when you create one; list them with `GET /v1/reception/products`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception products stock set`
+
+Set the on-hand quantity of a counted product at one location. Rejected with a 409 if it changed since `expected_on_hand` was read.
+
+`PATCH /v1/reception/products/{product_id}/stock`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--product-id` | `string` | Yes | ID of the product. Returned when you create one; list them with `GET /v1/reception/products`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception receptionists`
+
+#### `elevenlabs reception receptionists activate`
+
+Re-activate a deactivated receptionist. Fails with `quota_exceeded` when the plan has no free receptionist slot.
+
+`POST /v1/reception/customer-facing-agents/{agent_id}/activate`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception receptionists list`
+
+List every customer-facing receptionist for the workspace.
+
+`GET /v1/reception/customer-facing-agents`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception receptionists update`
+
+Update a receptionist's display name, config and/or widget appearance.
+
+`PATCH /v1/reception/customer-facing-agents/{agent_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception receptionists procedures`
+
+#### `elevenlabs reception receptionists procedures create`
+
+Add a procedure (SOP) to the named receptionist.
+
+`POST /v1/reception/customer-facing-agents/{agent_id}/procedures`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception receptionists procedures delete`
+
+Delete a procedure from the named receptionist.
+
+`DELETE /v1/reception/customer-facing-agents/{agent_id}/procedures/{procedure_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--procedure-id` | `string` | Yes | ID of the procedure. Returned when you add one; list them with `GET /v1/reception/customer-facing-agents/{agent_id}/procedures`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception receptionists procedures list`
+
+List the procedures (SOPs) on the named receptionist, with the tools each one is missing.
+
+`GET /v1/reception/customer-facing-agents/{agent_id}/procedures`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception receptionists procedures update`
+
+Replace an existing procedure on the named receptionist. Send every field: an omitted `body` resets to empty.
+
+`PUT /v1/reception/customer-facing-agents/{agent_id}/procedures/{procedure_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--procedure-id` | `string` | Yes | ID of the procedure. Returned when you add one; list them with `GET /v1/reception/customer-facing-agents/{agent_id}/procedures`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception receptionists rules`
+
+#### `elevenlabs reception receptionists rules create`
+
+Add a behavioral rule to the named receptionist.
+
+`POST /v1/reception/customer-facing-agents/{agent_id}/rules`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception receptionists rules delete`
+
+Delete a rule from the named receptionist.
+
+`DELETE /v1/reception/customer-facing-agents/{agent_id}/rules/{rule_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--rule-id` | `string` | Yes | ID of the rule. Returned when you add one, and listed in the receptionist's `config.agent_rules`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception receptionists rules update`
+
+Replace an existing rule on the named receptionist. Send every field: an omitted `priority` resets to `strict`.
+
+`PUT /v1/reception/customer-facing-agents/{agent_id}/rules/{rule_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--rule-id` | `string` | Yes | ID of the rule. Returned when you add one, and listed in the receptionist's `config.agent_rules`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception receptionists transfer-rules`
+
+#### `elevenlabs reception receptionists transfer-rules create`
+
+Add a phone forwarding rule to the named receptionist.
+
+`POST /v1/reception/customer-facing-agents/{agent_id}/transfer-rules`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception receptionists transfer-rules delete`
+
+Delete a transfer rule from the named receptionist.
+
+`DELETE /v1/reception/customer-facing-agents/{agent_id}/transfer-rules/{rule_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--rule-id` | `string` | Yes | ID of the transfer rule. Returned when you add one, and listed in the receptionist's `config.transfer_rules`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception receptionists transfer-rules update`
+
+Replace an existing transfer rule on the named receptionist. Send every field: an omitted `post_dial_digits` clears it.
+
+`PUT /v1/reception/customer-facing-agents/{agent_id}/transfer-rules/{rule_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--agent-id` | `string` | Yes | ID of the receptionist. List them with `GET /v1/reception/customer-facing-agents`. |
+| `--rule-id` | `string` | Yes | ID of the transfer rule. Returned when you add one, and listed in the receptionist's `config.transfer_rules`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception services`
+
+#### `elevenlabs reception services confirm-update`
+
+Save a service update that changes the price of existing bookings. Optionally reprice future bookings.
+
+`POST /v1/reception/services/{service_id}/confirm-update`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--service-id` | `string` | Yes | ID of the service. Returned when you create one; list them with `GET /v1/reception/services`. |
+| `--reprice` | `boolean` | No | Also update the price on the service's future bookings. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception services create`
+
+Create a new service
+
+`POST /v1/reception/services`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception services delete`
+
+Delete a service
+
+`DELETE /v1/reception/services/{service_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--service-id` | `string` | Yes | ID of the service. Returned when you create one; list them with `GET /v1/reception/services`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception services get`
+
+Get a specific service by ID
+
+`GET /v1/reception/services/{service_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--service-id` | `string` | Yes | ID of the service. Returned when you create one; list them with `GET /v1/reception/services`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception services list`
+
+Get all services for the current workspace with optional filters
+
+`GET /v1/reception/services`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--staff-id` | `string` | No | Only services this staff member performs. |
+| `--asset-id` | `string` | No | Only services that book this asset. |
+| `--is-active` | `string` | No | Only active (`true`) or inactive (`false`) services. |
+| `--kind` | `string` | No | Only services of this kind. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception services update`
+
+Update an existing service. Only the fields sent are changed.
+
+`PUT /v1/reception/services/{service_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--service-id` | `string` | Yes | ID of the service. Returned when you create one; list them with `GET /v1/reception/services`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception staff`
+
+#### `elevenlabs reception staff create`
+
+Create a new staff member
+
+`POST /v1/reception/staff`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception staff delete`
+
+Delete a staff member
+
+`DELETE /v1/reception/staff/{staff_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--staff-id` | `string` | Yes | ID of the staff member. Returned when you create one; list them with `GET /v1/reception/staff`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception staff get`
+
+Get a specific staff member by ID
+
+`GET /v1/reception/staff/{staff_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--staff-id` | `string` | Yes | ID of the staff member. Returned when you create one; list them with `GET /v1/reception/staff`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception staff list`
+
+Get all staff for the current workspace
+
+`GET /v1/reception/staff`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception staff update`
+
+Update an existing staff member. Only the fields sent are changed.
+
+`PUT /v1/reception/staff/{staff_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--staff-id` | `string` | Yes | ID of the staff member. Returned when you create one; list them with `GET /v1/reception/staff`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception subscriptions`
+
+#### `elevenlabs reception subscriptions assign`
+
+Subscribe a reseller-attributed workspace to one of the reseller's tiers
+
+`POST /v1/reception/reseller/workspaces/{workspace_id}/subscription`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--workspace-id` | `string` | Yes | ID of the customer workspace. Returned when you provision one; list them with `GET /v1/reception/reseller/workspaces`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception subscriptions cancel-pending-downgrade`
+
+Drop a scheduled downgrade, leaving the workspace on its current tier
+
+`POST /v1/reception/reseller/workspaces/{workspace_id}/subscription/cancel-downgrade`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--workspace-id` | `string` | Yes | ID of the customer workspace. Returned when you provision one; list them with `GET /v1/reception/reseller/workspaces`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs reception subscriptions change`
+
+Move a reseller-attributed workspace between the reseller's tiers. Upgrades apply immediately; downgrades and lateral moves take effect at the end of the billing period.
+
+`PATCH /v1/reception/reseller/workspaces/{workspace_id}/subscription`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--workspace-id` | `string` | Yes | ID of the customer workspace. Returned when you provision one; list them with `GET /v1/reception/reseller/workspaces`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception subscriptions restore`
+
+Undo a pending unassignment so the subscription renews normally
+
+`POST /v1/reception/reseller/workspaces/{workspace_id}/subscription/restore`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--workspace-id` | `string` | Yes | ID of the customer workspace. Returned when you provision one; list them with `GET /v1/reception/reseller/workspaces`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs reception subscriptions unassign`
+
+End a reseller-attributed workspace's subscription at the end of the current billing period
+
+`DELETE /v1/reception/reseller/workspaces/{workspace_id}/subscription`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--workspace-id` | `string` | Yes | ID of the customer workspace. Returned when you provision one; list them with `GET /v1/reception/reseller/workspaces`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs reception team invites`
+
+#### `elevenlabs reception team invites cancel`
+
+Cancel a pending invite, freeing its seat.
+
+`DELETE /v1/reception/team/invites`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception team invites create`
+
+Email an invite to join the workspace. A pending invite takes a seat, so this is refused once members and invites reach the plan's team limit.
+
+`POST /v1/reception/team/invites`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception team invites list`
+
+List the workspace's pending invites.
+
+`GET /v1/reception/team/invites`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+---
+
+### `elevenlabs reception team members`
+
+#### `elevenlabs reception team members list`
+
+List the workspace's members, suspended members last.
+
+`GET /v1/reception/team/members`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception team members remove`
+
+Remove a member from the workspace. Their seat goes to a suspended member, if any.
+
+`DELETE /v1/reception/team/members/{user_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--user-id` | `string` | Yes | User ID of the member to remove |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+
+#### `elevenlabs reception team members update-role`
+
+Promote a member to admin or demote an admin to member.
+
+`PATCH /v1/reception/team/members/{user_id}`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--user-id` | `string` | Yes | User ID of the member to update |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--xi-workspace-id` | `string` | Yes | The customer workspace a reseller's API key acts on. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+---
+
+### `elevenlabs reception tiers`
+
+#### `elevenlabs reception tiers list`
+
+The tiers you can sell, cheapest first. The first is the trial. Retired tiers are left out.
+
+`GET /v1/reception/reseller/tier-ladder`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+---
+
+### `elevenlabs reception workspaces`
+
+#### `elevenlabs reception workspaces complete-onboarding`
+
+Finish setting up the workspace: create its receptionist and assistant from the business profile, reusing a receptionist from a setup already started, and connect your phone number, if you supply one. Safe to retry.
+
+`POST /v1/reception/reseller/workspaces/{workspace_id}/complete-onboarding`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--workspace-id` | `string` | Yes | ID of the customer workspace. Returned when you provision one; list them with `GET /v1/reception/reseller/workspaces`. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs reception workspaces create`
+
+Create a workspace for one of your customers, optionally with a tier, a phone number and team invites.
+
+`POST /v1/reception/reseller/workspaces`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
+
+#### `elevenlabs reception workspaces list`
+
+List workspaces attributed to the caller's reseller, with cursor-based pagination
+
+`GET /v1/reception/reseller/workspaces`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--cursor` | `string` | No | Pagination cursor from previous response |
+| `--page-size` | `integer` | No | Number of workspaces per page |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
 
@@ -6179,6 +7310,30 @@ List all webhooks for a workspace
 |------|------|----------|-------------|
 | `--include-usages` | `boolean` | No | Whether to include active usages of the webhook, only usable by admins |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs webhooks redeliver`
+
+Sends a stored delivery again, once, with the same delivery ID, a new signature and an ElevenLabs-Webhook-Redelivery header. A retry that is already scheduled is still sent. Only workspace admins on a web session can redeliver, and only deliveries whose payload is stored. Redeliveries and test events share a limit of 10 per webhook per minute.
+
+`POST /v1/workspace/webhooks/{webhook_id}/deliveries/{delivery_id}/redeliver`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--webhook-id` | `string` | Yes | The ID of the webhook. |
+| `--delivery-id` | `string` | Yes | The ID of the delivery to send again. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+
+#### `elevenlabs webhooks test`
+
+Sends a sample event of the given type to the webhook once and returns the endpoint's status code, response time, content type and response size. Test events are signed like real ones, are never retried, and share a limit of 10 per webhook per minute with redeliveries.
+
+`POST /v1/workspace/webhooks/{webhook_id}/test`
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--webhook-id` | `string` | Yes | The ID of the webhook. |
+| `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
+| `--json` | `JSON` | Yes | Request body as JSON (or use individual body-field flags) |
 
 #### `elevenlabs webhooks update`
 

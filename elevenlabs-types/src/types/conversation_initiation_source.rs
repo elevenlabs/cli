@@ -33,6 +33,7 @@ pub enum ConversationInitiationSource {
     TemplatePreview,
     GenesysBotConnector,
     SubagentTool,
+    AgentMessagesApi,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -68,6 +69,7 @@ impl Serialize for ConversationInitiationSource {
             Self::TemplatePreview => serializer.serialize_str("template_preview"),
             Self::GenesysBotConnector => serializer.serialize_str("genesys_bot_connector"),
             Self::SubagentTool => serializer.serialize_str("subagent_tool"),
+            Self::AgentMessagesApi => serializer.serialize_str("agent_messages_api"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -104,6 +106,7 @@ impl<'de> Deserialize<'de> for ConversationInitiationSource {
             "template_preview" => Ok(Self::TemplatePreview),
             "genesys_bot_connector" => Ok(Self::GenesysBotConnector),
             "subagent_tool" => Ok(Self::SubagentTool),
+            "agent_messages_api" => Ok(Self::AgentMessagesApi),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -139,6 +142,7 @@ impl fmt::Display for ConversationInitiationSource {
             Self::TemplatePreview => write!(f, "template_preview"),
             Self::GenesysBotConnector => write!(f, "genesys_bot_connector"),
             Self::SubagentTool => write!(f, "subagent_tool"),
+            Self::AgentMessagesApi => write!(f, "agent_messages_api"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

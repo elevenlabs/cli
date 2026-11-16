@@ -75,6 +75,8 @@ pub enum SystemToolConfigInputParams {
             #[serde(default)]
             transfers: Vec<PhoneNumberTransfer>,
             #[serde(skip_serializing_if = "Option::is_none")]
+            transfer_rules: Option<Vec<TransferRuleInput>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
             enable_client_message: Option<bool>,
         },
 
@@ -130,15 +132,19 @@ impl SystemToolConfigInputParams {
     }
 
     pub fn transfer_to_number(transfers: Vec<PhoneNumberTransfer>) -> Self {
-        Self::TransferToNumber { transfers, enable_client_message: None }
+        Self::TransferToNumber { transfers, transfer_rules: None, enable_client_message: None }
     }
 
     pub fn voicemail_detection(data: VoicemailDetectionToolConfig) -> Self {
         Self::VoicemailDetection { data }
     }
 
-    pub fn transfer_to_number_with_enable_client_message(transfers: Vec<PhoneNumberTransfer>, enable_client_message: bool) -> Self {
-        Self::TransferToNumber { transfers, enable_client_message: Some(enable_client_message) }
+    pub fn transfer_to_number_with_transfer_rules(transfers: Vec<PhoneNumberTransfer>, transfer_rules: Vec<TransferRuleInput>, enable_client_message: Option<bool>) -> Self {
+        Self::TransferToNumber { transfers, transfer_rules: Some(transfer_rules), enable_client_message }
+    }
+
+    pub fn transfer_to_number_with_enable_client_message(transfers: Vec<PhoneNumberTransfer>, transfer_rules: Option<Vec<TransferRuleInput>>, enable_client_message: bool) -> Self {
+        Self::TransferToNumber { transfers, transfer_rules, enable_client_message: Some(enable_client_message) }
     }
 
     pub fn unknown(value: serde_json::Value) -> Self {

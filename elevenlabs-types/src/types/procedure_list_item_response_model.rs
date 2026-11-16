@@ -34,6 +34,9 @@ pub struct ProcedureListItemResponseModel {
     /// Dynamic variable names used in the procedure content
     #[serde(skip_serializing_if = "Option::is_none")]
     pub referenced_dynamic_variables: Option<Vec<String>>,
+    /// Dynamic variable names written by Update state steps
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub written_dynamic_variables: Option<Vec<String>>,
     /// Procedure ID of the folder this procedure is placed in. None means root.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folder_parent_id: Option<String>,
@@ -58,6 +61,7 @@ pub struct ProcedureListItemResponseModelBuilder {
     referenced_kb_ids: Option<Vec<String>>,
     referenced_procedure_ids: Option<Vec<String>>,
     referenced_dynamic_variables: Option<Vec<String>>,
+    written_dynamic_variables: Option<Vec<String>>,
     folder_parent_id: Option<String>,
 }
 
@@ -112,6 +116,11 @@ impl ProcedureListItemResponseModelBuilder {
         self
     }
 
+    pub fn written_dynamic_variables(mut self, value: Vec<String>) -> Self {
+        self.written_dynamic_variables = Some(value);
+        self
+    }
+
     pub fn folder_parent_id(mut self, value: impl Into<String>) -> Self {
         self.folder_parent_id = Some(value.into());
         self
@@ -133,6 +142,7 @@ impl ProcedureListItemResponseModelBuilder {
             referenced_kb_ids: self.referenced_kb_ids,
             referenced_procedure_ids: self.referenced_procedure_ids,
             referenced_dynamic_variables: self.referenced_dynamic_variables,
+            written_dynamic_variables: self.written_dynamic_variables,
             folder_parent_id: self.folder_parent_id,
         })
     }

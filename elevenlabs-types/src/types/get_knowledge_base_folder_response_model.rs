@@ -16,6 +16,9 @@ pub struct GetKnowledgeBaseFolderResponseModel {
     /// The ID of the parent folder, or null if the document is at the root level.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folder_parent_id: Option<String>,
+    /// Per-entity RAG chunking override. Null means inherit from ancestors or the embedding model default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunking_override: Option<ChunkingOverride>,
     /// The folder path segments leading to this entity, from root to parent folder.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folder_path: Option<Vec<KnowledgeBaseFolderPathSegmentResponseModel>>,
@@ -50,6 +53,7 @@ pub struct GetKnowledgeBaseFolderResponseModelBuilder {
     supported_usages: Option<Vec<DocumentUsageModeEnum>>,
     access_info: Option<ResourceAccessInfo>,
     folder_parent_id: Option<String>,
+    chunking_override: Option<ChunkingOverride>,
     folder_path: Option<Vec<KnowledgeBaseFolderPathSegmentResponseModel>>,
     children_count: Option<i64>,
     document_count: Option<i64>,
@@ -87,6 +91,11 @@ impl GetKnowledgeBaseFolderResponseModelBuilder {
 
     pub fn folder_parent_id(mut self, value: impl Into<String>) -> Self {
         self.folder_parent_id = Some(value.into());
+        self
+    }
+
+    pub fn chunking_override(mut self, value: ChunkingOverride) -> Self {
+        self.chunking_override = Some(value);
         self
     }
 
@@ -142,6 +151,7 @@ impl GetKnowledgeBaseFolderResponseModelBuilder {
             supported_usages: self.supported_usages.ok_or_else(|| BuildError::missing_field("supported_usages"))?,
             access_info: self.access_info.ok_or_else(|| BuildError::missing_field("access_info"))?,
             folder_parent_id: self.folder_parent_id,
+            chunking_override: self.chunking_override,
             folder_path: self.folder_path,
             children_count: self.children_count.ok_or_else(|| BuildError::missing_field("children_count"))?,
             document_count: self.document_count.ok_or_else(|| BuildError::missing_field("document_count"))?,
