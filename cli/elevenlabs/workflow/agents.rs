@@ -713,7 +713,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     println!("Pushing {} agent(s) to ElevenLabs...", indices.len());
     let mut changes_made = false;
-    let mut failed = 0u32;
+    let mut failed: usize = 0;
 
     for idx in indices {
         let config_path = registry.agents[idx].config.clone();

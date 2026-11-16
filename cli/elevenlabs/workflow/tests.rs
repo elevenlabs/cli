@@ -491,7 +491,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     println!("Pushing {} test(s) to ElevenLabs...", indices.len());
     let mut changes_made = discovered > 0 && !dry_run;
-    let mut failed = 0u32;
+    let mut failed: usize = 0;
 
     for idx in indices {
         let config_path = registry.tests[idx].config.clone();
