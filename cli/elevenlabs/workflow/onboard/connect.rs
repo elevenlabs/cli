@@ -68,7 +68,33 @@ pub(super) fn handle(
     }
     // Without a browser, the developer needs the link as soon as there is one.
     let link_first = !waiting && project.no_browser;
-    Ok(Some(wait(&session, &project, WAIT, replace, link_first)))
+    let held = session.held();
+    if held && !link_first {
+        show_link(&session);
+    }
+    let budget = wait_budget(held, link_first);
+    Ok(Some(wait(&session, &project, budget, replace, link_first)))
+}
+
+/// A command that keeps waiting has no reply to carry the link, so it goes to
+/// stderr as soon as there is one, for when no browser tab opened.
+fn show_link(session: &Session) {
+    session.wait(WAIT, |s| s.url().is_some());
+    if let (None, Some(url)) = (session.result(), session.url()) {
+        eprintln!("Waiting for you to approve ElevenLabs in the browser. If no browser tab opened, open this link: {url}");
+    }
+}
+
+/// How long this command waits for the sign-in. Normally briefly: the
+/// sign-in outlives the command. A held one (see [`Session::held`]) ends when
+/// this command returns, so the command waits for as long as the sign-in can
+/// run, unless the developer needs the link first: then it has to return.
+pub(super) fn wait_budget(held: bool, link_first: bool) -> Duration {
+    if held && !link_first {
+        Duration::from_secs((SIGN_IN_MINUTES + 1) * 60)
+    } else {
+        WAIT
+    }
 }
 
 fn connect_step(replace: bool) -> &'static str {
