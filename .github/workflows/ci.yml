@@ -144,11 +144,21 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: cargo-${{ runner.os }}-test-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-${{ runner.os }}-test-opt1-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-test-
+            cargo-${{ runner.os }}-test-opt1-
 
+      # The generated wire tests are CPU-bound, not serialized: each case parses
+      # the 2.9 MB baked OpenAPI spec and spawns the CLI binary (which parses it
+      # again) twice, and unoptimized that is ~3 s per case. libtest already runs
+      # one case per core, so more concurrency cannot help on this runner;
+      # opt-level 1 makes each case ~3.5x cheaper for a few seconds of extra
+      # compile. Debug assertions and overflow checks stay on. Scoped to this
+      # step because the two below build into their own uncached target dirs.
+      # The cache key above carries the opt-level, since a key hit never saves.
       - name: Test
+        env:
+          CARGO_PROFILE_DEV_OPT_LEVEL: "1"
         run: cargo test
       - name: Test elevenlabs-types
         run: cargo test --manifest-path elevenlabs-types/Cargo.toml
