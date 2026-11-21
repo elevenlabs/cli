@@ -385,11 +385,21 @@ fn redact_json_value(value: &mut serde_json::Value) {
 /// with `password` in their name may carry secret-adjacent content, and
 /// over-redacting in debug output is far safer than under-redacting.
 fn is_sensitive_body_key(key: &str) -> bool {
-    let k = key.to_ascii_lowercase();
+    // Fold camelCase to snake_case so the delimiter-bounded stems below also
+    // catch `clientSecret`, `accessToken`, `privateKey`, etc.
+    let mut k = String::with_capacity(key.len() + 4);
+    let mut prev_lower = false;
+    for c in key.chars() {
+        if c.is_ascii_uppercase() && prev_lower {
+            k.push('_');
+        }
+        k.push(c.to_ascii_lowercase());
+        prev_lower = c.is_ascii_lowercase() || c.is_ascii_digit();
+    }
 
     // Exact match for short stems that would over-match as substrings.
     const EXACT: &[&str] = &["token", "secret", "key", "session", "pwd", "jwt", "bearer", "cookie"];
-    if EXACT.iter().any(|&e| e == k) {
+    if EXACT.iter().any(|&e| e == k.as_str()) {
         return true;
     }
 
