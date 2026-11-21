@@ -79,7 +79,8 @@ pub fn reset_sigpipe() {
 pub fn reset_sigpipe() {}
 
 /// Unscoped env vars a `.env` file may not set, because each one redirects
-/// traffic, weakens transport security, or names a program to execute.
+/// traffic, weakens transport security, names a program to execute, or moves
+/// file writes outside the working directory.
 /// Matched ignoring case (see [`dotenv_key_is_denied`]).
 const DOTENV_DENIED_BARE: &[&str] = &[
     // Names a program the CLI executes when paging output.
@@ -104,6 +105,8 @@ const DOTENV_DENIED_BARE: &[&str] = &[
 /// protections.
 const DOTENV_DENIED_SUFFIXES: &[&str] = &[
     "_BASE_URL",
+    // Redirects log writes wherever the file says, including outside the repo.
+    "_LOG_FILE",
     "_PAGER",
     "_PROXY",
     "_NO_PROXY",
@@ -213,6 +216,8 @@ mod dotenv_filter_tests {
         // weaken TLS, or run a program of their choosing.
         for key in [
             "ELEVENLABS_BASE_URL",
+            "ELEVENLABS_LOG_FILE",
+            "elevenlabs_log_file",
             "ELEVENLABS_PAGER",
             "ELEVENLABS_PROXY",
             "ELEVENLABS_NO_PROXY",
@@ -268,6 +273,16 @@ mod dotenv_filter_tests {
         assert!(!dotenv_key_is_denied("BASE_URL", "ELEVENLABS"));
         // Kebab-cased binary names map to underscored prefixes.
         assert!(dotenv_key_is_denied("MY_CLI_BASE_URL", "MY_CLI"));
+    }
+
+    #[test]
+    fn dotenv_cannot_redirect_log_writes() {
+        // An untrusted repository .env must not choose the log destination.
+        assert!(dotenv_key_is_denied(
+            "ELEVENLABS_LOG_FILE",
+            "ELEVENLABS"
+        ));
+        assert!(dotenv_key_is_denied("MY_CLI_LOG_FILE", "MY_CLI"));
     }
 
     #[test]
