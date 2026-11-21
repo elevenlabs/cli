@@ -13,12 +13,10 @@ use crate::output::reject_dangerous_chars as reject_control_chars;
 
 /// Validates and resolves an output directory path.
 ///
-/// The only hard checks are null-byte / control-character rejection. The
-/// path may be relative (resolved against CWD) or absolute, and may point
-/// anywhere on the filesystem — the CLI does not sandbox where the user
-/// asks it to write. If a caller needs to restrict writes, that is the
-/// responsibility of the surrounding environment (agent/file-system
-/// permissions), not this generated CLI.
+/// Rejects null bytes, control characters, and any path that resolves
+/// outside the current directory. Relative paths are resolved against CWD;
+/// absolute paths are accepted only when they stay inside it. Symlinks are
+/// resolved before the check, so a link out of CWD is refused too.
 ///
 /// Returns the resolved path (canonicalized where the target or its
 /// existing prefix exists) on success.
@@ -42,6 +40,19 @@ pub fn validate_safe_output_dir(dir: &str) -> Result<PathBuf, CliError> {
     } else {
         normalize_non_existing(&resolved)?
     };
+
+    // Keep writes inside the working directory. `../victim` and symlinks
+    // pointing elsewhere must not become valid destinations.
+    let canonical_cwd = std::env::current_dir()
+        .map_err(|e| CliError::Validation(format!("Failed to determine current directory: {e}")))?
+        .canonicalize()
+        .map_err(|e| CliError::Validation(format!("Failed to canonicalize current directory: {e}")))?;
+    if !canonical.starts_with(&canonical_cwd) {
+        return Err(CliError::Validation(format!(
+            "--output-dir '{dir}' resolves to '{}' which is outside the current directory",
+            canonical.display()
+        )));
+    }
 
     Ok(canonical)
 }
@@ -383,9 +394,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     #[serial]
-    fn test_output_dir_allows_symlink_target() {
-        // The CWD sandbox was removed: a symlink whose target lives outside
-        // CWD now resolves to that target instead of being rejected.
+    fn test_output_dir_rejects_symlink_target_outside_cwd() {
+        // A link out of CWD resolves to that target before the confinement
+        // check, so it must be refused.
         let dir = tempdir().unwrap();
         let canonical_dir = dir.path().canonicalize().unwrap();
 
@@ -401,15 +412,13 @@ mod tests {
         let result = validate_safe_output_dir("link");
         std::env::set_current_dir(&saved_cwd).unwrap();
 
-        assert!(result.is_ok(), "got: {result:?}");
-        assert_eq!(result.unwrap(), target_canonical);
+        assert!(result.is_err(), "got: {result:?}");
     }
 
     #[test]
     #[serial]
-    fn test_output_dir_allows_traversal_target() {
-        // `../sibling` escapes CWD but is now accepted — writing where the
-        // user asks is their responsibility.
+    fn test_output_dir_rejects_traversal_target() {
+        // `../sibling` escapes CWD and must be refused.
         let dir = tempdir().unwrap();
         let canonical_dir = dir.path().canonicalize().unwrap();
         let saved_cwd = std::env::current_dir().unwrap();
@@ -418,16 +427,25 @@ mod tests {
         let result = validate_safe_output_dir("../sibling-out");
         std::env::set_current_dir(&saved_cwd).unwrap();
 
+        assert!(result.is_err(), "got: {result:?}");
+    }
+
+    #[test]
+    #[serial]
+    fn test_output_dir_allows_absolute_inside_cwd() {
+        let cwd = std::env::current_dir().unwrap().canonicalize().unwrap();
+        let target = cwd.join("new-output-dir");
+        let result = validate_safe_output_dir(target.to_str().unwrap());
         assert!(result.is_ok(), "got: {result:?}");
     }
 
     #[test]
-    fn test_output_dir_allows_absolute() {
-        // Absolute paths are no longer rejected.
+    #[serial]
+    fn test_output_dir_rejects_absolute_outside_cwd() {
         let dir = tempdir().unwrap();
-        let target = dir.path().canonicalize().unwrap().join("nested");
+        let target = dir.path().canonicalize().unwrap();
         let result = validate_safe_output_dir(target.to_str().unwrap());
-        assert!(result.is_ok(), "got: {result:?}");
+        assert!(result.is_err(), "got: {result:?}");
     }
 
     #[test]
