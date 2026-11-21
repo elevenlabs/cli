@@ -457,6 +457,27 @@ pub(crate) fn parse_retry_after(value: &str, now: std::time::SystemTime) -> Opti
     None
 }
 
+/// Read at most `cap` bytes from a response body, dropping the stream after
+/// that. Keeps memory flat when a server streams an unbounded body.
+const MAX_DISCARD_BYTES: usize = 2 * 1024 * 1024;
+
+async fn read_bounded_body(response: reqwest::Response, cap: usize) -> Vec<u8> {
+    let mut buf = Vec::with_capacity(cap.min(64 * 1024));
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        match chunk {
+            Ok(chunk) => {
+                if buf.len().saturating_add(chunk.len()) > cap {
+                    break;
+                }
+                buf.extend_from_slice(&chunk);
+            }
+            Err(_) => break,
+        }
+    }
+    buf
+}
+
 /// Compute the delay for the *next* retry attempt (i.e. the wait
 /// between attempt `attempt` and attempt `attempt + 1`).
 ///
@@ -2572,7 +2593,7 @@ pub async fn execute_method(
                             // the body on retried responses; the final
                             // response (success or terminal failure)
                             // is what the user sees.
-                            let _ = resp.bytes().await;
+                            let _ = read_bounded_body(resp, MAX_DISCARD_BYTES).await;
                             tokio::time::sleep(delay).await;
                             retry_attempt += 1;
                             continue;
@@ -2650,7 +2671,7 @@ pub async fn execute_method(
             // Raw mode: emit error body verbatim, return sentinel.
             if pipeline.is_raw() && !capture_output {
                 if !pipeline.quiet {
-                    let bytes = response.bytes().await.unwrap_or_default();
+                    let bytes = read_bounded_body(response, MAX_DISCARD_BYTES).await;
                     let mut stdout = std::io::stdout().lock();
                     let _ = std::io::Write::write_all(&mut stdout, &bytes);
                     let _ = std::io::Write::flush(&mut stdout);
@@ -2664,7 +2685,7 @@ pub async fn execute_method(
                 if !pipeline.quiet {
                     let version = response.version();
                     let resp_headers = response.headers().clone();
-                    let bytes = response.bytes().await.unwrap_or_default();
+                    let bytes = read_bounded_body(response, MAX_DISCARD_BYTES).await;
                     let mut stdout = std::io::stdout().lock();
                     let _ = write_http_preamble(&mut stdout, version, status, &resp_headers);
                     let _ = std::io::Write::write_all(&mut stdout, &bytes);
@@ -2675,7 +2696,10 @@ pub async fn execute_method(
                 });
             }
             let response_headers = response.headers().clone();
-            let error_body = response.text().await.unwrap_or_default();
+            let error_body = String::from_utf8_lossy(
+                &read_bounded_body(response, MAX_DISCARD_BYTES).await,
+            )
+            .into_owned();
             if debug {
                 crate::debug::dump_error_response(
                     status.as_u16(),
@@ -2707,7 +2731,7 @@ pub async fn execute_method(
         // Raw mode: stream response bytes to stdout verbatim.
         if pipeline.is_raw() && !capture_output {
             if pipeline.quiet {
-                let _ = response.bytes().await;
+                let _ = read_bounded_body(response, MAX_DISCARD_BYTES).await;
             } else {
                 use std::io::Write;
                 let mut stream = response.bytes_stream();
@@ -2729,7 +2753,7 @@ pub async fn execute_method(
         // HTTP mode: emit status line + headers + raw body.
         if pipeline.is_http() && !capture_output {
             if pipeline.quiet {
-                let _ = response.bytes().await;
+                let _ = read_bounded_body(response, MAX_DISCARD_BYTES).await;
             } else {
                 use std::io::Write;
                 let version = response.version();
