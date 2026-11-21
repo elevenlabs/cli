@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Check hand-written tests are in .fernignore
         run: bash scripts/check-fernignore-tests.sh
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Rust
         shell: bash
@@ -39,7 +39,7 @@ jobs:
           fi
 
       - name: Cache cargo registry and build artifacts
-        uses: actions/cache@v4
+        uses: 0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Rust
         shell: bash
@@ -68,7 +68,7 @@ jobs:
           fi
 
       - name: Cache cargo registry and build artifacts
-        uses: actions/cache@v4
+        uses: 0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Rust
         shell: bash
@@ -104,7 +104,7 @@ jobs:
         run: cargo metadata --locked --format-version 1 > /dev/null
 
       - name: Cache cargo-audit
-        uses: actions/cache@v4
+        uses: 0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cargo/bin/cargo-audit
           key: cargo-audit-${{ runner.os }}
@@ -126,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Rust
         shell: bash
@@ -137,7 +137,7 @@ jobs:
           fi
 
       - name: Cache cargo registry and build artifacts
-        uses: actions/cache@v4
+        uses: 0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -165,7 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Rust
         shell: bash
@@ -283,7 +283,7 @@ jobs:
             rust-target: x86_64-pc-windows-msvc
     steps:
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: 249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "lts/Krypton"
           registry-url: "https://registry.npmjs.org"
@@ -400,10 +400,10 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: 249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "lts/Krypton"
           registry-url: "https://registry.npmjs.org"

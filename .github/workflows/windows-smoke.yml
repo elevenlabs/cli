@@ -29,11 +29,11 @@ jobs:
     steps:
       - name: Checkout repo
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v6
+        uses: d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Cache cargo registry and build artifacts
         if: github.event_name == 'pull_request'
-        uses: actions/cache@v4
+        uses: 0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -51,13 +51,13 @@ jobs:
           cygpath -w "$PWD/target/debug" >> "$GITHUB_PATH"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: 249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "lts/Krypton"
 
       - name: Onboard up to the approval page
         env:
-          CLI: ${{ github.event_name == 'pull_request' && 'elevenlabs' || 'npx -y @elevenlabs/cli@latest' }}
+          CLI: ${{ github.event_name == 'pull_request' && 'elevenlabs' || 'npx -y @elevenlabs/cli@1.12.2' }}
         run: |
           set -euo pipefail
           out=$(mktemp)
