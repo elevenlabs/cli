@@ -1,100 +1,49 @@
-//! `onboard connect`: sign in through the browser and store the API key the
-//! approval page hands over on the clipboard. The sign-in runs in a
-//! background [`Session`], so a slow approval never depends on how long the
-//! agent lets a command run.
-
-use std::time::Duration;
+//! The key step, for `onboard init` (and `onboard connect`, its older name):
+//! sign in through the browser exactly as `auth login` does, then store the
+//! API key the approval page handed over on the clipboard. All this adds to
+//! the CLI's own sign-in is what happens once it completes.
 
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
-use serde_json::Value;
 
+use super::super::api;
 use super::super::util::opt_string;
 use super::auth;
-use super::check::{ask_what_to_build, load_key};
+use super::check;
 use super::clipboard::{Clip, Clipboard, Marker};
 use super::env_file::{self, API_KEY_ENV};
 use super::manual::{self, NO_BROWSER};
-use super::project::{last4, shell_arg, KeySource, Project};
-use super::reply::{command, Next, Reply};
-use super::session::{LastSignIn, Session, LAUNCH_FLAG, SIGN_IN_MINUTES, WORKER_FLAG};
+use super::project::{last4, KeySource, Project};
+use super::reply::{Next, Reply};
 
-/// How long one `connect` waits for the approval before handing back to the
-/// agent; well under the time agents let a command run.
-pub(super) const WAIT: Duration = Duration::from_secs(25);
+/// How long `auth login`'s flow waits for the approval page.
+const SIGN_IN_MINUTES: u64 = 5;
 
-/// `None` for the launcher and the worker, which print nothing.
+/// `step` is the command as it was run (`init` or `connect`), which is what
+/// its requests are counted as until the sign-in starts.
 pub(super) fn handle(
+    step: &'static str,
     matches: &clap::ArgMatches,
     ctx: &AppContext,
-) -> Result<Option<Value>, CliError> {
+) -> Result<Reply, CliError> {
     let project = Project::open(matches)?;
-    let session = Session::for_project(&project.dir)?;
     let replace = matches.get_flag("replace");
-    if matches.get_flag(LAUNCH_FLAG) {
-        session.launch_worker()?;
-        return Ok(None);
-    }
-    if matches.get_flag(WORKER_FLAG) {
-        // Another worker already signing in for this project wins.
-        let Some(lock) = session.take()? else {
-            return Ok(None);
-        };
-        // The browser the sign-in opens reads this environment, and by now the
-        // runtime has loaded the project's `.env` into it. That also drops the
-        // request tag `dispatch` set, so it is set again.
-        for key in super::added_since_startup() {
-            std::env::remove_var(key);
+    {
+        let _scope = api::command_scope(step);
+        if let Some(reply) = preflight(ctx, matches, &project, replace)? {
+            return Ok(reply.with_rules());
         }
-        let previous = session.previous();
-        let _scope = super::super::api::command_scope_with(
-            "onboard.connect",
-            super::sign_in_tag(previous.as_ref()),
-        );
-        let reply = sign_in_and_store(matches, ctx, &project, previous.as_ref(), || {
-            session.signed_in(&lock)
-        })
-        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace));
-        session.finish(&lock, &reply.to_value())?;
-        return Ok(None);
     }
-    let waiting = matches.get_flag("wait");
-    if !waiting {
-        if let Some(reply) = preflight(matches, &project, replace)? {
-            return Ok(Some(reply.to_value()));
-        }
-        // Waits on the sign-in already running for this request, if there is one.
-        session.start(&format!("{}\n{replace}", project.env_file.display()))?;
+    // The browser the sign-in opens reads this environment, and by now the
+    // runtime has loaded the project's `.env` into it.
+    for key in super::added_since_startup() {
+        std::env::remove_var(key);
     }
-    // Without a browser, the developer needs the link as soon as there is one.
-    let link_first = !waiting && project.no_browser;
-    let held = session.held();
-    if held && !link_first {
-        show_link(&session);
-    }
-    let budget = wait_budget(held, link_first);
-    Ok(Some(wait(&session, &project, budget, replace, link_first)))
-}
-
-/// A command that keeps waiting has no reply to carry the link, so it goes to
-/// stderr as soon as there is one, for when no browser tab opened.
-fn show_link(session: &Session) {
-    session.wait(WAIT, |s| s.url().is_some());
-    if let (None, Some(url)) = (session.result(), session.url()) {
-        eprintln!("Waiting for you to approve ElevenLabs in the browser. If no browser tab opened, open this link: {url}");
-    }
-}
-
-/// How long this command waits for the sign-in. Normally briefly: the
-/// sign-in outlives the command. A held one (see [`Session::held`]) ends when
-/// this command returns, so the command waits for as long as the sign-in can
-/// run, unless the developer needs the link first: then it has to return.
-pub(super) fn wait_budget(held: bool, link_first: bool) -> Duration {
-    if held && !link_first {
-        Duration::from_secs((SIGN_IN_MINUTES + 1) * 60)
-    } else {
-        WAIT
-    }
+    // The sign-in and the key's check count as `connect`, whichever step ran them.
+    let _scope = api::command_scope("onboard.connect");
+    Ok(sign_in_and_store(matches, ctx, &project)
+        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace))
+        .with_rules())
 }
 
 fn connect_step(replace: bool) -> &'static str {
@@ -105,8 +54,10 @@ fn connect_step(replace: bool) -> &'static str {
     }
 }
 
-/// Everything that can be refused before a browser opens.
+/// Everything that is settled before a browser opens: a file that can't hold
+/// a key, a key that is already there, a machine no browser reaches.
 fn preflight(
+    ctx: &AppContext,
     matches: &clap::ArgMatches,
     project: &Project,
     replace: bool,
@@ -117,88 +68,25 @@ fn preflight(
         ));
     }
     authorize_url(matches)?;
-    if let Some(key) = project.key() {
-        match (&key.source, replace) {
-            (_, false) => {
-                return Ok(Some(
-                    Reply::new(
-                        Next::Run,
-                        format!(
-                            "This project already has an ElevenLabs key (ending in {}).",
-                            last4(&key.value)
-                        ),
-                    )
-                    .run(&project.next("check")),
-                ))
-            }
-            (KeySource::Shell, true) => {
-                return Ok(Some(
-                    Reply::new(
-                        Next::AskUser,
-                        format!(
-                            "{API_KEY_ENV} is set in your shell, and it wins over any env file. Unset it \
-                             (and remove it from your shell profile), then tell me to try again."
-                        ),
-                    )
-                    .run(&project.next("connect --replace")),
-                ))
-            }
-            // The new key has to replace the one in the `.env` loaders read.
-            (KeySource::Dotenv(path), true) => {
-                let file = project.show(path);
-                return Ok(Some(
-                    Reply::new(Next::Run, format!("The key is in {file}, so the new one goes there."))
-                        .run(&project.next(&format!("connect --replace --env-path {}", shell_arg(&file)))),
-                ));
-            }
-            (KeySource::EnvFile, true) => {}
-        }
+    match project.key() {
+        // A key already there: check it now, so this reply is what comes next.
+        Some(_) if !replace => return check::verify(ctx, project).map(Some),
+        Some(key) if key.source == KeySource::Shell => return Ok(Some(
+            Reply::new(
+                Next::AskUser,
+                format!(
+                    "{API_KEY_ENV} is set in your shell, and it wins over any env file. Unset it \
+                         (and remove it from your shell profile), then tell me to try again."
+                ),
+            )
+            .run(&project.next("connect --replace")),
+        )),
+        _ => {}
     }
     if project.remote() {
         return manual::reply(project, &project.env_file, NO_BROWSER).map(Some);
     }
     Ok(None)
-}
-
-/// The worker's reply, or what to do while there is none yet. `link_first`
-/// returns as soon as the approval link is known.
-pub(super) fn wait(
-    session: &Session,
-    project: &Project,
-    budget: Duration,
-    replace: bool,
-    link_first: bool,
-) -> Value {
-    let retry = project.next(connect_step(replace));
-    if let Some(mut result) = session.wait(budget, |s| link_first && s.url().is_some()) {
-        // Written by another project's `connect`, which can't know this one's flags.
-        if result["details"]["key_status"] == "sign_in_replaced" {
-            result["run"] = command(&retry).into();
-        }
-        return result;
-    }
-    if session.running() {
-        return waiting(session, project, replace).to_value();
-    }
-    Reply::new(
-        Next::Run,
-        "The sign-in isn't running anymore, so I'll start it again.",
-    )
-    .run(&retry)
-    .to_value()
-}
-
-/// The approval is still open: wait on it, with the link in case no tab opened.
-pub(super) fn waiting(session: &Session, project: &Project, replace: bool) -> Reply {
-    let link = session
-        .url()
-        .map(|url| format!(" If no browser tab opened, open this link: {url}"))
-        .unwrap_or_default();
-    Reply::new(
-        Next::Wait,
-        format!("Waiting for you to approve ElevenLabs in the browser.{link}"),
-    )
-    .run(&project.next(&format!("{} --wait", connect_step(replace))))
 }
 
 /// Only a local page may replace production: the developer types a password there.
@@ -239,7 +127,6 @@ pub(super) fn outcome_of(
                 why: "the key on the clipboard belongs to a different account",
             },
             Err(e) => {
-                // The worker's log is the only place the reason is kept.
                 eprintln!("The key on the clipboard couldn't be checked: {e}");
                 Outcome::Manual {
                     status: "could_not_verify",
@@ -268,19 +155,23 @@ pub(super) fn outcome_of(
     }
 }
 
-/// The worker: sign in, then move the key from the clipboard into the env file.
+/// Sign in as `auth login` does, then move the key from the clipboard into the env file.
 fn sign_in_and_store(
     matches: &clap::ArgMatches,
     ctx: &AppContext,
     project: &Project,
-    previous: Option<&LastSignIn>,
-    on_signed_in: impl FnOnce(),
 ) -> Result<Reply, CliError> {
     let client = ctx.http_config().build_client()?;
-    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser, previous) {
+    // The sign-in itself prints the link. This is for an agent whose command
+    // is stopped before the developer approves: it has no reply to go on.
+    eprintln!(
+        "Waiting for you to approve ElevenLabs in the browser (up to {SIGN_IN_MINUTES} minutes). \
+         If this command is stopped before you approve, run it again and give it that long."
+    );
+    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser) {
         Ok(token) => token,
         Err(error) => {
-            // The page may have copied a key before the callback failed; nothing
+            // The page may have copied a key before the sign-in failed; nothing
             // can vouch for it now, so it is cleared, not stored.
             Clipboard::open().discard_key();
             return Ok(failed(
@@ -290,7 +181,6 @@ fn sign_in_and_store(
             ));
         }
     };
-    on_signed_in();
     let mut clipboard = Clipboard::open();
     let clip = clipboard.read_handoff();
     let copied = match &clip {
@@ -317,25 +207,13 @@ pub(super) fn reply_for(project: &Project, outcome: &Outcome) -> Result<Reply, C
     Ok(match outcome {
         Outcome::Store(key) => {
             env_file::write(path, &env_file::with_key(&existing, key))?;
-            // The key is stored either way; `check` re-applies this and reports a failure.
             let gitignored = env_file::ensure_ignored(path).is_ok();
             let say = format!(
                 "Signed in. Your new key ending in {} is in {file}, and your clipboard was cleared.",
                 last4(key)
             );
-            // An app that already has ElevenLabs in its code has nothing to
-            // build: a replaced key goes where the app already reads it, a
-            // first one only needs loading, and code that never reads the key
-            // (the agent widget) needs neither.
-            let reply = if !project.wired() {
-                ask_what_to_build(project, &last4(key), Some(file), &say)
-            } else if old_key.is_none() && project.reads_key() {
-                load_key(project, &last4(key), file, say)
-            } else {
-                Reply::new(Next::Run, say).run(&project.next("check"))
-            };
-            reply
-                .with_rules()
+            // The key is in place, and everything after it is one reply.
+            check::integrate(project, &last4(key), Some(file), &say)?
                 .detail("key_status", "created")
                 .detail("gitignored", gitignored)
         }
@@ -404,35 +282,5 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool) -> Reply {
             ),
         )
     };
-    reply
-        .run(&retry)
-        .detail("key_status", "sign_in_failed")
-        .detail("signin", sign_in_failure(error))
-}
-
-/// What ended a sign-in before the clipboard step, as the label the next
-/// sign-in reports (see `Session::last_sign_in`).
-pub(super) fn sign_in_failure(error: &str) -> &'static str {
-    if error.contains("returned error: access_denied") {
-        return "declined";
-    }
-    if error.contains("Timed out waiting") {
-        return "timed-out";
-    }
-    if error.contains("Could not listen for the browser") {
-        return "port-busy";
-    }
-    // `loopback::exchange` names the failure in brackets.
-    let kind = error
-        .split_once("PKCE token exchange failed [")
-        .and_then(|(_, rest)| rest.split_once(']'))
-        .map(|(kind, _)| kind);
-    match kind {
-        Some("connect") => "exchange-connect",
-        Some("timeout") => "exchange-timeout",
-        Some("refused") => "exchange-refused",
-        Some("server") => "exchange-server",
-        Some(_) => "exchange-other",
-        None => "sign-in-error",
-    }
+    reply.run(&retry).detail("key_status", "sign_in_failed")
 }

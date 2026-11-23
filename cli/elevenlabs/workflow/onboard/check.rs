@@ -1,35 +1,27 @@
-//! `onboard check` (also `onboard status`): the one way to verify the setup.
-//! It stops at the first problem and says how to fix it, fixing on its own
-//! only what is safe: the `.gitignore` entry and the file's permissions.
+//! `onboard check` (also `onboard status`): verify the key, and the one reply
+//! that hands the rest to the coding agent. The CLI never reads the project's
+//! code to decide what comes next: once a working key is in place, the agent
+//! is told where it is and what the app needs, and builds from there. On its
+//! own the CLI fixes only what is safe: the `.gitignore` entry and the file's
+//! permissions.
 
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
-use serde_json::Value;
 
-use super::super::say::run_async as block_on;
 use super::super::settings;
-use super::auth::{api_base, check_key, sign_in_config, KeyCheck};
-use super::connect;
+use super::auth::{check_key, sign_in_config, KeyCheck};
 use super::env_file::{self, API_KEY_ENV};
 use super::manual::{self, NO_BROWSER};
 use super::project::{last4, shell_arg, Key, Project};
 use super::reply::{Next, Reply};
-use super::session::Session;
 
 pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Reply, CliError> {
-    let answered = matches
-        .try_get_one::<bool>("answered")
-        .ok()
-        .flatten()
-        .copied()
-        .unwrap_or(false);
-    verify(ctx, &Project::open(matches)?, answered)
+    verify(ctx, &Project::open(matches)?).map(Reply::with_rules)
 }
 
 /// The whole check, for `check` and for `init` when the project already has a
-/// key, so the next step comes straight from it. `answered`: the developer has
-/// said what to build (`--answered`, which the question's `run` passes).
-pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Result<Reply, CliError> {
+/// key: the key works and git can't commit it, or what to do about it.
+pub(super) fn verify(ctx: &AppContext, project: &Project) -> Result<Reply, CliError> {
     let Some(key) = project.key() else {
         return no_key(project);
     };
@@ -59,162 +51,56 @@ pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Res
             fixed.push(format!("made {name} readable only by you"));
         }
     }
-    let declared = project.sdk_declared();
-    let imported = project.sdk_imported();
     let ending = last4(&key.value);
     let key_file = key.file(project).map(|f| project.show(f));
-    let wired = (declared && imported) || project.embeds_agent_widget();
-    let reads_key = wired && project.reads_key();
-    let file = key_file.as_deref();
-    // The code reads the key, but it only gets it if the app loads the file it's in.
-    let unloaded = key
-        .file(project)
-        .filter(|f| reads_key && !project.loads_key_file(f));
-    let reply = match (wired, answered, unloaded) {
-        (true, _, Some(unloaded)) => {
-            let name = project.show(unloaded);
-            let say = format!("Your key works and the code uses the SDK, but nothing in the app loads {name} yet.");
-            load_key(project, &ending, &name, say)
-        }
-        (true, _, None) => match own_agent(ctx, project, &key) {
-            Some(agent) => agent_ready(&ending, file, &agent, reads_key)?,
-            None => offer_test(project, &ending, file),
-        },
-        (false, false, _) => ask_what_to_build(project, &ending, file, "Your key works."),
-        (false, true, _) => write_code(project, &ending, file)?,
-    };
-    Ok(reply
+    let location = key_file.as_deref().unwrap_or("your shell");
+    let say = format!("Your ElevenLabs key ending in {ending} works. It's in {location}.");
+    Ok(integrate(project, &ending, key_file.as_deref(), &say)?
         .detail("api_key_source", key.source_name())
-        .detail("sdk_declared", declared)
-        .detail("sdk_imported", imported)
         .detail("fixed", fixed))
 }
 
-/// Everything is in place: offer the test request.
-fn offer_test(project: &Project, ending: &str, key_file: Option<&str>) -> Reply {
-    let location = key_file.unwrap_or("your shell");
-    Reply::new(
-        Next::OfferTest,
-        format!(
-            "ElevenLabs is set up: a working key ending in {ending} in {location}, and ElevenLabs in your code. \
-             Want me to send a test request? It makes a short text-to-speech clip with your key and uses a few credits."
-        ),
-    )
-    .run(&project.next("test"))
-    .detail("key_last4", ending)
-}
+/// Asked only when the developer hasn't said, so the agent never picks a product for them.
+pub(super) const WHAT_TO_BUILD: &str =
+    "What would you like to build with ElevenLabs, or should I just add the SDK for now?";
 
-/// An agent the code names that this key can open.
-struct Agent {
-    id: String,
-    name: String,
-    access: Access,
-}
+/// What the developer is told about the test request before they answer.
+const TEST_OFFER: &str = "Want me to send a test request? It makes a short text-to-speech clip with your key and uses a few credits.";
 
-/// Who can start a conversation with an agent.
-#[derive(PartialEq)]
-enum Access {
-    /// Anyone with its link: the talk-to page works.
-    Public,
-    /// Only the sites on its allowlist, which the talk-to page isn't.
-    Allowlist,
-    /// Only with a signed URL or token from a server holding the key.
-    Private,
-}
+/// The ElevenLabs skills, the whole repo in one download.
+const SKILLS_ARCHIVE: &str = "https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz";
 
-/// How many of the agent IDs in the code to look up before giving up.
-const AGENT_LOOKUPS: usize = 3;
-
-/// The first agent the code names that belongs to the key's account, so a
-/// sample's or another account's agent is never offered. `None` when there
-/// is none, or the key can't read agents.
-fn own_agent(ctx: &AppContext, project: &Project, key: &Key) -> Option<Agent> {
-    let ids = project.agent_ids(AGENT_LOOKUPS, key.file(project));
-    if ids.is_empty() {
-        return None;
-    }
-    let client = ctx.http_config().build_client().ok()?;
-    let base = api_base(ctx);
-    for id in ids {
-        let sent = block_on(
-            client
-                .get(format!("{base}/v1/convai/agents/{id}"))
-                .header("xi-api-key", &key.value)
-                .timeout(std::time::Duration::from_secs(10))
-                .send(),
-        );
-        let Ok(response) = sent else { return None };
-        let status = response.status();
-        // The key can't read agents at all, so no other ID will do better.
-        if status == 401 || status == 403 {
-            return None;
-        }
-        if !status.is_success() {
-            continue;
-        }
-        let Ok(body) = block_on(response.json::<Value>()) else {
-            continue;
-        };
-        let auth = &body["platform_settings"]["auth"];
-        let access = if auth["enable_auth"] == Value::Bool(true) {
-            Access::Private
-        } else if auth["allowlist"].as_array().is_some_and(|a| !a.is_empty()) {
-            Access::Allowlist
-        } else {
-            Access::Public
-        };
-        return Some(Agent {
-            name: body["name"].as_str().unwrap_or_default().trim().to_string(),
-            access,
-            id,
-        });
-    }
-    None
-}
-
-/// The code has the developer's agent in it: the test is talking to it,
-/// which the developer does in the browser, so there's nothing left to run.
-/// `reads_key`: the app has code that reads the key, which a private agent
-/// needs to sign each conversation.
-fn agent_ready(
-    ending: &str,
+/// The one reply after a working key is in place: where the key is, what the
+/// app needs to get it, where the skills are, and the test request to offer
+/// at the end. `key_file` is the file the key is in, as the developer knows
+/// it; `None` when it is set in the shell. `run` is the test request.
+pub(super) fn integrate(
+    project: &Project,
+    key_last4: &str,
     key_file: Option<&str>,
-    agent: &Agent,
-    reads_key: bool,
+    say: &str,
 ) -> Result<Reply, CliError> {
+    let dir = skills_dir()?;
     let app = app_origin()?;
-    let page = format!("{app}/app/agents/agents/{}", agent.id);
-    let talk_to = format!("{app}/app/talk-to?agent_id={}", agent.id);
-    let location = key_file.unwrap_or("your shell");
-    let named = if agent.name.is_empty() {
-        "your agent".to_string()
-    } else {
-        format!("your agent \"{}\"", agent.name)
-    };
-    let next = match agent.access {
-        Access::Public => format!("Talk to it at {talk_to}, and change it at {page}."),
-        Access::Allowlist => format!(
-            "Only the sites on its allowlist can connect to it, so try it from its page: {page}."
-        ),
-        Access::Private if reads_key => {
-            format!("It needs a signed URL to talk to it, so try it from its page: {page}.")
-        }
-        Access::Private => format!(
-            "It requires authentication, so your page can't connect to it yet: turn authentication \
-             off on its page ({page}), or have your server request a signed URL for each conversation."
-        ),
-    };
-    let reply = Reply::new(
-        Next::Done,
-        format!("ElevenLabs is set up: a working key ending in {ending} in {location}, and {named} in your code. {next}"),
-    )
-    .detail("key_last4", ending)
-    .detail("agent_id", &agent.id)
-    .detail("agent_url", page);
-    Ok(if agent.access == Access::Public {
-        reply.detail("talk_to_url", talk_to)
-    } else {
-        reply
+    let reply = Reply::new(Next::Integrate, say)
+        .run(&project.next("test"))
+        .detail("key_last4", key_last4)
+        .detail("question", WHAT_TO_BUILD)
+        .detail("sdk_install", project.sdk_install())
+        .detail("load_key", project.load_key(key_file))
+        .detail("skills_dir", dir.display().to_string())
+        .detail("fetch_skills", fetch_skills(&dir, cfg!(windows)))
+        .detail(
+            "agent_links",
+            format!(
+                "Its page: {app}/app/agents/agents/<agent_id>. To talk to it, when anyone with the \
+                 link may: {app}/app/talk-to?agent_id=<agent_id>."
+            ),
+        )
+        .detail("test_offer", TEST_OFFER);
+    Ok(match key_file {
+        Some(file) => reply.detail("env_file", file),
+        None => reply,
     })
 }
 
@@ -239,71 +125,6 @@ pub(super) fn app_origin_for(residency: &str, authorize_url: &str) -> Result<Str
     reqwest::Url::parse(authorize_url)
         .map(|u| u.origin().ascii_serialization())
         .map_err(|e| CliError::Other(anyhow::anyhow!("read the sign-in page's address: {e}")))
-}
-
-/// Asked every time, so the agent never picks a product for the developer.
-pub(super) const WHAT_TO_BUILD: &str =
-    "What would you like to build with ElevenLabs, or should I just add the SDK for now?";
-
-/// The ElevenLabs skills, the whole repo in one download.
-const SKILLS_ARCHIVE: &str = "https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz";
-
-/// The question, from `connect` or `check`, whenever the code doesn't use the
-/// SDK yet: `say` ends with [`WHAT_TO_BUILD`]. Its `run` passes `--answered`,
-/// so the next reply, right after the answer, is how to write the code.
-/// `key_file` is the file the key is in, as the developer knows it; `None`
-/// when it is set in the shell.
-pub(super) fn ask_what_to_build(project: &Project, key_last4: &str, key_file: Option<&str>, say: &str) -> Reply {
-    let reply = Reply::new(Next::AskWhatToBuild, format!("{say} {WHAT_TO_BUILD}"))
-        .run(&project.next("check --answered"))
-        .detail("key_last4", key_last4);
-    match key_file {
-        Some(file) => reply.detail("env_file", file),
-        None => reply,
-    }
-}
-
-/// What the agent needs to write the integration once the developer has said
-/// what they want: the SDK, a new temp folder for the skills, and the key.
-fn write_code(project: &Project, key_last4: &str, key_file: Option<&str>) -> Result<Reply, CliError> {
-    let dir = skills_dir()?;
-    let reply = Reply::new(
-        Next::WriteCode,
-        "Next I'll add the ElevenLabs SDK to the project and use it in the code.",
-    )
-    .detail("sdk_install", project.sdk_install())
-    .detail("skills_dir", dir.display().to_string())
-    .detail("fetch_skills", fetch_skills(&dir, cfg!(windows)));
-    // Still `--answered`: code that doesn't use the SDK yet is no reason to ask again. The rules
-    // come again with the code, a turn after the reply that started the flow.
-    Ok(key_details(reply, project, key_last4, key_file, "check --answered").with_rules())
-}
-
-/// A first key for an app that already uses the SDK: nothing to build, only
-/// the key to load.
-pub(super) fn load_key(project: &Project, key_last4: &str, key_file: &str, say: String) -> Reply {
-    key_details(Reply::new(Next::LoadKey, say), project, key_last4, Some(key_file), "check").with_rules()
-}
-
-/// Where the key is and how the app gets it, then `step`.
-fn key_details(reply: Reply, project: &Project, key_last4: &str, key_file: Option<&str>, step: &str) -> Reply {
-    let found = match key_file {
-        Some(file) => format!("It's in {file}. {}", project.loading(file)),
-        None => "It's set in your shell, so the app gets it from the environment.".into(),
-    };
-    let reply = reply
-        .run(&project.next(step))
-        .detail("key_last4", key_last4)
-        .detail(
-            "load_key",
-            format!(
-                "The SDK reads {API_KEY_ENV} from the environment; never put the key in the code. {found}"
-            ),
-        );
-    match key_file {
-        Some(file) => reply.detail("env_file", file),
-        None => reply,
-    }
 }
 
 /// A new folder for the skills in the system's temp folder, never the
@@ -338,13 +159,6 @@ pub(super) fn fetch_skills(dir: &std::path::Path, windows: bool) -> String {
 
 /// No key anywhere: the developer is mid-paste, or it's time to sign in.
 pub(super) fn no_key(project: &Project) -> Result<Reply, CliError> {
-    // A sign-in is still open for this project: wait on it, don't start another.
-    // (No home folder means no sign-in could have started.)
-    if let Ok(session) = Session::for_project(&project.dir) {
-        if session.running() {
-            return Ok(connect::waiting(&session, project, false));
-        }
-    }
     let file = &project.env_display;
     let placeholder = env_file::read(&project.env_file)
         .ok()
@@ -372,7 +186,7 @@ pub(super) fn no_key(project: &Project) -> Result<Reply, CliError> {
     .run(&project.next("connect")))
 }
 
-/// `None` when the key works; otherwise what to do about it. Shared with `init`.
+/// `None` when the key works; otherwise what to do about it.
 pub(super) fn key_problem(
     ctx: &AppContext,
     project: &Project,
@@ -402,17 +216,14 @@ pub(super) fn key_problem(
                 file,
                 &format!("ElevenLabs rejects the key ending in {ending}."),
             )?,
-            Some(file) => Reply::new(
+            Some(_) => Reply::new(
                 Next::Run,
                 format!(
                     "ElevenLabs rejects the key ending in {ending}, so {} to create a new one.",
                     project.approval()
                 ),
             )
-            .run(&project.next(&format!(
-                "connect --replace --env-path {}",
-                shell_arg(&project.show(file))
-            ))),
+            .run(&project.next("connect --replace")),
         }),
     })
 }

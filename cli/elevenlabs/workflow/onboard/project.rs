@@ -1,6 +1,7 @@
-//! The project the agent is working in: its stack, its env file, any key it
-//! already has, and whether the SDK is wired in. Every step reads it the same
-//! way, so they agree on the env file without passing state between them.
+//! The project the agent is working in: its stack, its env file and any key
+//! it already has. Every step reads it the same way, so they agree on the env
+//! file without passing state between them. The CLI never reads the project's
+//! code: the coding agent knows the project, the CLI only places the key.
 
 use std::path::{Path, PathBuf};
 
@@ -27,12 +28,10 @@ pub(super) struct Project {
 }
 
 /// Where the key the SDK would use comes from.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum KeySource {
     /// The project's env file.
     EnvFile,
-    /// A `.env` in the folder or above it, which loaders read before the env file.
-    Dotenv(PathBuf),
     /// A variable set in the shell, which wins over any file.
     Shell,
 }
@@ -44,10 +43,9 @@ pub(super) struct Key {
 
 impl Key {
     /// The file holding the key, which a replacement goes into; `None` for the shell.
-    pub fn file<'a>(&'a self, project: &'a Project) -> Option<&'a Path> {
-        match &self.source {
+    pub fn file<'a>(&self, project: &'a Project) -> Option<&'a Path> {
+        match self.source {
             KeySource::EnvFile => Some(&project.env_file),
-            KeySource::Dotenv(path) => Some(path),
             KeySource::Shell => None,
         }
     }
@@ -55,7 +53,6 @@ impl Key {
     pub fn source_name(&self) -> &'static str {
         match self.source {
             KeySource::EnvFile => "env_file",
-            KeySource::Dotenv(_) => "dotenv",
             KeySource::Shell => "shell",
         }
     }
@@ -78,14 +75,7 @@ impl Project {
     /// The project in `dir`, with `--env-path` when one was given.
     pub fn at(dir: PathBuf, env_file: Option<String>) -> Self {
         let stack = stack_of(&dir);
-        let env_display = env_file.unwrap_or_else(|| {
-            match stack {
-                // python-dotenv's load_dotenv() reads `.env`; JS tooling reads `.env.local`.
-                Stack::Python => ".env",
-                _ => DEFAULT_ENV_FILE,
-            }
-            .into()
-        });
+        let env_display = env_file.unwrap_or_else(|| default_env_file(&dir, stack).into());
         Self {
             env_file: dir.join(&env_display),
             env_display,
@@ -96,9 +86,9 @@ impl Project {
     }
 
     /// The next command's arguments: `step`, plus the flags of this run that it
-    /// takes (`--no-browser`), so following `run` never loses one, even
-    /// through `check`. The env file is always named, so every later step uses
-    /// the same file even if the project's stack (and so the default) changes.
+    /// takes (`--no-browser`), so following `run` never loses one. The env file
+    /// is always named, so every later step uses the same file even if the
+    /// project's stack (and so the default) changes.
     pub fn next(&self, step: &str) -> String {
         let mut cmd = step.to_string();
         if !step.contains("--env-path") {
@@ -118,22 +108,14 @@ impl Project {
     }
 
     /// How to name `path` to the developer: the env file as they know it, and
-    /// any other file relative to the project (a `.env` up the tree as
-    /// `../../.env`), so it can go in a command run from the project.
+    /// any other file relative to the project.
     pub fn show(&self, path: &Path) -> String {
         if same_file(path, &self.env_file) {
             return self.env_display.clone();
         }
-        if let Ok(inside) = path.strip_prefix(&self.dir) {
-            return inside.display().to_string();
-        }
-        let up = path
-            .parent()
-            .and_then(|parent| self.dir.strip_prefix(parent).ok())
-            .map(|below| below.components().count());
-        match (up, path.file_name()) {
-            (Some(n), Some(name)) => format!("{}{}", "../".repeat(n), name.to_string_lossy()),
-            _ => path.display().to_string(),
+        match path.strip_prefix(&self.dir) {
+            Ok(inside) => inside.display().to_string(),
+            Err(_) => path.display().to_string(),
         }
     }
 
@@ -163,10 +145,9 @@ impl Project {
         None
     }
 
-    /// The key the app would use: a variable set in the shell first, then the
-    /// env file (which the CLI tells the app to load, and which Next.js and
-    /// Vite read before `.env`), then a `.env` in the folder or above it. The
-    /// shell's value is read from before the runtime loaded `.env`.
+    /// The key the app would use: a variable set in the shell first, which
+    /// wins over any file, then the env file. The shell's value is read from
+    /// before the runtime loaded `.env`.
     pub fn key(&self) -> Option<Key> {
         let shell = match super::shell_env() {
             Some(env) => env
@@ -180,30 +161,22 @@ impl Project {
 
     /// [`Self::key`] with the shell's value passed in.
     pub fn key_given(&self, shell: Option<String>) -> Option<Key> {
-        let line = env_file::read(&self.env_file)
+        let from_file = env_file::read(&self.env_file)
             .ok()
-            .and_then(|c| env_file::file_key(&c));
-        // An empty line is still the value the app loads, so `.env` doesn't count then.
-        let has_line = line.is_some();
-        let from_file = line.filter(|k| !k.is_empty());
+            .and_then(|c| env_file::file_key(&c))
+            .filter(|k| !k.is_empty());
         let shell = shell.filter(|v| !v.trim().is_empty());
-        let dotenv = env_file::nearest_dotenv(&self.dir)
-            .filter(|(path, _)| !has_line && !same_file(path, &self.env_file))
-            .and_then(|(path, key)| Some((path, key.filter(|k| !k.is_empty())?)));
         let key = |value, source| Some(Key { value, source });
-        match (shell, from_file, dotenv) {
+        match (shell, from_file) {
             // Exported from the file (direnv, mise): the file is what to change.
-            (Some(v), Some(f), _) if v == f => key(f, KeySource::EnvFile),
-            (Some(v), None, Some((path, k))) if v == k => key(k, KeySource::Dotenv(path)),
-            (Some(v), _, _) => key(v, KeySource::Shell),
-            (None, Some(f), _) => key(f, KeySource::EnvFile),
-            (None, None, Some((path, k))) => key(k, KeySource::Dotenv(path)),
-            (None, None, None) => None,
+            (Some(v), Some(f)) if v == f => key(f, KeySource::EnvFile),
+            (Some(v), _) => key(v, KeySource::Shell),
+            (None, Some(f)) => key(f, KeySource::EnvFile),
+            (None, None) => None,
         }
     }
 
-    /// The command that adds the SDK. A Python one also names it in a manifest,
-    /// which is how `check` sees it.
+    /// The command that adds the SDK.
     pub fn sdk_install(&self) -> &'static str {
         match self.stack {
             Stack::Python => "pip install elevenlabs (and add elevenlabs to the project's dependencies)",
@@ -223,416 +196,45 @@ impl Project {
         }
     }
 
-    /// How the app gets the key from `file` (as [`Self::show`] names it) into
-    /// its environment, as an instruction. A file above the app is never read
-    /// by the framework.
-    pub fn loading(&self, file: &str) -> String {
-        let dotenv = format!("`dotenv.config({{ path: \"{file}\" }})`");
-        if self.stack == Stack::Python {
-            return if file.starts_with("../") {
-                "Load it with python-dotenv (`load_dotenv()` finds it up the tree).".into()
-            } else {
-                format!("Load it with python-dotenv (`load_dotenv(\"{file}\")`).")
-            };
-        }
-        if file.starts_with("../") {
-            return format!(
-                "Frameworks only read env files in the app's folder, so load it explicitly: run the app \
-                 with `node --env-file={file}` (in its start script too) or call {dotenv} first."
-            );
-        }
-        match (self.stack, self.framework()) {
-            (_, Some(Framework::Next)) => "Next.js reads it on its own.".into(),
-            // Vite and what's built on it read env files into `import.meta.env`, not
-            // `process.env`, where the SDK looks.
-            (_, Some(Framework::Vite)) => format!(
-                "Vite doesn't put it in `process.env`, where the SDK looks, and only `VITE_` variables \
-                 reach browser code, which must never see the key. Load it in server code: with \
-                 `loadEnv(mode, process.cwd(), \"\")` in `vite.config` for a dev-server endpoint, or \
-                 `node --env-file={file}` for a separate server."
+    /// Where the key is and what the app needs to get it: the goal, not a
+    /// recipe for each framework. `file` is the key's file as [`Self::show`]
+    /// names it; `None` when the key is set in the shell.
+    pub fn load_key(&self, file: Option<&str>) -> String {
+        let found = match file {
+            Some(file) => format!(
+                "It is in {file}, so make sure the app loads that file into its environment before the \
+                 SDK is imported: many frameworks only read `.env` on their own, and some read env files \
+                 into their own object instead of the process environment."
             ),
-            (_, Some(Framework::Astro)) => "Astro reads it into `import.meta.env`, not `process.env`, where \
-                the SDK looks: in server code, create the client with \
-                `apiKey: import.meta.env.ELEVENLABS_API_KEY`."
-                .into(),
-            (_, Some(Framework::SvelteKit)) => "SvelteKit reads it into `$env/static/private`, not \
-                `process.env`, where the SDK looks: in server code, import `ELEVENLABS_API_KEY` from \
-                there and pass it as the client's `apiKey`."
-                .into(),
-            (Stack::Node, None) => format!(
-                "Plain Node doesn't read it on its own, so run the app with `node --env-file={file}` \
-                 (in its start script too) or call {dotenv} first."
-            ),
-            _ => format!(
-                "Make the app load it: run plain Node with `node --env-file={file}` (in its start script \
-                 too) or call {dotenv} first; Next.js reads it on its own."
-            ),
-        }
-    }
-
-    /// The framework in the app's package.json that reads env files on its own, if any.
-    fn framework(&self) -> Option<Framework> {
-        let text = std::fs::read_to_string(self.dir.join("package.json")).ok()?;
-        let pkg: serde_json::Value = serde_json::from_str(&text).ok()?;
-        let has = |name: &str| {
-            ["dependencies", "devDependencies"]
-                .iter()
-                .any(|d| pkg[d].get(name).is_some())
+            None => "It is set in your shell, so the app gets it from the environment.".into(),
         };
-        if has("next") {
-            Some(Framework::Next)
-        } else if has("astro") {
-            Some(Framework::Astro)
-        } else if has("@sveltejs/kit") {
-            Some(Framework::SvelteKit)
-        } else if has("vite") {
-            Some(Framework::Vite)
-        } else {
-            None
-        }
-    }
-
-    /// Whether the app loads the env file the key is in, so the SDK finds the key when the
-    /// app runs: Next.js or Bun on their own, or something in a script or the source that
-    /// loads it (see [`loads_key_in`]). A text check: it can't run the app, only catch the
-    /// common miss of code that uses the SDK while nothing loads the key.
-    pub fn loads_key_file(&self, file: &Path) -> bool {
-        let shown = self.show(file);
-        let bun = ["bun.lock", "bun.lockb"].iter().any(|f| self.dir.join(f).exists());
-        if !shown.starts_with("../") && (bun || self.framework() == Some(Framework::Next)) {
-            return true;
-        }
-        self.any_file(&|path| {
-            (is_source(path) || path.file_name().is_some_and(|n| n == "package.json"))
-                && std::fs::read_to_string(path).is_ok_and(|text| loads_key_in(&text, &shown))
-        })
-    }
-
-    /// Some manifest in the project declares an ElevenLabs SDK (any
-    /// `@elevenlabs/` package but the CLI, or Python's `elevenlabs`), in the
-    /// app's folder or one below it, as in a monorepo.
-    pub fn sdk_declared(&self) -> bool {
-        self.any_file(&declares_sdk)
-    }
-
-    /// Some source file imports an ElevenLabs SDK.
-    pub fn sdk_imported(&self) -> bool {
-        self.any_file(&imports_sdk)
-    }
-
-    /// ElevenLabs is in the code: an SDK, or a page or component that embeds
-    /// the agent widget.
-    pub fn wired(&self) -> bool {
-        (self.sdk_declared() && self.sdk_imported()) || self.embeds_agent_widget()
-    }
-
-    /// Something in the app reads the key, so the app has to load it: an SDK
-    /// that reads it, or code that names it. The agents' browser SDKs and
-    /// the widget connect without it.
-    pub fn reads_key(&self) -> bool {
-        let declared = self.any_file(&|path| declares_sdk_where(path, &reads_key_package));
-        let imported = self.any_file(&|path| imports_sdk_where(path, &reads_key_package));
-        (declared && imported)
-            || self.any_file(&|path| {
-                is_source(path) && read_small(path).is_some_and(|s| s.contains(API_KEY_ENV))
-            })
-    }
-
-    /// Some page or component embeds the agent widget.
-    pub fn embeds_agent_widget(&self) -> bool {
-        self.any_file(&|path| {
-            (is_source(path) || is_html(path))
-                && read_small(path).is_some_and(|s| s.contains(WIDGET_TAG))
-        })
-    }
-
-    /// The agent IDs the project names, at most `limit`: those in the code
-    /// first, then in its env file and `key_file` (the one the key is in),
-    /// wherever they are and whatever they're named, then in its other env
-    /// files (not the samples), then in an `agents.json`, so the agent the
-    /// app uses comes before a list of them.
-    pub fn agent_ids(&self, limit: usize, key_file: Option<&Path>) -> Vec<String> {
-        let mut found: [Vec<String>; 4] = Default::default();
-        for file in [Some(self.env_file.as_path()), key_file]
-            .into_iter()
-            .flatten()
-        {
-            if let Some(text) = read_small(file) {
-                add_agent_ids(&mut found[1], &text, limit);
-            }
-        }
-        self.each_file(&mut |path| {
-            let name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or_default();
-            let sample = [".example", ".sample", ".template"]
-                .iter()
-                .any(|s| name.ends_with(s));
-            let rank = if is_source(path) || is_html(path) {
-                0
-            } else if name.starts_with(".env") && !sample {
-                2
-            } else if name == "agents.json" {
-                3
-            } else {
-                return false;
-            };
-            if let Some(text) = read_small(path) {
-                add_agent_ids(&mut found[rank], &text, limit);
-            }
-            found[0].len() >= limit
-        });
-        let mut ids: Vec<String> = Vec::new();
-        for id in found.into_iter().flatten() {
-            if ids.len() < limit && !ids.contains(&id) {
-                ids.push(id);
-            }
-        }
-        ids
-    }
-
-    /// Whether `test` holds for a file in the project, skipping hidden folders
-    /// and installed dependencies.
-    fn any_file(&self, test: &dyn Fn(&Path) -> bool) -> bool {
-        let mut found = false;
-        self.each_file(&mut |path| {
-            found = test(path);
-            found
-        });
-        found
-    }
-
-    /// Calls `visit` on the project's files, skipping hidden folders and
-    /// installed dependencies, until it returns true.
-    fn each_file(&self, visit: &mut dyn FnMut(&Path) -> bool) {
-        let mut stack = vec![self.dir.clone()];
-        while let Some(dir) = stack.pop() {
-            let Ok(entries) = std::fs::read_dir(&dir) else {
-                continue;
-            };
-            for entry in entries.flatten() {
-                let name = entry.file_name();
-                let name = name.to_string_lossy();
-                let Ok(kind) = entry.file_type() else {
-                    continue;
-                };
-                if kind.is_dir() {
-                    let sample = dir == self.dir && SAMPLE_DIRS.contains(&&*name);
-                    if !name.starts_with('.') && !SKIPPED_DIRS.contains(&&*name) && !sample {
-                        stack.push(entry.path());
-                    }
-                } else if kind.is_file() && visit(&entry.path()) {
-                    return;
-                }
-            }
-        }
-    }
-}
-
-/// The agent widget's element, as its embed snippet writes it.
-const WIDGET_TAG: &str = "<elevenlabs-convai";
-
-/// A file's text when it's small enough to be the app's own code, not a
-/// generated bundle or report.
-fn read_small(path: &Path) -> Option<String> {
-    let small = std::fs::metadata(path).is_ok_and(|m| m.len() <= 1_000_000);
-    small.then(|| std::fs::read_to_string(path).ok()).flatten()
-}
-
-/// Every ElevenLabs package but the agents' browser SDKs and the widget,
-/// which connect to an agent without the key.
-fn reads_key_package(name: &str) -> bool {
-    !matches!(
-        name,
-        "@elevenlabs/react" | "@elevenlabs/client" | "@elevenlabs/react-native"
-    ) && !name.starts_with("@elevenlabs/convai-widget")
-}
-
-fn is_html(path: &Path) -> bool {
-    matches!(
-        path.extension().and_then(|e| e.to_str()),
-        Some("html" | "htm")
-    )
-}
-
-/// Add the agent IDs in `text` that `ids` doesn't have yet, up to `limit`.
-fn add_agent_ids(ids: &mut Vec<String>, text: &str, limit: usize) {
-    for id in agent_ids_in(text) {
-        if ids.len() < limit && !ids.iter().any(|known| known == id) {
-            ids.push(id.to_string());
-        }
-    }
-}
-
-/// Agent IDs in `text`: `agent_` and 26 to 30 lowercase letters or digits,
-/// as a whole word.
-pub(super) fn agent_ids_in(text: &str) -> impl Iterator<Item = &str> {
-    let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
-    text.match_indices("agent_").filter_map(move |(i, m)| {
-        if text[..i].chars().next_back().is_some_and(word) {
-            return None;
-        }
-        let rest = &text[i + m.len()..];
-        let len = rest
-            .chars()
-            .take_while(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
-            .count();
-        let whole = rest[len..].chars().next().is_none_or(|c| !word(c));
-        ((26..=30).contains(&len) && whole).then(|| &text[i..i + m.len() + len])
-    })
-}
-
-fn declares_sdk(path: &Path) -> bool {
-    declares_sdk_where(path, &|_| true)
-}
-
-/// Like [`declares_sdk`], counting only the npm packages `counts` accepts.
-fn declares_sdk_where(path: &Path, counts: &dyn Fn(&str) -> bool) -> bool {
-    let read = || std::fs::read_to_string(path).unwrap_or_default();
-    match path.file_name().and_then(|n| n.to_str()) {
-        Some("package.json") => serde_json::from_str::<serde_json::Value>(&read()).is_ok_and(|p| {
-            ["dependencies", "devDependencies"].iter().any(|d| {
-                p[d].as_object().is_some_and(|deps| {
-                    deps.keys().any(|name| {
-                        name.starts_with("@elevenlabs/")
-                            && name != "@elevenlabs/cli"
-                            && counts(name)
-                    })
-                })
-            })
-        }),
-        Some("requirements.txt" | "pyproject.toml" | "Pipfile" | "setup.py" | "setup.cfg") => {
-            names_python_sdk(&read())
-        }
-        _ => false,
-    }
-}
-
-/// `elevenlabs` as a whole requirement name: at the start of a line or after
-/// a space or quote, and not followed by more of a name (`elevenlabs-foo`).
-fn names_python_sdk(text: &str) -> bool {
-    text.match_indices("elevenlabs").any(|(i, m)| {
-        let before = text[..i].chars().next_back();
-        let after = text[i + m.len()..].chars().next();
-        before.is_none_or(|c| c.is_whitespace() || c == '"' || c == '\'')
-            && after.is_none_or(|c| !(c.is_alphanumeric() || c == '-' || c == '_' || c == '.'))
-    })
-}
-
-/// Installed dependencies, build output and vendored code.
-const SKIPPED_DIRS: &[&str] = &[
-    "node_modules",
-    "venv",
-    "__pycache__",
-    "dist",
-    "build",
-    "target",
-    "vendor",
-    "third_party",
-];
-
-/// Sample projects beside the app, at its top level only: deeper down, a
-/// folder of that name is the app's own code (`app/examples/`).
-const SAMPLE_DIRS: &[&str] = &["examples", "example"];
-
-/// A frontend or backend framework that reads env files on its own.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Framework {
-    Next,
-    Vite,
-    Astro,
-    SvelteKit,
-}
-
-/// Something in `text` loads the env file named `file` (as the developer knows it): Node's
-/// `--env-file` or `process.loadEnvFile`, dotenv, env-cmd, a shell's `source`,
-/// python-dotenv, Vite's `loadEnv`, or the key read from Astro's `import.meta.env` or
-/// SvelteKit's `$env/*/private`. dotenv, env-cmd and `loadEnvFile()` read `.env` when given
-/// no path. The file is matched by its name, not its path: a script in a monorepo package names
-/// the root's `.env.local` as `../../.env.local`.
-fn loads_key_in(text: &str, file: &str) -> bool {
-    let name = file.rsplit(['/', '\\']).next().unwrap_or(file);
-    let names = |loader: &str| text.contains(loader) && (text.contains(name) || name == ".env");
-    names_file_after(text, "--env-file=", name)
-        || names_file_after(text, "--env-file ", name)
-        || names_file_after(text, "source ", name)
-        || names("loadEnvFile")
-        || names("dotenv")
-        || names("env-cmd")
-        || text.contains("load_dotenv")
-        || text.contains("dotenv_values")
-        || text.contains("loadEnv(")
-        || text.contains("import.meta.env.ELEVENLABS_API_KEY")
-        || (text.contains("$env/static/private") || text.contains("$env/dynamic/private"))
-            && text.contains("ELEVENLABS_API_KEY")
-}
-
-/// Some `prefix` in `text` is followed by a path to a file called `name`, quoted or not (in a
-/// package.json script a quote is escaped, `\".env.local\"`).
-fn names_file_after(text: &str, prefix: &str, name: &str) -> bool {
-    text.match_indices(prefix).any(|(at, _)| {
-        let rest = text[at + prefix.len()..].trim_start_matches(['"', '\'', '`', '\\']);
-        let path = rest
-            .split(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '`' | ';' | '&' | '|' | ')' | ','))
-            .next()
-            .unwrap_or("");
-        let path = path.trim_end_matches('\\');
-        path == name || path.ends_with(&format!("/{name}")) || path.ends_with(&format!("\\{name}"))
-    })
-}
-
-/// A file the app's code (or a script that starts it) is written in.
-fn is_source(path: &Path) -> bool {
-    matches!(
-        path.extension().and_then(|e| e.to_str()),
-        Some(
-            "js" | "mjs"
-                | "cjs"
-                | "ts"
-                | "mts"
-                | "cts"
-                | "jsx"
-                | "tsx"
-                | "vue"
-                | "svelte"
-                | "astro"
-                | "py"
-                | "sh"
+        format!(
+            "The SDK reads {API_KEY_ENV} from the environment. {found} Keep the key in server-side \
+             code: never in the source, and never in anything that runs in the browser."
         )
-    )
+    }
 }
 
-fn imports_sdk(path: &Path) -> bool {
-    imports_sdk_where(path, &|_| true)
-}
-
-/// Like [`imports_sdk`], counting only the npm packages `counts` accepts.
-fn imports_sdk_where(path: &Path, counts: &dyn Fn(&str) -> bool) -> bool {
-    let source = is_source(path) && path.extension().is_some_and(|e| e != "sh");
-    source
-        && std::fs::read_to_string(path).is_ok_and(|s| {
-            imports_js_sdk_where(&s, counts)
-                || s.lines().any(|l| {
-                    let l = l.trim_start();
-                    l.starts_with("from elevenlabs") || l.starts_with("import elevenlabs")
-                })
-        })
-}
-
-/// A quoted `@elevenlabs/<package>` import of any package but the CLI, counting
-/// only the packages `counts` accepts.
-pub(super) fn imports_js_sdk_where(source: &str, counts: &dyn Fn(&str) -> bool) -> bool {
-    source.match_indices("@elevenlabs/").any(|(i, m)| {
-        let name: String = source[i + m.len()..]
-            .chars()
-            .take_while(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c))
-            .collect();
-        source[..i].ends_with(['"', '\''])
-            && !name.is_empty()
-            && name != "cli"
-            && counts(&format!("@elevenlabs/{name}"))
-    })
+/// The env file when none was named: `.env` for Python (python-dotenv's
+/// `load_dotenv()` reads it), `.env.local` otherwise. A key the project
+/// already keeps in its `.env` stays there, so there is one key and it is in
+/// the file the app already loads.
+fn default_env_file(dir: &Path, stack: Stack) -> &'static str {
+    let default = match stack {
+        Stack::Python => ".env",
+        _ => DEFAULT_ENV_FILE,
+    };
+    let has_key = |name: &str| {
+        env_file::read(&dir.join(name))
+            .ok()
+            .and_then(|c| env_file::file_key(&c))
+            .is_some()
+    };
+    if default != ".env" && !has_key(default) && has_key(".env") {
+        ".env"
+    } else {
+        default
+    }
 }
 
 fn stack_of(dir: &Path) -> Stack {
