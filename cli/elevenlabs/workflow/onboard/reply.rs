@@ -47,8 +47,8 @@ impl Next {
                  print it), and when you're done give the user the links in `details.agent_links` with \
                  its ID filled in. When the code is written (or if it already was), say what you set up, \
                  how to run it and anything the user still has to do themselves, like installing the \
-                 packages you added. Then ask whether they want a test request (`details.test_offer`) \
-                 and end your turn. If they say yes, run `run`: that command is the test request, so \
+                 packages you added. Then end your reply with `details.test_offer`, as it is, and end \
+                 your turn. If they say yes, run `run`: that command is the test request, so \
                  don't run their app in its place. If they say no, run nothing."
             }
             Next::Done => {

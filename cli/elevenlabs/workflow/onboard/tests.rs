@@ -502,7 +502,8 @@ fn the_one_reply_names_no_product_and_hands_the_rest_to_the_agent() {
     );
     // Loading the key is the agent's, from the goal the reply gives.
     assert!(told.contains("the way `details.load_key` says"), "{told}");
-    // The test request is offered at the end, and `run` is that request.
+    // The test request is offered at the end, in the CLI's words, and `run` is that request.
+    assert!(told.contains("end your reply with `details.test_offer`, as it is"), "{told}");
     assert!(
         told.contains("(or if it already was)") && told.contains("If they say yes, run `run`: that command is the test request"),
         "{told}"
