@@ -48,8 +48,8 @@ impl Next {
                  part of the setup, not new work. If it needs something made in ElevenLabs first, \
                  like an agent, make it yourself with the key (load the env file in the command, never \
                  print it), and when you're done give the user the links in `details.agent_links` with \
-                 its ID filled in. When the code is written (or if it already was), run `run`: its \
-                 reply says how to finish."
+                 its ID filled in. When the code is written (or if it already was), check your changes \
+                 are in place, then run `run`: its reply says how to finish."
             }
             // The last word before the developer decides, handed over at the moment it is said.
             Next::OfferTest => {

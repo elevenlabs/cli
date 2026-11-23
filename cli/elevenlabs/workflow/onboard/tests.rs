@@ -509,7 +509,9 @@ fn the_one_reply_names_no_product_and_hands_the_rest_to_the_agent() {
     );
     // When the code is written the agent runs `run`, and that reply is the ending.
     assert!(
-        told.contains("(or if it already was), run `run`: its reply says how to finish"),
+        told.contains(
+            "(or if it already was), check your changes are in place, then run `run`: its reply says how to finish"
+        ),
         "{told}"
     );
     // The test request is offered in the CLI's words, at the moment it is said.
