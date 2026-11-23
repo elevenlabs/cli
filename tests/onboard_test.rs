@@ -2652,6 +2652,78 @@ async fn under_npx_setup_never_runs_a_claude_or_codex_from_the_projects_node_mod
     assert_eq!(recorded(&record).len(), 14, "nothing more ran");
 }
 
+/// The npm `claude` and `codex` start `node` by name, and Claude Code runs
+/// `git`: under npx, the agent gets a PATH without the project's
+/// `node_modules/.bin` folders, or any relative or empty entry, so a `node`
+/// there never runs.
+#[cfg(unix)]
+#[tokio::test]
+async fn under_npx_the_agent_runs_with_none_of_the_projects_folders_on_its_path() {
+    let server = MockServer::start().await;
+    let home = tempfile::tempdir().unwrap();
+    let base = tempfile::tempdir().unwrap();
+    let parent = base.path().join("parent");
+    let cwd = parent.join("project");
+    let markers = base.path().join("markers");
+    std::fs::create_dir(&markers).unwrap();
+    // A relative entry is read from the agent's folder, the home folder, and
+    // an empty one is that folder itself.
+    let project_bins = [
+        (cwd.join("node_modules").join(".bin"), "project"),
+        (parent.join("node_modules").join(".bin"), "parent"),
+        (home.path().join("node_modules").join(".bin"), "relative"),
+        (home.path().to_path_buf(), "empty"),
+    ];
+    for (dir, whose) in &project_bins {
+        std::fs::create_dir_all(dir).unwrap();
+        program(&dir.join("node"), &format!("#!/bin/sh\ntouch '{}'\n", markers.join(whose).display()));
+    }
+    let neutral = tempfile::tempdir().unwrap();
+    let helper_ran = neutral.path().join("node ran");
+    program(&neutral.path().join("node"), &format!("#!/bin/sh\necho \"node $*\" >> '{}'\n", helper_ran.display()));
+    let bin = tempfile::tempdir().unwrap();
+    let (record, seen) = (bin.path().join("ran"), bin.path().join("seen"));
+    for name in ["claude", "codex"] {
+        let script = format!(
+            "#!/bin/sh\necho \"{name} $*\" >> '{}'\nprintf '%s\\n' \"$PATH\" >> '{}'\nnode {name}\nexit 0\n",
+            record.display(),
+            seen.display()
+        );
+        program(&bin.path().join(name), &script);
+    }
+    let path = format!(
+        "{}:{}:node_modules/.bin::{}:{}:/usr/bin:/bin",
+        project_bins[0].0.display(),
+        project_bins[1].0.display(),
+        bin.path().display(),
+        neutral.path().display()
+    );
+    let clean = format!("{}:{}:/usr/bin:/bin", bin.path().display(), neutral.path().display());
+    let started = || -> Vec<_> { std::fs::read_dir(&markers).unwrap().flatten().map(|e| e.file_name()).collect() };
+
+    let out = cli(home.path(), &cwd, &server.uri(), &["setup", "--yes"]).env("PATH", &path).output().unwrap();
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), format!("{CLAUDE_DONE}{CODEX_DONE}"));
+    let r = reply(cli(home.path(), &cwd, &server.uri(), &["onboard", "setup"]).env("PATH", &path));
+    assert_eq!(r["next"], "done", "{r}");
+
+    assert_eq!(recorded(&record), INSTALLS.repeat(2), "setup --yes, then onboard setup");
+    assert_eq!(started(), Vec::<std::ffi::OsString>::new(), "a project's node ran");
+    let helper: Vec<String> = INSTALLS.repeat(2).iter().map(|c| format!("node {}", &c[..c.find(' ').unwrap()])).collect();
+    assert_eq!(recorded(&helper_ran), helper, "the agent's node is the one outside the project");
+    let seen = recorded(&seen);
+    assert_eq!(seen.len(), 14, "{seen:?}");
+    for given in &seen {
+        for entry in given.split(':') {
+            assert!(
+                entry.starts_with('/') && !Path::new(entry).ends_with("node_modules/.bin"),
+                "the agent's PATH has {entry:?}: {given}"
+            );
+        }
+        assert_eq!(given, &clean);
+    }
+}
+
 // ── the offer, as whole flows ───────────────────────────────────────
 
 /// `GET /v1/user` requests the server has had, by their User-Agent, and

@@ -602,6 +602,65 @@ fn awkward_path_entries_are_skipped_and_the_first_real_program_wins() {
 
 #[cfg(unix)]
 #[test]
+fn only_absolute_folders_outside_node_modules_bin_are_searched_in_order() {
+    // (row, PATH entries, the folders kept)
+    let rows: &[(&str, &[&str], &[&str])] = &[
+        ("order kept", &["/c", "/a", "/b"], &["/c", "/a", "/b"]),
+        ("duplicates kept", &["/a", "/a"], &["/a", "/a"]),
+        ("empty entries", &["", "/a", "", "/b", ""], &["/a", "/b"]),
+        ("only an empty entry", &[""], &[]),
+        ("relative entries", &["bin", "./bin", "../x/bin", ".", "/a"], &["/a"]),
+        (
+            "npx's node_modules/.bin folders",
+            &["/p/project/node_modules/.bin", "/p/node_modules/.bin", "/node_modules/.bin", "/usr/bin"],
+            &["/usr/bin"],
+        ),
+        ("a node_modules/.bin with a trailing /", &["/p/node_modules/.bin/", "/usr/bin"], &["/usr/bin"]),
+        ("a relative node_modules/.bin", &["node_modules/.bin", "/usr/bin"], &["/usr/bin"]),
+        (
+            "near misses",
+            &["/p/node_modules/bin", "/p/my_node_modules/.bin", "/p/node_modules/.bin2", "/p/node_modules/.bin/x"],
+            &["/p/node_modules/bin", "/p/my_node_modules/.bin", "/p/node_modules/.bin2", "/p/node_modules/.bin/x"],
+        ),
+        ("nothing kept", &["", "rel", "/p/node_modules/.bin"], &[]),
+    ];
+    for (row, entries, want) in rows {
+        let path = entries.join(":");
+        let got: Vec<PathBuf> = searched(OsStr::new(&path)).collect();
+        let want: Vec<PathBuf> = want.iter().map(PathBuf::from).collect();
+        assert_eq!(got, want, "{row}: PATH={path:?}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn the_agent_is_started_with_only_the_searched_folders_on_its_path() {
+    let npx = "/p/project/node_modules/.bin:/p/node_modules/.bin:node_modules/.bin::/usr/bin:rel:/bin";
+    type Vars<'a> = &'a [(&'a str, &'a str)];
+    // (row, environment, windows, the environment the agent gets)
+    let rows: &[(&str, Vars, bool, Vars)] = &[
+        ("PATH", &[("PATH", npx), ("HOME", "/h")], false, &[("PATH", "/usr/bin:/bin"), ("HOME", "/h")]),
+        ("PATH on Windows", &[("PATH", npx)], true, &[("PATH", "/usr/bin:/bin")]),
+        ("Path on Windows, replaced in place", &[("Path", npx), ("HOME", "/h")], true, &[("Path", "/usr/bin:/bin"), ("HOME", "/h")]),
+        ("Path and PATH on Windows: PATH wins, Path goes", &[("Path", "/a"), ("PATH", npx)], true, &[("PATH", "/usr/bin:/bin")]),
+        ("Path elsewhere is not the search path", &[("Path", npx)], false, &[("Path", npx)]),
+        ("no PATH", &[("HOME", "/h")], false, &[("HOME", "/h")]),
+        ("no PATH on Windows", &[("HOME", "/h")], true, &[("HOME", "/h")]),
+        ("nothing kept", &[("PATH", "rel:/p/node_modules/.bin")], false, &[("PATH", "")]),
+        ("an empty PATH", &[("PATH", "")], true, &[("PATH", "")]),
+    ];
+    let env = |vars: &[(&str, &str)]| -> HashMap<OsString, OsString> {
+        vars.iter().map(|(k, v)| (k.into(), v.into())).collect()
+    };
+    for (row, vars, windows, want) in rows {
+        let mut got = env(vars);
+        with_searched_path(&mut got, *windows);
+        assert_eq!(got, env(want), "{row}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
     let home = tempfile::tempdir().unwrap();
     let base = tempfile::tempdir().unwrap();

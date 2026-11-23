@@ -183,11 +183,18 @@ fn env_var(env: &HashMap<OsString, OsString>, name: &str, windows: bool) -> Opti
     value.to_str().map(str::to_string)
 }
 
-/// The first `name` on `path` that is a program (on Windows, with one of
-/// the extensions npm and installers use). An empty or relative entry is
-/// skipped: it names a folder in the project, whose programs are never run.
-/// So is every `node_modules/.bin` folder, which npx puts first for the
-/// project and each folder above it, and where no installed agent lives.
+/// The folders on the search path `path` whose programs may run, in order.
+/// An empty or relative entry is left out: it names a folder in the project,
+/// whose programs are never run. So is every `node_modules/.bin` folder,
+/// which npx puts first for the project and each folder above it, and where
+/// no installed agent lives.
+fn searched(path: &OsStr) -> impl Iterator<Item = PathBuf> + '_ {
+    std::env::split_paths(path)
+        .filter(|dir| dir.is_absolute() && !dir.ends_with(Path::new("node_modules").join(".bin")))
+}
+
+/// The first `name` in the [`searched`] folders of `path` that is a program
+/// (on Windows, with one of the extensions npm and installers use).
 pub(super) fn on_path(name: &str, path: Option<&OsStr>, windows: bool) -> Option<PathBuf> {
     let names: Vec<String> = if windows {
         [".exe", ".cmd", ".bat"]
@@ -197,10 +204,34 @@ pub(super) fn on_path(name: &str, path: Option<&OsStr>, windows: bool) -> Option
     } else {
         vec![name.to_string()]
     };
-    std::env::split_paths(path?)
-        .filter(|dir| dir.is_absolute() && !dir.ends_with(Path::new("node_modules").join(".bin")))
+    searched(path?)
         .flat_map(|dir| names.iter().map(move |n| dir.join(n)).collect::<Vec<_>>())
         .find(|p| if windows { p.is_file() } else { is_program(p) })
+}
+
+/// Keep only the [`searched`] folders on the search path in `env`, so a
+/// program the agent starts by name, such as `node` or `git`, is never the
+/// project's either. The variable keeps the name [`env_var`] finds it by;
+/// on Windows, where `Path` and `PATH` are one variable, no other spelling is
+/// left beside it. Without a search path, none is added.
+fn with_searched_path(env: &mut HashMap<OsString, OsString>, windows: bool) {
+    let name = match env.get_key_value(OsStr::new("PATH")) {
+        Some((name, _)) => name.clone(),
+        None if windows => match env.keys().find(|k| k.eq_ignore_ascii_case("PATH")) {
+            Some(name) => name.clone(),
+            None => return,
+        },
+        None => return,
+    };
+    // A folder whose name holds the separator can't be joined back in.
+    let dirs: Vec<PathBuf> = searched(&env[&name])
+        .filter(|dir| std::env::join_paths([dir]).is_ok())
+        .collect();
+    let value = std::env::join_paths(dirs).unwrap_or_default();
+    if windows {
+        env.retain(|k, _| !k.eq_ignore_ascii_case("PATH"));
+    }
+    env.insert(name, value);
 }
 
 #[cfg(unix)]
@@ -214,8 +245,9 @@ fn is_program(path: &Path) -> bool {
     path.is_file()
 }
 
-/// Run `program args` with stdin closed, in `home` so nothing in the project
-/// can be loaded as part of it, stopping it and everything it started after
+/// Run `program args` with stdin closed, in `home` and with only the
+/// [`searched`] folders on its PATH so nothing in the project can be loaded
+/// or started as part of it, stopping it and everything it started after
 /// `limit`. `program` is a full path, so on Windows std starts a `.cmd` shim
 /// through cmd with its own quoting. `Err` is why it failed: its last line of
 /// output, or that it ran out of time. During [`run`], a Ctrl-C or SIGTERM
@@ -241,9 +273,12 @@ pub(super) fn run_program(
         .stdin(Stdio::null())
         .stdout(out.try_clone().map_err(|e| e.to_string())?)
         .stderr(err.try_clone().map_err(|e| e.to_string())?);
-    if let Some(env) = super::onboard::shell_env() {
-        command.env_clear().envs(env);
-    }
+    let mut env = match super::onboard::shell_env() {
+        Some(env) => env.clone(),
+        None => std::env::vars_os().collect(),
+    };
+    with_searched_path(&mut env, cfg!(windows));
+    command.env_clear().envs(env);
     command.current_dir(home).env("PWD", home);
     // In its own group it gets no Ctrl-C from the terminal: `run` catches it.
     #[cfg(unix)]
