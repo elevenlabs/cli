@@ -53,10 +53,11 @@ impl Next {
             }
             // The last word before the developer decides, handed over at the moment it is said.
             Next::OfferTest => {
-                "Say what you set up, how to run it and anything the user still has to do themselves, \
-                 like installing the packages you added. Then end your reply with the question in \
-                 `say`, as it is, and end your turn. If they say yes, run `run`: that command is the \
-                 test request, so don't run their app in its place. If they say no, run nothing."
+                "Say what you set up, how to run it, the links to any agent you made, and anything the \
+                 user still has to do themselves, like installing the packages you added. Then end \
+                 your reply with the question in `say`, as it is, and end your turn. If they say yes, \
+                 run `run`: that command is the test request, so don't run their app in its place. If \
+                 they say no, run nothing."
             }
             Next::Done => {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \

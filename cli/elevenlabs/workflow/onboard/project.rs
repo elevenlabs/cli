@@ -203,8 +203,9 @@ impl Project {
         let found = match file {
             Some(file) => format!(
                 "It is in {file}, so make sure the app loads that file into its environment before the \
-                 SDK is imported: many frameworks only read `.env` on their own, and some read env files \
-                 into their own object instead of the process environment."
+                 SDK is imported: many tools, `dotenv` included, only read `.env` unless given this \
+                 file's name, and some read env files into their own object instead of the process \
+                 environment."
             ),
             None => "It is set in your shell, so the app gets it from the environment.".into(),
         };
