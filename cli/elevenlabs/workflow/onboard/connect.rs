@@ -162,11 +162,13 @@ fn sign_in_and_store(
     project: &Project,
 ) -> Result<Reply, CliError> {
     let client = ctx.http_config().build_client()?;
-    // The sign-in itself prints the link. This is for an agent whose command
-    // is stopped before the developer approves: it has no reply to go on.
+    // The sign-in itself prints the link. This is for the agent, which reads it
+    // while the command waits: ending its turn stops the command, and then
+    // nothing is left to receive the approval.
     eprintln!(
-        "Waiting for you to approve ElevenLabs in the browser (up to {SIGN_IN_MINUTES} minutes). \
-         If this command is stopped before you approve, run it again and give it that long."
+        "Waiting up to {SIGN_IN_MINUTES} minutes for the approval in the browser. Keep this command \
+         running until it finishes, and don't end your turn while it waits: this command is what \
+         receives the approval, so stopping it cancels the sign-in."
     );
     let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser) {
         Ok(token) => token,

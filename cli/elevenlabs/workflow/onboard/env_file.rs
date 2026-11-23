@@ -6,7 +6,9 @@ use std::process::Command;
 use fern_cli_sdk::error::CliError;
 
 pub(super) const API_KEY_ENV: &str = "ELEVENLABS_API_KEY";
-pub(super) const DEFAULT_ENV_FILE: &str = ".env.local";
+pub(super) const DEFAULT_ENV_FILE: &str = ".env";
+/// Where the key goes when `.env` can't take it, or when it is already there.
+pub(super) const LOCAL_ENV_FILE: &str = ".env.local";
 pub(super) const PLACEHOLDER_NOTE: &str =
     "# Paste your ElevenLabs API key after the = below. Create one at \
      https://elevenlabs.io/app/api/api-keys?quickstart=true if you need to. Never paste it into a chat.";

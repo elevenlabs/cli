@@ -60,7 +60,7 @@ fn env_file_arg() -> clap::Arg {
         .long("env-path")
         .alias("env-file")
         .value_name("PATH")
-        .help("The env file for ELEVENLABS_API_KEY (default: .env for Python projects, else .env.local)")
+        .help("The env file for ELEVENLABS_API_KEY (default: .env, or .env.local when git tracks .env)")
 }
 
 fn flag(id: &'static str, help: &'static str) -> clap::Arg {

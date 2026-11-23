@@ -163,7 +163,7 @@ async fn check_with_nothing_configured_says_to_connect_without_asking_the_api() 
         &["onboard", "check"],
     ));
     assert_eq!(r["next"], "run");
-    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env");
     assert_eq!(server.received_requests().await.unwrap().len(), 0);
     // `status` is the same command.
     let r = reply(&mut cli(
@@ -172,7 +172,7 @@ async fn check_with_nothing_configured_says_to_connect_without_asking_the_api() 
         &server.uri(),
         &["onboard", "status"],
     ));
-    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard connect --env-path .env");
 }
 
 #[test]
@@ -528,7 +528,7 @@ async fn test_reports_missing_credits_and_other_failures_as_done() {
     let (home, cwd) = temp();
     write(
         cwd.path(),
-        ".env.local",
+        ".env",
         &format!("ELEVENLABS_API_KEY={KEY}\n"),
     );
     let r = reply(&mut cli(
@@ -591,7 +591,7 @@ async fn test_reports_missing_credits_and_other_failures_as_done() {
     assert_eq!(r["next"], "done", "{r}");
     assert!(say(&r).contains("couldn't reach"), "{r}");
 
-    std::fs::remove_file(cwd.path().join(".env.local")).unwrap();
+    std::fs::remove_file(cwd.path().join(".env")).unwrap();
     let r = reply(&mut cli(
         home.path(),
         cwd.path(),
@@ -599,7 +599,7 @@ async fn test_reports_missing_credits_and_other_failures_as_done() {
         &["onboard", "test"],
     ));
     assert_eq!(
-        r["run"], "elevenlabs onboard check --env-path .env.local",
+        r["run"], "elevenlabs onboard check --env-path .env",
         "no key: nothing is sent"
     );
 }
@@ -675,9 +675,9 @@ async fn init_signs_in_as_auth_login_does_and_a_declined_approval_ends_it() {
         )
         .env("CLAUDECODE", "1"),
     );
-    // For an agent whose command is stopped before the developer approves.
+    // For the agent, while the command waits: ending its turn would stop the sign-in.
     assert!(
-        sign_in.said.contains("If this command is stopped before you approve, run it again and give it that long."),
+        sign_in.said.contains("Keep this command running until it finishes, and don't end your turn while it waits"),
         "{}",
         sign_in.said
     );
@@ -704,13 +704,13 @@ async fn init_signs_in_as_auth_login_does_and_a_declined_approval_ends_it() {
     // Flags go on to the next command.
     assert_eq!(
         r["run"],
-        "elevenlabs onboard connect --env-path .env.local --no-browser"
+        "elevenlabs onboard connect --env-path .env --no-browser"
     );
     assert!(r["rules"]
         .to_string()
         .contains("Never open, print or cat the env file"));
     assert!(
-        !cwd.path().join(".env.local").exists() && !home.path().join(".elevenlabs/onboard").exists(),
+        !cwd.path().join(".env").exists() && !home.path().join(".elevenlabs/onboard").exists(),
         "nothing was stored, and no sign-in is kept running"
     );
 }
@@ -765,11 +765,11 @@ async fn an_approved_sign_in_without_a_key_on_the_clipboard_leaves_the_key_to_th
     assert_eq!(r["next"], "ask_user", "{r}");
     assert_eq!(
         r["run"],
-        "npx -y @elevenlabs/cli@latest onboard check --env-path .env.local --no-browser"
+        "npx -y @elevenlabs/cli@latest onboard check --env-path .env --no-browser"
     );
     assert!(std::fs::read_to_string(cwd.path().join(".gitignore"))
         .unwrap()
-        .contains(".env.local"));
+        .contains(".env"));
     assert!(!trace.exists(), "the .env's GIT_TRACE reached the sign-in's git");
 }
 
@@ -991,17 +991,17 @@ fn init_on_a_remote_machine_prepares_the_manual_key() {
             .env("SSH_CONNECTION", "10.0.0.1 22 10.0.0.2 22"),
     );
     assert_eq!(r["next"], "ask_user", "{r}");
-    assert_eq!(r["run"], "elevenlabs onboard check --env-path .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard check --env-path .env");
     assert!(
         say(&r).contains("https://elevenlabs.io/app/api/api-keys?quickstart=true."),
         "{r}"
     );
-    assert!(std::fs::read_to_string(cwd.path().join(".env.local"))
+    assert!(std::fs::read_to_string(cwd.path().join(".env"))
         .unwrap()
         .ends_with("ELEVENLABS_API_KEY=\n"));
     assert!(std::fs::read_to_string(cwd.path().join(".gitignore"))
         .unwrap()
-        .contains("/.env.local"));
+        .contains("/.env"));
 }
 
 // ── connect: everything before the browser ──────────────────────────

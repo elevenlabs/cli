@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use fern_cli_sdk::error::CliError;
 
 use super::browser;
-use super::env_file::{self, API_KEY_ENV, DEFAULT_ENV_FILE};
+use super::env_file::{self, API_KEY_ENV, DEFAULT_ENV_FILE, LOCAL_ENV_FILE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Stack {
@@ -75,7 +75,7 @@ impl Project {
     /// The project in `dir`, with `--env-path` when one was given.
     pub fn at(dir: PathBuf, env_file: Option<String>) -> Self {
         let stack = stack_of(&dir);
-        let env_display = env_file.unwrap_or_else(|| default_env_file(&dir, stack).into());
+        let env_display = env_file.unwrap_or_else(|| default_env_file(&dir).into());
         Self {
             env_file: dir.join(&env_display),
             env_display,
@@ -203,9 +203,8 @@ impl Project {
         let found = match file {
             Some(file) => format!(
                 "It is in {file}, so make sure the app loads that file into its environment before the \
-                 SDK is imported: many tools, `dotenv` included, only read `.env` unless given this \
-                 file's name, and some read env files into their own object instead of the process \
-                 environment."
+                 SDK is imported: many frameworks only read `.env` on their own, and some read env files \
+                 into their own object instead of the process environment."
             ),
             None => "It is set in your shell, so the app gets it from the environment.".into(),
         };
@@ -216,25 +215,24 @@ impl Project {
     }
 }
 
-/// The env file when none was named: `.env` for Python (python-dotenv's
-/// `load_dotenv()` reads it), `.env.local` otherwise. A key the project
-/// already keeps in its `.env` stays there, so there is one key and it is in
-/// the file the app already loads.
-fn default_env_file(dir: &Path, stack: Stack) -> &'static str {
-    let default = match stack {
-        Stack::Python => ".env",
-        _ => DEFAULT_ENV_FILE,
-    };
+/// The env file when none was named: `.env`, the file dotenv, python-dotenv
+/// and the common frameworks load on their own. `.env.local` in two cases:
+/// the project's key is already there, so there is one key and it stays in
+/// the file the app loads; or git tracks `.env`, so a key never goes into a
+/// file the team commits.
+fn default_env_file(dir: &Path) -> &'static str {
     let has_key = |name: &str| {
         env_file::read(&dir.join(name))
             .ok()
             .and_then(|c| env_file::file_key(&c))
             .is_some()
     };
-    if default != ".env" && !has_key(default) && has_key(".env") {
-        ".env"
+    let local_only = !has_key(DEFAULT_ENV_FILE)
+        && (has_key(LOCAL_ENV_FILE) || env_file::is_tracked(&dir.join(DEFAULT_ENV_FILE)));
+    if local_only {
+        LOCAL_ENV_FILE
     } else {
-        default
+        DEFAULT_ENV_FILE
     }
 }
 

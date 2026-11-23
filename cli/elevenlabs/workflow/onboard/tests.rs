@@ -267,16 +267,13 @@ fn every_step_parses_its_flags_and_bare_onboard_is_refused() {
 }
 
 #[test]
-fn the_env_file_follows_the_stack_and_is_pinned_in_every_next_command() {
+fn the_env_file_is_dotenv_and_is_pinned_in_every_next_command() {
     use super::project::{Project, Stack};
     let dir = tempfile::tempdir().unwrap();
     let p = project(dir.path());
-    assert_eq!(
-        (p.stack, p.env_display.as_str()),
-        (Stack::Other, ".env.local")
-    );
-    // Named in every next command, so a later stack change can't move it.
-    assert_eq!(p.next("check"), "check --env-path .env.local");
+    assert_eq!((p.stack, p.env_display.as_str()), (Stack::Other, ".env"));
+    // Named in every next command, so nothing later can move it.
+    assert_eq!(p.next("check"), "check --env-path .env");
     std::fs::write(dir.path().join("requirements.txt"), "elevenlabs==2\n").unwrap();
     let p = project(dir.path());
     assert_eq!((p.stack, p.env_display.as_str()), (Stack::Python, ".env"));
@@ -331,7 +328,9 @@ fn a_tracked_env_file_says_how_to_untrack_it() {
     git(dir.path(), &["init", "-q"]);
     std::fs::write(dir.path().join(".env.local"), "A=1\n").unwrap();
     git(dir.path(), &["add", ".env.local"]);
-    let problem = project(dir.path()).env_file_problem().unwrap();
+    isolate();
+    let named = super::project::Project::at(dir.path().to_path_buf(), Some(".env.local".into()));
+    let problem = named.env_file_problem().unwrap();
     assert!(problem.contains("git rm --cached .env.local"), "{problem}");
     assert!(
         !problem.contains("such as .env.local"),
@@ -348,24 +347,24 @@ fn the_shell_wins_then_the_env_file() {
     let p = project(&app);
     assert!(p.key_given(None).is_none());
 
-    std::fs::write(app.join(".env.local"), "ELEVENLABS_API_KEY=\n").unwrap();
+    std::fs::write(app.join(".env"), "ELEVENLABS_API_KEY=\n").unwrap();
     assert!(
         p.key_given(None).is_none(),
         "an empty placeholder is not a key"
     );
 
     // Only the project's own env file is read: no search up the tree.
-    std::fs::write(app.join(".env.local"), "OTHER=1\n").unwrap();
+    std::fs::write(app.join(".env"), "OTHER=1\n").unwrap();
     std::fs::write(root.path().join(".env"), "ELEVENLABS_API_KEY=sk_dotenv\n").unwrap();
     assert!(p.key_given(None).is_none());
 
-    std::fs::write(app.join(".env.local"), "ELEVENLABS_API_KEY=sk_file\n").unwrap();
+    std::fs::write(app.join(".env"), "ELEVENLABS_API_KEY=sk_file\n").unwrap();
     let k = p.key_given(None).unwrap();
     assert_eq!(
         (k.value.as_str(), k.source),
         ("sk_file", KeySource::EnvFile)
     );
-    assert_eq!(k.file(&p), Some(app.join(".env.local").as_path()));
+    assert_eq!(k.file(&p), Some(app.join(".env").as_path()));
 
     // A variable really set in the shell wins over the file.
     let k = p.key_given(Some("sk_shell".into())).unwrap();
@@ -398,25 +397,32 @@ fn the_shell_wins_then_the_env_file() {
 }
 
 #[test]
-fn a_key_the_project_keeps_in_dotenv_stays_there() {
+fn the_key_goes_in_dotenv_unless_it_is_already_elsewhere_or_git_tracks_it() {
     use super::project::Project;
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("package.json"), "{}").unwrap();
-    assert_eq!(project(dir.path()).env_display, ".env.local");
-    // A `.env` without the key changes nothing.
-    std::fs::write(dir.path().join(".env"), "PORT=3000\n").unwrap();
-    assert_eq!(project(dir.path()).env_display, ".env.local");
-    // The key is already in `.env`: that is the file the app loads, so it stays the one key.
-    std::fs::write(dir.path().join(".env"), "PORT=3000\nELEVENLABS_API_KEY=sk_old\n").unwrap();
+    assert_eq!(project(dir.path()).env_display, ".env");
+    // A `.env.local` without the key changes nothing.
+    std::fs::write(dir.path().join(".env.local"), "PORT=3000\n").unwrap();
+    assert_eq!(project(dir.path()).env_display, ".env");
+    // The key is already in `.env.local`: that is the file the app loads, so it stays the one key.
+    std::fs::write(dir.path().join(".env.local"), "PORT=3000\nELEVENLABS_API_KEY=sk_old\n").unwrap();
     let p = project(dir.path());
-    assert_eq!(p.env_display, ".env");
+    assert_eq!(p.env_display, ".env.local");
     assert_eq!(p.key_given(None).unwrap().value, "sk_old");
-    // A key line in the default file, even an empty one, keeps the default.
-    std::fs::write(dir.path().join(".env.local"), "ELEVENLABS_API_KEY=\n").unwrap();
-    assert_eq!(project(dir.path()).env_display, ".env.local");
+    // A key line in `.env`, even an empty one, keeps the default.
+    std::fs::write(dir.path().join(".env"), "ELEVENLABS_API_KEY=\n").unwrap();
+    assert_eq!(project(dir.path()).env_display, ".env");
     // A named file is never second-guessed.
     let named = Project::at(dir.path().to_path_buf(), Some(".env.dev".into()));
     assert_eq!(named.env_display, ".env.dev");
+
+    // A `.env` the team commits never takes a key.
+    let tracked = tempfile::tempdir().unwrap();
+    git(tracked.path(), &["init", "-q"]);
+    std::fs::write(tracked.path().join(".env"), "PORT=3000\n").unwrap();
+    git(tracked.path(), &["add", ".env"]);
+    assert_eq!(project(tracked.path()).env_display, ".env.local");
 }
 
 #[test]
@@ -585,7 +591,7 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
     assert_eq!(denied["next"], "ask_user");
     assert_eq!(
         denied["run"],
-        "elevenlabs onboard connect --replace --env-path .env.local --no-browser"
+        "elevenlabs onboard connect --replace --env-path .env --no-browser"
     );
     assert!(
         denied["say"]
@@ -677,16 +683,16 @@ fn every_clipboard_outcome_has_its_reply() {
     assert_eq!(stored["next"], "integrate");
     assert_eq!(
         stored["say"],
-        "Signed in. Your new key ending in 4567 is in .env.local, and your clipboard was cleared."
+        "Signed in. Your new key ending in 4567 is in .env, and your clipboard was cleared."
     );
     // `run` is the check that ends on the test offer, once the code is written.
     assert_eq!(
         stored["run"],
-        "elevenlabs onboard check --written --env-path .env.local"
+        "elevenlabs onboard check --written --env-path .env"
     );
     let details = &stored["details"];
     assert_eq!(details["question"], super::check::WHAT_TO_BUILD);
-    assert!(details["load_key"].as_str().unwrap().contains(".env.local"));
+    assert!(details["load_key"].as_str().unwrap().contains(".env"));
     assert!(details["fetch_skills"].as_str().unwrap().contains("skills.tar.gz"));
     assert!(details["agent_links"]
         .as_str()
@@ -695,17 +701,17 @@ fn every_clipboard_outcome_has_its_reply() {
     assert_eq!(details["gitignored"], true);
     assert_eq!(stored["details"]["key_status"], "created");
     assert_eq!(stored["details"]["key_last4"], "4567");
-    assert_eq!(stored["details"]["env_file"], ".env.local");
+    assert_eq!(stored["details"]["env_file"], ".env");
     assert!(
         !stored.to_string().contains(key),
         "the key is never in a reply"
     );
-    let env = std::fs::read_to_string(dir.path().join(".env.local")).unwrap();
+    let env = std::fs::read_to_string(dir.path().join(".env")).unwrap();
     assert!(env.contains(key));
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mode = std::fs::metadata(dir.path().join(".env.local"))
+        let mode = std::fs::metadata(dir.path().join(".env"))
             .unwrap()
             .permissions()
             .mode();
@@ -733,10 +739,10 @@ fn every_clipboard_outcome_has_its_reply() {
     assert!(manual["say"]
         .as_str()
         .unwrap()
-        .contains("The old key (ending in 4567) is still in .env.local"));
+        .contains("The old key (ending in 4567) is still in .env"));
     assert_eq!(
         manual["run"],
-        "elevenlabs onboard check --env-path .env.local"
+        "elevenlabs onboard check --env-path .env"
     );
 
     // The reply is the same whatever the project's code holds: the CLI never reads it.
