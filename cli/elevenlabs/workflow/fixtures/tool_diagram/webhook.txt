@@ -1,0 +1,52 @@
+issue_refund · Webhook tool
+Refund an order the caller asked to return
+timeout 10s · execution post_tool_speech · pre-tool speech force
+
+POST https://{{system__env_orders_host}}/{tenant}/orders/{order_id}/refunds
+├── URL variables
+│   └── {{system__env_orders_host}} [env orders_host]
+├── Path params
+│   ├── tenant [from auth connection]
+│   └── order_id: string required [LLM]
+│           The order number the caller gives, e.g. A-1042
+├── Query params
+│   ├── locale: string optional [var user_locale]
+│   └── notify: boolean required [constant true]
+├── Body application/json
+│   ├── contact: object required
+│   │   │   How to reach the caller about the refund
+│   │   │   requires one of (email) | (phone)
+│   │   ├── email: string optional [LLM]
+│   │   │       Email address, if the caller gives one
+│   │   └── phone: string optional [system]
+│   ├── customer_id: string required [var customer_id]
+│   ├── internal_note: string optional [omitted]
+│   ├── items: array<string> optional
+│   │   │   The items to refund
+│   │   └── []: string [LLM]
+│   │           A SKU from the order
+│   ├── reason: string required [LLM]
+│   │       Why the caller wants a refund
+│   │       one of damaged | late | other
+│   └── workspace: string optional [LLM]
+│           The workspace the order belongs to
+│           must be in {{allowed_workspaces}}
+├── Headers
+│   ├── Authorization [secret sec_orders_api]
+│   ├── Content-Type = "application/json"
+│   ├── X-Api-Key [env orders_api_key]
+│   └── X-Caller [var system__caller_id]
+└── Auth [env orders_oauth]
+
+Response
+├── Schema
+│   └── refund: object
+│       ├── id: string
+│       │       The refund ID
+│       └── status: string
+│               pending, approved or rejected
+├── Filter allow
+│       keeps refund.status
+└── Assignments
+    ├── refund.id → {{refund_id}} (hidden from the LLM)
+    └── refund.status → {{refund_status}}

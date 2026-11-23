@@ -5,40 +5,40 @@ use super::*;
 /// Query parameters for list_for_workspace
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct ListForWorkspaceQueryRequest {
-    /// How many agent conversation tickets to return. Can not exceed 100.
+    /// How many agent issues to return. Can not exceed 100.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<i64>,
-    /// Only tickets for this agent.
+    /// Only issues for this agent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
-    /// Filter tickets by status.
+    /// Filter agent issues by status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<AgentConversationTicketStatus>,
-    /// Filter tickets by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
+    /// Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
     #[serde(default)]
     pub sources: Vec<Option<AgentConversationTicketSource>>,
-    /// Filter tickets by priority. Repeat the parameter to filter by multiple priorities.
+    /// Filter agent issues by priority. Repeat the parameter to filter by multiple priorities.
     #[serde(default)]
     pub priorities: Vec<Option<AgentConversationTicketPriority>>,
-    /// Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the issue, else its creation).
+    /// Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_by: Option<AgentConversationTicketSortBy>,
-    /// Filter tickets by creator. Use 'agent' for agent-raised tickets.
+    /// Filter agent issues by creator. Use 'agent' for agent-raised issues.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner_user_id: Option<String>,
-    /// Filter tickets by assignee. Use 'unassigned' for tickets with no assignee.
+    /// Filter agent issues by assignee. Use 'unassigned' for issues with no assignee.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assignee_user_id: Option<String>,
-    /// Filter clusters by issue type.
+    /// Filter agent issues by type.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub issue_type: Option<AgentConversationTicketIssueType>,
-    /// Filter tickets by an exact label.
+    /// Filter agent issues by an exact label.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    /// Filter tickets merged into this ticket.
+    /// Filter agent issues merged into this issue.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merged_into_ticket_id: Option<String>,
-    /// Case-insensitive free-text search across the ticket's title, description, comments, and turn comments.
+    /// Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub search: Option<String>,
     /// Used for fetching next page. Cursor is returned in the response.

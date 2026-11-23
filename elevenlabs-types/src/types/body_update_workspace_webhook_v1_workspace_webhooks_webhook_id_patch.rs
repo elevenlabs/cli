@@ -19,6 +19,9 @@ pub struct BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatch {
     /// The complete set of workspace-level events this webhook should be subscribed to. The webhook is added to the events in the list and removed from any not in the list. Omit to leave the current event subscriptions unchanged.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub events: Option<Vec<WorkspaceWebhookEventType>>,
+    /// Field names whose values the delivery log hides when it shows the request payload, matched at any depth, ignoring case and punctuation such as _ or -. Fields with secret-looking names, such as tokens and passwords, are always hidden. The stored log and redeliveries keep the original values. At most 50 names, each 1 to 128 characters, with no whitespace, dots or wildcards.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub log_redacted_fields: Option<Vec<String>>,
 }
 
 impl BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatch {
@@ -35,6 +38,7 @@ pub struct BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatchBuilder {
     retry_enabled: Option<bool>,
     request_headers: Option<HashMap<String, Option<String>>>,
     events: Option<Vec<WorkspaceWebhookEventType>>,
+    log_redacted_fields: Option<Vec<String>>,
 }
 
 impl BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatchBuilder {
@@ -63,6 +67,11 @@ impl BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatchBuilder {
         self
     }
 
+    pub fn log_redacted_fields(mut self, value: Vec<String>) -> Self {
+        self.log_redacted_fields = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatch`].
     /// This method will fail if any of the following fields are not set:
     /// - [`is_disabled`](BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatchBuilder::is_disabled)
@@ -74,6 +83,7 @@ impl BodyUpdateWorkspaceWebhookV1WorkspaceWebhooksWebhookIdPatchBuilder {
             retry_enabled: self.retry_enabled,
             request_headers: self.request_headers,
             events: self.events,
+            log_redacted_fields: self.log_redacted_fields,
         })
     }
 }

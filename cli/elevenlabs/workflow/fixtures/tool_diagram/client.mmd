@@ -1,0 +1,34 @@
+flowchart LR
+    n_show_store_map[["Client tool · show_store_map<br/>Show the caller a map of the nearest store<br/>waits for a response · timeout 20s"]]
+    n_show_store_map_params["Parameters"]
+    n_show_store_map_params_highlights["highlights: array#lt;string#gt; required<br/>Aisles to highlight"]
+    n_show_store_map_params_highlights___["[]: string [LLM]<br/>An aisle name"]
+    n_show_store_map_params_store_id["store_id: string required [LLM]<br/>The store to show"]
+    n_show_store_map_params_user["user: object required [var user_profile]"]
+    n_show_store_map_params_zoom["zoom: integer required [LLM]<br/>Zoom level, 1-20"]
+    n_show_store_map_response["Response"]
+    n_show_store_map_response_assignments["Assignments"]
+    n_show_store_map_response_assignments_0["aisle → {{selected_aisle}}"]
+    n_show_store_map_defaults["Dynamic variable defaults"]
+    n_show_store_map_defaults_user_profile["{{user_profile}} = #quot;{}#quot;"]
+    n_show_store_map --> n_show_store_map_params
+    n_show_store_map_params --> n_show_store_map_params_highlights
+    n_show_store_map_params_highlights --> n_show_store_map_params_highlights___
+    n_show_store_map_params --> n_show_store_map_params_store_id
+    n_show_store_map_params --> n_show_store_map_params_user
+    n_show_store_map_params --> n_show_store_map_params_zoom
+    n_show_store_map --> n_show_store_map_response
+    n_show_store_map_response --> n_show_store_map_response_assignments
+    n_show_store_map_response_assignments --> n_show_store_map_response_assignments_0
+    n_show_store_map --> n_show_store_map_defaults
+    n_show_store_map_defaults --> n_show_store_map_defaults_user_profile
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_show_store_map t_tool
+    classDef t_section fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_show_store_map_params,n_show_store_map_response,n_show_store_map_response_assignments,n_show_store_map_defaults t_section
+    classDef t_param fill:#ffffff,stroke:#94a3b8,color:#0f172a
+    class n_show_store_map_params_highlights t_param
+    classDef t_llm fill:#cffafe,stroke:#0891b2,color:#164e63
+    class n_show_store_map_params_highlights___,n_show_store_map_params_store_id,n_show_store_map_params_zoom t_llm
+    classDef t_var fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class n_show_store_map_params_user,n_show_store_map_response_assignments_0,n_show_store_map_defaults_user_profile t_var

@@ -4,17 +4,17 @@ use reqwest::Method;
 use std::collections::HashMap;
 
 pub mod members;
-pub use members::MembersClient2;
+pub use members::MembersClient3;
 pub struct GroupsClient {
     pub http_client: HttpClient,
-    pub members: MembersClient2,
+    pub members: MembersClient3,
 }
 
 impl GroupsClient {
     pub fn new(config: ClientConfig) -> Result<Self, ApiError> {
         Ok(Self {
             http_client: HttpClient::new(config.clone())?,
-            members: MembersClient2::new(config.clone())?,
+            members: MembersClient3::new(config.clone())?,
         })
     }
 

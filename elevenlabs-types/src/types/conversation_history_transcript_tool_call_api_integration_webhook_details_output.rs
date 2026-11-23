@@ -12,6 +12,8 @@ pub struct ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutp
     pub integration_connection_id: String,
     #[serde(default)]
     pub webhook_details: ConversationHistoryTranscriptToolCallWebhookDetails,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function_details: Option<ConversationHistoryTranscriptToolCallIntegrationFunctionDetails>,
 }
 
 impl ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutput {
@@ -27,6 +29,7 @@ pub struct ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutp
     credential_id: Option<String>,
     integration_connection_id: Option<String>,
     webhook_details: Option<ConversationHistoryTranscriptToolCallWebhookDetails>,
+    function_details: Option<ConversationHistoryTranscriptToolCallIntegrationFunctionDetails>,
 }
 
 impl ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutputBuilder {
@@ -50,6 +53,11 @@ impl ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutputBuil
         self
     }
 
+    pub fn function_details(mut self, value: ConversationHistoryTranscriptToolCallIntegrationFunctionDetails) -> Self {
+        self.function_details = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutput`].
     /// This method will fail if any of the following fields are not set:
     /// - [`integration_id`](ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutputBuilder::integration_id)
@@ -62,6 +70,7 @@ impl ConversationHistoryTranscriptToolCallApiIntegrationWebhookDetailsOutputBuil
             credential_id: self.credential_id.ok_or_else(|| BuildError::missing_field("credential_id"))?,
             integration_connection_id: self.integration_connection_id.ok_or_else(|| BuildError::missing_field("integration_connection_id"))?,
             webhook_details: self.webhook_details.ok_or_else(|| BuildError::missing_field("webhook_details"))?,
+            function_details: self.function_details,
         })
     }
 }

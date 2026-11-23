@@ -143,6 +143,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
         },
         models: elevenlabs_sdk::api::ModelsClient { http_client: http_client.clone() },
         audio_native: elevenlabs_sdk::api::AudioNativeClient { http_client: http_client.clone() },
+        content_provenance: elevenlabs_sdk::api::ContentProvenanceClient { http_client: http_client.clone() },
         usage: elevenlabs_sdk::api::UsageClient { http_client: http_client.clone() },
         pronunciation_dictionaries: elevenlabs_sdk::api::PronunciationDictionariesClient {
             http_client: http_client.clone(),
@@ -154,10 +155,10 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             auth_connections: elevenlabs_sdk::api::resources::workspace::AuthConnectionsClient { http_client: http_client.clone() },
             groups: elevenlabs_sdk::api::resources::workspace::GroupsClient {
                 http_client: http_client.clone(),
-                members: elevenlabs_sdk::api::resources::workspace::groups::MembersClient2 { http_client: http_client.clone() },
+                members: elevenlabs_sdk::api::resources::workspace::groups::MembersClient3 { http_client: http_client.clone() },
             },
-            invites: elevenlabs_sdk::api::resources::workspace::InvitesClient { http_client: http_client.clone() },
-            members: elevenlabs_sdk::api::resources::workspace::MembersClient { http_client: http_client.clone() },
+            invites: elevenlabs_sdk::api::resources::workspace::InvitesClient2 { http_client: http_client.clone() },
+            members: elevenlabs_sdk::api::resources::workspace::MembersClient2 { http_client: http_client.clone() },
             resources: elevenlabs_sdk::api::resources::workspace::ResourcesClient { http_client: http_client.clone() },
             usage: elevenlabs_sdk::api::resources::workspace::UsageClient2 { http_client: http_client.clone() },
             analytics: elevenlabs_sdk::api::resources::workspace::AnalyticsClient2 {
@@ -196,6 +197,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             exotel: elevenlabs_sdk::api::resources::agents::ExotelClient { http_client: http_client.clone() },
             whatsapp: elevenlabs_sdk::api::resources::agents::WhatsappClient { http_client: http_client.clone() },
             summaries: elevenlabs_sdk::api::resources::agents::SummariesClient { http_client: http_client.clone() },
+            subagents: elevenlabs_sdk::api::resources::agents::SubagentsClient { http_client: http_client.clone() },
             widget: elevenlabs_sdk::api::resources::agents::WidgetClient {
                 http_client: http_client.clone(),
                 avatar: elevenlabs_sdk::api::resources::agents::widget::AvatarClient { http_client: http_client.clone() },
@@ -297,11 +299,41 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
                 languages: elevenlabs_sdk::api::resources::productions::orders::LanguagesClient { http_client: http_client.clone() },
             },
         },
+        reception: elevenlabs_sdk::api::ReceptionClient {
+            http_client: http_client.clone(),
+            services: elevenlabs_sdk::api::resources::reception::ServicesClient { http_client: http_client.clone() },
+            assets: elevenlabs_sdk::api::resources::reception::AssetsClient2 { http_client: http_client.clone() },
+            products: elevenlabs_sdk::api::resources::reception::ProductsClient {
+                http_client: http_client.clone(),
+                stock: elevenlabs_sdk::api::resources::reception::products::StockClient { http_client: http_client.clone() },
+            },
+            staff: elevenlabs_sdk::api::resources::reception::StaffClient { http_client: http_client.clone() },
+            receptionists: elevenlabs_sdk::api::resources::reception::ReceptionistsClient {
+                http_client: http_client.clone(),
+                rules: elevenlabs_sdk::api::resources::reception::receptionists::RulesClient2 { http_client: http_client.clone() },
+                procedures: elevenlabs_sdk::api::resources::reception::receptionists::ProceduresClient2 { http_client: http_client.clone() },
+                transfer_rules: elevenlabs_sdk::api::resources::reception::receptionists::TransferRulesClient { http_client: http_client.clone() },
+            },
+            phone_numbers: elevenlabs_sdk::api::resources::reception::PhoneNumbersClient2 { http_client: http_client.clone() },
+            holidays: elevenlabs_sdk::api::resources::reception::HolidaysClient { http_client: http_client.clone() },
+            locations: elevenlabs_sdk::api::resources::reception::LocationsClient { http_client: http_client.clone() },
+            business_profile: elevenlabs_sdk::api::resources::reception::BusinessProfileClient { http_client: http_client.clone() },
+            knowledge_sources: elevenlabs_sdk::api::resources::reception::KnowledgeSourcesClient { http_client: http_client.clone() },
+            workspaces: elevenlabs_sdk::api::resources::reception::WorkspacesClient { http_client: http_client.clone() },
+            subscriptions: elevenlabs_sdk::api::resources::reception::SubscriptionsClient { http_client: http_client.clone() },
+            tiers: elevenlabs_sdk::api::resources::reception::TiersClient { http_client: http_client.clone() },
+            billing: elevenlabs_sdk::api::resources::reception::BillingClient { http_client: http_client.clone() },
+            team: elevenlabs_sdk::api::resources::reception::TeamClient {
+                http_client: http_client.clone(),
+                members: elevenlabs_sdk::api::resources::reception::team::MembersClient { http_client: http_client.clone() },
+                invites: elevenlabs_sdk::api::resources::reception::team::InvitesClient { http_client: http_client.clone() },
+            },
+        },
         tokens: elevenlabs_sdk::api::TokensClient {
             http_client: http_client.clone(),
             single_use: elevenlabs_sdk::api::resources::tokens::SingleUseClient { http_client: http_client.clone() },
         },
-        workspaces: elevenlabs_sdk::api::WorkspacesClient {
+        workspaces: elevenlabs_sdk::api::WorkspacesClient2 {
             http_client: http_client.clone(),
             api_keys: elevenlabs_sdk::api::resources::workspaces::ApiKeysClient2 { http_client: http_client.clone() },
         },

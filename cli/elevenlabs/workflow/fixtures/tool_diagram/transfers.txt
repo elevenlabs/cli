@@ -1,0 +1,26 @@
+language_detection · System tool
+
+Params
+└── only_at_conversation_start = true
+
+transfer_to_agent · System tool
+Hand the caller to a specialist agent
+
+Transfers
+├── "Caller wants to buy something" → agent agent_sales
+│       after 500ms
+│       says "Connecting you to sales"
+└── "Caller has a billing problem" → agent agent_billing
+        node refunds
+
+transfer_to_number · System tool
+
+Transfers
+├── "Caller asks for billing" → phone +15551234567
+│       conference transfer
+├── "Caller asks for their account manager" → phone {{manager_phone}}
+│       conference transfer
+└── "Caller is a reseller partner" → SIP sip:partners@pbx.example.com
+        sip_refer transfer · plays a dial tone
+
+No message to the caller while transferring

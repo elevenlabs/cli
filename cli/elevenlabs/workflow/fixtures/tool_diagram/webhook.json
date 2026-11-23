@@ -1,0 +1,159 @@
+{
+  "api_schema": {
+    "auth_connection": {
+      "env_var_label": "orders_oauth"
+    },
+    "auth_resolved_params": [
+      "tenant"
+    ],
+    "content_type": "application/json",
+    "method": "POST",
+    "path_params_schema": {
+      "order_id": {
+        "description": "The order number the caller gives, e.g. A-1042",
+        "type": "string"
+      }
+    },
+    "query_params_schema": {
+      "properties": {
+        "locale": {
+          "dynamic_variable": "user_locale",
+          "type": "string"
+        },
+        "notify": {
+          "constant_value": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "notify"
+      ]
+    },
+    "request_body_schema": {
+      "properties": {
+        "contact": {
+          "description": "How to reach the caller about the refund",
+          "properties": {
+            "email": {
+              "description": "Email address, if the caller gives one",
+              "type": "string"
+            },
+            "phone": {
+              "is_system_provided": true,
+              "type": "string"
+            }
+          },
+          "required_constraints": {
+            "any_of": [
+              {
+                "required": [
+                  "email"
+                ]
+              },
+              {
+                "required": [
+                  "phone"
+                ]
+              }
+            ]
+          },
+          "type": "object"
+        },
+        "customer_id": {
+          "dynamic_variable": "customer_id",
+          "type": "string"
+        },
+        "internal_note": {
+          "is_omitted": true,
+          "type": "string"
+        },
+        "items": {
+          "description": "The items to refund",
+          "items": {
+            "description": "A SKU from the order",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reason": {
+          "description": "Why the caller wants a refund",
+          "enum": [
+            "damaged",
+            "late",
+            "other"
+          ],
+          "type": "string"
+        },
+        "workspace": {
+          "allowed_values": {
+            "dynamic_variable": "allowed_workspaces"
+          },
+          "description": "The workspace the order belongs to",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason",
+        "customer_id",
+        "contact"
+      ],
+      "type": "object"
+    },
+    "request_headers": {
+      "Authorization": {
+        "secret_id": "sec_orders_api"
+      },
+      "Content-Type": "application/json",
+      "X-Api-Key": {
+        "env_var_label": "orders_api_key"
+      },
+      "X-Caller": {
+        "variable_name": "system__caller_id"
+      }
+    },
+    "response_body_schema": {
+      "properties": {
+        "refund": {
+          "properties": {
+            "id": {
+              "description": "The refund ID",
+              "type": "string"
+            },
+            "status": {
+              "description": "pending, approved or rejected",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "response_filter": {
+      "filters": [
+        "refund.status"
+      ],
+      "mode": "allow"
+    },
+    "url": "https://{{system__env_orders_host}}/{tenant}/orders/{order_id}/refunds"
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "refund_id",
+      "sanitize": true,
+      "source": "response",
+      "value_path": "refund.id"
+    },
+    {
+      "dynamic_variable": "refund_status",
+      "source": "response",
+      "value_path": "refund.status"
+    }
+  ],
+  "description": "Refund an order the caller asked to return",
+  "execution_mode": "post_tool_speech",
+  "name": "issue_refund",
+  "pre_tool_speech": "force",
+  "response_timeout_secs": 10,
+  "type": "webhook"
+}

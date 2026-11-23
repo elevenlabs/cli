@@ -528,7 +528,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "elevenlabs-cli"
-version = "1.12.0"
+version = "1.13.0"
 dependencies = [
  "anstream",
  "anyhow",
@@ -581,7 +581,7 @@ dependencies = [
 
 [[package]]
 name = "elevenlabs_sdk"
-version = "1.11.0"
+version = "1.12.0"
 dependencies = [
  "base64",
  "bytes",
@@ -599,7 +599,7 @@ dependencies = [
 
 [[package]]
 name = "elevenlabs_types"
-version = "1.11.0"
+version = "1.12.0"
 dependencies = [
  "base64",
  "chrono",

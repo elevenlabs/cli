@@ -15,7 +15,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::{json, Value};
 
-use super::config_format::{ConfigFormat, FORMAT_NAMES};
+use super::config_format::{is_literal_key, ConfigFormat, FORMAT_NAMES};
 use super::util::{downcast_ctx, dry_run_flag, opt_string, plan_pull_action, PullAction};
 use super::{api, project, settings, templates, verify};
 
@@ -713,6 +713,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     println!("Pushing {} agent(s) to ElevenLabs...", indices.len());
     let mut changes_made = false;
+    let mut failed: usize = 0;
 
     for idx in indices {
         let config_path = registry.agents[idx].config.clone();
@@ -731,6 +732,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
             Ok(v) => v,
             Err(e) => {
                 println!("Error reading config for {config_path}: {e}");
+                failed += 1;
                 continue;
             }
         };
@@ -763,6 +765,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 }
                 Err(e) => {
                     println!("Error processing {name}: {e}");
+                    failed += 1;
                     continue;
                 }
             },
@@ -779,6 +782,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 }
                 Err(e) => {
                     println!("Error processing {name}: {e}");
+                    failed += 1;
                     continue;
                 }
             },
@@ -802,6 +806,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 }
                 Err(e) => {
                     println!("Error processing {name}: {e}");
+                    failed += 1;
                     continue;
                 }
             },
@@ -823,6 +828,7 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                         Ok(v) => v,
                         Err(e) => {
                             println!("  ✗ Error pushing branch '{branch_name}': {e}");
+                            failed += 1;
                             continue;
                         }
                     };
@@ -853,7 +859,10 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                                 Some(&branch_def.branch_id),
                             );
                         }
-                        Err(e) => println!("  ✗ Error pushing branch '{branch_name}': {e}"),
+                        Err(e) => {
+                            println!("  ✗ Error pushing branch '{branch_name}': {e}");
+                            failed += 1;
+                        }
                     }
                 }
             }
@@ -862,6 +871,11 @@ fn handle_push(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
 
     if changes_made {
         project::save_agents(&registry)?;
+    }
+    if failed > 0 {
+        return Err(CliError::Validation(format!(
+            "{failed} resource(s) could not be pushed; see the errors above"
+        )));
     }
     Ok(())
 }
@@ -915,6 +929,19 @@ fn pull_command() -> clap::Command {
                 .help("Pull everything (new and existing)"),
         )
         .arg(
+            clap::Arg::new("sparse")
+                .long("sparse")
+                .action(clap::ArgAction::SetTrue)
+                .help(
+                    "Keep the authored config shape. An existing file keeps its keys \
+                     and gains only live values that are not null or empty; a new file \
+                     drops nulls, empty objects, and empty arrays. Workflow node and \
+                     edge ids follow the live workflow, and free-form JSON values are \
+                     copied whole. Without this flag, --update writes the full server \
+                     representation",
+                ),
+        )
+        .arg(
             clap::Arg::new("yes")
                 .long("yes")
                 .action(clap::ArgAction::SetTrue)
@@ -935,6 +962,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
     let dry_run = dry_run_flag(matches);
     let update = matches.get_flag("update");
     let all = matches.get_flag("all");
+    let sparse = matches.get_flag("sparse");
 
     if branch.is_some() && agent.is_none() {
         return Err(CliError::Validation(
@@ -1078,7 +1106,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 continue;
             }
         };
-        let config = build_pulled_config(name, &live);
+        let full = build_pulled_config(name, &live);
         let version_id = live
             .get("version_id")
             .and_then(Value::as_str)
@@ -1091,6 +1119,14 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
         let entry_idx = match existing_idx {
             Some(i) => {
                 let cfg_path = registry.agents[*i].config.clone();
+                let config = match config_to_write(&full, Some(&cfg_path), sparse) {
+                    Ok(config) => config,
+                    Err(e) => {
+                        println!("  ✗ Error reading '{name}': {e}");
+                        failed += 1;
+                        continue;
+                    }
+                };
                 if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
                     println!("  ✗ Error saving '{name}': {e}");
                     failed += 1;
@@ -1110,6 +1146,15 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 let cfg_path = project::generate_unique_filename(&output_dir, name, ext)
                     .display()
                     .to_string();
+                // No file yet: `--sparse` prunes defaults instead of merging.
+                let config = match config_to_write(&full, None, sparse) {
+                    Ok(config) => config,
+                    Err(e) => {
+                        println!("  ✗ Error preparing '{name}': {e}");
+                        failed += 1;
+                        continue;
+                    }
+                };
                 if let Err(e) = project::write_config_in_project(&cfg_path, &config) {
                     println!("  ✗ Error saving '{name}': {e}");
                     failed += 1;
@@ -1138,8 +1183,8 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                     .find(|(key, def)| *key == branch || def.branch_id == *bid)
                     .map(|(key, def)| (key.clone(), def.config.clone()))
             });
-            let (branch_key, branch_path) = match registered {
-                Some(found) => found,
+            let (branch_key, branch_path, existing_branch_path) = match registered {
+                Some((key, path)) => (key, path.clone(), Some(path)),
                 None => (
                     branch.clone(),
                     project::generate_unique_filename(
@@ -1149,9 +1194,19 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                     )
                     .display()
                     .to_string(),
+                    None,
                 ),
             };
-            if let Err(e) = project::write_config_in_project(&branch_path, &config) {
+            let branch_config =
+                match config_to_write(&full, existing_branch_path.as_deref(), sparse) {
+                    Ok(config) => config,
+                    Err(e) => {
+                        println!("  ✗ Error reading branch '{branch}' of '{name}': {e}");
+                        failed += 1;
+                        continue;
+                    }
+                };
+            if let Err(e) = project::write_config_in_project(&branch_path, &branch_config) {
                 println!("  ✗ Error saving branch '{branch}' of '{name}': {e}");
                 failed += 1;
                 continue;
@@ -1179,6 +1234,7 @@ fn handle_pull(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliEr
                 &mut registry,
                 &output_dir,
                 config_format,
+                sparse,
             ) {
                 Ok(n) => failed += n,
                 Err(e) => {
@@ -1233,6 +1289,7 @@ fn pull_all_branches(
     registry: &mut project::AgentsConfig,
     output_dir: &str,
     config_format: Option<ConfigFormat>,
+    sparse: bool,
 ) -> Result<usize, CliError> {
     println!("  Fetching branches for '{agent_name}'...");
     let branches = api::list_branches(ctx, agent_id, false)?;
@@ -1269,7 +1326,7 @@ fn pull_all_branches(
                 continue;
             }
         };
-        let branch_config = build_pulled_config(agent_name, &live);
+        let full = build_pulled_config(agent_name, &live);
         let version_id = live
             .get("version_id")
             .and_then(Value::as_str)
@@ -1280,12 +1337,20 @@ fn pull_all_branches(
             .as_ref()
             .and_then(|m| m.get(bname))
             .map(|b| b.config.clone());
-        let branch_path = existing_path.unwrap_or_else(|| {
+        let branch_path = existing_path.clone().unwrap_or_else(|| {
             let ext = new_config_ext(config_format, Some(&registry.agents[entry_idx].config));
             project::generate_unique_filename(output_dir, &format!("{agent_name}.{bname}"), ext)
                 .display()
                 .to_string()
         });
+        let branch_config = match config_to_write(&full, existing_path.as_deref(), sparse) {
+            Ok(config) => config,
+            Err(e) => {
+                println!("  ✗ Error reading branch '{bname}': {e}");
+                failed += 1;
+                continue;
+            }
+        };
         if let Err(e) = project::write_config_in_project(&branch_path, &branch_config) {
             println!("  ✗ Error saving branch '{bname}': {e}");
             failed += 1;
@@ -1345,6 +1410,194 @@ fn build_pulled_config(name: &str, live: &Value) -> Value {
         }
     }
     Value::Object(obj)
+}
+
+/// Config to write for one pull. Without `--sparse` this is `full` unchanged.
+/// With it, an existing file is merged and a missing file is pruned.
+fn config_to_write(
+    full: &Value,
+    existing_path: Option<&str>,
+    sparse: bool,
+) -> Result<Value, CliError> {
+    let local = if sparse {
+        match existing_path {
+            Some(path) => read_existing_config(path)?,
+            None => None,
+        }
+    } else {
+        None
+    };
+    Ok(stored_pulled_config(full, local.as_ref(), sparse))
+}
+
+/// The on-disk config at `path_str`, or `None` when that file does not exist
+/// yet. The extension selects JSON, YAML, or TOML.
+fn read_existing_config(path_str: &str) -> Result<Option<Value>, CliError> {
+    let path = project::resolve_in_project(path_str)?;
+    if !path.is_file() {
+        return Ok(None);
+    }
+    project::read_value_in_project(path_str).map(Some)
+}
+
+/// `full` when `sparse` is false, so a pull without the flag still writes the
+/// whole server representation. Otherwise [`sparse_pulled_config`].
+fn stored_pulled_config(full: &Value, local: Option<&Value>, sparse: bool) -> Value {
+    if sparse {
+        sparse_pulled_config(full, local)
+    } else {
+        full.clone()
+    }
+}
+
+/// Sparse on-disk config.
+///
+/// `full` is [`build_pulled_config`]. `local` is the file already on disk, or
+/// `None` when this pull creates the file.
+///
+/// An existing file keeps every key path it already has. Objects are walked;
+/// arrays and scalars are replaced with the live value (arrays are leaves).
+/// A live key the file does not have is added only when it is not a platform
+/// default: JSON null, an empty object, an empty array, or an object that
+/// prunes to empty. Scalars stay, including `false`, `0`, and `""`. `name`
+/// is always kept. A null `workflow` is already absent from `full` and is not
+/// copied back from the local file. `agent_id` and `version_id` are never
+/// written — those stay in `agents.json`.
+///
+/// Two shapes are not ordinary config trees. `workflow.nodes` and
+/// `workflow.edges` are id maps: membership follows the live workflow, so a
+/// node or edge deleted in the dashboard is not written back, while a
+/// surviving entry keeps the local field's shape. A free-form JSON value
+/// ([`is_literal_key`]) is copied whole.
+fn sparse_pulled_config(full: &Value, local: Option<&Value>) -> Value {
+    let value = match local {
+        Some(local @ Value::Object(_)) => merge_sparse(full, local),
+        _ => prune_defaults(full).unwrap_or_else(|| json!({})),
+    };
+    finish_sparse_config(full, value)
+}
+
+/// Walk `local` against `full`. Objects recurse. Anything else takes the live
+/// value, including null, so a key the user authored is still written when
+/// the server clears it.
+fn merge_sparse(full: &Value, local: &Value) -> Value {
+    merge_sparse_at(full, local, "")
+}
+
+fn merge_sparse_at(full: &Value, local: &Value, path: &str) -> Value {
+    match (full, local) {
+        (Value::Object(full_map), Value::Object(local_map)) => {
+            // Node and edge ids are the map's keys. A key only the local file
+            // has was deleted on the server; copying it back would make the
+            // next push restore it.
+            let id_map = path == "workflow.nodes" || path == "workflow.edges";
+            let mut out = serde_json::Map::new();
+            for (key, local_value) in local_map {
+                match full_map.get(key) {
+                    Some(full_value) if is_literal_key(key) => {
+                        // The whole subtree is data, including nulls and empty
+                        // containers. A null for the field itself still records
+                        // that an authored key was cleared.
+                        out.insert(key.clone(), full_value.clone());
+                    }
+                    Some(full_value) => {
+                        out.insert(
+                            key.clone(),
+                            merge_sparse_at(full_value, local_value, &join_path(path, key)),
+                        );
+                    }
+                    // The live workflow omitted `nodes` or `edges` entirely.
+                    None if workflow_id_key(path, key) => {}
+                    None if id_map => {}
+                    None => {
+                        out.insert(key.clone(), local_value.clone());
+                    }
+                }
+            }
+            for (key, full_value) in full_map {
+                if local_map.contains_key(key) {
+                    continue;
+                }
+                if is_literal_key(key) {
+                    if !full_value.is_null() {
+                        out.insert(key.clone(), full_value.clone());
+                    }
+                    continue;
+                }
+                if let Some(pruned) = prune_defaults(full_value) {
+                    out.insert(key.clone(), pruned);
+                }
+            }
+            Value::Object(out)
+        }
+        (full, _) => full.clone(),
+    }
+}
+
+fn join_path(path: &str, key: &str) -> String {
+    if path.is_empty() {
+        key.to_string()
+    } else {
+        format!("{path}.{key}")
+    }
+}
+
+/// `nodes` and `edges` directly under `workflow`. Their keys are ids, not
+/// authored fields.
+fn workflow_id_key(path: &str, key: &str) -> bool {
+    path == "workflow" && (key == "nodes" || key == "edges")
+}
+
+/// `None` when `value` is a default stand-in and should be left out of a
+/// sparse file. Arrays are leaves: a non-empty array is kept whole, null
+/// elements included. A free-form JSON value is kept whole too, except a
+/// null for the field itself, which still means unset.
+fn prune_defaults(value: &Value) -> Option<Value> {
+    prune_defaults_in(value, false)
+}
+
+fn prune_defaults_in(value: &Value, literal: bool) -> Option<Value> {
+    if literal {
+        return match value {
+            Value::Null => None,
+            other => Some(other.clone()),
+        };
+    }
+    match value {
+        Value::Null => None,
+        Value::Array(items) if items.is_empty() => None,
+        Value::Object(map) => {
+            let mut out = serde_json::Map::new();
+            for (key, child) in map {
+                if let Some(pruned) = prune_defaults_in(child, is_literal_key(key)) {
+                    out.insert(key.clone(), pruned);
+                }
+            }
+            if out.is_empty() {
+                None
+            } else {
+                Some(Value::Object(out))
+            }
+        }
+        _ => Some(value.clone()),
+    }
+}
+
+fn finish_sparse_config(full: &Value, mut value: Value) -> Value {
+    if let Some(obj) = value.as_object_mut() {
+        if let Some(name) = full.get("name") {
+            obj.insert("name".to_string(), name.clone());
+        }
+        obj.remove("agent_id");
+        obj.remove("version_id");
+        // A null or absent workflow is left out of `full`. Dropping it here
+        // too matches a full pull: the file does not keep a workflow the
+        // server no longer has, which push would otherwise send.
+        if full.get("workflow").is_none() {
+            obj.remove("workflow");
+        }
+    }
+    value
 }
 
 #[cfg(test)]
@@ -1446,5 +1699,420 @@ mod tests {
 
         let absent = build_pulled_config("A", &json!({}));
         assert!(absent.get("workflow").is_none());
+    }
+
+    #[test]
+    fn pull_accepts_sparse() {
+        let matches = pull_command().get_matches_from(["pull", "--sparse", "--update"]);
+        assert!(matches.get_flag("sparse"));
+        assert!(matches.get_flag("update"));
+    }
+
+    #[test]
+    fn sparse_update_of_a_minimal_config_stays_minimal() {
+        // The authored file is a name, one nested prompt, and a workflow.
+        // The live agent is the same shape buried in nulls and empty arrays.
+        let local = json!({
+            "name": "Support",
+            "agent_id": "local-id",
+            "version_id": "local-ver",
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "old prompt" } }
+            },
+            "workflow": {
+                "nodes": { "start": { "type": "start" } },
+                "edges": { "e": { "source": "start", "target": "end" } }
+            }
+        });
+        let live = json!({
+            "agent_id": "agent_1",
+            "version_id": "ver_1",
+            "conversation_config": {
+                "agent": {
+                    "first_message": null,
+                    "language": null,
+                    "prompt": {
+                        "prompt": "live prompt",
+                        "llm": null,
+                        "temperature": null,
+                        "tool_ids": [],
+                        "tools": [],
+                        "knowledge_base": []
+                    }
+                },
+                "tts": {},
+                "asr": { "keywords": [] }
+            },
+            "platform_settings": {
+                "auth": { "enable_auth": null },
+                "widget": {},
+                "evaluation": { "criteria": [] }
+            },
+            "tags": [],
+            "workflow": {
+                "nodes": { "start": { "type": "start", "position": null } },
+                "edges": {
+                    "e": { "source": "start", "target": "end", "forward_condition": null }
+                },
+                "prevent_subagent_loops": null
+            }
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            sparse,
+            json!({
+                "name": "Support",
+                "conversation_config": {
+                    "agent": { "prompt": { "prompt": "live prompt" } }
+                },
+                "workflow": {
+                    "nodes": { "start": { "type": "start" } },
+                    "edges": { "e": { "source": "start", "target": "end" } }
+                }
+            })
+        );
+        assert!(sparse.get("agent_id").is_none());
+        assert!(sparse.get("version_id").is_none());
+    }
+
+    #[test]
+    fn sparse_adds_a_live_value_absent_locally() {
+        let local = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "hi" } }
+            }
+        });
+        let live = json!({
+            "conversation_config": {
+                "agent": {
+                    "first_message": "Hello there",
+                    "prompt": { "prompt": "hi" }
+                }
+            },
+            "platform_settings": {
+                "auth": { "enable_auth": false, "shareable_token": null }
+            },
+            "tags": ["billing"]
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            sparse["conversation_config"]["agent"]["first_message"],
+            json!("Hello there")
+        );
+        assert_eq!(sparse["tags"], json!(["billing"]));
+        // A new object is pruned: the null sibling is not copied in with it.
+        assert_eq!(
+            sparse["platform_settings"],
+            json!({ "auth": { "enable_auth": false } })
+        );
+        assert_eq!(
+            sparse["conversation_config"]["agent"]["prompt"]["prompt"],
+            "hi"
+        );
+    }
+
+    #[test]
+    fn sparse_skips_null_empty_object_and_empty_array_absent_locally() {
+        let local = json!({ "name": "Support" });
+        let live = json!({
+            "conversation_config": {
+                "agent": {
+                    "language": null,
+                    "prompt": { "llm": null, "tool_ids": [] }
+                },
+                "tts": {}
+            },
+            "platform_settings": {
+                "widget": {},
+                "auth": { "enable_auth": null }
+            },
+            "tags": []
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(sparse, json!({ "name": "Support" }));
+    }
+
+    #[test]
+    fn sparse_keeps_a_local_key_when_the_live_value_is_null() {
+        // The user authored the key, so a later null still has to be written.
+        // Otherwise the next push would leave the old server value in place.
+        let local = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": {
+                    "language": "en",
+                    "prompt": { "prompt": "hi", "llm": "gemini-2.5-flash" }
+                }
+            },
+            "tags": ["support"]
+        });
+        let live = json!({
+            "conversation_config": {
+                "agent": {
+                    "language": null,
+                    "prompt": { "prompt": "hi", "llm": null }
+                }
+            },
+            "tags": []
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            sparse["conversation_config"]["agent"]["language"],
+            Value::Null
+        );
+        assert_eq!(
+            sparse["conversation_config"]["agent"]["prompt"]["llm"],
+            Value::Null
+        );
+        assert_eq!(
+            sparse["conversation_config"]["agent"]["prompt"]["prompt"],
+            json!("hi")
+        );
+        // An authored array is a leaf: the live value replaces it, even when
+        // that value is empty.
+        assert_eq!(sparse["tags"], json!([]));
+    }
+
+    #[test]
+    fn without_sparse_the_full_payload_is_unchanged() {
+        let local = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "only this" } }
+            }
+        });
+        let live = json!({
+            "agent_id": "agent_1",
+            "version_id": "ver_1",
+            "conversation_config": {
+                "agent": {
+                    "language": null,
+                    "prompt": { "prompt": "only this", "tools": [] }
+                }
+            },
+            "platform_settings": { "widget": {} },
+            "tags": []
+        });
+        let full = build_pulled_config("Support", &live);
+        let written = stored_pulled_config(&full, Some(&local), false);
+        assert_eq!(written, full);
+        assert_eq!(
+            written["conversation_config"]["agent"]["language"],
+            Value::Null
+        );
+        assert_eq!(
+            written["conversation_config"]["agent"]["prompt"]["tools"],
+            json!([])
+        );
+        assert_eq!(written["platform_settings"], json!({ "widget": {} }));
+        assert_eq!(written["tags"], json!([]));
+        assert!(written.get("agent_id").is_none());
+        assert!(written.get("version_id").is_none());
+    }
+
+    #[test]
+    fn sparse_omits_a_null_workflow() {
+        let live = json!({
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "hi" } }
+            },
+            "platform_settings": {},
+            "tags": [],
+            "workflow": Value::Null
+        });
+        let full = build_pulled_config("Support", &live);
+        assert!(full.get("workflow").is_none());
+
+        // A first sparse pull prunes the empty blocks and still has no workflow.
+        let created = sparse_pulled_config(&full, None);
+        assert!(created.get("workflow").is_none());
+        assert_eq!(
+            created,
+            json!({
+                "name": "Support",
+                "conversation_config": {
+                    "agent": { "prompt": { "prompt": "hi" } }
+                }
+            })
+        );
+
+        // An existing file's workflow is dropped too: the server no longer has one.
+        let local = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "old" } }
+            },
+            "workflow": { "nodes": { "start": { "type": "start" } } }
+        });
+        let updated = sparse_pulled_config(&full, Some(&local));
+        assert!(updated.get("workflow").is_none());
+        assert_eq!(
+            updated["conversation_config"]["agent"]["prompt"]["prompt"],
+            json!("hi")
+        );
+    }
+
+    #[test]
+    fn sparse_new_file_drops_defaults_but_keeps_a_real_workflow() {
+        let live = json!({
+            "conversation_config": {
+                "agent": {
+                    "language": null,
+                    "prompt": { "prompt": "hi", "tools": [] }
+                },
+                "tts": {}
+            },
+            "platform_settings": {},
+            "tags": [],
+            "workflow": {
+                "nodes": { "start": { "type": "start", "position": null } },
+                "edges": {}
+            }
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, None);
+        assert_eq!(
+            sparse,
+            json!({
+                "name": "Support",
+                "conversation_config": {
+                    "agent": { "prompt": { "prompt": "hi" } }
+                },
+                "workflow": {
+                    "nodes": { "start": { "type": "start" } }
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn sparse_update_drops_workflow_nodes_and_edges_deleted_remotely() {
+        // Membership of the id maps follows the live workflow. A surviving
+        // entry keeps fields the local file authored and the server did not
+        // return, and does not gain a null the server added.
+        let local = json!({
+            "name": "Support",
+            "workflow": {
+                "nodes": {
+                    "start": { "type": "start", "label": "Start" },
+                    "middle": { "type": "override_agent", "label": "Gone" }
+                },
+                "edges": {
+                    "e1": { "source": "start", "target": "middle" },
+                    "e2": { "source": "middle", "target": "end" }
+                }
+            }
+        });
+        let live = json!({
+            "workflow": {
+                "nodes": {
+                    "start": { "type": "start", "position": null },
+                    "end": { "type": "end", "label": "End" }
+                },
+                "edges": {
+                    "e1": { "source": "start", "target": "end", "forward_condition": null }
+                }
+            }
+        });
+        let full = build_pulled_config("Support", &live);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            sparse["workflow"],
+            json!({
+                "nodes": {
+                    "start": { "type": "start", "label": "Start" },
+                    "end": { "type": "end", "label": "End" }
+                },
+                "edges": {
+                    "e1": { "source": "start", "target": "end" }
+                }
+            })
+        );
+
+        // The live workflow dropped `edges` entirely, rather than sending the
+        // map with the deleted id removed.
+        let no_edges = json!({
+            "workflow": {
+                "nodes": { "start": { "type": "start" } }
+            }
+        });
+        let full = build_pulled_config("Support", &no_edges);
+        let sparse = sparse_pulled_config(&full, Some(&local));
+        assert!(sparse["workflow"].get("edges").is_none());
+        assert!(sparse["workflow"]["nodes"].get("middle").is_none());
+        assert_eq!(
+            sparse["workflow"]["nodes"]["start"]["label"],
+            json!("Start")
+        );
+    }
+
+    #[test]
+    fn sparse_preserves_literal_placeholder_json() {
+        // Nulls and empty containers inside a placeholder are data. Pruning
+        // them would make the next push overwrite the value on the server.
+        let placeholders = json!({
+            "payload": { "keep": 1, "cleared": null, "items": [] }
+        });
+        let live = json!({
+            "conversation_config": {
+                "agent": {
+                    "prompt": { "prompt": "hi", "tools": [] },
+                    "dynamic_variables": {
+                        "dynamic_variable_placeholders": placeholders
+                    }
+                }
+            },
+            "tags": []
+        });
+        let full = build_pulled_config("Support", &live);
+
+        let created = sparse_pulled_config(&full, None);
+        assert_eq!(
+            created["conversation_config"]["agent"]["dynamic_variables"]
+                ["dynamic_variable_placeholders"],
+            placeholders
+        );
+        assert!(created["conversation_config"]["agent"]["prompt"]
+            .get("tools")
+            .is_none());
+
+        // Added onto an existing file that did not mention the key yet.
+        let local = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": { "prompt": { "prompt": "old" } }
+            }
+        });
+        let added = sparse_pulled_config(&full, Some(&local));
+        assert_eq!(
+            added["conversation_config"]["agent"]["dynamic_variables"]
+                ["dynamic_variable_placeholders"],
+            placeholders
+        );
+
+        // An existing partial placeholder is replaced by the live value whole,
+        // not merged in a way that drops the nulls.
+        let partial = json!({
+            "name": "Support",
+            "conversation_config": {
+                "agent": {
+                    "prompt": { "prompt": "old" },
+                    "dynamic_variables": {
+                        "dynamic_variable_placeholders": { "payload": { "keep": 0 } }
+                    }
+                }
+            }
+        });
+        let merged = sparse_pulled_config(&full, Some(&partial));
+        assert_eq!(
+            merged["conversation_config"]["agent"]["dynamic_variables"]
+                ["dynamic_variable_placeholders"],
+            placeholders
+        );
     }
 }

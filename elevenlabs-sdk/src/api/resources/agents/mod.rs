@@ -12,6 +12,8 @@ pub mod whatsapp;
 pub use whatsapp::WhatsappClient;
 pub mod summaries;
 pub use summaries::SummariesClient;
+pub mod subagents;
+pub use subagents::SubagentsClient;
 pub mod widget;
 pub use widget::WidgetClient;
 pub mod link;
@@ -77,6 +79,7 @@ pub struct AgentsClient {
     pub exotel: ExotelClient,
     pub whatsapp: WhatsappClient,
     pub summaries: SummariesClient,
+    pub subagents: SubagentsClient,
     pub widget: WidgetClient,
     pub link: LinkClient,
     pub hold_audio: HoldAudioClient,
@@ -117,6 +120,7 @@ impl AgentsClient {
             exotel: ExotelClient::new(config.clone())?,
             whatsapp: WhatsappClient::new(config.clone())?,
             summaries: SummariesClient::new(config.clone())?,
+            subagents: SubagentsClient::new(config.clone())?,
             widget: WidgetClient::new(config.clone())?,
             link: LinkClient::new(config.clone())?,
             hold_audio: HoldAudioClient::new(config.clone())?,
