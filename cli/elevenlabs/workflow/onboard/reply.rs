@@ -41,8 +41,10 @@ impl Next {
                  project, so list and read it with shell commands like `ls` and `cat` (file search tools \
                  may not look there). If one fits, read its SKILL.md and the `references/` files it links \
                  before writing any code, and write the code the way the skill shows, not from the SDK's \
-                 own files; if none fits, write it without one. Install the SDK, and get the key to the \
-                 code the way `details.load_key` says. If it needs something made in ElevenLabs first, \
+                 own files; if none fits, write it without one. Install the SDK. Whatever they asked \
+                 for, even nothing new, the app has to get the key: look at how it starts, and if \
+                 nothing loads the env file, make it load it the way `details.load_key` says. That is \
+                 part of the setup, not new work. If it needs something made in ElevenLabs first, \
                  like an agent, make it yourself with the key (load the env file in the command, never \
                  print it), and when you're done give the user the links in `details.agent_links` with \
                  its ID filled in. When the code is written (or if it already was), say what you set up, \
