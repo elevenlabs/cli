@@ -263,6 +263,7 @@ fn every_step_parses_its_flags_and_bare_onboard_is_refused() {
     assert!(m.subcommand_matches("init").unwrap().get_flag("replace"));
     // What replies from before this version asked for still parses.
     assert!(parse(&["onboard", "check", "--answered"]).is_ok());
+    assert!(parse(&["onboard", "check", "--written"]).is_ok());
 }
 
 #[test]
@@ -506,11 +507,18 @@ fn the_one_reply_names_no_product_and_hands_the_rest_to_the_agent() {
             && told.contains("the way `details.load_key` says"),
         "{told}"
     );
-    // The test request is offered at the end, in the CLI's words, and `run` is that request.
-    assert!(told.contains("end your reply with `details.test_offer`, as it is"), "{told}");
+    // When the code is written the agent runs `run`, and that reply is the ending.
     assert!(
-        told.contains("(or if it already was)") && told.contains("If they say yes, run `run`: that command is the test request"),
+        told.contains("(or if it already was), run `run`: its reply says how to finish"),
         "{told}"
+    );
+    // The test request is offered in the CLI's words, at the moment it is said.
+    let offer = Reply::new(Next::OfferTest, "Want me to send a test request?").to_value();
+    let offer = offer["instruction"].as_str().unwrap();
+    assert!(
+        offer.contains("end your reply with the question in `say`, as it is")
+            && offer.contains("If they say yes, run `run`: that command is the test request"),
+        "{offer}"
     );
 }
 
@@ -537,12 +545,12 @@ fn the_skills_download_is_two_commands_that_quote_the_folder() {
 #[test]
 fn a_reply_names_the_next_step_and_the_command() {
     use super::reply::{Next, Reply};
-    let v = Reply::new(Next::Integrate, "Signed in.")
+    let v = Reply::new(Next::OfferTest, "Signed in.")
         .run("test")
         .with_rules()
         .detail("key_last4", "abcd")
         .to_value();
-    assert_eq!(v["next"], "integrate");
+    assert_eq!(v["next"], "offer_test");
     assert!(v["instruction"]
         .as_str()
         .unwrap()
@@ -669,10 +677,10 @@ fn every_clipboard_outcome_has_its_reply() {
         stored["say"],
         "Signed in. Your new key ending in 4567 is in .env.local, and your clipboard was cleared."
     );
-    // `run` is the test request, for when the developer says yes at the end.
+    // `run` is the check that ends on the test offer, once the code is written.
     assert_eq!(
         stored["run"],
-        "elevenlabs onboard test --env-path .env.local"
+        "elevenlabs onboard check --written --env-path .env.local"
     );
     let details = &stored["details"];
     assert_eq!(details["question"], super::check::WHAT_TO_BUILD);

@@ -117,7 +117,9 @@ fn onboard_command() -> clap::Command {
                 .arg(env_file_arg())
                 .arg(no_browser_arg())
                 // What older replies asked for: `check` no longer has stages.
-                .arg(flag("answered", "").hide(true)),
+                .arg(flag("answered", "").hide(true))
+                // Passed by the hand-over reply's `run`, once the code is written.
+                .arg(flag("written", "The code is written: end on the test offer").hide(true)),
         )
         .subcommand(
             clap::Command::new("test")

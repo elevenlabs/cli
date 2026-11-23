@@ -235,15 +235,23 @@ async fn check_verifies_the_key_secures_the_file_and_hands_over_the_rest() {
         r["details"]["question"],
         "What would you like to build with ElevenLabs, or should I just add the SDK for now?"
     );
-    // `run` is the test request, offered once the code is written.
-    assert_eq!(r["run"], "elevenlabs onboard test --env-path .env.local");
-    assert!(
-        r["details"]["test_offer"]
-            .as_str()
-            .unwrap()
-            .contains("Want me to send a test request?"),
-        "{r}"
+    // `run` is the check that ends on the test offer, once the code is written.
+    assert_eq!(
+        r["run"],
+        "elevenlabs onboard check --written --env-path .env.local"
     );
+    let offer = reply(&mut cli(
+        home.path(),
+        cwd.path(),
+        &server.uri(),
+        &["onboard", "check", "--written"],
+    ));
+    assert_eq!(offer["next"], "offer_test", "{offer}");
+    assert_eq!(
+        say(&offer),
+        "Your ElevenLabs key ending in 4567 works. It's in .env.local. Want me to send a test request? It makes a short text-to-speech clip with your key and uses a few credits."
+    );
+    assert_eq!(offer["run"], "elevenlabs onboard test --env-path .env.local");
     assert!(r["rules"].as_array().is_some_and(|r| !r.is_empty()), "{r}");
     // Loading the key is a goal for the agent, not a recipe for a framework.
     let load = r["details"]["load_key"].as_str().unwrap();
@@ -946,7 +954,7 @@ async fn init_checks_a_key_that_is_already_there() {
         say(&r),
         "Your ElevenLabs key ending in 4567 works. It's in .env.local."
     );
-    assert_eq!(r["run"], "elevenlabs onboard test --env-path .env.local");
+    assert_eq!(r["run"], "elevenlabs onboard check --written --env-path .env.local");
     assert_eq!(r["details"]["env_file"], ".env.local");
     assert!(r["rules"].as_array().is_some_and(|r| !r.is_empty()), "{r}");
 
@@ -962,7 +970,7 @@ async fn init_checks_a_key_that_is_already_there() {
     ));
     assert_eq!(r["next"], "integrate", "{r}");
     assert_eq!(r["details"]["env_file"], ".env", "{r}");
-    assert_eq!(r["run"], "elevenlabs onboard test --env-path .env");
+    assert_eq!(r["run"], "elevenlabs onboard check --written --env-path .env");
     // The request counts as `init`: no sign-in ran.
     let sent = server.received_requests().await.unwrap();
     assert!(

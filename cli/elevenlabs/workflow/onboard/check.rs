@@ -16,7 +16,23 @@ use super::project::{last4, shell_arg, Key, Project};
 use super::reply::{Next, Reply};
 
 pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Reply, CliError> {
-    verify(ctx, &Project::open(matches)?).map(Reply::with_rules)
+    let project = Project::open(matches)?;
+    let reply = verify(ctx, &project)?;
+    // `--written`: the code is done, so a working key ends on the test offer.
+    if matches.get_flag("written") && reply.next == Next::Integrate {
+        return Ok(offer_test(&project, &reply));
+    }
+    Ok(reply.with_rules())
+}
+
+/// The ending, once the code is written: the question the developer answers, and the test
+/// request as `run`. `working` is the reply for the key that was just checked.
+fn offer_test(project: &Project, working: &Reply) -> Reply {
+    let offer = Reply::new(Next::OfferTest, format!("{} {TEST_OFFER}", working.say)).run(&project.next("test"));
+    match working.details.get("key_last4") {
+        Some(last4) => offer.detail("key_last4", last4),
+        None => offer,
+    }
 }
 
 /// The whole check, for `check` and for `init` when the project already has a
@@ -73,7 +89,7 @@ const SKILLS_ARCHIVE: &str = "https://github.com/elevenlabs/skills/archive/refs/
 /// The one reply after a working key is in place: where the key is, what the
 /// app needs to get it, where the skills are, and the test request to offer
 /// at the end. `key_file` is the file the key is in, as the developer knows
-/// it; `None` when it is set in the shell. `run` is the test request.
+/// it; `None` when it is set in the shell. `run` is the check that ends on the test offer.
 pub(super) fn integrate(
     project: &Project,
     key_last4: &str,
@@ -83,7 +99,7 @@ pub(super) fn integrate(
     let dir = skills_dir()?;
     let app = app_origin()?;
     let reply = Reply::new(Next::Integrate, say)
-        .run(&project.next("test"))
+        .run(&project.next("check --written"))
         .detail("key_last4", key_last4)
         .detail("question", WHAT_TO_BUILD)
         .detail("sdk_install", project.sdk_install())
@@ -96,8 +112,7 @@ pub(super) fn integrate(
                 "Its page: {app}/app/agents/agents/<agent_id>. To talk to it, when anyone with the \
                  link may: {app}/app/talk-to?agent_id=<agent_id>."
             ),
-        )
-        .detail("test_offer", TEST_OFFER);
+        );
     Ok(match key_file {
         Some(file) => reply.detail("env_file", file),
         None => reply,

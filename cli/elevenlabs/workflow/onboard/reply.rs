@@ -14,6 +14,7 @@ pub(super) enum Next {
     AskUser,
     Fix,
     Integrate,
+    OfferTest,
     Done,
 }
 
@@ -47,11 +48,15 @@ impl Next {
                  part of the setup, not new work. If it needs something made in ElevenLabs first, \
                  like an agent, make it yourself with the key (load the env file in the command, never \
                  print it), and when you're done give the user the links in `details.agent_links` with \
-                 its ID filled in. When the code is written (or if it already was), say what you set up, \
-                 how to run it and anything the user still has to do themselves, like installing the \
-                 packages you added. Then end your reply with `details.test_offer`, as it is, and end \
-                 your turn. If they say yes, run `run`: that command is the test request, so \
-                 don't run their app in its place. If they say no, run nothing."
+                 its ID filled in. When the code is written (or if it already was), run `run`: its \
+                 reply says how to finish."
+            }
+            // The last word before the developer decides, handed over at the moment it is said.
+            Next::OfferTest => {
+                "Say what you set up, how to run it and anything the user still has to do themselves, \
+                 like installing the packages you added. Then end your reply with the question in \
+                 `say`, as it is, and end your turn. If they say yes, run `run`: that command is the \
+                 test request, so don't run their app in its place. If they say no, run nothing."
             }
             Next::Done => {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \
