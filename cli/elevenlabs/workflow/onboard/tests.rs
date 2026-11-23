@@ -504,7 +504,7 @@ fn the_one_reply_names_no_product_and_hands_the_rest_to_the_agent() {
     assert!(told.contains("the way `details.load_key` says"), "{told}");
     // The test request is offered at the end, and `run` is that request.
     assert!(
-        told.contains("(or if it already was)") && told.contains("run `run` only if they say yes"),
+        told.contains("(or if it already was)") && told.contains("If they say yes, run `run`: that command is the test request"),
         "{told}"
     );
 }
@@ -541,7 +541,7 @@ fn a_reply_names_the_next_step_and_the_command() {
     assert!(v["instruction"]
         .as_str()
         .unwrap()
-        .contains("run `run` only if they say yes"));
+        .contains("If they say yes, run `run`: that command is the test request"));
     assert_eq!(v["run"], "elevenlabs onboard test");
     let rules = v["rules"].as_array().unwrap();
     assert!(rules.iter().any(|r| r.as_str().unwrap().contains("git clean")));
