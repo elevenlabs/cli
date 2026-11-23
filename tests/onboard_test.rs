@@ -2596,6 +2596,62 @@ fn setup_starts_agents_from_the_shells_environment_never_the_projects_env() {
     assert_eq!(recorded(&record), want);
 }
 
+/// Under npx, PATH starts with the project's `node_modules/.bin` and the one
+/// in each folder above it: a `claude` or `codex` there is the project's own,
+/// and is never run.
+#[cfg(unix)]
+#[tokio::test]
+async fn under_npx_setup_never_runs_a_claude_or_codex_from_the_projects_node_modules() {
+    let server = MockServer::start().await;
+    let home = tempfile::tempdir().unwrap();
+    let base = tempfile::tempdir().unwrap();
+    let parent = base.path().join("parent");
+    let cwd = parent.join("project");
+    let markers = base.path().join("markers");
+    std::fs::create_dir(&markers).unwrap();
+    let mut project_path = Vec::new();
+    for (dir, whose) in [(&cwd, "project"), (&parent, "parent")] {
+        let dir = dir.join("node_modules").join(".bin");
+        std::fs::create_dir_all(&dir).unwrap();
+        for name in ["claude", "codex"] {
+            let marker = markers.join(format!("{whose} {name}"));
+            program(&dir.join(name), &format!("#!/bin/sh\ntouch '{}'\nexit 0\n", marker.display()));
+        }
+        project_path.push(dir.display().to_string());
+    }
+    let project_path = project_path.join(":");
+    let started = || -> Vec<_> { std::fs::read_dir(&markers).unwrap().flatten().map(|e| e.file_name()).collect() };
+    let bin = tempfile::tempdir().unwrap();
+    let record = bin.path().join("ran");
+    let neutral = stand_ins(bin.path(), &["claude", "codex"], &record, &[]);
+    let run = |path: &str, args: &[&str]| {
+        cli(home.path(), &cwd, &server.uri(), args).env("PATH", path).output().unwrap()
+    };
+
+    let path = format!("{project_path}:{neutral}");
+    let out = run(&path, &["setup"]);
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(stdout_of(&out, bin.path()), format!("{CLAUDE_PLAN}{CODEX_PLAN}{NOTHING_CHANGED}"));
+    let out = run(&path, &["setup", "--yes"]);
+    assert!(out.status.success(), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), format!("{CLAUDE_DONE}{CODEX_DONE}"));
+    assert_eq!(recorded(&record), INSTALLS);
+    let r = reply(cli(home.path(), &cwd, &server.uri(), &["onboard", "setup"]).env("PATH", &path));
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(recorded(&record), INSTALLS.repeat(2), "onboard setup ran the same stand-ins");
+    assert_eq!(started(), Vec::<std::ffi::OsString>::new(), "a project's program ran");
+
+    // With only the project's programs on PATH, nothing is found.
+    let path = format!("{project_path}:/usr/bin:/bin");
+    let out = run(&path, &["setup", "--yes"]);
+    assert_eq!(out.status.code(), Some(0), "{}", all_output(&out));
+    assert_eq!(String::from_utf8_lossy(&out.stdout), NO_AGENT);
+    let r = reply(cli(home.path(), &cwd, &server.uri(), &["onboard", "setup"]).env("PATH", &path));
+    assert_eq!(say(&r), NO_AGENT.trim_end(), "{r}");
+    assert_eq!(started(), Vec::<std::ffi::OsString>::new(), "a project's program ran");
+    assert_eq!(recorded(&record).len(), 14, "nothing more ran");
+}
+
 // ── the offer, as whole flows ───────────────────────────────────────
 
 /// `GET /v1/user` requests the server has had, by their User-Agent, and

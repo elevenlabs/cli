@@ -186,6 +186,8 @@ fn env_var(env: &HashMap<OsString, OsString>, name: &str, windows: bool) -> Opti
 /// The first `name` on `path` that is a program (on Windows, with one of
 /// the extensions npm and installers use). An empty or relative entry is
 /// skipped: it names a folder in the project, whose programs are never run.
+/// So is every `node_modules/.bin` folder, which npx puts first for the
+/// project and each folder above it, and where no installed agent lives.
 pub(super) fn on_path(name: &str, path: Option<&OsStr>, windows: bool) -> Option<PathBuf> {
     let names: Vec<String> = if windows {
         [".exe", ".cmd", ".bat"]
@@ -196,7 +198,7 @@ pub(super) fn on_path(name: &str, path: Option<&OsStr>, windows: bool) -> Option
         vec![name.to_string()]
     };
     std::env::split_paths(path?)
-        .filter(|dir| dir.is_absolute())
+        .filter(|dir| dir.is_absolute() && !dir.ends_with(Path::new("node_modules").join(".bin")))
         .flat_map(|dir| names.iter().map(move |n| dir.join(n)).collect::<Vec<_>>())
         .find(|p| if windows { p.is_file() } else { is_program(p) })
 }
@@ -388,10 +390,10 @@ fn last_line(mut file: std::fs::File) -> Option<String> {
     clean_last_line(&bytes)
 }
 
-/// The last line with text in `bytes`, where a line ends at `\n` or `\r` (a
-/// progress bar redraws itself after `\r`), without terminal escapes, bidi
-/// formatting characters or control characters (a tab becomes a space), and
-/// at most [`LINE_MAX`] characters long.
+/// The last line with text in `bytes`, where a line ends at `\n`, `\r` (a
+/// progress bar redraws itself after `\r`), U+2028 or U+2029, without
+/// terminal escapes, bidi formatting characters or control characters (a tab
+/// becomes a space), and at most [`LINE_MAX`] characters long.
 fn clean_last_line(bytes: &[u8]) -> Option<String> {
     // U+009B and U+009D are one-character forms of ESC [ and ESC ], which
     // the parser sees only as their two-character forms.
@@ -404,7 +406,8 @@ fn clean_last_line(bytes: &[u8]) -> Option<String> {
         .filter_map(|c| match c {
             '\t' => Some(' '),
             '\n' | '\r' => Some(c),
-            '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => None,
+            '\u{2028}' | '\u{2029}' => Some('\n'),
+            '\u{61c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => None,
             c if c.is_control() => None,
             c => Some(c),
         })

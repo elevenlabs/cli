@@ -582,6 +582,18 @@ fn awkward_path_entries_are_skipped_and_the_first_real_program_wins() {
         path(&[first.as_os_str(), odd.parent().unwrap().as_os_str()]),
         Some(odd.clone()),
     ));
+    // npx puts the project's `node_modules/.bin`, and each one above it, first.
+    let npx = program(&dir("project/node_modules/.bin"));
+    let npx_dir = npx.parent().unwrap().as_os_str();
+    let mut trailing = npx_dir.to_os_string();
+    trailing.push("/");
+    rows.push(("a node_modules/.bin folder first", path(&[npx_dir, real_dir]), Some(real.clone())));
+    rows.push(("a node_modules/.bin folder with a trailing /", path(&[trailing.as_os_str(), real_dir]), Some(real.clone())));
+    rows.push(("only a node_modules/.bin folder", path(&[npx_dir]), None));
+    let near = program(&dir("project/node_modules/bin"));
+    rows.push(("a node_modules/bin folder", path(&[near.parent().unwrap().as_os_str(), real_dir]), Some(near.clone())));
+    let mine = program(&dir("project/my_node_modules/.bin"));
+    rows.push(("a my_node_modules/.bin folder", path(&[mine.parent().unwrap().as_os_str(), real_dir]), Some(mine.clone())));
 
     for (row, path, want) in rows {
         assert_eq!(on_path("claude", Some(&path), false), want, "{row}: PATH={path:?}");
@@ -1057,6 +1069,12 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
         ("a one-character OSC title ended by BEL", "\u{9d}0;title\u{7}error: c1 title\n".into(), Some("error: c1 title".into())),
         ("a plain escape cut off at the end", b"error: trailing\x1b(".to_vec(), Some("error: trailing".into())),
         ("a bidi override around a word", "error: \u{202e}evil\u{202c} ok\n".into(), Some("error: evil ok".into())),
+        ("an Arabic letter mark, U+061C", "error: \u{61c}alm\n".into(), Some("error: alm".into())),
+        ("a left-to-right mark, U+200E", "error: \u{200e}lrm\n".into(), Some("error: lrm".into())),
+        ("a right-to-left mark, U+200F", "error: \u{200f}rlm\n".into(), Some("error: rlm".into())),
+        ("a line separator, U+2028", "error: before\u{2028}the real error\n".into(), Some("the real error".into())),
+        ("a paragraph separator, U+2029", "error: before\u{2029}the real error".into(), Some("the real error".into())),
+        ("a line separator at the end", "error: kept\u{2028}\n".into(), Some("error: kept".into())),
         ("brackets and parentheses in plain text", b"error: failed (code 3) [retry]\n".to_vec(), Some("error: failed (code 3) [retry]".into())),
         ("empty output", Vec::new(), None),
         ("only blank lines and escape codes", b"\n  \r\n\x1b[0m\x1b[2K\r\x1b]0;t\x07\n\t\n".to_vec(), None),
