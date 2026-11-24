@@ -439,8 +439,12 @@ fn loading_the_key_is_a_goal_not_a_recipe() {
             && told.contains("never in anything that runs in the browser"),
         "{told}"
     );
-    // Nothing in it lets an agent assume the file is read by itself.
-    assert!(told.contains("nothing reads that file unless the app or its framework loads it"), "{told}");
+    // Nothing in it lets an agent assume the file is read by itself, or from another folder.
+    assert!(
+        told.contains("in the folder this command ran in")
+            && told.contains("nothing reads that file unless the app or its framework loads it from there"),
+        "{told}"
+    );
     // The coding agent knows the language and the framework; the CLI names neither.
     for framework in ["Next", "Vite", "Astro", "SvelteKit", "Node", "Python", "dotenv", "--env-file"] {
         assert!(!told.contains(framework), "{framework}: {told}");

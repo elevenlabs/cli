@@ -202,9 +202,10 @@ impl Project {
     pub fn load_key(&self, file: Option<&str>) -> String {
         let found = match file {
             Some(file) => format!(
-                "It is in {file}, and nothing reads that file unless the app or its framework loads \
-                 it. It has to reach the process environment before the SDK is imported; some \
-                 frameworks read env files into their own object instead."
+                "It is in {file}, in the folder this command ran in, and nothing reads that file \
+                 unless the app or its framework loads it from there. It has to reach the process \
+                 environment before the SDK is imported; some frameworks read env files into their \
+                 own object instead."
             ),
             None => "It is set in your shell, so the app gets it from the environment.".into(),
         };
