@@ -38,7 +38,7 @@ impl OutboundCampaignsClient {
     /// * `agent_id` - Only campaigns run by this agent.
     /// * `channel` - Only campaigns on this channel.
     /// * `mode` - Only voice or only message campaigns.
-    /// * `search` - Only campaigns whose name contains this text.
+    /// * `search` - Only campaigns whose name contains this text, or whose ID is exactly this text.
     /// * `cursor` - Used for fetching next page. Cursor is returned in the response.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///

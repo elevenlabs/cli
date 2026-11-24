@@ -20,7 +20,7 @@ pub struct ListForWorkspaceQueryRequest {
     /// Filter agent issues by priority. Repeat the parameter to filter by multiple priorities.
     #[serde(default)]
     pub priorities: Vec<Option<AgentConversationTicketPriority>>,
-    /// Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation).
+    /// Order by most recently created, by priority (most urgent first, then most recently created), by most recently reported (the newest report merged into the agent issue, else its creation), or by report count (most reports merged into the agent issue first, then most recently created).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_by: Option<AgentConversationTicketSortBy>,
     /// Filter agent issues by creator. Use 'agent' for agent-raised issues.
@@ -29,9 +29,6 @@ pub struct ListForWorkspaceQueryRequest {
     /// Filter agent issues by assignee. Use 'unassigned' for issues with no assignee.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assignee_user_id: Option<String>,
-    /// Filter agent issues by type.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub issue_type: Option<AgentConversationTicketIssueType>,
     /// Filter agent issues by an exact label.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
@@ -63,7 +60,6 @@ pub struct ListForWorkspaceQueryRequestBuilder {
     sort_by: Option<AgentConversationTicketSortBy>,
     owner_user_id: Option<String>,
     assignee_user_id: Option<String>,
-    issue_type: Option<AgentConversationTicketIssueType>,
     label: Option<String>,
     merged_into_ticket_id: Option<String>,
     search: Option<String>,
@@ -111,11 +107,6 @@ impl ListForWorkspaceQueryRequestBuilder {
         self
     }
 
-    pub fn issue_type(mut self, value: AgentConversationTicketIssueType) -> Self {
-        self.issue_type = Some(value);
-        self
-    }
-
     pub fn label(mut self, value: impl Into<String>) -> Self {
         self.label = Some(value.into());
         self
@@ -150,7 +141,6 @@ impl ListForWorkspaceQueryRequestBuilder {
             sort_by: self.sort_by,
             owner_user_id: self.owner_user_id,
             assignee_user_id: self.assignee_user_id,
-            issue_type: self.issue_type,
             label: self.label,
             merged_into_ticket_id: self.merged_into_ticket_id,
             search: self.search,

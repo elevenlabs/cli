@@ -26,7 +26,7 @@
 //!                 sort_direction: Some(HistoryListRequestSortDirection::Asc),
 //!                 search: Some("search".to_string()),
 //!                 source: Some(HistoryListRequestSource::Tts),
-//!                 ..Default::default()
+//!                 sources: vec![Some(HistoryListRequestSourcesItem::Tts)],
 //!             },
 //!             None,
 //!         )

@@ -20,12 +20,6 @@ pub enum PromptAgentApiModelInputToolsItem {
             data: ClientToolConfigInput,
         },
 
-        #[serde(rename = "mcp")]
-        #[non_exhaustive]
-        Mcp {
-            value: serde_json::Value,
-        },
-
         #[serde(rename = "smb")]
         #[non_exhaustive]
         Smb {
@@ -60,10 +54,6 @@ impl PromptAgentApiModelInputToolsItem {
 
     pub fn client(data: ClientToolConfigInput) -> Self {
         Self::Client { data }
-    }
-
-    pub fn mcp(value: serde_json::Value) -> Self {
-        Self::Mcp { value }
     }
 
     pub fn smb(value: serde_json::Value) -> Self {

@@ -2,58 +2,38 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct CreateRequest {
+    #[serde(default)]
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub small: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sessionization: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(with = "crate::core::base64_bytes::option")]
     pub file: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(with = "crate::core::base64_bytes::option")]
-    pub csv_file: Option<Vec<u8>>,
+    pub auto_convert: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(with = "crate::core::base64_bytes::option")]
-    pub foreground_audio_file: Option<Vec<u8>>,
+    pub apply_text_normalization: Option<AudioNativeCreateRequestApplyTextNormalization>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(with = "crate::core::base64_bytes::option")]
-    pub background_audio_file: Option<Vec<u8>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_lang: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_lang: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_accent: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub num_speakers: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub watermark: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_time: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_time: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub highest_resolution: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub drop_background_audio: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub use_profanity_filter: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dubbing_studio: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub disable_voice_cloning: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mode: Option<DubRequestMode>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(with = "crate::core::number_serializers::option")]
-    pub csv_fps: Option<f64>,
+    pub pronunciation_dictionary_locators: Option<Vec<String>>,
 }
 impl CreateRequest {
     pub fn to_multipart(self) -> reqwest::multipart::Form {
@@ -68,116 +48,63 @@ impl CreateRequest {
         );
     }
 
-    if let Some(ref file_data) = self.csv_file {
-        form = form.part(
-            "csv_file",
-            reqwest::multipart::Part::bytes(file_data.clone())
-                .file_name("csv_file")
-                .mime_str("application/octet-stream").unwrap()
-        );
+    form = form.text("name", self.name.clone());
+
+    if let Some(ref value) = self.image {
+        form = form.text("image", value.clone());
     }
 
-    if let Some(ref file_data) = self.foreground_audio_file {
-        form = form.part(
-            "foreground_audio_file",
-            reqwest::multipart::Part::bytes(file_data.clone())
-                .file_name("foreground_audio_file")
-                .mime_str("application/octet-stream").unwrap()
-        );
+    if let Some(ref value) = self.author {
+        form = form.text("author", value.clone());
     }
 
-    if let Some(ref file_data) = self.background_audio_file {
-        form = form.part(
-            "background_audio_file",
-            reqwest::multipart::Part::bytes(file_data.clone())
-                .file_name("background_audio_file")
-                .mime_str("application/octet-stream").unwrap()
-        );
+    if let Some(ref value) = self.title {
+        form = form.text("title", value.clone());
     }
 
-    if let Some(ref value) = self.name {
-        form = form.text("name", value.clone());
-    }
-
-    if let Some(ref value) = self.source_url {
-        form = form.text("source_url", value.clone());
-    }
-
-    if let Some(ref value) = self.source_lang {
-        form = form.text("source_lang", value.clone());
-    }
-
-    if let Some(ref value) = self.target_lang {
-        form = form.text("target_lang", value.clone());
-    }
-
-    if let Some(ref value) = self.target_accent {
-        form = form.text("target_accent", value.clone());
-    }
-
-    if let Some(ref value) = self.num_speakers {
+    if let Some(ref value) = self.small {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("num_speakers", json_str);
+            form = form.text("small", json_str);
         }
     }
 
-    if let Some(ref value) = self.watermark {
+    if let Some(ref value) = self.text_color {
+        form = form.text("text_color", value.clone());
+    }
+
+    if let Some(ref value) = self.background_color {
+        form = form.text("background_color", value.clone());
+    }
+
+    if let Some(ref value) = self.sessionization {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("watermark", json_str);
+            form = form.text("sessionization", json_str);
         }
     }
 
-    if let Some(ref value) = self.start_time {
+    if let Some(ref value) = self.voice_id {
+        form = form.text("voice_id", value.clone());
+    }
+
+    if let Some(ref value) = self.model_id {
+        form = form.text("model_id", value.clone());
+    }
+
+    if let Some(ref value) = self.auto_convert {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("start_time", json_str);
+            form = form.text("auto_convert", json_str);
         }
     }
 
-    if let Some(ref value) = self.end_time {
+    if let Some(ref value) = self.apply_text_normalization {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("end_time", json_str);
+            form = form.text("apply_text_normalization", json_str);
         }
     }
 
-    if let Some(ref value) = self.highest_resolution {
+    if let Some(ref value) = self.pronunciation_dictionary_locators {
         if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("highest_resolution", json_str);
-        }
-    }
-
-    if let Some(ref value) = self.drop_background_audio {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("drop_background_audio", json_str);
-        }
-    }
-
-    if let Some(ref value) = self.use_profanity_filter {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("use_profanity_filter", json_str);
-        }
-    }
-
-    if let Some(ref value) = self.dubbing_studio {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("dubbing_studio", json_str);
-        }
-    }
-
-    if let Some(ref value) = self.disable_voice_cloning {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("disable_voice_cloning", json_str);
-        }
-    }
-
-    if let Some(ref value) = self.mode {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("mode", json_str);
-        }
-    }
-
-    if let Some(ref value) = self.csv_fps {
-        if let Ok(json_str) = serde_json::to_string(value) {
-            form = form.text("csv_fps", json_str);
+            form = form.text("pronunciation_dictionary_locators", json_str);
         }
     }
 
@@ -194,152 +121,112 @@ impl CreateRequest {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct CreateRequestBuilder {
-    file: Option<Vec<u8>>,
-    csv_file: Option<Vec<u8>>,
-    foreground_audio_file: Option<Vec<u8>>,
-    background_audio_file: Option<Vec<u8>>,
     name: Option<String>,
-    source_url: Option<String>,
-    source_lang: Option<String>,
-    target_lang: Option<String>,
-    target_accent: Option<String>,
-    num_speakers: Option<i64>,
-    watermark: Option<bool>,
-    start_time: Option<i64>,
-    end_time: Option<i64>,
-    highest_resolution: Option<bool>,
-    drop_background_audio: Option<bool>,
-    use_profanity_filter: Option<bool>,
-    dubbing_studio: Option<bool>,
-    disable_voice_cloning: Option<bool>,
-    mode: Option<DubRequestMode>,
-    csv_fps: Option<f64>,
+    image: Option<String>,
+    author: Option<String>,
+    title: Option<String>,
+    small: Option<bool>,
+    text_color: Option<String>,
+    background_color: Option<String>,
+    sessionization: Option<i64>,
+    voice_id: Option<String>,
+    model_id: Option<String>,
+    file: Option<Vec<u8>>,
+    auto_convert: Option<bool>,
+    apply_text_normalization: Option<AudioNativeCreateRequestApplyTextNormalization>,
+    pronunciation_dictionary_locators: Option<Vec<String>>,
 }
 
 impl CreateRequestBuilder {
-    pub fn file(mut self, value: Vec<u8>) -> Self {
-        self.file = Some(value);
-        self
-    }
-
-    pub fn csv_file(mut self, value: Vec<u8>) -> Self {
-        self.csv_file = Some(value);
-        self
-    }
-
-    pub fn foreground_audio_file(mut self, value: Vec<u8>) -> Self {
-        self.foreground_audio_file = Some(value);
-        self
-    }
-
-    pub fn background_audio_file(mut self, value: Vec<u8>) -> Self {
-        self.background_audio_file = Some(value);
-        self
-    }
-
     pub fn name(mut self, value: impl Into<String>) -> Self {
         self.name = Some(value.into());
         self
     }
 
-    pub fn source_url(mut self, value: impl Into<String>) -> Self {
-        self.source_url = Some(value.into());
+    pub fn image(mut self, value: impl Into<String>) -> Self {
+        self.image = Some(value.into());
         self
     }
 
-    pub fn source_lang(mut self, value: impl Into<String>) -> Self {
-        self.source_lang = Some(value.into());
+    pub fn author(mut self, value: impl Into<String>) -> Self {
+        self.author = Some(value.into());
         self
     }
 
-    pub fn target_lang(mut self, value: impl Into<String>) -> Self {
-        self.target_lang = Some(value.into());
+    pub fn title(mut self, value: impl Into<String>) -> Self {
+        self.title = Some(value.into());
         self
     }
 
-    pub fn target_accent(mut self, value: impl Into<String>) -> Self {
-        self.target_accent = Some(value.into());
+    pub fn small(mut self, value: bool) -> Self {
+        self.small = Some(value);
         self
     }
 
-    pub fn num_speakers(mut self, value: i64) -> Self {
-        self.num_speakers = Some(value);
+    pub fn text_color(mut self, value: impl Into<String>) -> Self {
+        self.text_color = Some(value.into());
         self
     }
 
-    pub fn watermark(mut self, value: bool) -> Self {
-        self.watermark = Some(value);
+    pub fn background_color(mut self, value: impl Into<String>) -> Self {
+        self.background_color = Some(value.into());
         self
     }
 
-    pub fn start_time(mut self, value: i64) -> Self {
-        self.start_time = Some(value);
+    pub fn sessionization(mut self, value: i64) -> Self {
+        self.sessionization = Some(value);
         self
     }
 
-    pub fn end_time(mut self, value: i64) -> Self {
-        self.end_time = Some(value);
+    pub fn voice_id(mut self, value: impl Into<String>) -> Self {
+        self.voice_id = Some(value.into());
         self
     }
 
-    pub fn highest_resolution(mut self, value: bool) -> Self {
-        self.highest_resolution = Some(value);
+    pub fn model_id(mut self, value: impl Into<String>) -> Self {
+        self.model_id = Some(value.into());
         self
     }
 
-    pub fn drop_background_audio(mut self, value: bool) -> Self {
-        self.drop_background_audio = Some(value);
+    pub fn file(mut self, value: Vec<u8>) -> Self {
+        self.file = Some(value);
         self
     }
 
-    pub fn use_profanity_filter(mut self, value: bool) -> Self {
-        self.use_profanity_filter = Some(value);
+    pub fn auto_convert(mut self, value: bool) -> Self {
+        self.auto_convert = Some(value);
         self
     }
 
-    pub fn dubbing_studio(mut self, value: bool) -> Self {
-        self.dubbing_studio = Some(value);
+    pub fn apply_text_normalization(mut self, value: AudioNativeCreateRequestApplyTextNormalization) -> Self {
+        self.apply_text_normalization = Some(value);
         self
     }
 
-    pub fn disable_voice_cloning(mut self, value: bool) -> Self {
-        self.disable_voice_cloning = Some(value);
-        self
-    }
-
-    pub fn mode(mut self, value: DubRequestMode) -> Self {
-        self.mode = Some(value);
-        self
-    }
-
-    pub fn csv_fps(mut self, value: f64) -> Self {
-        self.csv_fps = Some(value);
+    pub fn pronunciation_dictionary_locators(mut self, value: Vec<String>) -> Self {
+        self.pronunciation_dictionary_locators = Some(value);
         self
     }
 
     /// Consumes the builder and constructs a [`CreateRequest`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`name`](CreateRequestBuilder::name)
     pub fn build(self) -> Result<CreateRequest, BuildError> {
         Ok(CreateRequest {
+            name: self.name.ok_or_else(|| BuildError::missing_field("name"))?,
+            image: self.image,
+            author: self.author,
+            title: self.title,
+            small: self.small,
+            text_color: self.text_color,
+            background_color: self.background_color,
+            sessionization: self.sessionization,
+            voice_id: self.voice_id,
+            model_id: self.model_id,
             file: self.file,
-            csv_file: self.csv_file,
-            foreground_audio_file: self.foreground_audio_file,
-            background_audio_file: self.background_audio_file,
-            name: self.name,
-            source_url: self.source_url,
-            source_lang: self.source_lang,
-            target_lang: self.target_lang,
-            target_accent: self.target_accent,
-            num_speakers: self.num_speakers,
-            watermark: self.watermark,
-            start_time: self.start_time,
-            end_time: self.end_time,
-            highest_resolution: self.highest_resolution,
-            drop_background_audio: self.drop_background_audio,
-            use_profanity_filter: self.use_profanity_filter,
-            dubbing_studio: self.dubbing_studio,
-            disable_voice_cloning: self.disable_voice_cloning,
-            mode: self.mode,
-            csv_fps: self.csv_fps,
+            auto_convert: self.auto_convert,
+            apply_text_normalization: self.apply_text_normalization,
+            pronunciation_dictionary_locators: self.pronunciation_dictionary_locators,
         })
     }
 }

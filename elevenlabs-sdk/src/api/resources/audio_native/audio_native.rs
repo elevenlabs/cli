@@ -37,7 +37,7 @@ impl AudioNativeClient {
     ///     client
     ///         .audio_native
     ///         .create(
-    ///             &CreateRequest2 {
+    ///             &CreateRequest {
     ///                 file: b"test file content".to_vec(),
     ///                 name: "name".to_string(),
     ///                 image: None,

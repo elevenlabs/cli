@@ -26,6 +26,7 @@ impl HistoryClient {
     /// * `sort_direction` - Sort direction for the results.
     /// * `search` - search term used for filtering
     /// * `source` - Source of the generated history item
+    /// * `sources` - Sources of the generated history items, matching any of them. Cannot be combined with source.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -56,7 +57,7 @@ impl HistoryClient {
     ///                 sort_direction: Some(HistoryListRequestSortDirection::Asc),
     ///                 search: Some("search".to_string()),
     ///                 source: Some(HistoryListRequestSource::Tts),
-    ///                 ..Default::default()
+    ///                 sources: vec![Some(HistoryListRequestSourcesItem::Tts)],
     ///             },
     ///             None,
     ///         )
@@ -86,6 +87,7 @@ impl HistoryClient {
                     .serialize("sort_direction", request.sort_direction.clone())
                     .string("search", request.search.clone())
                     .serialize("source", request.source.clone())
+                    .serialize_array("sources", request.sources.clone())
                     .build(),
                 options,
             )

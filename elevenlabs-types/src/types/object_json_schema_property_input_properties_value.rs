@@ -10,6 +10,8 @@ pub enum ObjectJsonSchemaPropertyInputPropertiesValue {
         ObjectJsonSchemaPropertyInput(Box<ObjectJsonSchemaPropertyInput>),
 
         ArrayJsonSchemaPropertyInput(Box<ArrayJsonSchemaPropertyInput>),
+
+        AnyOfJsonSchemaPropertyInput(Box<AnyOfJsonSchemaPropertyInput>),
 }
 
 impl ObjectJsonSchemaPropertyInputPropertiesValue {
@@ -23,6 +25,10 @@ impl ObjectJsonSchemaPropertyInputPropertiesValue {
 
     pub fn is_array_json_schema_property_input(&self) -> bool {
         matches!(self, Self::ArrayJsonSchemaPropertyInput(_))
+    }
+
+    pub fn is_any_of_json_schema_property_input(&self) -> bool {
+        matches!(self, Self::AnyOfJsonSchemaPropertyInput(_))
     }
 
 
@@ -67,6 +73,20 @@ impl ObjectJsonSchemaPropertyInputPropertiesValue {
                     _ => None,
                 }
     }
+
+    pub fn as_any_of_json_schema_property_input(&self) -> Option<&Box<AnyOfJsonSchemaPropertyInput>> {
+        match self {
+                    Self::AnyOfJsonSchemaPropertyInput(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_any_of_json_schema_property_input(self) -> Option<AnyOfJsonSchemaPropertyInput> {
+        match self {
+                    Self::AnyOfJsonSchemaPropertyInput(value) => Some(*value),
+                    _ => None,
+                }
+    }
 }
 
 impl fmt::Display for ObjectJsonSchemaPropertyInputPropertiesValue {
@@ -75,6 +95,7 @@ impl fmt::Display for ObjectJsonSchemaPropertyInputPropertiesValue {
             Self::LiteralJsonSchemaProperty(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ObjectJsonSchemaPropertyInput(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ArrayJsonSchemaPropertyInput(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::AnyOfJsonSchemaPropertyInput(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
         }
     }
 }
