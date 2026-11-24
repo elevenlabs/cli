@@ -1,0 +1,92 @@
+flowchart LR
+    n_issue_refund[["Webhook tool · issue_refund<br/>Refund an order the caller asked to return<br/>timeout 10s · execution post_tool_speech · pre-tool speech…"]]
+    n_issue_refund_request["POST https://{{system__env_orders_host}}/{tenant}/orders/{order_id}/refunds"]
+    n_issue_refund_request_templates["URL variables"]
+    n_issue_refund_request_templates_system__env_orders_host["{{system__env_orders_host}} [env orders_host]"]
+    n_issue_refund_request_path["Path params"]
+    n_issue_refund_request_path_tenant["tenant [from auth connection]"]
+    n_issue_refund_request_path_order_id["order_id: string required [LLM]<br/>The order number the caller gives, e.g. A-1042"]
+    n_issue_refund_request_query["Query params"]
+    n_issue_refund_request_query_locale["locale: string optional [var user_locale]"]
+    n_issue_refund_request_query_notify["notify: boolean required [constant true]"]
+    n_issue_refund_request_body["Body application/json"]
+    n_issue_refund_request_body_contact["contact: object required<br/>How to reach the caller about the refund<br/>requires one of (email) #124; (phone)"]
+    n_issue_refund_request_body_contact_email["email: string optional [LLM]<br/>Email address, if the caller gives one"]
+    n_issue_refund_request_body_contact_phone["phone: string optional [system]"]
+    n_issue_refund_request_body_customer_id["customer_id: string required [var customer_id]"]
+    n_issue_refund_request_body_internal_note["internal_note: string optional [omitted]"]
+    n_issue_refund_request_body_items["items: array#lt;string#gt; optional<br/>The items to refund"]
+    n_issue_refund_request_body_items___["[]: string [LLM]<br/>A SKU from the order"]
+    n_issue_refund_request_body_reason["reason: string required [LLM]<br/>Why the caller wants a refund<br/>one of damaged #124; late #124; other"]
+    n_issue_refund_request_body_workspace["workspace: string optional [LLM]<br/>The workspace the order belongs to<br/>must be in {{allowed_workspaces}}"]
+    n_issue_refund_request_headers["Headers"]
+    n_issue_refund_request_headers_Authorization["Authorization [secret sec_orders_api]"]
+    n_issue_refund_request_headers_Content_Type["Content-Type = #quot;application/json#quot;"]
+    n_issue_refund_request_headers_X_Api_Key["X-Api-Key [env orders_api_key]"]
+    n_issue_refund_request_headers_X_Caller["X-Caller [var system__caller_id]"]
+    n_issue_refund_request_auth["Auth [env orders_oauth]"]
+    n_issue_refund_response["Response"]
+    n_issue_refund_response_schema["Schema"]
+    n_issue_refund_response_schema_refund["refund: object"]
+    n_issue_refund_response_schema_refund_id["id: string<br/>The refund ID"]
+    n_issue_refund_response_schema_refund_status["status: string<br/>pending, approved or rejected"]
+    n_issue_refund_response_filter["Filter allow<br/>keeps refund.status"]
+    n_issue_refund_response_assignments["Assignments"]
+    n_issue_refund_response_assignments_0["refund.id → {{refund_id}} (hidden from the LLM)"]
+    n_issue_refund_response_assignments_1["refund.status → {{refund_status}}"]
+    n_issue_refund --> n_issue_refund_request
+    n_issue_refund_request --> n_issue_refund_request_templates
+    n_issue_refund_request_templates --> n_issue_refund_request_templates_system__env_orders_host
+    n_issue_refund_request --> n_issue_refund_request_path
+    n_issue_refund_request_path --> n_issue_refund_request_path_tenant
+    n_issue_refund_request_path --> n_issue_refund_request_path_order_id
+    n_issue_refund_request --> n_issue_refund_request_query
+    n_issue_refund_request_query --> n_issue_refund_request_query_locale
+    n_issue_refund_request_query --> n_issue_refund_request_query_notify
+    n_issue_refund_request --> n_issue_refund_request_body
+    n_issue_refund_request_body --> n_issue_refund_request_body_contact
+    n_issue_refund_request_body_contact --> n_issue_refund_request_body_contact_email
+    n_issue_refund_request_body_contact --> n_issue_refund_request_body_contact_phone
+    n_issue_refund_request_body --> n_issue_refund_request_body_customer_id
+    n_issue_refund_request_body --> n_issue_refund_request_body_internal_note
+    n_issue_refund_request_body --> n_issue_refund_request_body_items
+    n_issue_refund_request_body_items --> n_issue_refund_request_body_items___
+    n_issue_refund_request_body --> n_issue_refund_request_body_reason
+    n_issue_refund_request_body --> n_issue_refund_request_body_workspace
+    n_issue_refund_request --> n_issue_refund_request_headers
+    n_issue_refund_request_headers --> n_issue_refund_request_headers_Authorization
+    n_issue_refund_request_headers --> n_issue_refund_request_headers_Content_Type
+    n_issue_refund_request_headers --> n_issue_refund_request_headers_X_Api_Key
+    n_issue_refund_request_headers --> n_issue_refund_request_headers_X_Caller
+    n_issue_refund_request --> n_issue_refund_request_auth
+    n_issue_refund --> n_issue_refund_response
+    n_issue_refund_response --> n_issue_refund_response_schema
+    n_issue_refund_response_schema --> n_issue_refund_response_schema_refund
+    n_issue_refund_response_schema_refund --> n_issue_refund_response_schema_refund_id
+    n_issue_refund_response_schema_refund --> n_issue_refund_response_schema_refund_status
+    n_issue_refund_response --> n_issue_refund_response_filter
+    n_issue_refund_response --> n_issue_refund_response_assignments
+    n_issue_refund_response_assignments --> n_issue_refund_response_assignments_0
+    n_issue_refund_response_assignments --> n_issue_refund_response_assignments_1
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_issue_refund t_tool
+    classDef t_request fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    class n_issue_refund_request t_request
+    classDef t_section fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_issue_refund_request_templates,n_issue_refund_request_path,n_issue_refund_request_query,n_issue_refund_request_body,n_issue_refund_request_headers,n_issue_refund_response,n_issue_refund_response_schema,n_issue_refund_response_filter,n_issue_refund_response_assignments t_section
+    classDef t_param fill:#ffffff,stroke:#94a3b8,color:#0f172a
+    class n_issue_refund_request_body_contact,n_issue_refund_request_body_items,n_issue_refund_response_schema_refund,n_issue_refund_response_schema_refund_id,n_issue_refund_response_schema_refund_status t_param
+    classDef t_llm fill:#cffafe,stroke:#0891b2,color:#164e63
+    class n_issue_refund_request_path_order_id,n_issue_refund_request_body_contact_email,n_issue_refund_request_body_items___,n_issue_refund_request_body_reason,n_issue_refund_request_body_workspace t_llm
+    classDef t_var fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class n_issue_refund_request_query_locale,n_issue_refund_request_body_customer_id,n_issue_refund_request_headers_X_Caller,n_issue_refund_response_assignments_0,n_issue_refund_response_assignments_1 t_var
+    classDef t_const fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    class n_issue_refund_request_query_notify,n_issue_refund_request_headers_Content_Type t_const
+    classDef t_system fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    class n_issue_refund_request_body_contact_phone t_system
+    classDef t_omitted fill:#f3f4f6,stroke:#9ca3af,stroke-dasharray:4 2,color:#6b7280
+    class n_issue_refund_request_body_internal_note t_omitted
+    classDef t_secret fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class n_issue_refund_request_path_tenant,n_issue_refund_request_headers_Authorization t_secret
+    classDef t_env fill:#d1fae5,stroke:#059669,color:#064e3b
+    class n_issue_refund_request_templates_system__env_orders_host,n_issue_refund_request_headers_X_Api_Key,n_issue_refund_request_auth t_env

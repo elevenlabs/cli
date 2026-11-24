@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct DubbingLanguageResponse {
     /// Unique identifier of the language target.
     #[serde(default)]
@@ -20,7 +20,7 @@ pub struct DubbingLanguageResponse {
     pub model_id: Option<String>,
     /// Voice settings applied to every speaker in this language, or null if the defaults apply.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub voice_settings: Option<VoiceSettings>,
+    pub voice_settings: Option<DubbingVoiceSettings>,
     /// Signed output URLs; null until the target has produced an output (present once `completed`, and kept while `stale` — compare `output_revision` against `revision` to tell whether the output is up to date).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub outputs: Option<DubbingLanguageOutputs>,
@@ -60,7 +60,7 @@ pub struct DubbingLanguageResponseBuilder {
     target_language: Option<String>,
     status: Option<DubbingLanguageResponseStatus>,
     model_id: Option<String>,
-    voice_settings: Option<VoiceSettings>,
+    voice_settings: Option<DubbingVoiceSettings>,
     outputs: Option<DubbingLanguageOutputs>,
     revision: Option<i64>,
     output_revision: Option<i64>,
@@ -96,7 +96,7 @@ impl DubbingLanguageResponseBuilder {
         self
     }
 
-    pub fn voice_settings(mut self, value: VoiceSettings) -> Self {
+    pub fn voice_settings(mut self, value: DubbingVoiceSettings) -> Self {
         self.voice_settings = Some(value);
         self
     }

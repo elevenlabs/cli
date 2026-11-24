@@ -1,0 +1,53 @@
+{
+  "id": "tool_01jstoremap0000000000000",
+  "tool_config": {
+    "description": "Show the caller a map of the nearest store",
+    "dynamic_variables": {
+      "dynamic_variable_placeholders": {
+        "user_profile": "{}"
+      }
+    },
+    "expects_response": true,
+    "name": "show_store_map",
+    "parameters": {
+      "properties": {
+        "highlights": {
+          "description": "Aisles to highlight",
+          "items": {
+            "description": "An aisle name",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "store_id": {
+          "description": "The store to show",
+          "type": "string"
+        },
+        "user": {
+          "dynamic_variable": "user_profile",
+          "type": "object"
+        },
+        "zoom": {
+          "description": "Zoom level, 1-20",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "store_id",
+        "zoom",
+        "highlights",
+        "user"
+      ],
+      "type": "object"
+    },
+    "response_timeout_secs": 20,
+    "type": "client",
+    "assignments": [
+      {
+        "dynamic_variable": "selected_aisle",
+        "source": "response",
+        "value_path": "aisle"
+      }
+    ]
+  }
+}

@@ -198,7 +198,7 @@ elevenlabs agents status
 
 # Sync configs with ElevenLabs (push force-overrides main + registered branches)
 elevenlabs agents push [--agent <agent_id>] [--branch <name|id>] [--version-description <text>] [--dry-run]
-elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--config-format json|yaml|toml] [--dry-run]
+elevenlabs agents pull [--agent <agent_id>] [--branch <name|id>] [--all-branches] [--update] [--all] [--sparse] [--config-format json|yaml|toml] [--dry-run]
 
 # List available agent templates, or print one's full configuration
 elevenlabs agents templates list
@@ -223,6 +223,8 @@ elevenlabs agents graph --uses <id|name>
 A config file's extension sets its format: `.json`, `.yaml`/`.yml` or `.toml`. The registry files (`agents.json`, `tools.json`, `tests.json`) stay JSON, and their `config` paths can point at any of the three, so you can convert a config by hand and update its path.
 
 New files are JSON unless you pick another format. `agents pull --config-format toml` writes new agents as TOML, and a new branch file follows the format of its agent's config. Files that already exist keep their format. `agents add --from-file support.yaml` saves the agent's config as YAML too; `--config-format` overrides that.
+
+Without `--sparse`, `agents pull --update` writes the full server representation, including every null, empty array, and unchanged default. With `--sparse`, an existing file keeps the keys it already has (their values update from the live agent) and gains only live values that are not null or empty. A new file written with `--sparse` drops nulls, empty objects, and empty arrays too, so the first pull is not the full server document. Two exceptions: workflow node and edge ids follow the live workflow, so one deleted in the dashboard is not written back, and free-form JSON values (dynamic variable placeholders, tool schemas, constant values) are copied whole, nulls included.
 
 TOML has no `null`, so writing TOML drops null fields. For agents nothing is lost: `push` only changes the fields it sends, and a null field was unset already. What TOML can't do is clear a field, because deleting its line leaves the value on ElevenLabs unchanged. To clear one, set it to `null` in a JSON or YAML config. Some nulls are data rather than unset fields: one inside a list (an item, or a field of an object in a list of mixed values), or anywhere within a free-form value such as a tool parameter's `constant_value`. A config with one of those can't be saved as TOML; the CLI says so and names the field.
 
@@ -310,7 +312,7 @@ A few things keep a busy workflow readable, so lines don't cross or run together
 - When a node's branches would still cross, its box is widened or the branches are reordered, whichever draws without crossings.
 - When the drawing is wider than the terminal (or `COLUMNS`), long IDs are shortened, as in `tool_01j…sfb67`. If it still doesn't fit, a note says so; `--format mermaid` has the full IDs.
 
-`--format mermaid` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
+`--format mermaid` prints [Mermaid](https://mermaid.js.org/), which GitHub renders in Markdown files, issues and PR comments. Each node type has its own shape and colour (start/end, say, tool, update state, subagent, and agent or phone transfers); types the CLI doesn't know yet are drawn as plain dashed boxes. A tool node shows each tool's name from `tools.json`, or its ID when the tool isn't local; `elevenlabs tools diagram` draws what is inside a tool. Edge labels summarise the condition: its label if it has one, otherwise the LLM condition text (truncated), `success`/`failure` for tool results, or `expression`. A backward condition is drawn as a dotted arrow in the other direction. Nodes and edges are emitted sorted by ID, so the output changes only when the workflow does and diffs cleanly.
 
 ```mermaid
 flowchart TD
@@ -388,7 +390,59 @@ elevenlabs tools pull [--tool <tool_id>] [--output-dir tool_configs] [--update] 
 # Delete a tool locally and in ElevenLabs
 elevenlabs tools delete <tool_id>
 elevenlabs tools delete --all
+
+# Draw one tool's parameters, value sources, headers and response handling
+elevenlabs tools diagram <tool_config.json|tool_id|name> [--format ascii|mermaid|mermaid-md]
 ```
+
+#### Drawing a tool
+
+`tools diagram` shows what is inside a tool, which `agents workflow diagram` (tool nodes by name) and `agents graph` (which agents use which tools) don't:
+
+```bash
+elevenlabs tools diagram tool_configs/issue_refund.json    # a config file, bare or wrapped in "tool_config"
+elevenlabs tools diagram issue_refund                      # a name or ID from tools.json
+elevenlabs tools diagram tool_01jxcrhpk0ehdvnxw3mw4sfb67   # an ID that isn't local is fetched from ElevenLabs
+elevenlabs tools diagram agent_configs/front_desk.json     # an agent's system tools (transfer rules) and inline tools
+elevenlabs tools diagram issue_refund --format mermaid-md  # Mermaid in a fence, for docs or a PR comment
+```
+
+It reads the `tool_configs/*.json` wire format, which is also what the SDKs' tool builders write (`toJSONString()` in JS, `to_json_string()` in Python). Local files need no API key.
+
+- **Webhook tools:** the method and URL, with `{path}` placeholders and `{{system__env_*}}` templates picked out. Then the path, query and body parameters as a tree, with headers, the auth connection, and the response: its documented schema, filter, and `assignments` to dynamic variables.
+- **Client tools:** the parameter tree, and whether the tool waits for a response.
+- **System tools:** transfer conditions and where each goes (agent, phone number, SIP URI or dynamic variable, plus the transfer type), per-provider transfer rules, and any other params.
+
+Each parameter is marked `required` or `optional`, with where its value comes from: `[LLM]` (with the description the LLM reads), `[var name]`, `[constant value]`, `[system]` or `[omitted]`. `enum`, `allowed_values` and `required_constraints` appear under it. Each header shows its source: a plain value, `[secret id]`, `[var name]` or `[env label]`. A URL placeholder with no schema, or a path param the URL doesn't use, is flagged.
+
+```
+issue_refund · Webhook tool
+Refund an order the caller asked to return
+timeout 10s · execution post_tool_speech · pre-tool speech force
+
+POST https://{{system__env_orders_host}}/{tenant}/orders/{order_id}/refunds
+├── URL variables
+│   └── {{system__env_orders_host}} [env orders_host]
+├── Path params
+│   ├── tenant [from auth connection]
+│   └── order_id: string required [LLM]
+│           The order number the caller gives, e.g. A-1042
+├── Body application/json
+│   ├── customer_id: string required [var customer_id]
+│   └── reason: string required [LLM]
+│           Why the caller wants a refund
+│           one of damaged | late | other
+├── Headers
+│   ├── Authorization [secret sec_orders_api]
+│   └── X-Caller [var system__caller_id]
+└── Auth [env orders_oauth]
+
+Response
+└── Assignments
+    └── refund.id → {{refund_id}} (hidden from the LLM)
+```
+
+In a terminal, value sources are coloured (unless `NO_COLOR` is set) and long lines wrap to its width (or `COLUMNS`). `--format mermaid` draws the same tree left to right, one colour per value source.
 
 ### Tests
 

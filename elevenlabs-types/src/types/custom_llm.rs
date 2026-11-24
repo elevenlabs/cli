@@ -16,6 +16,9 @@ pub struct CustomLlm {
     /// Optional workspace auth connection for authentication. Only auth connections that produce an Authorization Bearer token are supported; Basic auth, mTLS, custom header, and URL secret auth connections are not supported.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_connection: Option<CustomLlmAuthConnection>,
+    /// Optional mTLS auth connection. When set, its client certificate is used for the TLS handshake with the LLM endpoint and, when auth_connection is OAuth2 client credentials or OAuth2 JWT, with its token endpoint too. Application auth stays on auth_connection or api_key. auth_connection must then be OAuth2 client credentials, OAuth2 JWT or bearer.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mtls_auth_connection: Option<CustomLlmMtlsAuthConnection>,
     /// Headers that should be included in the request
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_headers: Option<HashMap<String, CustomLlmRequestHeadersValue>>,
@@ -40,6 +43,7 @@ pub struct CustomLlmBuilder {
     model_id: Option<String>,
     api_key: Option<CustomLlmApiKey>,
     auth_connection: Option<CustomLlmAuthConnection>,
+    mtls_auth_connection: Option<CustomLlmMtlsAuthConnection>,
     request_headers: Option<HashMap<String, CustomLlmRequestHeadersValue>>,
     api_version: Option<String>,
     api_type: Option<CustomLlmapiType>,
@@ -63,6 +67,11 @@ impl CustomLlmBuilder {
 
     pub fn auth_connection(mut self, value: CustomLlmAuthConnection) -> Self {
         self.auth_connection = Some(value);
+        self
+    }
+
+    pub fn mtls_auth_connection(mut self, value: CustomLlmMtlsAuthConnection) -> Self {
+        self.mtls_auth_connection = Some(value);
         self
     }
 
@@ -90,6 +99,7 @@ impl CustomLlmBuilder {
             model_id: self.model_id,
             api_key: self.api_key,
             auth_connection: self.auth_connection,
+            mtls_auth_connection: self.mtls_auth_connection,
             request_headers: self.request_headers,
             api_version: self.api_version,
             api_type: self.api_type,

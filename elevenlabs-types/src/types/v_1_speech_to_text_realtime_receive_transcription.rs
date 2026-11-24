@@ -15,6 +15,8 @@ pub enum ReceiveTranscription {
 
         SpeakersMerged(SpeakersMerged),
 
+        SpeakerNames(SpeakerNames),
+
         CommittedTranscriptWithTimestampsPayload(CommittedTranscriptWithTimestampsPayload),
 
         CommittedTranscriptEntitiesPayload(CommittedTranscriptEntitiesPayload),
@@ -73,6 +75,10 @@ impl ReceiveTranscription {
 
     pub fn is_speakers_merged(&self) -> bool {
         matches!(self, Self::SpeakersMerged(_))
+    }
+
+    pub fn is_speaker_names(&self) -> bool {
+        matches!(self, Self::SpeakerNames(_))
     }
 
     pub fn is_committed_transcript_with_timestamps_payload(&self) -> bool {
@@ -218,6 +224,20 @@ impl ReceiveTranscription {
     pub fn into_speakers_merged(self) -> Option<SpeakersMerged> {
         match self {
                     Self::SpeakersMerged(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn as_speaker_names(&self) -> Option<&SpeakerNames> {
+        match self {
+                    Self::SpeakerNames(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_speaker_names(self) -> Option<SpeakerNames> {
+        match self {
+                    Self::SpeakerNames(value) => Some(value),
                     _ => None,
                 }
     }
@@ -497,6 +517,7 @@ impl fmt::Display for ReceiveTranscription {
             Self::CommittedTranscriptPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::DiarizedTranscript(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::SpeakersMerged(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::SpeakerNames(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptWithTimestampsPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::CommittedTranscriptEntitiesPayload(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::RedactedTranscript(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),

@@ -1,0 +1,16 @@
+flowchart LR
+    n_escalate[["System tool (transfer_to_number) · escalate"]]
+    n_escalate_rules["Transfer rules"]
+    n_escalate_rules_0["#quot;Caller asks for a human#quot;"]
+    n_escalate_rules_0_0["twilio twilio_warm_conference_transfer → phone +15550100"]
+    n_escalate_rules_0_1["sip_trunk sip_cold_refer_transfer → SIP {{escalation_uri}}"]
+    n_escalate --> n_escalate_rules
+    n_escalate_rules --> n_escalate_rules_0
+    n_escalate_rules_0 --> n_escalate_rules_0_0
+    n_escalate_rules_0 --> n_escalate_rules_0_1
+    classDef t_tool fill:#fef3c7,stroke:#d97706,color:#78350f
+    class n_escalate t_tool
+    classDef t_section fill:#f1f5f9,stroke:#475569,color:#0f172a
+    class n_escalate_rules t_section
+    classDef t_transfer fill:#fce7f3,stroke:#db2777,color:#831843
+    class n_escalate_rules_0,n_escalate_rules_0_0,n_escalate_rules_0_1 t_transfer

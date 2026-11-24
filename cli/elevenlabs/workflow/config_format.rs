@@ -155,6 +155,13 @@ const LITERAL_KEYS: [&str; 5] = [
     "output_schema",
 ];
 
+/// Whether `key` holds free-form JSON that must be copied whole. A null for
+/// the field itself still means unset; nulls and empty containers inside the
+/// value are data. Shared with sparse pull so it does not prune those subtrees.
+pub(super) fn is_literal_key(key: &str) -> bool {
+    LITERAL_KEYS.contains(&key)
+}
+
 /// `path` is the dotted key path of `map`, for error messages. `literal` is
 /// set within a [`LITERAL_KEYS`] value, where a null field is refused rather
 /// than dropped.

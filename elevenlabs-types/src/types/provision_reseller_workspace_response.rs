@@ -17,9 +17,12 @@ pub struct ProvisionResellerWorkspaceResponse {
     pub calls_last30days: i64,
     #[serde(default)]
     pub created_at_unix: i64,
-    /// The reseller-managed subscription, when this workspace has one. None means nothing is sold here yet and a tier can be assigned.
+    /// The reseller-managed subscription, when this workspace has one. None means the reseller sells nothing here: no tier is assigned yet, or the workspace pays for its own subscription (see charge_customer).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subscription: Option<ResellerWorkspaceSubscription>,
+    /// The workspace pays for its own subscription, so its tier can't be assigned or changed here.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub charge_customer: Option<bool>,
     /// A charge for this workspace is unpaid. Assigning or changing a tier is refused until it clears, so surface it rather than letting it fail.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_payment_issue: Option<bool>,
@@ -46,6 +49,7 @@ pub struct ProvisionResellerWorkspaceResponseBuilder {
     calls_last30days: Option<i64>,
     created_at_unix: Option<i64>,
     subscription: Option<ResellerWorkspaceSubscription>,
+    charge_customer: Option<bool>,
     has_payment_issue: Option<bool>,
     onboarding_completed_at_unix: Option<i64>,
     member_results: Option<Vec<TeamInviteResult>>,
@@ -87,6 +91,11 @@ impl ProvisionResellerWorkspaceResponseBuilder {
         self
     }
 
+    pub fn charge_customer(mut self, value: bool) -> Self {
+        self.charge_customer = Some(value);
+        self
+    }
+
     pub fn has_payment_issue(mut self, value: bool) -> Self {
         self.has_payment_issue = Some(value);
         self
@@ -118,6 +127,7 @@ impl ProvisionResellerWorkspaceResponseBuilder {
             calls_last30days: self.calls_last30days.ok_or_else(|| BuildError::missing_field("calls_last30days"))?,
             created_at_unix: self.created_at_unix.ok_or_else(|| BuildError::missing_field("created_at_unix"))?,
             subscription: self.subscription,
+            charge_customer: self.charge_customer,
             has_payment_issue: self.has_payment_issue,
             onboarding_completed_at_unix: self.onboarding_completed_at_unix,
             member_results: self.member_results,

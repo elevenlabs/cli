@@ -469,6 +469,14 @@ impl VoicesClient {
     ///
     /// # Arguments
     ///
+    /// * `category` - Voice category used for filtering
+    /// * `gender` - Gender used for filtering
+    /// * `age` - Age used for filtering
+    /// * `use_cases` - Use-case used for filtering
+    /// * `min_notice_period_days` - Filter voices with a minimum notice period of the given number of days.
+    /// * `include_custom_rates` - Include/exclude voices with custom rates
+    /// * `include_live_moderated` - Include/exclude voices that are live moderated
+    /// * `owner_id` - Filter voices by public owner ID
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -490,6 +498,14 @@ impl VoicesClient {
     ///         .voices
     ///         .find_similar_voices(
     ///             &FindSimilarVoicesRequest {
+    ///                 category: Some(VoicesFindSimilarVoicesRequestCategory::Professional),
+    ///                 gender: Some("gender".to_string()),
+    ///                 age: Some("age".to_string()),
+    ///                 use_cases: vec![Some("use_cases".to_string())],
+    ///                 min_notice_period_days: Some(1),
+    ///                 include_custom_rates: Some(true),
+    ///                 include_live_moderated: Some(true),
+    ///                 owner_id: Some("owner_id".to_string()),
     ///                 audio_file: b"test file content".to_vec(),
     ///                 similarity_threshold: None,
     ///                 top_k: None,
@@ -509,7 +525,22 @@ impl VoicesClient {
                 Method::POST,
                 "v1/similar-voices",
                 request.clone().to_multipart(),
-                None,
+                QueryBuilder::new()
+                    .serialize("category", request.category.clone())
+                    .string("gender", request.gender.clone())
+                    .string("age", request.age.clone())
+                    .string_array("use_cases", request.use_cases.clone())
+                    .int(
+                        "min_notice_period_days",
+                        request.min_notice_period_days.clone(),
+                    )
+                    .bool("include_custom_rates", request.include_custom_rates.clone())
+                    .bool(
+                        "include_live_moderated",
+                        request.include_live_moderated.clone(),
+                    )
+                    .string("owner_id", request.owner_id.clone())
+                    .build(),
                 options,
             )
             .await
