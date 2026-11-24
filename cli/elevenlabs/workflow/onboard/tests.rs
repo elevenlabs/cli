@@ -24,6 +24,15 @@ fn the_sign_in_is_read_out_of_main_rs() {
 }
 
 #[test]
+fn the_sign_in_asks_for_what_workspace_members_list_needs() {
+    let c = sign_in_config().expect("main.rs declares the sign-in");
+    assert!(
+        c.scopes.iter().any(|s| s == "workspace_members_read"),
+        "without it `workspace members list` is a 403 after `auth login` (#187)"
+    );
+}
+
+#[test]
 fn the_clipboard_is_a_key_a_marker_or_nothing() {
     let key = "sk_0123456789abcdef0123456789abcdef";
     assert!(matches!(classify(Some(format!("  {key}\n"))), Clip::Key(k) if k == key));
