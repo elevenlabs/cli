@@ -96,6 +96,17 @@ pub enum AgentWorkflowRequestModelNodesValue {
             edge_order: Option<Vec<String>>,
         },
 
+        #[serde(rename = "start_procedure")]
+        #[non_exhaustive]
+        StartProcedure {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            position: Option<PositionInput>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            edge_order: Option<Vec<String>>,
+            #[serde(default)]
+            procedure_id: String,
+        },
+
         #[serde(rename = "tool")]
         #[non_exhaustive]
         Tool {
@@ -170,6 +181,10 @@ impl AgentWorkflowRequestModelNodesValue {
 
     pub fn start() -> Self {
         Self::Start { position: None, edge_order: None }
+    }
+
+    pub fn start_procedure(procedure_id: String) -> Self {
+        Self::StartProcedure { position: None, edge_order: None, procedure_id }
     }
 
     pub fn tool() -> Self {
@@ -306,6 +321,14 @@ impl AgentWorkflowRequestModelNodesValue {
 
     pub fn start_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>) -> Self {
         Self::Start { position, edge_order: Some(edge_order) }
+    }
+
+    pub fn start_procedure_with_position(position: PositionInput, edge_order: Option<Vec<String>>, procedure_id: String) -> Self {
+        Self::StartProcedure { position: Some(position), edge_order, procedure_id }
+    }
+
+    pub fn start_procedure_with_edge_order(position: Option<PositionInput>, edge_order: Vec<String>, procedure_id: String) -> Self {
+        Self::StartProcedure { position, edge_order: Some(edge_order), procedure_id }
     }
 
     pub fn tool_with_position(position: PositionInput, edge_order: Option<Vec<String>>, tools: Option<Vec<WorkflowToolLocator>>) -> Self {

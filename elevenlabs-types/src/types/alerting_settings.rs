@@ -13,6 +13,9 @@ pub struct AlertingSettings {
     /// How many minutes an alert can stay inactive before it is auto-resolved. Unset values fall through to the next layer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_resolve_after_inactive_minutes: Option<i64>,
+    /// Environments whose conversations are monitored, e.g. ``['production']``. The list must include ``production``. Unset values fall through to the next layer; when no layer sets it, every environment is monitored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environments: Option<Vec<String>>,
     /// Delivery channels for alert lifecycle notifications. Stacked with other layers and deduped by ``webhook_id``, PagerDuty ``connection_id``, or Slack ``(connection_id, channel_id)``.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notifiers: Option<Vec<AlertingSettingsNotifiersItem>>,
@@ -29,6 +32,7 @@ impl AlertingSettings {
 pub struct AlertingSettingsBuilder {
     monitor_configs: Option<HashMap<String, AlertingMonitorConfig>>,
     auto_resolve_after_inactive_minutes: Option<i64>,
+    environments: Option<Vec<String>>,
     notifiers: Option<Vec<AlertingSettingsNotifiersItem>>,
 }
 
@@ -43,6 +47,11 @@ impl AlertingSettingsBuilder {
         self
     }
 
+    pub fn environments(mut self, value: Vec<String>) -> Self {
+        self.environments = Some(value);
+        self
+    }
+
     pub fn notifiers(mut self, value: Vec<AlertingSettingsNotifiersItem>) -> Self {
         self.notifiers = Some(value);
         self
@@ -53,6 +62,7 @@ impl AlertingSettingsBuilder {
         Ok(AlertingSettings {
             monitor_configs: self.monitor_configs,
             auto_resolve_after_inactive_minutes: self.auto_resolve_after_inactive_minutes,
+            environments: self.environments,
             notifiers: self.notifiers,
         })
     }

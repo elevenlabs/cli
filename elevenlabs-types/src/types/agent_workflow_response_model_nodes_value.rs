@@ -93,6 +93,17 @@ pub enum AgentWorkflowResponseModelNodesValue {
             edge_order: Vec<String>,
         },
 
+        #[serde(rename = "start_procedure")]
+        #[non_exhaustive]
+        StartProcedure {
+            #[serde(default)]
+            position: PositionOutput,
+            #[serde(default)]
+            edge_order: Vec<String>,
+            #[serde(default)]
+            procedure_id: String,
+        },
+
         #[serde(rename = "tool")]
         #[non_exhaustive]
         Tool {
@@ -167,6 +178,10 @@ impl AgentWorkflowResponseModelNodesValue {
 
     pub fn start(position: PositionOutput, edge_order: Vec<String>) -> Self {
         Self::Start { position, edge_order }
+    }
+
+    pub fn start_procedure(position: PositionOutput, edge_order: Vec<String>, procedure_id: String) -> Self {
+        Self::StartProcedure { position, edge_order, procedure_id }
     }
 
     pub fn tool(position: PositionOutput, edge_order: Vec<String>, tools: Vec<WorkflowToolLocator>) -> Self {

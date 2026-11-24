@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AgentConversationTicketResponseModel {
     #[serde(default)]
     pub agentqa_ticket_id: String,
@@ -17,8 +17,9 @@ pub struct AgentConversationTicketResponseModel {
     /// One-line headline for the agent issue. None only on issues created before titles existed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// Always null. Issue types are labels, written as `issue_type:<value>`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub issue_type: Option<AgentConversationTicketIssueType>,
+    pub issue_type: Option<serde_json::Value>,
     #[serde(default)]
     pub labels: Vec<String>,
     #[serde(default)]
@@ -70,7 +71,7 @@ pub struct AgentConversationTicketResponseModelBuilder {
     agent_id: Option<String>,
     needs_clustering: Option<bool>,
     title: Option<String>,
-    issue_type: Option<AgentConversationTicketIssueType>,
+    issue_type: Option<serde_json::Value>,
     labels: Option<Vec<String>>,
     conversation_ids: Option<Vec<String>>,
     first_seen_unix_secs: Option<i64>,
@@ -121,7 +122,7 @@ impl AgentConversationTicketResponseModelBuilder {
         self
     }
 
-    pub fn issue_type(mut self, value: AgentConversationTicketIssueType) -> Self {
+    pub fn issue_type(mut self, value: serde_json::Value) -> Self {
         self.issue_type = Some(value);
         self
     }

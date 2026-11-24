@@ -13,12 +13,6 @@ pub enum ToolRequestModelToolConfig {
             data: ClientToolConfigInput,
         },
 
-        #[serde(rename = "mcp")]
-        #[non_exhaustive]
-        Mcp {
-            value: serde_json::Value,
-        },
-
         #[serde(rename = "system")]
         #[non_exhaustive]
         System {
@@ -43,10 +37,6 @@ pub enum ToolRequestModelToolConfig {
 impl ToolRequestModelToolConfig {
     pub fn client(data: ClientToolConfigInput) -> Self {
         Self::Client { data }
-    }
-
-    pub fn mcp(value: serde_json::Value) -> Self {
-        Self::Mcp { value }
     }
 
     pub fn system(data: SystemToolConfigInput) -> Self {

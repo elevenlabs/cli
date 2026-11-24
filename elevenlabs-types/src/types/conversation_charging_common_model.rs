@@ -45,7 +45,7 @@ pub struct ConversationChargingCommonModel {
     pub asr_usage: Option<ConversationAsrUsageModel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub analysis: Option<AnalysisCharging>,
-    /// Credits charged as the voice actor reward for the Voice Library voices this conversation used. It is not included in `cost`.
+    /// Credits charged as the voice owner fee for the custom rate voices this conversation used. It is not included in `cost`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voice_surcharge_charge: Option<i64>,
 }

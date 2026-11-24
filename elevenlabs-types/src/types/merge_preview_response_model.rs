@@ -52,12 +52,21 @@ pub struct MergePreviewResponseModel {
     /// Dot-paths of config fields where both branches modified the same field relative to their common ancestor (conflicts). Present regardless of which side wins the conflict.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub overridden_fields: Option<Vec<String>>,
-    /// Structured view of the same conflicts as overridden_fields, each carrying the value on the base (common ancestor), source branch, and target branch so the divergence can be presented and resolved field-by-field.
+    /// Structured view of the same conflicts as overridden_fields, each carrying the value on the base (common ancestor), source branch, and target branch so the divergence can be presented and resolved field-by-field. A merge or rebase is rejected while any of them has no resolution in `conflict_resolutions`, unless the merge is forced.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conflicts: Option<Vec<FieldConflict>>,
     /// True when the merge/rebase would be a no-op, i.e. the merged result is identical to the source branch tip. The rebase endpoint rejects in this case.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_identical_to_target: Option<bool>,
+    /// Tip version of the source branch (the rebased branch for a rebase) the preview was computed from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_tip_version_id: Option<String>,
+    /// Tip version of the target branch (main for a rebase) the preview was computed from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_tip_version_id: Option<String>,
+    /// Why the merge doesn't combine into a valid configuration while conflicts are left to resolve. The preview then shows the branch the merge writes unchanged.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub merge_error: Option<String>,
 }
 
 impl MergePreviewResponseModel {
@@ -87,6 +96,9 @@ pub struct MergePreviewResponseModelBuilder {
     overridden_fields: Option<Vec<String>>,
     conflicts: Option<Vec<FieldConflict>>,
     source_identical_to_target: Option<bool>,
+    source_tip_version_id: Option<String>,
+    target_tip_version_id: Option<String>,
+    merge_error: Option<String>,
 }
 
 impl MergePreviewResponseModelBuilder {
@@ -180,6 +192,21 @@ impl MergePreviewResponseModelBuilder {
         self
     }
 
+    pub fn source_tip_version_id(mut self, value: impl Into<String>) -> Self {
+        self.source_tip_version_id = Some(value.into());
+        self
+    }
+
+    pub fn target_tip_version_id(mut self, value: impl Into<String>) -> Self {
+        self.target_tip_version_id = Some(value.into());
+        self
+    }
+
+    pub fn merge_error(mut self, value: impl Into<String>) -> Self {
+        self.merge_error = Some(value.into());
+        self
+    }
+
     /// Consumes the builder and constructs a [`MergePreviewResponseModel`].
     /// This method will fail if any of the following fields are not set:
     /// - [`agent_id`](MergePreviewResponseModelBuilder::agent_id)
@@ -206,6 +233,9 @@ impl MergePreviewResponseModelBuilder {
             overridden_fields: self.overridden_fields,
             conflicts: self.conflicts,
             source_identical_to_target: self.source_identical_to_target,
+            source_tip_version_id: self.source_tip_version_id,
+            target_tip_version_id: self.target_tip_version_id,
+            merge_error: self.merge_error,
         })
     }
 }

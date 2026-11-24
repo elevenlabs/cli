@@ -16,7 +16,8 @@ pub enum ToolResponseModelToolConfig {
         #[serde(rename = "mcp")]
         #[non_exhaustive]
         Mcp {
-            value: serde_json::Value,
+            #[serde(flatten)]
+            data: McpToolConfigOutput,
         },
 
         #[serde(rename = "system")]
@@ -45,8 +46,8 @@ impl ToolResponseModelToolConfig {
         Self::Client { data }
     }
 
-    pub fn mcp(value: serde_json::Value) -> Self {
-        Self::Mcp { value }
+    pub fn mcp(data: McpToolConfigOutput) -> Self {
+        Self::Mcp { data }
     }
 
     pub fn system(data: SystemToolConfigOutput) -> Self {

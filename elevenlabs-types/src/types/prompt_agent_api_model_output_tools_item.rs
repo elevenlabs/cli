@@ -23,7 +23,8 @@ pub enum PromptAgentApiModelOutputToolsItem {
         #[serde(rename = "mcp")]
         #[non_exhaustive]
         Mcp {
-            value: serde_json::Value,
+            #[serde(flatten)]
+            data: McpToolConfigOutput,
         },
 
         #[serde(rename = "smb")]
@@ -62,8 +63,8 @@ impl PromptAgentApiModelOutputToolsItem {
         Self::Client { data }
     }
 
-    pub fn mcp(value: serde_json::Value) -> Self {
-        Self::Mcp { value }
+    pub fn mcp(data: McpToolConfigOutput) -> Self {
+        Self::Mcp { data }
     }
 
     pub fn smb(value: serde_json::Value) -> Self {
