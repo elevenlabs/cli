@@ -210,15 +210,21 @@ pub(super) fn reply_for(project: &Project, outcome: &Outcome) -> Result<Reply, C
     Ok(match outcome {
         Outcome::Store(key) => {
             env_file::write(path, &env_file::with_key(&existing, key))?;
-            let gitignored = env_file::ensure_ignored(path).is_ok();
             let say = format!(
                 "Signed in. Your new key ending in {} is in {file}, and your clipboard was cleared.",
                 last4(key)
             );
-            // The key is in place, and everything after it is one reply.
-            check::integrate(project, &last4(key), Some(file), &say)?
-                .detail("key_status", "created")
-                .detail("gitignored", gitignored)
+            match env_file::ensure_ignored(path) {
+                // The key is in place, and everything after it is one reply.
+                Ok(_) => check::integrate(project, &last4(key), Some(file), &say)?
+                    .detail("key_status", "created")
+                    .detail("gitignored", true),
+                // Git could still commit the key's file, so that is fixed before any code is written.
+                Err(e) => Reply::new(Next::Fix, format!("{say} {e}"))
+                    .run(&project.next("check"))
+                    .detail("key_status", "created")
+                    .detail("gitignored", false),
+            }
         }
         Outcome::NotPermitted => {
             manual::prepare(path)?;
@@ -289,6 +295,12 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool, again: bool)
             ),
         )
     } else {
+        // An error in the callback is whatever was sent to the local port, so its text is never repeated.
+        let error = if error.contains("returned error:") {
+            "the approval page reported an error"
+        } else {
+            error
+        };
         Reply::new(
             Next::Run,
             format!(

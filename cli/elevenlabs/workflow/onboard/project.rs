@@ -218,19 +218,20 @@ impl Project {
 
 /// The env file when none was named: `.env`, the file dotenv, python-dotenv
 /// and the common frameworks load on their own. `.env.local` in two cases:
-/// the project's key is already there, so there is one key and it stays in
-/// the file the app loads; or git tracks `.env`, so a key never goes into a
-/// file the team commits.
+/// it already has a line for the key, and where it is loaded it wins over
+/// `.env`, so that is the key the app uses; or git tracks `.env` and no key
+/// is in it yet (an empty placeholder is not one), so a key never goes into
+/// a file the team commits.
 fn default_env_file(dir: &Path) -> &'static str {
-    let has_key = |name: &str| {
+    let key_line = |name: &str| {
         env_file::read(&dir.join(name))
             .ok()
             .and_then(|c| env_file::file_key(&c))
-            .is_some()
     };
-    let local_only = !has_key(DEFAULT_ENV_FILE)
-        && (has_key(LOCAL_ENV_FILE) || env_file::is_tracked(&dir.join(DEFAULT_ENV_FILE)));
-    if local_only {
+    let default_holds_key = key_line(DEFAULT_ENV_FILE).is_some_and(|k| !k.is_empty());
+    let local = key_line(LOCAL_ENV_FILE).is_some()
+        || (!default_holds_key && env_file::is_tracked(&dir.join(DEFAULT_ENV_FILE)));
+    if local {
         LOCAL_ENV_FILE
     } else {
         DEFAULT_ENV_FILE
