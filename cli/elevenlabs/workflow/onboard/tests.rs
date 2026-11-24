@@ -264,6 +264,7 @@ fn every_step_parses_its_flags_and_bare_onboard_is_refused() {
     // What replies from before this version asked for still parses.
     assert!(parse(&["onboard", "check", "--answered"]).is_ok());
     assert!(parse(&["onboard", "check", "--written"]).is_ok());
+    assert!(parse(&["onboard", "connect", "--again"]).is_ok());
 }
 
 #[test]
@@ -589,6 +590,7 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
         &p,
         "Authorization server returned error: access_denied (declined)",
         true,
+        false,
     )
     .to_value();
     assert_eq!(denied["next"], "ask_user");
@@ -603,15 +605,24 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
             .contains("app/api/api-keys?quickstart=true"),
         "offers the manual path too"
     );
-    let late = failed(
-        &p,
-        "Timed out waiting for the OAuth callback after 300s.",
-        false,
-    )
-    .to_value();
+    let timed_out = "Timed out waiting for the OAuth callback after 300s.";
+    // The first timeout is retried without asking, and the retry says it is one.
+    let late = failed(&p, timed_out, false, false).to_value();
     assert_eq!(late["next"], "run");
     assert!(late["say"].as_str().unwrap().contains("5 minutes"));
-    let other = failed(&p, "state mismatch", false).to_value();
+    assert_eq!(
+        late["run"],
+        "elevenlabs onboard connect --again --env-path .env --no-browser"
+    );
+    // A second timeout in a row goes back to the developer: no retrying without end.
+    let twice = failed(&p, timed_out, false, true).to_value();
+    assert_eq!(twice["next"], "ask_user");
+    assert!(twice["say"].as_str().unwrap().contains("Tell me when you're ready to approve"));
+    assert_eq!(
+        twice["run"],
+        "elevenlabs onboard connect --env-path .env --no-browser"
+    );
+    let other = failed(&p, "state mismatch", false, false).to_value();
     assert!(other["say"].as_str().unwrap().contains("state mismatch"));
     assert_eq!(other["details"]["key_status"], "sign_in_failed");
 }

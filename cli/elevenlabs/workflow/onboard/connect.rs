@@ -42,7 +42,7 @@ pub(super) fn handle(
     // The sign-in and the key's check count as `connect`, whichever step ran them.
     let _scope = api::command_scope("onboard.connect");
     Ok(sign_in_and_store(matches, ctx, &project)
-        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace))
+        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace, matches.get_flag("again")))
         .with_rules())
 }
 
@@ -180,6 +180,7 @@ fn sign_in_and_store(
                 project,
                 &error.to_string(),
                 matches.get_flag("replace"),
+                matches.get_flag("again"),
             ));
         }
     };
@@ -253,7 +254,8 @@ pub(super) fn reply_for(project: &Project, outcome: &Outcome) -> Result<Reply, C
 
 /// A sign-in that ended before the clipboard step. `error` is the sign-in
 /// flow's message; a declined approval comes back as an `access_denied` error.
-pub(super) fn failed(project: &Project, error: &str, replace: bool) -> Reply {
+/// `again` is set when this run was itself the retry of a timed-out approval.
+pub(super) fn failed(project: &Project, error: &str, replace: bool, again: bool) -> Reply {
     let retry = project.next(connect_step(replace));
     let reply = if error.contains("returned error: access_denied") {
         Reply::new(
@@ -265,11 +267,24 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool) -> Reply {
                 project.env_display
             ),
         )
-    } else if error.contains("Timed out waiting") {
-        Reply::new(
+    } else if error.contains("Timed out waiting") && !again {
+        // One retry without asking, marked so a second timeout goes back to the developer.
+        return Reply::new(
             Next::Run,
             format!(
                 "The approval page wasn't completed within {SIGN_IN_MINUTES} minutes, so {} again.",
+                project.approval()
+            ),
+        )
+        .run(&project.next(&format!("{} --again", connect_step(replace))))
+        .detail("key_status", "sign_in_failed");
+    } else if error.contains("Timed out waiting") {
+        // Twice in a row: the developer isn't there, so an agent never retries without end.
+        Reply::new(
+            Next::AskUser,
+            format!(
+                "The approval page wasn't completed in another {SIGN_IN_MINUTES} minutes. Tell me when \
+                 you're ready to approve, and {} again.",
                 project.approval()
             ),
         )
