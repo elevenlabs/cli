@@ -20,6 +20,14 @@ fn the_sign_in_is_read_out_of_main_rs() {
     assert_eq!(c.redirect_host, "localhost");
     assert!(c.redirect_ports.contains(&8484));
     assert!(c.scopes.iter().any(|s| s == "user_read") && c.scopes.len() > 20);
+    assert!(
+        c.scopes.iter().any(|s| s == "workspace_members_read"),
+        "workspace members list needs it (#187)"
+    );
+    assert!(
+        c.scopes.iter().any(|s| s == "audit_log_read"),
+        "audit-logs list needs it (#187)"
+    );
     assert!(c.success_url.starts_with("https://") && c.error_url.starts_with("https://"));
 }
 
