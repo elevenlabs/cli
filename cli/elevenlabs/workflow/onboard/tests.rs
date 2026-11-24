@@ -438,8 +438,10 @@ fn loading_the_key_is_a_goal_not_a_recipe() {
             && told.contains("never in anything that runs in the browser"),
         "{told}"
     );
-    // The coding agent knows the framework; the CLI doesn't name one.
-    for framework in ["Next", "Vite", "Astro", "SvelteKit", "dotenv.config", "load_dotenv", "--env-file"] {
+    // Nothing in it lets an agent assume the file is read by itself.
+    assert!(told.contains("nothing reads that file unless the app or its framework loads it"), "{told}");
+    // The coding agent knows the language and the framework; the CLI names neither.
+    for framework in ["Next", "Vite", "Astro", "SvelteKit", "Node", "Python", "dotenv", "--env-file"] {
         assert!(!told.contains(framework), "{framework}: {told}");
     }
     assert!(p.load_key(None).contains("set in your shell"));
@@ -510,7 +512,8 @@ fn the_one_reply_names_no_product_and_hands_the_rest_to_the_agent() {
     // Loading the key is the agent's, from the goal the reply gives.
     assert!(
         told.contains("even nothing new, the app has to get the key")
-            && told.contains("the way `details.load_key` says"),
+            && told.contains("find what loads the key's env file when the app starts")
+            && told.contains("If you can't point to it, make the app load the file the way `details.load_key` says"),
         "{told}"
     );
     // When the code is written the agent runs `run`, and that reply is the ending.

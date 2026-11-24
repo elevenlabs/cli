@@ -43,9 +43,11 @@ impl Next {
                  may not look there). If one fits, read its SKILL.md and the `references/` files it links \
                  before writing any code, and write the code the way the skill shows, not from the SDK's \
                  own files; if none fits, write it without one. Install the SDK. Whatever they asked \
-                 for, even nothing new, the app has to get the key: look at how it starts, and if \
-                 nothing loads the env file, make it load it the way `details.load_key` says. That is \
-                 part of the setup, not new work. If it needs something made in ElevenLabs first, \
+                 for, even nothing new, the app has to get the key, and an env file is only read if \
+                 something loads it. So find what loads the key's env file when the app starts, in \
+                 this project's own language and framework. If you can't point to it, make the app \
+                 load the file the way `details.load_key` says. That is part of the setup, not new \
+                 work. If it needs something made in ElevenLabs first, \
                  like an agent, make it yourself with the key (load the env file in the command, never \
                  print it), and when you're done give the user the links in `details.agent_links` with \
                  its ID filled in. When the code is written (or if it already was), check your changes \
