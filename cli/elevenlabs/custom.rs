@@ -20,7 +20,11 @@ use fern_cli_sdk::app::CliApp;
 #[path = "workflow/mod.rs"]
 mod workflow;
 
+// Workload identity federation (`--wif-config`, `ELEVENLABS_WIF_CONFIG`), also hand-written.
+#[path = "wif/mod.rs"]
+mod wif;
+
 /// Register all custom commands on the CLI app builder.
 pub fn register(app: CliApp) -> CliApp {
-    workflow::register(app)
+    wif::register(workflow::register(app))
 }

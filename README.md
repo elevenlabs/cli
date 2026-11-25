@@ -100,6 +100,27 @@ For a one-off call, pass it per command instead:
 elevenlabs user get --xi-api-key xi-...
 ```
 
+### Workload identity federation
+
+In CI and cloud workloads, the CLI can authenticate without a stored API key: it exchanges the workload's own OIDC token (GitHub Actions, GCP, AWS, Azure, a Kubernetes projected token file, or an environment variable) for a short-lived ElevenLabs token. Point it at a WIF config file, which holds identifiers only, never a secret:
+
+```json
+{
+  "type": "elevenlabs_workload_identity_federation",
+  "version": 1,
+  "pool": "urn:elevenlabs-xi:workload_identity_federation:<pool id>",
+  "resource": "urn:elevenlabs-xi:api_key:<api key id>",
+  "token_source": { "type": "github_actions" }
+}
+```
+
+```bash
+export ELEVENLABS_WIF_CONFIG=wif.json   # or: elevenlabs user get --wif-config wif.json
+elevenlabs user get
+```
+
+`--wif-config` beats `ELEVENLABS_API_KEY`, and `ELEVENLABS_API_KEY` beats `ELEVENLABS_WIF_CONFIG`. Passing both `--wif-config` and an API key flag is an error. Tokens stay in memory and are never written to disk. `elevenlabs wif print-identity-token` prints one, for use with other tools.
+
 ## Quick start
 
 List available commands:
