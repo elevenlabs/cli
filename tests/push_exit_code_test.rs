@@ -101,7 +101,11 @@ async fn agents_push_api_error_exits_nonzero() {
     );
 
     let out = cli(dir, &server.uri(), &["agents", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit:\n{}",
+        stdout(&out)
+    );
 }
 
 #[tokio::test]
@@ -133,13 +137,20 @@ async fn agents_push_partial_failure_pushes_others() {
     );
 
     let out = cli(dir, &server.uri(), &["agents", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit on partial failure:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit on partial failure:\n{}",
+        stdout(&out)
+    );
 
     let requests = server.received_requests().await.unwrap();
-    let agent_2_pushed = requests.iter().any(|r| {
-        r.method.as_str() == "PATCH" && r.url.path() == "/v1/convai/agents/agent_2"
-    });
-    assert!(agent_2_pushed, "agent_2 should still be pushed despite agent_1 failing");
+    let agent_2_pushed = requests
+        .iter()
+        .any(|r| r.method.as_str() == "PATCH" && r.url.path() == "/v1/convai/agents/agent_2");
+    assert!(
+        agent_2_pushed,
+        "agent_2 should still be pushed despite agent_1 failing"
+    );
 }
 
 #[tokio::test]
@@ -177,7 +188,11 @@ async fn agents_push_branch_failure_exits_nonzero() {
     );
 
     let out = cli(dir, &server.uri(), &["agents", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit on branch failure:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit on branch failure:\n{}",
+        stdout(&out)
+    );
 }
 
 // ── tools push ─────────────────────────────────────────────────────
@@ -206,7 +221,8 @@ async fn tools_push_success_exits_zero() {
     Mock::given(method("PATCH"))
         .and(path("/v1/convai/tools/tool_1"))
         .respond_with(
-            ResponseTemplate::new(200).set_body_json(json!({"tool_id": "tool_1", "tool_config": tool_config()})),
+            ResponseTemplate::new(200)
+                .set_body_json(json!({"tool_id": "tool_1", "tool_config": tool_config()})),
         )
         .mount(&server)
         .await;
@@ -239,7 +255,11 @@ async fn tools_push_api_error_exits_nonzero() {
     );
 
     let out = cli(dir, &server.uri(), &["tools", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit:\n{}",
+        stdout(&out)
+    );
 }
 
 #[tokio::test]
@@ -247,7 +267,9 @@ async fn tools_push_create_no_id_exits_nonzero() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/v1/convai/tools"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"tool_config": tool_config()})))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"tool_config": tool_config()})),
+        )
         .mount(&server)
         .await;
 
@@ -259,7 +281,11 @@ async fn tools_push_create_no_id_exits_nonzero() {
     );
 
     let out = cli(dir, &server.uri(), &["tools", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit when API returns no ID:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit when API returns no ID:\n{}",
+        stdout(&out)
+    );
 }
 
 // ── tests push ────────────────────────────────────────────────────
@@ -272,7 +298,11 @@ fn test_config() -> Value {
 }
 
 fn setup_tests_project(dir: &Path, tests_json: &Value) {
-    write(dir, "test_configs/greeting.json", &test_config().to_string());
+    write(
+        dir,
+        "test_configs/greeting.json",
+        &test_config().to_string(),
+    );
     write(dir, "tests.json", &tests_json.to_string());
 }
 
@@ -281,9 +311,7 @@ async fn tests_push_success_exits_zero() {
     let server = MockServer::start().await;
     Mock::given(method("PUT"))
         .and(path("/v1/convai/agent-testing/test_1"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(json!({"test_id": "test_1"})),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"test_id": "test_1"})))
         .mount(&server)
         .await;
 
@@ -315,7 +343,11 @@ async fn tests_push_api_error_exits_nonzero() {
     );
 
     let out = cli(dir, &server.uri(), &["tests", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit:\n{}",
+        stdout(&out)
+    );
 }
 
 #[tokio::test]
@@ -335,5 +367,9 @@ async fn tests_push_create_no_id_exits_nonzero() {
     );
 
     let out = cli(dir, &server.uri(), &["tests", "push"]);
-    assert!(!out.status.success(), "expected non-zero exit when API returns no ID:\n{}", stdout(&out));
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit when API returns no ID:\n{}",
+        stdout(&out)
+    );
 }

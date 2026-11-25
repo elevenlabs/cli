@@ -29,7 +29,11 @@ pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Rep
 /// The whole check, for `check` and for `init` when the project already has a
 /// key, so the next step comes straight from it. `answered`: the developer has
 /// said what to build (`--answered`, which the question's `run` passes).
-pub(super) fn verify(ctx: &AppContext, project: &Project, answered: bool) -> Result<Reply, CliError> {
+pub(super) fn verify(
+    ctx: &AppContext,
+    project: &Project,
+    answered: bool,
+) -> Result<Reply, CliError> {
     let Some(key) = project.key() else {
         return no_key(project);
     };
@@ -253,7 +257,12 @@ const SKILLS_ARCHIVE: &str = "https://github.com/elevenlabs/skills/archive/refs/
 /// so the next reply, right after the answer, is how to write the code.
 /// `key_file` is the file the key is in, as the developer knows it; `None`
 /// when it is set in the shell.
-pub(super) fn ask_what_to_build(project: &Project, key_last4: &str, key_file: Option<&str>, say: &str) -> Reply {
+pub(super) fn ask_what_to_build(
+    project: &Project,
+    key_last4: &str,
+    key_file: Option<&str>,
+    say: &str,
+) -> Reply {
     let reply = Reply::new(Next::AskWhatToBuild, format!("{say} {WHAT_TO_BUILD}"))
         .run(&project.next("check --answered"))
         .detail("key_last4", key_last4);
@@ -265,7 +274,11 @@ pub(super) fn ask_what_to_build(project: &Project, key_last4: &str, key_file: Op
 
 /// What the agent needs to write the integration once the developer has said
 /// what they want: the SDK, a new temp folder for the skills, and the key.
-fn write_code(project: &Project, key_last4: &str, key_file: Option<&str>) -> Result<Reply, CliError> {
+fn write_code(
+    project: &Project,
+    key_last4: &str,
+    key_file: Option<&str>,
+) -> Result<Reply, CliError> {
     let dir = skills_dir()?;
     let reply = Reply::new(
         Next::WriteCode,
@@ -282,11 +295,24 @@ fn write_code(project: &Project, key_last4: &str, key_file: Option<&str>) -> Res
 /// A first key for an app that already uses the SDK: nothing to build, only
 /// the key to load.
 pub(super) fn load_key(project: &Project, key_last4: &str, key_file: &str, say: String) -> Reply {
-    key_details(Reply::new(Next::LoadKey, say), project, key_last4, Some(key_file), "check").with_rules()
+    key_details(
+        Reply::new(Next::LoadKey, say),
+        project,
+        key_last4,
+        Some(key_file),
+        "check",
+    )
+    .with_rules()
 }
 
 /// Where the key is and how the app gets it, then `step`.
-fn key_details(reply: Reply, project: &Project, key_last4: &str, key_file: Option<&str>, step: &str) -> Reply {
+fn key_details(
+    reply: Reply,
+    project: &Project,
+    key_last4: &str,
+    key_file: Option<&str>,
+    step: &str,
+) -> Reply {
     let found = match key_file {
         Some(file) => format!("It's in {file}. {}", project.loading(file)),
         None => "It's set in your shell, so the app gets it from the environment.".into(),
@@ -314,7 +340,11 @@ fn skills_dir() -> Result<std::path::PathBuf, CliError> {
         .prefix("elevenlabs-skills-")
         .tempdir()
         .map(tempfile::TempDir::keep)
-        .map_err(|e| CliError::Other(anyhow::anyhow!("create a folder for the ElevenLabs skills: {e}")))
+        .map_err(|e| {
+            CliError::Other(anyhow::anyhow!(
+                "create a folder for the ElevenLabs skills: {e}"
+            ))
+        })
 }
 
 /// The command that downloads the skills into `dir`, one folder per skill.

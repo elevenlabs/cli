@@ -208,10 +208,7 @@ fn skill_files(ctx: &AppContext) -> Result<Vec<(PathBuf, String)>, CliError> {
             content.push_str(FEEDBACK_SECTION);
             appended = true;
         } else {
-            if let Some((_, hint)) = MODEL_HINTS
-                .iter()
-                .find(|(dir, _)| path.starts_with(dir))
-            {
+            if let Some((_, hint)) = MODEL_HINTS.iter().find(|(dir, _)| path.starts_with(dir)) {
                 content.push_str(hint);
                 hinted += 1;
             }
@@ -332,7 +329,10 @@ mod tests {
     fn the_gap_pointer_is_short_and_names_the_command() {
         // It lands in ~31 files that agents read in full, so length matters.
         assert!(GAP_POINTER.contains("feedback missing-capability"));
-        assert!(GAP_POINTER.contains("--schema"), "must counter the emitter's advice");
+        assert!(
+            GAP_POINTER.contains("--schema"),
+            "must counter the emitter's advice"
+        );
         assert!(
             GAP_POINTER.lines().count() <= 12,
             "got {} lines",

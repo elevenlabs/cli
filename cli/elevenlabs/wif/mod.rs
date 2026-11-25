@@ -241,6 +241,7 @@ impl WifAuth {
 
     /// A valid access token for the API at `base_url`.
     pub fn token_for(&self, base_url: &str) -> Result<String, WifError> {
+        check_no_stored_login()?;
         let loaded = self.loaded()?;
         let origin = origin(base_url)?;
         loaded.logged.call_once(|| {
@@ -360,7 +361,6 @@ impl AuthProvider for WifAuthProvider {
         request: reqwest::RequestBuilder,
         _endpoint: &EndpointAuthMetadata,
     ) -> Result<reqwest::RequestBuilder, CliError> {
-        check_no_stored_login()?;
         self.0.authorize(request)
     }
 }

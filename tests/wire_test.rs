@@ -21,8 +21,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use wiremock::matchers::{
     body_partial_json as match_body_partial_json, body_string_contains as match_body_contains,
-    header as match_header, header_regex as match_header_regex, method as match_method, path as match_path,
-    query_param as match_query_param,
+    header as match_header, header_regex as match_header_regex, method as match_method,
+    path as match_path, query_param as match_query_param,
 };
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -262,7 +262,10 @@ fn ordered_placeholders(path: &str) -> Vec<String> {
 /// renamed identity and the resolved spec route carries the wire name, and
 /// `canonicalize_path_template` guarantees they have the same placeholders in
 /// the same order — so pair them positionally.
-fn path_param_wire_names(manifest_path: &str, spec_path: &str) -> std::collections::HashMap<String, String> {
+fn path_param_wire_names(
+    manifest_path: &str,
+    spec_path: &str,
+) -> std::collections::HashMap<String, String> {
     ordered_placeholders(manifest_path)
         .into_iter()
         .zip(ordered_placeholders(spec_path))
@@ -299,14 +302,20 @@ struct CommandInfo {
 }
 
 /// Build a `CommandInfo` for a single method at the given command `chain`.
-fn make_command(chain: Vec<String>, method: &fern_cli_sdk::openapi::discovery::RestMethod) -> CommandInfo {
+fn make_command(
+    chain: Vec<String>,
+    method: &fern_cli_sdk::openapi::discovery::RestMethod,
+) -> CommandInfo {
     CommandInfo {
         chain,
         http_method: method.http_method.to_uppercase(),
         path: method.path.clone(),
         has_json_body: method.request.is_some(),
         is_binary: method.binary_request_body.is_some(),
-        binary_flag: method.binary_request_body.as_ref().map(|b| b.flag_name.clone()),
+        binary_flag: method
+            .binary_request_body
+            .as_ref()
+            .map(|b| b.flag_name.clone()),
         is_multipart: !method.multipart_fields.is_empty(),
         body_is_json_encoded: matches!(method.body_encoding, BodyEncoding::Json),
         is_streaming: method.streaming.is_some(),
@@ -315,7 +324,11 @@ fn make_command(chain: Vec<String>, method: &fern_cli_sdk::openapi::discovery::R
 
 /// Recursively collect one `CommandInfo` per method from a resource tree,
 /// prefixing every chain with `prefix` (root group + spec namespace).
-fn collect_commands(resources: &HashMap<String, RestResource>, prefix: &[String], out: &mut Vec<CommandInfo>) {
+fn collect_commands(
+    resources: &HashMap<String, RestResource>,
+    prefix: &[String],
+    out: &mut Vec<CommandInfo>,
+) {
     for (name, resource) in resources {
         let mut chain = prefix.to_vec();
         chain.push(name.clone());
@@ -347,7 +360,11 @@ fn collect_spec_commands(
     out: &mut Vec<CommandInfo>,
 ) {
     let segments: Vec<String> = match namespace {
-        Some(ns) => ns.split('/').filter(|s| !s.is_empty()).map(str::to_string).collect(),
+        Some(ns) => ns
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .collect(),
         None => Vec::new(),
     };
     if segments.is_empty() {
@@ -393,7 +410,12 @@ fn resolve_command(manifest: &Manifest, method: &str, path: &str) -> CommandInfo
         if let Some(root_group) = &manifest.root_group {
             root_prefix.push(root_group.clone());
         }
-        collect_spec_commands(&doc.resources, &root_prefix, spec.namespace.as_deref(), &mut commands);
+        collect_spec_commands(
+            &doc.resources,
+            &root_prefix,
+            spec.namespace.as_deref(),
+            &mut commands,
+        );
     }
 
     let want_method = method.to_uppercase();
@@ -402,7 +424,9 @@ fn resolve_command(manifest: &Manifest, method: &str, path: &str) -> CommandInfo
     // Exact match on method + canonicalized path template.
     let mut hits: Vec<CommandInfo> = commands
         .iter()
-        .filter(|c| c.http_method == want_method && canonicalize_path_template(&c.path) == want_path)
+        .filter(|c| {
+            c.http_method == want_method && canonicalize_path_template(&c.path) == want_path
+        })
         .cloned()
         .collect();
 
@@ -412,7 +436,8 @@ fn resolve_command(manifest: &Manifest, method: &str, path: &str) -> CommandInfo
             .iter()
             .filter(|c| {
                 let np = canonicalize_path_template(&c.path);
-                c.http_method == want_method && (np.ends_with(&want_path) || want_path.ends_with(&np))
+                c.http_method == want_method
+                    && (np.ends_with(&want_path) || want_path.ends_with(&np))
             })
             .cloned()
             .collect();
@@ -424,15 +449,23 @@ fn resolve_command(manifest: &Manifest, method: &str, path: &str) -> CommandInfo
             let available: Vec<String> = commands
                 .iter()
                 .map(|c| {
-                    format!("{} {} ({} {})", manifest.binary_name, c.chain.join(" "), c.http_method, c.path)
+                    format!(
+                        "{} {} ({} {})",
+                        manifest.binary_name,
+                        c.chain.join(" "),
+                        c.http_method,
+                        c.path
+                    )
                 })
                 .collect();
             panic!(
                 "no CLI command found for {method} {path}.
 available commands:
   {}",
-                available.join("
-  ")
+                available.join(
+                    "
+  "
+                )
             )
         }
         // Ambiguous (multi-spec with the same method+path). Take the first
@@ -490,11 +523,16 @@ fn describe_received(requests: &[wiremock::Request]) -> String {
             let headers: Vec<String> = request
                 .headers
                 .iter()
-                .map(|(name, value)| format!("{}: {}", name, value.to_str().unwrap_or("<non-utf8>")))
+                .map(|(name, value)| {
+                    format!("{}: {}", name, value.to_str().unwrap_or("<non-utf8>"))
+                })
                 .collect();
             let body = String::from_utf8_lossy(&request.body);
             let body = if body.chars().count() > 2000 {
-                format!("{}… <truncated>", body.chars().take(2000).collect::<String>())
+                format!(
+                    "{}… <truncated>",
+                    body.chars().take(2000).collect::<String>()
+                )
             } else {
                 body.to_string()
             };
@@ -508,8 +546,10 @@ fn describe_received(requests: &[wiremock::Request]) -> String {
             )
         })
         .collect::<Vec<_>>()
-        .join("
-")
+        .join(
+            "
+",
+        )
 }
 
 /// Assert the case's mock matched exactly one request, with everything needed to
@@ -549,8 +589,8 @@ async fn assert_request_matched(
     // puts you against. Meaningless for cases carrying body matchers — a bodyless
     // probe cannot satisfy those — so it is reported, not asserted on.
     let probe_url = format!("{}{}", server.uri(), expected_path);
-    let probe_method = reqwest::Method::from_bytes(expected_method.as_bytes())
-        .unwrap_or(reqwest::Method::GET);
+    let probe_method =
+        reqwest::Method::from_bytes(expected_method.as_bytes()).unwrap_or(reqwest::Method::GET);
     let probe_outcome = match reqwest::Client::new()
         .request(probe_method, &probe_url)
         .send()
@@ -580,8 +620,10 @@ async fn assert_request_matched(
                 request.url.as_str()
             ));
         }
-        lines.join("
-    ")
+        lines.join(
+            "
+    ",
+        )
     };
     // Naming the spec-filled properties keeps a spec-derived value from being
     // mistaken for one an API author wrote — and points at the IR/spec
@@ -642,7 +684,8 @@ async fn run_case(id: &str) {
 
     // A per-case scratch dir for any fixture file(s) the request needs.
     // Distinct from the login-keyring HOME dir, and removed at the end.
-    let fixtures_dir = std::env::temp_dir().join(format!("{}-wire-files-{id}", manifest.binary_name));
+    let fixtures_dir =
+        std::env::temp_dir().join(format!("{}-wire-files-{id}", manifest.binary_name));
     let _ = std::fs::remove_dir_all(&fixtures_dir);
 
     // Plan how to drive the request body: extra CLI flags to append, plus
@@ -687,7 +730,8 @@ async fn run_case(id: &str) {
                 // for a `.txt` mislabelled that way.
                 let file_name = format!("{}.txt", field.wire_name);
                 let file_path = fixtures_dir.join(&file_name);
-                std::fs::write(&file_path, marker.as_bytes()).expect("write multipart fixture file");
+                std::fs::write(&file_path, marker.as_bytes())
+                    .expect("write multipart fixture file");
                 body_flag_args.push(format!("--{flag}"));
                 body_flag_args.push(file_path.to_string_lossy().into_owned());
                 // A file part carries `filename="..."` *on its own
@@ -703,7 +747,10 @@ async fn run_case(id: &str) {
                 // sibling part; this binds it to *this* field. Expected value: the
                 // spec's declared `encoding` type when there is one, otherwise the
                 // type inferred from the fixture's extension.
-                let expected_mime = field.content_type.clone().unwrap_or_else(|| "text/plain".to_string());
+                let expected_mime = field
+                    .content_type
+                    .clone()
+                    .unwrap_or_else(|| "text/plain".to_string());
                 if let Some(disposition) = &disposition {
                     required_body_substrings.push(format!(
                         "{disposition}; filename=\"{file_name}\"\r\nContent-Type: {expected_mime}"
@@ -726,7 +773,7 @@ async fn run_case(id: &str) {
                     Some(serde_json::Value::Null) | None => {
                         format!("wire-fixture-{id}-{}", field.wire_name)
                     }
-                    Some(other) => other.to_string()
+                    Some(other) => other.to_string(),
                 };
                 body_flag_args.push(format!("--{flag}"));
                 body_flag_args.push(value.clone());
@@ -770,7 +817,13 @@ async fn run_case(id: &str) {
         let home = &auth_home;
         let mut login = tokio::process::Command::new(env!("CARGO_BIN_EXE_elevenlabs"));
         login
-            .args(["auth", "login", "--with-token", "--scheme", setup.scheme_name.as_str()])
+            .args([
+                "auth",
+                "login",
+                "--with-token",
+                "--scheme",
+                setup.scheme_name.as_str(),
+            ])
             .env("HOME", &home)
             .env("FERN_CLI_CREDENTIAL_STORE", "file")
             .env("NO_COLOR", "1")
@@ -785,7 +838,10 @@ async fn run_case(id: &str) {
                 .await
                 .expect("write token to auth login stdin");
         }
-        let login_out = child.wait_with_output().await.expect("auth login --with-token output");
+        let login_out = child
+            .wait_with_output()
+            .await
+            .expect("auth login --with-token output");
         assert!(
             login_out.status.success(),
             "auth login --with-token failed: {}",
@@ -808,10 +864,10 @@ async fn run_case(id: &str) {
         if !is_token_case {
             Mock::given(match_method(auth_mock.method.as_str()))
                 .and(match_path(normalize_path(&auth_mock.path)))
-                .respond_with(
-                    ResponseTemplate::new(200)
-                        .set_body_raw(auth_mock.response_body.clone().into_bytes(), "application/json"),
-                )
+                .respond_with(ResponseTemplate::new(200).set_body_raw(
+                    auth_mock.response_body.clone().into_bytes(),
+                    "application/json",
+                ))
                 .mount(&server)
                 .await;
         }
@@ -819,7 +875,8 @@ async fn run_case(id: &str) {
 
     let mut template = ResponseTemplate::new(case.response.status);
     if !case.response.body.is_empty() {
-        template = template.set_body_raw(case.response.body.clone().into_bytes(), "application/json");
+        template =
+            template.set_body_raw(case.response.body.clone().into_bytes(), "application/json");
     }
     // Match on method + path AND the scalar query params + auth headers the
     // request must carry. A request that omits or mis-serializes any of them
@@ -827,7 +884,8 @@ async fn run_case(id: &str) {
     // rather than passing on a path-only match. This gives the same
     // request-shape verification the SDK wire tests get from WireMock stub
     // matching, without a WireMock container.
-    let mut mock = Mock::given(match_method(case.method.as_str())).and(match_path(expected_path.clone()));
+    let mut mock =
+        Mock::given(match_method(case.method.as_str())).and(match_path(expected_path.clone()));
     for q in &case.query_matchers {
         mock = mock.and(match_query_param(q.name.as_str(), q.value.as_str()));
     }
@@ -848,7 +906,10 @@ async fn run_case(id: &str) {
     // it sends client credentials in the body and no `Authorization` header.
     if case.requires_auth && !manifest.endpoint_security_auth {
         if let Some(setup) = &manifest.login_token_setup {
-            mock = mock.and(match_header("authorization", format!("Bearer {}", setup.token).as_str()));
+            mock = mock.and(match_header(
+                "authorization",
+                format!("Bearer {}", setup.token).as_str(),
+            ));
         }
     }
     // Assert the *request body* the CLI sends, not just its method/path. For an
@@ -879,7 +940,11 @@ async fn run_case(id: &str) {
     // drop-time check stays as a backstop, and it no-ops while panicking, so a
     // failed assertion below surfaces once and cleanly.
     let mock_guard = server
-        .register_as_scoped(mock.respond_with(template).expect(1).named(format!("case {id}")))
+        .register_as_scoped(
+            mock.respond_with(template)
+                .expect(1)
+                .named(format!("case {id}")),
+        )
         .await;
 
     let mut args: Vec<String> = command.chain.clone();
@@ -1052,14 +1117,20 @@ async fn run_case(id: &str) {
     // responses re-shape the payload (chunks collected into an array), so there
     // we fall back to asserting the call produced output.
     if case.response.body.trim().is_empty() {
-        assert!(stdout.trim().is_empty(), "expected empty output for {id}, got: {stdout}");
+        assert!(
+            stdout.trim().is_empty(),
+            "expected empty output for {id}, got: {stdout}"
+        );
     } else if let Ok(expected) = serde_json::from_str::<serde_json::Value>(&case.response.body) {
         match serde_json::from_str::<serde_json::Value>(stdout.trim()) {
             Ok(actual) if !command.is_streaming && same_json_kind(&actual, &expected) => {
                 assert_eq!(actual, expected, "rendered response body mismatch for {id}");
             }
             _ => {
-                assert!(!stdout.trim().is_empty(), "expected rendered output for {id}, got empty stdout");
+                assert!(
+                    !stdout.trim().is_empty(),
+                    "expected rendered output for {id}, got empty stdout"
+                );
             }
         }
     }

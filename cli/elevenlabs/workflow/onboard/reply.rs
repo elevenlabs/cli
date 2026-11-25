@@ -153,8 +153,7 @@ pub(super) fn command(args: &str) -> String {
 /// steps, often in pseudo-terminals, and prose would drop the instruction. On
 /// one line, so an agent that pipes it through `grep` or `tail` keeps all of it.
 pub(super) fn emit(reply: &Value) -> Result<(), CliError> {
-    let text = serde_json::to_string(reply)
-        .map_err(|e| CliError::Other(anyhow::anyhow!("{e}")))?;
+    let text = serde_json::to_string(reply).map_err(|e| CliError::Other(anyhow::anyhow!("{e}")))?;
     println!("{text}");
     Ok(())
 }

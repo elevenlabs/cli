@@ -102,9 +102,15 @@ fn agents_as_code_round_trips_against_a_live_account() {
     let agent_name = format!("cli-e2e-{nonce}");
 
     // 1. Scaffold a project.
-    assert_ok(&cli(dir, home, &api_key, &["agents", "init"]), "agents init");
+    assert_ok(
+        &cli(dir, home, &api_key, &["agents", "init"]),
+        "agents init",
+    );
     assert!(dir.join("agents.json").exists(), "init wrote agents.json");
-    assert!(dir.join("agent_configs").is_dir(), "init made agent_configs/");
+    assert!(
+        dir.join("agent_configs").is_dir(),
+        "init made agent_configs/"
+    );
 
     // 2. Create the agent remotely and register it locally.
     let add = cli(
@@ -136,18 +142,34 @@ fn agents_as_code_round_trips_against_a_live_account() {
         // 4. Push the local config, then pull it back — this is the snapshot the
         //    round-trip is measured from (the server fills defaults on first
         //    write, so the pre-push file is not a fair comparison point).
-        assert_ok(&cli(dir, home, &api_key, &["agents", "push"]), "agents push");
         assert_ok(
-            &cli(dir, home, &api_key, &["agents", "pull", "--agent", &agent_id, "--all"]),
+            &cli(dir, home, &api_key, &["agents", "push"]),
+            "agents push",
+        );
+        assert_ok(
+            &cli(
+                dir,
+                home,
+                &api_key,
+                &["agents", "pull", "--agent", &agent_id, "--all"],
+            ),
             "agents pull (first)",
         );
         let first = std::fs::read_to_string(&config_file).expect("read config after first pull");
 
         // 5. Push that exact config back and pull again. A lossless round-trip
         //    means nothing changed.
-        assert_ok(&cli(dir, home, &api_key, &["agents", "push"]), "agents push (second)");
         assert_ok(
-            &cli(dir, home, &api_key, &["agents", "pull", "--agent", &agent_id, "--all"]),
+            &cli(dir, home, &api_key, &["agents", "push"]),
+            "agents push (second)",
+        );
+        assert_ok(
+            &cli(
+                dir,
+                home,
+                &api_key,
+                &["agents", "pull", "--agent", &agent_id, "--all"],
+            ),
             "agents pull (second)",
         );
         let second = std::fs::read_to_string(&config_file).expect("read config after second pull");
@@ -178,7 +200,12 @@ fn agents_as_code_round_trips_against_a_live_account() {
     //    Deletion is a generated API command, so the path parameter is a flag
     //    (`--agent-id`) rather than a positional.
     if let Some(agent_id) = agent_id_from_registry(dir) {
-        let cleanup = cli(dir, home, &api_key, &["agents", "delete", "--agent-id", &agent_id]);
+        let cleanup = cli(
+            dir,
+            home,
+            &api_key,
+            &["agents", "delete", "--agent-id", &agent_id],
+        );
         if !cleanup.status.success() {
             eprintln!(
                 "WARNING: could not delete E2E agent {agent_id} — remove it by hand.\n{}",

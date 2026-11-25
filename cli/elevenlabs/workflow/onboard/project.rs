@@ -298,7 +298,9 @@ impl Project {
     /// common miss of code that uses the SDK while nothing loads the key.
     pub fn loads_key_file(&self, file: &Path) -> bool {
         let shown = self.show(file);
-        let bun = ["bun.lock", "bun.lockb"].iter().any(|f| self.dir.join(f).exists());
+        let bun = ["bun.lock", "bun.lockb"]
+            .iter()
+            .any(|f| self.dir.join(f).exists());
         if !shown.starts_with("../") && (bun || self.framework() == Some(Framework::Next)) {
             return true;
         }
@@ -574,7 +576,9 @@ fn names_file_after(text: &str, prefix: &str, name: &str) -> bool {
     text.match_indices(prefix).any(|(at, _)| {
         let rest = text[at + prefix.len()..].trim_start_matches(['"', '\'', '`', '\\']);
         let path = rest
-            .split(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '`' | ';' | '&' | '|' | ')' | ','))
+            .split(|c: char| {
+                c.is_whitespace() || matches!(c, '"' | '\'' | '`' | ';' | '&' | '|' | ')' | ',')
+            })
             .next()
             .unwrap_or("");
         let path = path.trim_end_matches('\\');

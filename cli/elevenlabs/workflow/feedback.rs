@@ -61,10 +61,7 @@ fn report_body(capability: &str, intent: Option<String>) -> Value {
     body
 }
 
-fn handle_missing_capability(
-    matches: &clap::ArgMatches,
-    ctx: &AppContext,
-) -> Result<(), CliError> {
+fn handle_missing_capability(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let _scope = api::command_scope("feedback.missing_capability");
 
     let raw = matches
@@ -103,15 +100,11 @@ fn missing_capability_command() -> clap::Command {
     clap::Command::new("missing-capability")
         .about("Report that a task could not be completed with any available command")
         .long_about(LONG_ABOUT)
-        .arg(
-            clap::Arg::new("capability")
-                .required(true)
-                .help(
-                    "What you were trying to accomplish that the available commands \
+        .arg(clap::Arg::new("capability").required(true).help(
+            "What you were trying to accomplish that the available commands \
                      could not do. One or two sentences, max 500 characters, no \
                      personal data.",
-                ),
-        )
+        ))
 }
 
 /// Register the `feedback` command group.
@@ -134,9 +127,7 @@ pub fn register(app: CliApp) -> CliApp {
             .arg_required_else_help(true)
             .subcommand(missing_capability_command()),
         Box::new(|matches, ctx| match matches.subcommand() {
-            Some(("missing-capability", m)) => {
-                handle_missing_capability(m, downcast_ctx(ctx)?)
-            }
+            Some(("missing-capability", m)) => handle_missing_capability(m, downcast_ctx(ctx)?),
             _ => Err(CliError::Validation(
                 "unknown feedback subcommand; try `elevenlabs feedback --help`".into(),
             )),
@@ -174,7 +165,10 @@ mod tests {
         let body = report_body("cannot batch-render per speaker", None);
         assert_eq!(body["kind"], "missing_capability");
         assert_eq!(body["capability"], "cannot batch-render per speaker");
-        assert!(body.get("intent").is_none(), "absent intent must be omitted");
+        assert!(
+            body.get("intent").is_none(),
+            "absent intent must be omitted"
+        );
         assert!(body.get("cli_version").is_none());
         assert!(body.get("command").is_none());
     }

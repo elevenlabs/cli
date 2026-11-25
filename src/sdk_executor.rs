@@ -138,12 +138,10 @@ impl CliExecutor {
         // Capture body bytes for retry support. SDK requests are typically
         // small JSON payloads so buffering is acceptable.
         let body_bytes: Option<bytes::Bytes> = request.body().map(|b| {
-            b.as_bytes()
-                .map(bytes::Bytes::copy_from_slice)
-                .expect(
-                    "CliExecutor does not support streaming request bodies; \
+            b.as_bytes().map(bytes::Bytes::copy_from_slice).expect(
+                "CliExecutor does not support streaming request bodies; \
                      SDK requests must be fully buffered",
-                )
+            )
         });
 
         let http_method_str = method.as_str().to_uppercase();
@@ -299,9 +297,7 @@ impl CliExecutor {
                     "CLI auth provider failed during SDK request execution; \
                      request will NOT be sent: {e}"
                 );
-                return Err(SdkError::Auth(format!(
-                    "CLI auth failed: {e}"
-                )));
+                return Err(SdkError::Auth(format!("CLI auth failed: {e}")));
             }
         };
 
@@ -374,7 +370,9 @@ where
 {
     tokio::task::block_in_place(|| {
         let handle = tokio::runtime::Handle::current();
-        handle.block_on(future).map_err(|e| e.into().into_cli_error())
+        handle
+            .block_on(future)
+            .map_err(|e| e.into().into_cli_error())
     })
 }
 
@@ -389,10 +387,7 @@ where
 #[derive(Debug)]
 pub enum SdkError {
     /// HTTP response with a non-success status code.
-    Http {
-        status: u16,
-        body: String,
-    },
+    Http { status: u16, body: String },
     /// Network-level failure (DNS, connection refused, TLS handshake, etc.).
     Network(String),
     /// Request timed out.
@@ -413,9 +408,7 @@ impl SdkError {
             Self::Network(msg) => CliError::Network(format!("SDK network error: {msg}")),
             Self::Timeout(msg) => CliError::Network(format!("SDK request timeout: {msg}")),
             Self::Auth(msg) => CliError::Auth(msg),
-            Self::Other(msg) => {
-                CliError::Other(anyhow::anyhow!("SDK error: {msg}"))
-            }
+            Self::Other(msg) => CliError::Other(anyhow::anyhow!("SDK error: {msg}")),
         }
     }
 }
@@ -454,8 +447,8 @@ impl From<reqwest::Error> for SdkError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use crate::auth::{no_auth_provider, AuthProvider, EndpointAuthMetadata};
+    use std::sync::Arc;
 
     /// Auth provider that always returns a hard error.
     #[derive(Debug)]
@@ -523,7 +516,10 @@ mod tests {
         // Neither reached a server. Reporting `code: 500` told an agent the API
         // had failed and invited a retry against a host never contacted.
         for (err, needle) in [
-            (SdkError::Network("connection refused".into()), "network error"),
+            (
+                SdkError::Network("connection refused".into()),
+                "network error",
+            ),
             (SdkError::Timeout("timed out after 30s".into()), "timeout"),
         ] {
             let cli_err = err.into_cli_error();
@@ -541,7 +537,11 @@ mod tests {
     #[test]
     fn sdk_error_display_formats() {
         assert_eq!(
-            SdkError::Http { status: 404, body: "not found".into() }.to_string(),
+            SdkError::Http {
+                status: 404,
+                body: "not found".into()
+            }
+            .to_string(),
             "HTTP error 404: not found"
         );
         assert_eq!(
@@ -597,12 +597,7 @@ mod tests {
     #[test]
     fn cli_executor_new_default_retries() {
         let http = HttpConfig::new("test-cli").unwrap();
-        let executor = CliExecutor::new(
-            http,
-            no_auth_provider(),
-            vec![],
-            None,
-        );
+        let executor = CliExecutor::new(http, no_auth_provider(), vec![], None);
         assert!(executor.retries.enabled);
         assert!(executor.retries.max_attempts > 0);
     }
@@ -614,13 +609,8 @@ mod tests {
             enabled: false,
             ..Default::default()
         };
-        let executor = CliExecutor::new(
-            http,
-            no_auth_provider(),
-            vec![],
-            None,
-        )
-        .with_retries(custom);
+        let executor =
+            CliExecutor::new(http, no_auth_provider(), vec![], None).with_retries(custom);
         assert!(!executor.retries.enabled);
     }
 
@@ -795,12 +785,7 @@ mod tests {
             .await;
 
         let http = HttpConfig::new("test-cli").unwrap();
-        let executor = CliExecutor::new(
-            http,
-            no_auth_provider(),
-            vec![],
-            Some(mock_server.uri()),
-        );
+        let executor = CliExecutor::new(http, no_auth_provider(), vec![], Some(mock_server.uri()));
 
         let client = reqwest::Client::new();
         // Build request against original host — override should redirect
@@ -829,8 +814,7 @@ mod tests {
                 if n == 0 {
                     wiremock::ResponseTemplate::new(500)
                 } else {
-                    wiremock::ResponseTemplate::new(200)
-                        .set_body_string("success")
+                    wiremock::ResponseTemplate::new(200).set_body_string("success")
                 }
             })
             .mount(&mock_server)
@@ -844,8 +828,8 @@ mod tests {
             factor: 1.0,
             jitter: 0.0,
         };
-        let executor = CliExecutor::new(http, no_auth_provider(), vec![], None)
-            .with_retries(retries);
+        let executor =
+            CliExecutor::new(http, no_auth_provider(), vec![], None).with_retries(retries);
 
         let client = reqwest::Client::new();
         let request = client
@@ -868,12 +852,7 @@ mod tests {
             .await;
 
         let http = HttpConfig::new("test-cli").unwrap();
-        let executor = CliExecutor::new(
-            http,
-            failing_auth_provider(),
-            vec![],
-            None,
-        );
+        let executor = CliExecutor::new(http, failing_auth_provider(), vec![], None);
 
         let client = reqwest::Client::new();
         let request = client
@@ -882,7 +861,10 @@ mod tests {
             .unwrap();
 
         let result = executor.execute_inner(request).await;
-        assert!(result.is_err(), "expected auth failure to propagate as error");
+        assert!(
+            result.is_err(),
+            "expected auth failure to propagate as error"
+        );
         let err_msg = match &result.unwrap_err() {
             SdkError::Auth(msg) => msg.clone(),
             other => panic!("expected SdkError::Auth, got: {other:?}"),
