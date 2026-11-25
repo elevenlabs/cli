@@ -104,7 +104,10 @@ impl Exchanger {
             .and_then(|v| v.to_str().ok()?.trim().parse::<f64>().ok())
             .filter(|v| v.is_finite())
             .map(|v| v.clamp(0.0, MAX_RETRY_AFTER_SECONDS));
-        let body = response.text().await.unwrap_or_default();
+        let body = response
+            .text()
+            .await
+            .map_err(|e| Failure::Transient(exchange_unavailable(describe_http_error(&e))))?;
         match status {
             200 => parse_success(&body, sent_at).map_err(Failure::Final),
             400 => Err(Failure::Final(rejected(&body, &subject_token))),
