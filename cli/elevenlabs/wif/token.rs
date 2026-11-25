@@ -3,7 +3,7 @@
 use std::sync::{Condvar, Mutex, MutexGuard};
 
 use super::clock;
-use super::error::WifError;
+use super::error::{exchange_unavailable, WifError};
 use super::exchange::Exchanger;
 
 const MAX_REFRESH_MARGIN_SECONDS: f64 = 300.0;
@@ -99,8 +99,17 @@ impl TokenManager {
     }
 
     fn refresh(&self) -> Result<(), WifError> {
-        let started = clock::now()?;
-        let result = match run_blocking(self.exchanger.exchange()) {
+        let issued = run_blocking(self.exchanger.exchange()).and_then(|r| {
+            // A token that lapsed while its response was in flight would only start another
+            // exchange, and the next one would likely fare no better.
+            if r.sent_at + r.expires_in <= clock::now()? {
+                return Err(exchange_unavailable(
+                    "the issued token expired before it could be used",
+                ));
+            }
+            Ok(r)
+        });
+        let result = match issued {
             Ok(r) => r,
             Err(e) => {
                 let now = clock::now().unwrap_or(f64::MAX);
@@ -128,7 +137,7 @@ impl TokenManager {
         );
         let mut st = self.lock();
         st.token = Some(result.access_token);
-        st.expires_at = started + result.expires_in;
+        st.expires_at = result.sent_at + result.expires_in;
         st.lifetime = result.expires_in;
         Ok(())
     }

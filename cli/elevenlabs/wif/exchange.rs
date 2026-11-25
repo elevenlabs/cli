@@ -21,6 +21,9 @@ pub struct ExchangeResult {
     pub access_token: String,
     pub expires_in: f64,
     pub scope: String,
+    /// The WIF clock when the successful request was sent; expiry counts from here, so neither
+    /// source fetches nor earlier attempts and their backoff eat into the token's lifetime.
+    pub sent_at: f64,
 }
 
 #[derive(Debug)]
@@ -87,6 +90,7 @@ impl Exchanger {
         if let Some(scope) = &self.scope {
             form.push(("scope", scope.as_str()));
         }
+        let sent_at = super::clock::now().map_err(Failure::Final)?;
         let response = exchange_http
             .post(&self.url)
             .form(&form)
@@ -102,7 +106,7 @@ impl Exchanger {
             .map(|v| v.clamp(0.0, MAX_RETRY_AFTER_SECONDS));
         let body = response.text().await.unwrap_or_default();
         match status {
-            200 => parse_success(&body).map_err(Failure::Final),
+            200 => parse_success(&body, sent_at).map_err(Failure::Final),
             400 => Err(Failure::Final(rejected(&body, &subject_token))),
             429 => Err(Failure::RateLimited(retry_after)),
             s if s >= 500 => Err(Failure::Transient(exchange_unavailable(format!(
@@ -172,7 +176,7 @@ fn jitter(seconds: f64) -> f64 {
     seconds * rand::thread_rng().gen_range(1.0 - JITTER..=1.0 + JITTER)
 }
 
-fn parse_success(body: &str) -> Result<ExchangeResult, WifError> {
+fn parse_success(body: &str, sent_at: f64) -> Result<ExchangeResult, WifError> {
     let malformed = || exchange_unavailable("malformed 200 response");
     let v: serde_json::Value = serde_json::from_str(body).map_err(|_| malformed())?;
     let text = |k: &str| v.get(k).and_then(|x| x.as_str());
@@ -195,6 +199,7 @@ fn parse_success(body: &str) -> Result<ExchangeResult, WifError> {
             .as_str()
             .map(str::to_owned)
             .unwrap_or_else(|| scope.to_string()),
+        sent_at,
     })
 }
 
