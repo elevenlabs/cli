@@ -780,6 +780,49 @@ async fn an_approved_sign_in_without_a_key_on_the_clipboard_leaves_the_key_to_th
     );
 }
 
+#[tokio::test]
+async fn a_sign_in_that_cannot_be_saved_for_later_commands_still_counts() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v1/oauth/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "refresh_token": "refresh"
+        })))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    git(cwd.path(), &["init", "-q"]);
+    // Where the sign-in is saved isn't a folder, so saving it fails: a keychain that refuses
+    // this binary, or a sandbox. `auth login` ends the sign-in there.
+    for dir in ["Library/Application Support", ".config"] {
+        std::fs::create_dir_all(home.path().join(dir)).unwrap();
+        std::fs::write(home.path().join(dir).join("elevenlabs"), "").unwrap();
+    }
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    let sign_in = SignIn::start(&mut cli(
+        home.path(),
+        cwd.path(),
+        &server.uri(),
+        &["onboard", "init", "--no-browser", "--authorize-url", &authorize],
+    ));
+    let page = approve(&sign_in.url);
+    assert!(
+        page.contains("Location: https://elevenlabs.io/app/oauth/cli/success\r\n"),
+        "the developer approved, so the browser is told it worked: {page}"
+    );
+    // Signed in all the same: the reply is about the key, not about a failed sign-in.
+    let r = sign_in.reply();
+    assert_eq!(r["details"]["key_status"], "no_key", "{r}");
+}
+
 /// What the approval link and the requests say about the machine and the
 /// agent follows the telemetry switch: with it off, nothing.
 #[tokio::test]

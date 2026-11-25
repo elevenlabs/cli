@@ -2,9 +2,12 @@
 //! parameter that asks the approval page for a key, and the account check
 //! that a key on the clipboard has to pass.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, OnceLock};
 
-use fern_cli_sdk::auth::{active_store, LoginContext, LoginFlow, PkceLoginFlow, TokenBundle};
+use fern_cli_sdk::auth::{
+    active_store, set_active_store, KeyringStore, LoginContext, LoginFlow, PkceLoginFlow,
+    TokenBundle,
+};
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
@@ -85,10 +88,68 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
     })
 }
 
+/// Where the sign-in is saved while onboard signs in: the usual place, but a
+/// sign-in that can't be saved there still counts. `auth login` fails a
+/// sign-in it can't save for later commands. Onboard only needs the token
+/// now, to check the key the approval page handed over, so a keychain that
+/// refuses this binary, or a sandbox, must not end a sign-in the developer
+/// has already approved. It also remembers what this sign-in saved, so the
+/// token is this sign-in's own, whatever another command writes meanwhile.
+#[derive(Debug)]
+pub(super) struct KeepsUnsaved {
+    usual: Arc<dyn KeyringStore>,
+    /// What the sign-in saved, and whether the usual place took it.
+    saved: Mutex<Option<(String, bool)>>,
+}
+
+impl KeepsUnsaved {
+    pub(super) fn over(usual: Arc<dyn KeyringStore>) -> Self {
+        Self {
+            usual,
+            saved: Mutex::new(None),
+        }
+    }
+
+    /// The access token of the sign-in saved through this store.
+    pub(super) fn access_token(&self) -> Option<String> {
+        let (raw, _) = self.saved.lock().ok()?.clone()?;
+        let token = TokenBundle::parse_or_raw(&raw).access_token;
+        (!token.is_empty()).then_some(token)
+    }
+}
+
+impl KeyringStore for KeepsUnsaved {
+    fn get(&self, service: &str, account: &str) -> Result<Option<String>, CliError> {
+        self.usual.get(service, account)
+    }
+
+    fn set(&self, service: &str, account: &str, value: &str) -> Result<(), CliError> {
+        let kept = self.usual.set(service, account, value);
+        if let Err(e) = &kept {
+            eprintln!("Signed in, but the sign-in couldn't be saved for later commands: {e}");
+        }
+        if let Ok(mut saved) = self.saved.lock() {
+            *saved = Some((value.to_string(), kept.is_ok()));
+        }
+        Ok(())
+    }
+
+    fn delete(&self, service: &str, account: &str) -> Result<(), CliError> {
+        self.usual.delete(service, account)
+    }
+
+    fn backend_label(&self) -> String {
+        match self.saved.lock().ok().and_then(|saved| saved.clone()) {
+            Some((_, false)) => "this command only".into(),
+            _ => self.usual.backend_label(),
+        }
+    }
+}
+
 /// Sign in through the browser exactly as `auth login` does, asking the page
 /// for a key. It waits for the approval as `auth login` waits, prints the
-/// link to stderr, and stores the sign-in where `auth login` stores it.
-/// Returns the access token.
+/// link to stderr, and stores the sign-in where `auth login` stores it when
+/// that place takes it. Returns the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
@@ -108,6 +169,9 @@ pub(super) fn sign_in(
         on.then(platform::agent).flatten(),
         (on && retry).then_some("timed-out"),
     );
+    // `auth login` saves through the active store; onboard's stands in front of it.
+    let store = Arc::new(KeepsUnsaved::over(active_store()));
+    set_active_store(store.clone());
     PkceLoginFlow::new(&config.scheme)
         .client_id(&config.client_id)
         .authorization_url(authorize_url)
@@ -122,19 +186,11 @@ pub(super) fn sign_in(
             cli_name: CLI_NAME.to_string(),
             no_browser,
         })?;
-    stored_access_token().ok_or_else(|| {
+    store.access_token().ok_or_else(|| {
         CliError::Other(anyhow::anyhow!(
-            "the sign-in finished, but its token could not be read back"
+            "the sign-in finished, but it returned no token"
         ))
     })
-}
-
-/// The access token `auth login` (and so the sign-in above) stored.
-fn stored_access_token() -> Option<String> {
-    let scheme = &sign_in_config().ok()?.scheme;
-    let raw = active_store().get(CLI_NAME, scheme).ok().flatten()?;
-    let token = TokenBundle::parse_or_raw(&raw).access_token;
-    (!token.is_empty()).then_some(token)
 }
 
 /// What the sign-in adds to the approval link: the page should hand over a

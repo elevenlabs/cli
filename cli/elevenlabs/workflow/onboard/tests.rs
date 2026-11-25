@@ -978,6 +978,57 @@ fn the_approval_link_says_which_agent_ran_it() {
 }
 
 #[test]
+fn a_sign_in_the_keychain_refuses_still_counts() {
+    use super::auth::KeepsUnsaved;
+    use fern_cli_sdk::auth::{KeyringStore, MockKeyringStore};
+    use fern_cli_sdk::error::CliError;
+    use std::sync::Arc;
+
+    /// A keychain that refuses this binary, or a sandbox.
+    #[derive(Debug)]
+    struct Refuses;
+    impl KeyringStore for Refuses {
+        fn get(&self, _: &str, _: &str) -> Result<Option<String>, CliError> {
+            Ok(None)
+        }
+        fn set(&self, _: &str, _: &str, _: &str) -> Result<(), CliError> {
+            Err(CliError::Auth("the keychain refused".into()))
+        }
+        fn delete(&self, _: &str, _: &str) -> Result<(), CliError> {
+            Ok(())
+        }
+        fn backend_label(&self) -> String {
+            "macOS Keychain".into()
+        }
+    }
+
+    let store = KeepsUnsaved::over(Arc::new(Refuses));
+    assert_eq!(store.access_token(), None, "nothing before a sign-in");
+    // `auth login` would fail the sign-in here, after the developer approved it.
+    store
+        .set("elevenlabs", "OAuth", "token")
+        .expect("a refused save doesn't fail the sign-in");
+    assert_eq!(store.access_token().as_deref(), Some("token"));
+    assert_eq!(
+        store.get("elevenlabs", "OAuth").unwrap(),
+        None,
+        "later commands don't see it"
+    );
+    assert_eq!(store.backend_label(), "this command only");
+
+    // The usual case: saved where `auth login` saves it, and the token is still this sign-in's own.
+    let usual = Arc::new(MockKeyringStore::new());
+    let store = KeepsUnsaved::over(usual.clone());
+    store.set("elevenlabs", "OAuth", "token").unwrap();
+    usual.set("elevenlabs", "OAuth", "another command's token").unwrap();
+    assert_eq!(store.access_token().as_deref(), Some("token"));
+    assert_eq!(
+        store.get("elevenlabs", "OAuth").unwrap().as_deref(),
+        Some("another command's token")
+    );
+}
+
+#[test]
 fn every_way_a_sign_in_ends_is_reported_as_a_fixed_word() {
     use super::connect::Outcome;
     let manual = |status| Outcome::Manual { status, why: "" };
