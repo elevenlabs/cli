@@ -4,6 +4,7 @@
 mod aws;
 mod clock;
 mod config;
+mod env;
 mod error;
 mod exchange;
 mod sources;
@@ -65,13 +66,13 @@ pub fn register(app: CliApp) -> CliApp {
         )
         .describe(&["wif"], "Workload identity federation");
 
+    // Before anything else, and before `CliApp::run` loads `.env`: WIF never reads that file.
+    env::capture();
     let argv: Vec<OsString> = std::env::args_os().collect();
-    match select(&argv, &effective_env) {
+    match select(&argv, &env::var) {
         Ok(Selection::None) => app,
-        Ok(Selection::Wif { path, explicit }) => {
-            if explicit {
-                shadow_env_api_key();
-            }
+        Ok(Selection::Wif { path }) => {
+            shadow_env_api_key();
             let auth = Arc::new(WifAuth::new(path));
             let _ = ACTIVE.set(auth.clone());
             app.auth(WifScheme(auth))
@@ -86,7 +87,7 @@ pub fn register(app: CliApp) -> CliApp {
 #[derive(Debug, PartialEq)]
 enum Selection {
     None,
-    Wif { path: PathBuf, explicit: bool },
+    Wif { path: PathBuf },
 }
 
 /// Precedence: an explicit flag, then ELEVENLABS_API_KEY, then ELEVENLABS_WIF_CONFIG.
@@ -101,7 +102,6 @@ fn select(argv: &[OsString], env: &dyn Fn(&str) -> Option<String>) -> Result<Sel
         }
         return Ok(Selection::Wif {
             path: PathBuf::from(path),
-            explicit: true,
         });
     }
     if flag_key {
@@ -117,16 +117,15 @@ fn select(argv: &[OsString], env: &dyn Fn(&str) -> Option<String>) -> Result<Sel
     Ok(match env_config {
         Some(path) => Selection::Wif {
             path: PathBuf::from(path),
-            explicit: false,
         },
         None => Selection::None,
     })
 }
 
-/// Keeps ELEVENLABS_API_KEY from reaching requests when an explicit WIF config wins.
+/// Keeps ELEVENLABS_API_KEY from reaching requests once WIF is selected.
 ///
-/// An empty value rather than removal also stops `.env` from supplying the key, since the
-/// CLI's `.env` loader never overrides a variable that is set.
+/// Without it a key from an untrusted `.env` would replace the operator's WIF identity. An empty
+/// value rather than removal blocks that, since the CLI's `.env` loader never overrides a set variable.
 fn shadow_env_api_key() {
     std::env::set_var(API_KEY_ENV, "");
 }
@@ -149,19 +148,6 @@ fn flag_value(argv: &[OsString], flag: &str) -> Option<String> {
                 a.strip_prefix(&prefix).map(str::to_owned)
             }
         })
-        .filter(|v| !v.is_empty())
-}
-
-/// A variable from the process environment, or else from `.env` as the CLI will load it later.
-fn effective_env(name: &str) -> Option<String> {
-    if let Some(v) = std::env::var_os(name) {
-        return Some(v.to_string_lossy().into_owned()).filter(|v| !v.is_empty());
-    }
-    dotenvy::dotenv_iter()
-        .ok()?
-        .flatten()
-        .find(|(k, _)| k == name)
-        .map(|(_, v)| v)
         .filter(|v| !v.is_empty())
 }
 
@@ -346,16 +332,14 @@ mod tests {
         assert_eq!(
             got.unwrap(),
             Selection::Wif {
-                path: "w.json".into(),
-                explicit: true
+                path: "w.json".into()
             }
         );
         let got = select(&argv(&["--wif-config=w.json", "user", "get"]), &env(&[]));
         assert_eq!(
             got.unwrap(),
             Selection::Wif {
-                path: "w.json".into(),
-                explicit: true
+                path: "w.json".into()
             }
         );
     }
@@ -383,8 +367,7 @@ mod tests {
         assert_eq!(
             select(&argv(&["user", "get"]), &env(&vars)).unwrap(),
             Selection::Wif {
-                path: "w.json".into(),
-                explicit: false
+                path: "w.json".into()
             }
         );
         let vars = [(CONFIG_ENV, "w.json")];

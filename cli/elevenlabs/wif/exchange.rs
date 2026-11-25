@@ -125,7 +125,7 @@ fn client(timeout: Duration) -> Result<reqwest::Client, WifError> {
         "SSL_CERT_FILE",
     ]
     .iter()
-    .find_map(|name| std::env::var(name).ok().filter(|v| !v.is_empty()));
+    .find_map(|name| super::env::var(name));
     if let Some(path) = bundle {
         let pem = std::fs::read(&path)
             .map_err(|e| exchange_unavailable(format!("cannot read CA bundle {path}: {e}")))?;

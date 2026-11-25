@@ -215,10 +215,8 @@ fn run_scenario(
     let argv: Vec<OsString> = args.iter().map(OsString::from).collect();
     let process_env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
     let auth = match select(&argv, &process_env).map_err(|e| e.message)? {
-        Selection::Wif { path, explicit } => {
-            if explicit {
-                shadow_env_api_key();
-            }
+        Selection::Wif { path } => {
+            shadow_env_api_key();
             Some(WifAuth::new(path))
         }
         Selection::None => None,

@@ -12,7 +12,7 @@ static WARNED: Once = Once::new();
 
 /// Seconds on the WIF clock; only differences between readings matter.
 pub fn now() -> Result<f64, WifError> {
-    let Some(path) = std::env::var_os(TEST_CLOCK_ENV).filter(|p| !p.is_empty()) else {
+    let Some(path) = super::env::var_os(TEST_CLOCK_ENV) else {
         return Ok(START.get_or_init(Instant::now).elapsed().as_secs_f64());
     };
     WARNED.call_once(|| super::warn("ElevenLabs WIF test clock active"));

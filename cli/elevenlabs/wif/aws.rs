@@ -60,7 +60,7 @@ pub async fn fetch(http: &reqwest::Client, audience: &str) -> Result<String, Wif
 }
 
 fn env(name: &str) -> Option<String> {
-    std::env::var(name).ok().filter(|v| !v.is_empty())
+    super::env::var(name)
 }
 
 /// EC2 instance metadata, IMDSv2 only; the session token is fetched on first use.

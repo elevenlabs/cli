@@ -54,9 +54,7 @@ impl TokenSource {
     pub async fn fetch(&self, http: &reqwest::Client) -> Result<String, WifError> {
         let raw = match self {
             TokenSource::File { json_field, .. } => self.read_file(json_field.as_deref())?,
-            TokenSource::Env { name } => std::env::var(name)
-                .ok()
-                .filter(|v| !v.is_empty())
+            TokenSource::Env { name } => super::env::var(name)
                 .ok_or_else(|| source_unavailable(format!("{name} is unset or empty")))?,
             TokenSource::GitHubActions { audience } => self.github(http, audience).await?,
             TokenSource::Gcp { audience } => self.gcp(http, audience).await?,
@@ -102,12 +100,8 @@ impl TokenSource {
     }
 
     async fn github(&self, http: &reqwest::Client, audience: &str) -> Result<String, WifError> {
-        let url = std::env::var("ACTIONS_ID_TOKEN_REQUEST_URL")
-            .ok()
-            .filter(|v| !v.is_empty());
-        let token = std::env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
-            .ok()
-            .filter(|v| !v.is_empty());
+        let url = super::env::var("ACTIONS_ID_TOKEN_REQUEST_URL");
+        let token = super::env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN");
         let (url, token) = match (url, token) {
             (Some(u), Some(t)) => (u, t),
             (u, t) => {
@@ -176,10 +170,7 @@ impl TokenSource {
 }
 
 fn env_or(name: &str, default: &str) -> String {
-    std::env::var(name)
-        .ok()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| default.to_string())
+    super::env::var(name).unwrap_or_else(|| default.to_string())
 }
 
 fn json_string(body: &str, field: &str) -> Option<String> {
