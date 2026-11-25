@@ -328,6 +328,17 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool, again: bool)
                 project.approval()
             ),
         )
+    } else if error.contains("state mismatch") {
+        // An older approval page answered this sign-in. The error names the
+        // `state` the browser sent, so its text is never repeated.
+        Reply::new(
+            Next::Run,
+            format!(
+                "That approval came from an older approval page, so it couldn't be used. {} again: \
+                 approve the newest one and close the others.",
+                project.approval()
+            ),
+        )
     } else {
         // An error in the callback is whatever was sent to the local port, so its text is never repeated.
         let error = if error.contains("returned error:") {

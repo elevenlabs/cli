@@ -781,6 +781,46 @@ async fn an_approved_sign_in_without_a_key_on_the_clipboard_leaves_the_key_to_th
 }
 
 #[tokio::test]
+async fn two_sign_ins_on_one_machine_never_share_a_port() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    let server = MockServer::start().await;
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    let start = |home: &Path, cwd: &Path, step: &[&str]| {
+        let mut args = vec!["onboard"];
+        args.extend_from_slice(step);
+        args.extend_from_slice(&["--no-browser", "--authorize-url", &authorize]);
+        SignIn::start(&mut cli(home, cwd, &server.uri(), &args))
+    };
+    let port = |sign_in: &SignIn| query(&sign_in.url, "redirect_uri");
+
+    // `auth login`'s listener takes one address of a port. Left to it, the second sign-in gets
+    // the first one's port number on the other address, and one's approval reaches the other.
+    let (home, cwd) = temp();
+    let (home2, cwd2) = temp();
+    let older = start(home.path(), cwd.path(), &["init"]);
+    let newer = start(home2.path(), cwd2.path(), &["init"]);
+    assert_eq!(port(&older), "http://localhost:8484/callback");
+    assert_eq!(port(&newer), "http://localhost:8483/callback");
+    // So each page's answer reaches its own sign-in, the newer one's first.
+    decline(&newer.url);
+    assert!(say(&newer.reply()).contains("declined"));
+    decline(&older.url);
+    assert!(say(&older.reply()).contains("declined"));
+
+    // The retry of a timed-out approval leaves the first attempt's port behind, so the page
+    // that attempt left open can't answer the retry and end it. It says what it retries.
+    let retry = start(home.path(), cwd.path(), &["connect", "--again"]);
+    assert_eq!(port(&retry), "http://localhost:8483/callback");
+    assert_eq!(query(&retry.url, "cli_prev"), "timed-out");
+    decline(&retry.url);
+    assert!(say(&retry.reply()).contains("declined"));
+}
+
+#[tokio::test]
 async fn a_sign_in_that_cannot_be_saved_for_later_commands_still_counts() {
     let _turn = signing_in().await;
     if callback_ports_busy() {
