@@ -941,7 +941,7 @@ fn pairs(expected: &[(&'static str, &str)]) -> Vec<(&'static str, String)> {
 #[test]
 fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
     assert_eq!(
-        authorize_params(Some((("linux", Some("wsl")), "npx")), None),
+        authorize_params(Some((("linux", Some("wsl")), "npx")), None, None),
         pairs(&[
             ("key_handoff", "clipboard"),
             ("cli_os", "linux"),
@@ -950,7 +950,7 @@ fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
         ])
     );
     assert_eq!(
-        authorize_params(Some((("windows", None), "scoop")), None),
+        authorize_params(Some((("windows", None), "scoop")), None, None),
         pairs(&[
             ("key_handoff", "clipboard"),
             ("cli_os", "windows"),
@@ -962,7 +962,7 @@ fn the_approval_link_asks_for_a_key_and_says_where_the_cli_runs() {
 #[test]
 fn the_approval_link_says_which_agent_ran_it() {
     assert_eq!(
-        authorize_params(Some((("macos", None), "npx")), Some("claude-code")),
+        authorize_params(Some((("macos", None), "npx")), Some("claude-code"), None),
         pairs(&[
             ("key_handoff", "clipboard"),
             ("cli_os", "macos"),
@@ -970,12 +970,49 @@ fn the_approval_link_says_which_agent_ran_it() {
             ("cli_agent", "claude-code")
         ])
     );
+    // The retry of a timed-out approval says so, so the page's record explains the first one.
+    assert_eq!(
+        authorize_params(Some((("macos", None), "npx")), None, Some("timed-out")).last(),
+        Some(&("cli_prev", "timed-out".to_string()))
+    );
+}
+
+#[test]
+fn every_way_a_sign_in_ends_is_reported_as_a_fixed_word() {
+    use super::connect::Outcome;
+    let manual = |status| Outcome::Manual { status, why: "" };
+    let labels: Vec<&str> = [
+        Outcome::Store("sk_secret".into()),
+        Outcome::NotPermitted,
+        manual("clipboard_invalid"),
+        manual("could_not_verify"),
+        manual("not_available"),
+        manual("failed"),
+        manual("clipboard_unreadable"),
+        manual("no_key"),
+    ]
+    .iter()
+    .map(Outcome::label)
+    .collect();
+    assert_eq!(
+        labels,
+        [
+            "created",
+            "not-permitted",
+            "wrong-account",
+            "unverified",
+            "not-available",
+            "page-failed",
+            "clipboard-error",
+            "no-key"
+        ]
+    );
 }
 
 #[test]
 fn with_telemetry_off_the_approval_link_only_asks_for_a_key() {
     assert_eq!(
-        authorize_params(None, None),
+        authorize_params(None, None, None),
         pairs(&[("key_handoff", "clipboard")])
     );
 }

@@ -2,8 +2,8 @@
 //! which coding agent ran it (see [`super::platform`]), carried as User-Agent
 //! tags on every request so the API's `server_cli_request` analytics can
 //! count, say, npx runs of `onboard` against installed ones. `onboard` also
-//! says how the project's last sign-in ended (`signin/<outcome>`, a fixed
-//! word), so a sign-in that never reached the API can still be explained.
+//! says how a sign-in ended (`signin/<outcome>`, a fixed word) in one request
+//! once it has signed in, so a sign-in that stored no key can be explained.
 //!
 //! On by default. `--telemetry off` on any command, `ELEVENLABS_TELEMETRY=off`,
 //! or `DO_NOT_TRACK=1` turns it off, and then neither the User-Agent nor the
@@ -121,7 +121,7 @@ fn resolve() {
 
 const TELEMETRY_HELP: &str = "on or off. Whether requests say, anonymously, which OS the CLI \
      runs on, how it was installed (npx, npm, Homebrew, ...), which coding agent or editor \
-     terminal ran it, and how the last sign-in ended. Overrides ELEVENLABS_TELEMETRY; \
+     terminal ran it, and how a sign-in for a project's key ended. Overrides ELEVENLABS_TELEMETRY; \
      DO_NOT_TRACK=1 also turns it off.";
 
 /// Resolve telemetry and register `--telemetry` so clap accepts it on every

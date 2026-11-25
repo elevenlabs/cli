@@ -7,6 +7,7 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 
 use super::super::api;
+use super::super::telemetry;
 use super::super::util::opt_string;
 use super::auth;
 use super::check;
@@ -114,6 +115,37 @@ pub(super) enum Outcome {
     },
 }
 
+impl Outcome {
+    /// The fixed word a sign-in that ended this way is reported as.
+    pub(super) fn label(&self) -> &'static str {
+        match self {
+            Outcome::Store(_) => "created",
+            Outcome::NotPermitted => "not-permitted",
+            Outcome::Manual { status, .. } => match *status {
+                "clipboard_invalid" => "wrong-account",
+                "could_not_verify" => "unverified",
+                "not_available" => "not-available",
+                "failed" => "page-failed",
+                "clipboard_unreadable" => "clipboard-error",
+                _ => "no-key",
+            },
+        }
+    }
+}
+
+/// With telemetry on, one request that says how the sign-in ended. A sign-in
+/// that stored no key makes no other request, so this is the only trace of why.
+fn report(ctx: &AppContext, token: &str, outcome: &Outcome) {
+    if !telemetry::enabled() {
+        return;
+    }
+    let _scope = api::tag_scope(&format!("signin/{}", outcome.label()));
+    if let Ok(client) = ctx.http_config().build_client() {
+        let bearer = format!("Bearer {token}");
+        let _ = auth::account_for(&client, &auth::api_base(ctx), "authorization", &bearer);
+    }
+}
+
 /// `verdict` is whether a key on the clipboard belongs to the signed-in account.
 pub(super) fn outcome_of(
     clip: Clip,
@@ -170,7 +202,8 @@ fn sign_in_and_store(
          running until it finishes, and don't end your turn while it waits: this command is what \
          receives the approval, so stopping it cancels the sign-in."
     );
-    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser) {
+    let again = matches.get_flag("again");
+    let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser, again) {
         Ok(token) => token,
         Err(error) => {
             // The page may have copied a key before the sign-in failed; nothing
@@ -180,7 +213,7 @@ fn sign_in_and_store(
                 project,
                 &error.to_string(),
                 matches.get_flag("replace"),
-                matches.get_flag("again"),
+                again,
             ));
         }
     };
@@ -197,6 +230,7 @@ fn sign_in_and_store(
     let reply = reply_for(project, &outcome);
     // Whatever the outcome, even if storing failed, a key read here never stays on the clipboard.
     clipboard.clear_if(&copied);
+    report(ctx, &token, &outcome);
     reply
 }
 

@@ -771,6 +771,13 @@ async fn an_approved_sign_in_without_a_key_on_the_clipboard_leaves_the_key_to_th
         .unwrap()
         .contains(".env"));
     assert!(!trace.exists(), "the .env's GIT_TRACE reached the sign-in's git");
+    // No key was stored, so the only trace of why is the one request that says how it ended.
+    let sent = server.received_requests().await.unwrap();
+    let last = sent.last().unwrap().headers["user-agent"].to_str().unwrap();
+    assert!(
+        last.contains("cmd/onboard.connect") && last.ends_with("signin/no-key"),
+        "{last}"
+    );
 }
 
 /// What the approval link and the requests say about the machine and the

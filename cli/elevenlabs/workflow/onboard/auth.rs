@@ -93,6 +93,7 @@ pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
+    retry: bool,
 ) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
@@ -105,6 +106,7 @@ pub(super) fn sign_in(
     let params = authorize_params(
         on.then(|| (platform::detect(), platform::install_source())),
         on.then(platform::agent).flatten(),
+        (on && retry).then_some("timed-out"),
     );
     PkceLoginFlow::new(&config.scheme)
         .client_id(&config.client_id)
@@ -138,10 +140,12 @@ fn stored_access_token() -> Option<String> {
 /// What the sign-in adds to the approval link: the page should hand over a
 /// key, and, with telemetry on, where the CLI runs, how it was installed and
 /// which coding agent ran it. The page records them for a sign-in that never
-/// gets to make an API call.
+/// gets to make an API call. `previous` is how the sign-in this one retries
+/// ended, a fixed word.
 pub(super) fn authorize_params(
     platform: Option<((&'static str, Option<&'static str>), &'static str)>,
     agent: Option<&'static str>,
+    previous: Option<&'static str>,
 ) -> Vec<(&'static str, String)> {
     let mut params = vec![("key_handoff", "clipboard".to_string())];
     if let Some(((os, env), install)) = platform {
@@ -153,6 +157,9 @@ pub(super) fn authorize_params(
     }
     if let Some(agent) = agent {
         params.push(("cli_agent", agent.into()));
+    }
+    if let Some(previous) = previous {
+        params.push(("cli_prev", previous.into()));
     }
     params
 }
