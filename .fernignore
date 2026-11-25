@@ -5,6 +5,9 @@
 cli/elevenlabs/custom.rs
 cli/elevenlabs/workflow/
 
+# Hand-written workload identity federation (WIF) auth, registered from custom.rs.
+cli/elevenlabs/wif/
+
 # Hand-written agent skills. The real files live under
 # cli/elevenlabs/workflow/skills/ (protected above, because `generate-skills`
 # embeds them with include_str!); these are the copies an agent harness
