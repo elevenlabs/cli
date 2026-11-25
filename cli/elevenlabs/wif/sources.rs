@@ -119,6 +119,8 @@ impl TokenSource {
                 )));
             }
         };
+        // The request token is a bearer credential: never sent over plain http off loopback.
+        super::urls::require_https_or_loopback(&url, "ACTIONS_ID_TOKEN_REQUEST_URL")?;
         let mut url = Url::parse(&url)
             .map_err(|_| source_unavailable("ACTIONS_ID_TOKEN_REQUEST_URL is not a URL"))?;
         url.query_pairs_mut().append_pair("audience", audience);
