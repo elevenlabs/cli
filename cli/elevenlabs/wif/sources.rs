@@ -10,6 +10,12 @@ use super::error::{describe_http_error, source_unavailable, WifError};
 
 pub const MAX_SOURCE_TOKEN_BYTES: usize = 16 * 1024;
 
+/// The clients a source uses: `internet` for third-party hosts, `metadata` (never proxied) for cloud metadata endpoints.
+pub struct SourceHttp {
+    pub internet: reqwest::Client,
+    pub metadata: reqwest::Client,
+}
+
 const GCE_METADATA_HOST_ENV: &str = "GCE_METADATA_HOST";
 const GCE_METADATA_DEFAULT_HOST: &str = "metadata.google.internal";
 const AZURE_IMDS_ENV: &str = "AZURE_POD_IDENTITY_AUTHORITY_HOST";
@@ -51,7 +57,7 @@ impl TokenSource {
         }
     }
 
-    pub async fn fetch(&self, http: &reqwest::Client) -> Result<String, WifError> {
+    pub async fn fetch(&self, http: &SourceHttp) -> Result<String, WifError> {
         let raw = match self {
             TokenSource::File { json_field, .. } => self.read_file(json_field.as_deref())?,
             TokenSource::Env { name } => super::env::var(name)
@@ -99,7 +105,7 @@ impl TokenSource {
         }
     }
 
-    async fn github(&self, http: &reqwest::Client, audience: &str) -> Result<String, WifError> {
+    async fn github(&self, http: &SourceHttp, audience: &str) -> Result<String, WifError> {
         let url = super::env::var("ACTIONS_ID_TOKEN_REQUEST_URL");
         let token = super::env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN");
         let (url, token) = match (url, token) {
@@ -124,13 +130,13 @@ impl TokenSource {
         let mut url = Url::parse(&url)
             .map_err(|_| source_unavailable("ACTIONS_ID_TOKEN_REQUEST_URL is not a URL"))?;
         url.query_pairs_mut().append_pair("audience", audience);
-        let request = http.get(url).bearer_auth(token);
+        let request = http.internet.get(url).bearer_auth(token);
         let body = get(request, &self.describe()).await?;
         json_string(&body, "value")
             .ok_or_else(|| source_unavailable(format!("{} response has no value", self.describe())))
     }
 
-    async fn gcp(&self, http: &reqwest::Client, audience: &str) -> Result<String, WifError> {
+    async fn gcp(&self, http: &SourceHttp, audience: &str) -> Result<String, WifError> {
         let host = env_or(GCE_METADATA_HOST_ENV, GCE_METADATA_DEFAULT_HOST);
         let mut url = Url::parse(&format!(
             "http://{host}/computeMetadata/v1/instance/service-accounts/default/identity"
@@ -140,7 +146,7 @@ impl TokenSource {
             .append_pair("audience", audience)
             .append_pair("format", "full");
         get(
-            http.get(url).header("Metadata-Flavor", "Google"),
+            http.metadata.get(url).header("Metadata-Flavor", "Google"),
             &self.describe(),
         )
         .await
@@ -148,7 +154,7 @@ impl TokenSource {
 
     async fn azure(
         &self,
-        http: &reqwest::Client,
+        http: &SourceHttp,
         audience: &str,
         client_id: Option<&str>,
     ) -> Result<String, WifError> {
@@ -164,7 +170,11 @@ impl TokenSource {
         if let Some(id) = client_id {
             url.query_pairs_mut().append_pair("client_id", id);
         }
-        let body = get(http.get(url).header("Metadata", "true"), &self.describe()).await?;
+        let body = get(
+            http.metadata.get(url).header("Metadata", "true"),
+            &self.describe(),
+        )
+        .await?;
         json_string(&body, "access_token").ok_or_else(|| {
             source_unavailable(format!("{} response has no access_token", self.describe()))
         })

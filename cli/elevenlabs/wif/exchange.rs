@@ -6,7 +6,7 @@ use base64::Engine;
 use rand::Rng;
 
 use super::error::{describe_http_error, exchange_rejected, exchange_unavailable, WifError};
-use super::sources::TokenSource;
+use super::sources::{SourceHttp, TokenSource};
 
 const GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:token-exchange";
 const SUBJECT_TOKEN_TYPE: &str = "urn:ietf:params:oauth:token-type:jwt";
@@ -41,8 +41,8 @@ enum Failure {
 
 impl Exchanger {
     pub async fn exchange(&self) -> Result<ExchangeResult, WifError> {
-        let exchange_http = client(EXCHANGE_TIMEOUT)?;
-        let source_http = client(SOURCE_TIMEOUT)?;
+        let exchange_http = exchange_client()?;
+        let source_http = source_http()?;
         let (mut transient, mut rate_limited) = (0, 0);
         loop {
             let wait = match self.attempt(&exchange_http, &source_http).await {
@@ -70,7 +70,7 @@ impl Exchanger {
     async fn attempt(
         &self,
         exchange_http: &reqwest::Client,
-        source_http: &reqwest::Client,
+        source_http: &SourceHttp,
     ) -> Result<ExchangeResult, Failure> {
         let subject_token = self
             .source
@@ -113,33 +113,58 @@ impl Exchanger {
     }
 }
 
-/// No redirects; TLS verification always on, with any CA bundle the CLI's env names added to the roots.
-fn client(timeout: Duration) -> Result<reqwest::Client, WifError> {
-    let mut builder = reqwest::Client::builder()
+/// Never follows redirects, and never turns TLS verification off.
+fn builder(timeout: Duration) -> reqwest::ClientBuilder {
+    reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(timeout)
-        .user_agent(concat!("elevenlabs-cli-wif/", env!("CARGO_PKG_VERSION")));
-    let bundle = [
-        "ELEVENLABS_CA_BUNDLE",
-        "ELEVENLABS_EXTRA_CA_CERTS",
-        "SSL_CERT_FILE",
-    ]
-    .iter()
-    .find_map(|name| super::env::var(name));
-    if let Some(path) = bundle {
-        let pem = std::fs::read(&path)
-            .map_err(|e| exchange_unavailable(format!("cannot read CA bundle {path}: {e}")))?;
-        let certs = reqwest::Certificate::from_pem_bundle(&pem)
-            .map_err(|_| exchange_unavailable(format!("CA bundle {path} is not PEM")))?;
-        for cert in certs {
-            builder = builder.add_root_certificate(cert);
-        }
-    }
+        .user_agent(concat!("elevenlabs-cli-wif/", env!("CARGO_PKG_VERSION")))
+}
+
+fn build(builder: reqwest::ClientBuilder) -> Result<reqwest::Client, WifError> {
     builder.build().map_err(|e| {
         exchange_unavailable(format!(
             "cannot build HTTP client: {}",
             describe_http_error(&e)
         ))
+    })
+}
+
+/// The exchange goes to the API host, so it takes the CLI's own transport settings: its proxy
+/// (ELEVENLABS_PROXY or the profile's, with the bypass list) and CA bundles. Not its
+/// ELEVENLABS_INSECURE: TLS verification stays on for the exchange whatever is set.
+fn exchange_client() -> Result<reqwest::Client, WifError> {
+    let resolved = fern_cli_sdk::http::HttpConfig::new(super::CLI_NAME)
+        .and_then(|c| c.resolve())
+        .map_err(|e| {
+            exchange_unavailable(format!("cannot read the CLI's transport settings: {e}"))
+        })?;
+    let mut builder = builder(EXCHANGE_TIMEOUT);
+    for pem in &resolved.extra_root_certs_pem {
+        let certs = reqwest::Certificate::from_pem_bundle(pem)
+            .map_err(|_| exchange_unavailable("a configured CA bundle is not PEM"))?;
+        for cert in certs {
+            builder = builder.add_root_certificate(cert);
+        }
+    }
+    if let Some(p) = &resolved.proxy {
+        let mut proxy = reqwest::Proxy::all(&p.url)
+            .map_err(|_| exchange_unavailable("the configured proxy URL is invalid"))?;
+        if let Some(list) = &p.no_proxy {
+            proxy = proxy.no_proxy(reqwest::NoProxy::from_string(list));
+        }
+        builder = builder.no_proxy().proxy(proxy);
+    }
+    build(builder)
+}
+
+/// Source clients: third-party hosts use the standard proxy variables, as any client would; cloud
+/// metadata endpoints are always reached directly, as the cloud SDKs do (a proxy cannot reach a
+/// link-local address, and should not see the credentials they hand out).
+fn source_http() -> Result<SourceHttp, WifError> {
+    Ok(SourceHttp {
+        internet: build(builder(SOURCE_TIMEOUT))?,
+        metadata: build(builder(SOURCE_TIMEOUT).no_proxy())?,
     })
 }
 

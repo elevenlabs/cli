@@ -7,7 +7,7 @@ use reqwest::Url;
 use sha2::{Digest, Sha256};
 
 use super::error::{describe_http_error, source_unavailable, WifError};
-use super::sources::{get, MAX_SOURCE_TOKEN_BYTES};
+use super::sources::{get, SourceHttp, MAX_SOURCE_TOKEN_BYTES};
 use super::urls::{is_loopback, require_https_or_loopback};
 
 const IMDS_DEFAULT: &str = "http://169.254.169.254/";
@@ -20,13 +20,13 @@ struct Credentials {
     session_token: Option<String>,
 }
 
-pub async fn fetch(http: &reqwest::Client, audience: &str) -> Result<String, WifError> {
-    let mut imds = Imds::new(http);
+pub async fn fetch(http: &SourceHttp, audience: &str) -> Result<String, WifError> {
+    let mut imds = Imds::new(&http.metadata);
     let region = match env("AWS_REGION").or_else(|| env("AWS_DEFAULT_REGION")) {
         Some(r) => r,
         None => imds.get("meta-data/placement/region").await?,
     };
-    let credentials = credentials(http, &mut imds).await?;
+    let credentials = credentials(&http.metadata, &mut imds).await?;
     let endpoint = env("AWS_ENDPOINT_URL_STS")
         .unwrap_or_else(|| format!("https://sts.{region}.amazonaws.com"));
     require_https_or_loopback(&endpoint, "AWS_ENDPOINT_URL_STS")?;
@@ -40,7 +40,7 @@ pub async fn fetch(http: &reqwest::Client, audience: &str) -> Result<String, Wif
         .append_pair("SigningAlgorithm", "RS256")
         .append_pair("DurationSeconds", STS_DURATION_SECONDS)
         .finish();
-    let mut request = http.post(url.clone()).body(body.clone());
+    let mut request = http.internet.post(url.clone()).body(body.clone());
     for (name, value) in sign(&url, body.as_bytes(), &credentials, &region) {
         request = request.header(name, value);
     }
