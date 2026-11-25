@@ -2,7 +2,7 @@ pub use crate::prelude::*;
 #[allow(unused_imports)]
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct GetAgentConversationTicketsPageResponseModel {
     #[serde(default)]
     pub agent_conversation_tickets: Vec<AgentConversationTicketResponseModel>,

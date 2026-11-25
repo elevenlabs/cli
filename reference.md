@@ -624,7 +624,7 @@ Returns a list of branches an agent has
 
 #### `elevenlabs agents branches merge`
 
-Merge a branch into a target branch
+Merge a branch into a target branch. If both branches changed the same field, the merge returns 409 unless `conflict_resolutions` settles every conflict the merge preview reports, or `force` is set.
 
 `POST /v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge`
 
@@ -638,7 +638,7 @@ Merge a branch into a target branch
 
 #### `elevenlabs agents branches preview-merge`
 
-Returns the result of merging the source branch into the target branch without performing the merge. Useful for showing an accurate diff before confirming.
+Returns the result of merging the source branch into the target branch without performing the merge. When `conflicts` is not empty, the merge itself is rejected unless `conflict_resolutions` settles every conflict or `force` is set; until then the returned configuration shows one side of each conflict only as a placeholder.
 
 `GET /v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge-preview`
 
@@ -647,13 +647,13 @@ Returns the result of merging the source branch into the target branch without p
 | `--agent-id` | `string` | Yes | The id of an agent. This is returned on agent creation. |
 | `--source-branch-id` | `string` | Yes | Unique identifier for the source branch to merge from. |
 | `--target-branch-id` | `string` | Yes | The ID of the target branch to merge into. |
-| `--force` | `boolean` | No | When true, source branch changes always win conflicts regardless of timestamps |
+| `--force` | `boolean` | No | When true, the preview keeps the source branch's value for every conflict, as a merge with `force` does. Without it, a merge with conflicts needs `conflict_resolutions`. |
 | `--include-procedure-generated-workflow-elements` | `boolean` | No | Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 #### `elevenlabs agents branches preview-rebase`
 
-Returns the result of pulling changes from a source branch (defaults to main) into the given branch without performing it, preserving the given branch's own changes. Useful for showing an accurate diff before confirming.
+Returns the result of pulling changes from a source branch (defaults to main) into the given branch without performing it. When `conflicts` is not empty, the rebase itself is rejected unless `conflict_resolutions` settles every conflict; until then the returned configuration keeps the given branch's side of each conflict.
 
 `GET /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview`
 
@@ -667,7 +667,7 @@ Returns the result of pulling changes from a source branch (defaults to main) in
 
 #### `elevenlabs agents branches rebase`
 
-Pull changes from a source branch (defaults to main) into this branch as a new version, preserving this branch's own changes on conflicts.
+Pull changes from a source branch (defaults to main) into this branch as a new version. If both branches changed the same field, the rebase returns 409 unless `conflict_resolutions` settles every conflict the rebase preview reports.
 
 `POST /v1/convai/agents/{agent_id}/branches/{branch_id}/rebase`
 
@@ -2069,7 +2069,7 @@ List the workspace's outbound campaigns, newest first.
 | `--agent-id` | `string` | No | Only campaigns run by this agent. |
 | `--channel` | `string` | No | Only campaigns on this channel. |
 | `--mode` | `string` | No | Only voice or only message campaigns. |
-| `--search` | `string` | No | Only campaigns whose name contains this text. |
+| `--search` | `string` | No | Only campaigns whose name contains this text, or whose ID is exactly this text. |
 | `--cursor` | `string` | No | Used for fetching next page. Cursor is returned in the response. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
@@ -3126,10 +3126,9 @@ List an agent's issues, ordered by most recently created first unless sorted by 
 | `--status` | `string` | No | Filter agent issues by status. |
 | `--sources` | `string` | No | Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
 | `--priorities` | `string` | No | Filter agent issues by priority. Repeat the parameter to filter by multiple priorities. |
-| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation). |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), by most recently reported (the newest report merged into the agent issue, else its creation), or by report count (most reports merged into the agent issue first, then most recently created). |
 | `--owner-user-id` | `string` | No | Filter agent issues by creator. Use 'agent' for agent-raised issues. |
 | `--assignee-user-id` | `string` | No | Filter agent issues by assignee. Use 'unassigned' for issues with no assignee. |
-| `--issue-type` | `string` | No | Filter agent issues by type. |
 | `--label` | `string` | No | Filter agent issues by an exact label. |
 | `--merged-into-ticket-id` | `string` | No | Filter agent issues merged into this issue. |
 | `--search` | `string` | No | Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments. |
@@ -3160,10 +3159,9 @@ List agent issues across every agent in the workspace, ordered by most recently 
 | `--status` | `string` | No | Filter agent issues by status. |
 | `--sources` | `string` | No | Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources. |
 | `--priorities` | `string` | No | Filter agent issues by priority. Repeat the parameter to filter by multiple priorities. |
-| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation). |
+| `--sort-by` | `AgentConversationTicketSortBy` | No | Order by most recently created, by priority (most urgent first, then most recently created), by most recently reported (the newest report merged into the agent issue, else its creation), or by report count (most reports merged into the agent issue first, then most recently created). |
 | `--owner-user-id` | `string` | No | Filter agent issues by creator. Use 'agent' for agent-raised issues. |
 | `--assignee-user-id` | `string` | No | Filter agent issues by assignee. Use 'unassigned' for issues with no assignee. |
-| `--issue-type` | `string` | No | Filter agent issues by type. |
 | `--label` | `string` | No | Filter agent issues by an exact label. |
 | `--merged-into-ticket-id` | `string` | No | Filter agent issues merged into this issue. |
 | `--search` | `string` | No | Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments. |
@@ -4437,6 +4435,7 @@ Returns a list of your generated audio (e.g. text to speech, speech to speech, S
 | `--sort-direction` | `string` | No | Sort direction for the results. |
 | `--search` | `string` | No | search term used for filtering |
 | `--source` | `string` | No | Source of the generated history item |
+| `--sources` | `string` | No | Sources of the generated history items, matching any of them. Cannot be combined with source. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -6715,6 +6714,7 @@ Generate a time limited single-use token with embedded authentication for fronte
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--token-type` | `SingleUseTokenType` | Yes |  |
+| `--max-session-duration-seconds` | `string` | No | Closes the realtime transcription session opened with this token after this many seconds. Only for realtime_scribe tokens. |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 
 ---
@@ -6789,6 +6789,14 @@ Returns a list of shared voices similar to the provided audio sample. If neither
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
+| `--category` | `professional | famous | high_quality` | No | Voice category used for filtering |
+| `--gender` | `string` | No | Gender used for filtering |
+| `--age` | `string` | No | Age used for filtering |
+| `--use-cases` | `string` | No | Use-case used for filtering |
+| `--min-notice-period-days` | `string` | No | Filter voices with a minimum notice period of the given number of days. |
+| `--include-custom-rates` | `string` | No | Include/exclude voices with custom rates |
+| `--include-live-moderated` | `string` | No | Include/exclude voices that are live moderated |
+| `--owner-id` | `string` | No | Filter voices by public owner ID |
 | `--xi-api-key` | `string` | No | Your API key. This is required by most endpoints to access our API programmatically. You can view your xi-api-key using the 'Profile' tab on the website. |
 | `--json` | `JSON` | No | Request body as JSON (or use individual body-field flags) |
 
@@ -7313,7 +7321,7 @@ List all webhooks for a workspace
 
 #### `elevenlabs webhooks redeliver`
 
-Sends a stored delivery again, once, with the same delivery ID, a new signature and an ElevenLabs-Webhook-Redelivery header. A retry that is already scheduled is still sent. Only workspace admins on a web session can redeliver, and only deliveries whose payload is stored. Redeliveries and test events share a limit of 10 per webhook per minute.
+Sends a stored delivery again, once, with the same delivery ID, a new signature and an ElevenLabs-Webhook-Redelivery header. A retry that is already scheduled is still sent. Redelivering needs permission to manage webhooks and a web session, and the delivery's payload must be stored. Redeliveries and test events share a limit of 10 per webhook per minute.
 
 `POST /v1/workspace/webhooks/{webhook_id}/deliveries/{delivery_id}/redeliver`
 

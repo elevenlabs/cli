@@ -40,7 +40,7 @@ impl Default for ClientConfig {
             custom_headers: HashMap::from([
                 ("X-Fern-Language".to_string(), "Rust".to_string()),
                 ("X-Fern-SDK-Name".to_string(), "elevenlabs_sdk".to_string()),
-                ("X-Fern-SDK-Version".to_string(), "1.12.0".to_string()),
+                ("X-Fern-SDK-Version".to_string(), "1.13.0".to_string()),
             ]),
             user_agent: "Api Rust SDK".to_string(),
             reqwest_client: None,

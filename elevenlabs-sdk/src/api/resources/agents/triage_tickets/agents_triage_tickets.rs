@@ -22,10 +22,9 @@ impl TriageTicketsClient {
     /// * `status` - Filter agent issues by status.
     /// * `sources` - Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
     /// * `priorities` - Filter agent issues by priority. Repeat the parameter to filter by multiple priorities.
-    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation).
+    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), by most recently reported (the newest report merged into the agent issue, else its creation), or by report count (most reports merged into the agent issue first, then most recently created).
     /// * `owner_user_id` - Filter agent issues by creator. Use 'agent' for agent-raised issues.
     /// * `assignee_user_id` - Filter agent issues by assignee. Use 'unassigned' for issues with no assignee.
-    /// * `issue_type` - Filter agent issues by type.
     /// * `label` - Filter agent issues by an exact label.
     /// * `merged_into_ticket_id` - Filter agent issues merged into this issue.
     /// * `search` - Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments.
@@ -61,7 +60,6 @@ impl TriageTicketsClient {
     ///                 sort_by: Some(AgentConversationTicketSortBy::CreatedAt),
     ///                 owner_user_id: Some("owner_user_id".to_string()),
     ///                 assignee_user_id: Some("assignee_user_id".to_string()),
-    ///                 issue_type: Some(AgentConversationTicketIssueType::KnowledgeGap),
     ///                 label: Some("label".to_string()),
     ///                 merged_into_ticket_id: Some("merged_into_ticket_id".to_string()),
     ///                 search: Some("search".to_string()),
@@ -92,7 +90,6 @@ impl TriageTicketsClient {
                     .serialize("sort_by", request.sort_by.clone())
                     .string("owner_user_id", request.owner_user_id.clone())
                     .string("assignee_user_id", request.assignee_user_id.clone())
-                    .serialize("issue_type", request.issue_type.clone())
                     .string("label", request.label.clone())
                     .string(
                         "merged_into_ticket_id",
@@ -168,10 +165,9 @@ impl TriageTicketsClient {
     /// * `status` - Filter agent issues by status.
     /// * `sources` - Filter agent issues by how they were raised (qa, agent, manual). Repeat the parameter to filter by multiple sources.
     /// * `priorities` - Filter agent issues by priority. Repeat the parameter to filter by multiple priorities.
-    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), or by most recently reported (the newest report merged into the agent issue, else its creation).
+    /// * `sort_by` - Order by most recently created, by priority (most urgent first, then most recently created), by most recently reported (the newest report merged into the agent issue, else its creation), or by report count (most reports merged into the agent issue first, then most recently created).
     /// * `owner_user_id` - Filter agent issues by creator. Use 'agent' for agent-raised issues.
     /// * `assignee_user_id` - Filter agent issues by assignee. Use 'unassigned' for issues with no assignee.
-    /// * `issue_type` - Filter agent issues by type.
     /// * `label` - Filter agent issues by an exact label.
     /// * `merged_into_ticket_id` - Filter agent issues merged into this issue.
     /// * `search` - Case-insensitive free-text search across the agent issue's title, description, comments, and turn comments.
@@ -206,7 +202,6 @@ impl TriageTicketsClient {
     ///                 sort_by: Some(AgentConversationTicketSortBy::CreatedAt),
     ///                 owner_user_id: Some("owner_user_id".to_string()),
     ///                 assignee_user_id: Some("assignee_user_id".to_string()),
-    ///                 issue_type: Some(AgentConversationTicketIssueType::KnowledgeGap),
     ///                 label: Some("label".to_string()),
     ///                 merged_into_ticket_id: Some("merged_into_ticket_id".to_string()),
     ///                 search: Some("search".to_string()),
@@ -236,7 +231,6 @@ impl TriageTicketsClient {
                     .serialize("sort_by", request.sort_by.clone())
                     .string("owner_user_id", request.owner_user_id.clone())
                     .string("assignee_user_id", request.assignee_user_id.clone())
-                    .serialize("issue_type", request.issue_type.clone())
                     .string("label", request.label.clone())
                     .string(
                         "merged_into_ticket_id",

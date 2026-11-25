@@ -16,6 +16,9 @@ pub struct SubmitCampaignRecipient {
     /// Your identifier for the recipient, returned as its lead's `recipient_id`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    /// IANA timezone to read the calling windows and callback times in for this recipient, overriding the campaign's.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timezone_override: Option<String>,
     /// Dynamic variables and overrides for this recipient's calls.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation_initiation_client_data: Option<ConversationInitiationClientDataRequestInput>,
@@ -34,6 +37,7 @@ pub struct SubmitCampaignRecipientBuilder {
     phone_numbers: Option<Vec<String>>,
     whatsapp_user_id: Option<String>,
     id: Option<String>,
+    timezone_override: Option<String>,
     conversation_initiation_client_data: Option<ConversationInitiationClientDataRequestInput>,
 }
 
@@ -58,6 +62,11 @@ impl SubmitCampaignRecipientBuilder {
         self
     }
 
+    pub fn timezone_override(mut self, value: impl Into<String>) -> Self {
+        self.timezone_override = Some(value.into());
+        self
+    }
+
     pub fn conversation_initiation_client_data(mut self, value: ConversationInitiationClientDataRequestInput) -> Self {
         self.conversation_initiation_client_data = Some(value);
         self
@@ -70,6 +79,7 @@ impl SubmitCampaignRecipientBuilder {
             phone_numbers: self.phone_numbers,
             whatsapp_user_id: self.whatsapp_user_id,
             id: self.id,
+            timezone_override: self.timezone_override,
             conversation_initiation_client_data: self.conversation_initiation_client_data,
         })
     }

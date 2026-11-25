@@ -20,7 +20,7 @@ pub struct AgentsOutboundCampaignsListQueryRequest {
     /// Only voice or only message campaigns.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<OutboundCampaignsListRequestMode>,
-    /// Only campaigns whose name contains this text.
+    /// Only campaigns whose name contains this text, or whose ID is exactly this text.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub search: Option<String>,
     /// Used for fetching next page. Cursor is returned in the response.

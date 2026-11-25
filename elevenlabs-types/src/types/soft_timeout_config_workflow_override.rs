@@ -24,6 +24,9 @@ pub struct SoftTimeoutConfigWorkflowOverride {
     /// Maximum filler messages while waiting for a single LLM response. Fires every timeout_seconds until the LLM streams content or this limit is reached.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_soft_timeouts_per_generation: Option<i64>,
+    /// If enabled, leave a short pause after a filler message before the agent's response, so the two do not run together.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pause_after_filler: Option<bool>,
     /// Custom prompt for generating the soft timeout filler message when use_llm_generated_message is enabled. Recent conversation context is provided as a separate user message. If not set, the default prompt will be used. Supports dynamic variables (e.g., {{system__time}}, {{custom_variable}}).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_generated_message_prompt_override: Option<String>,
@@ -47,6 +50,7 @@ pub struct SoftTimeoutConfigWorkflowOverrideBuilder {
     use_llm_generated_message: Option<bool>,
     randomize_fillers: Option<bool>,
     max_soft_timeouts_per_generation: Option<i64>,
+    pause_after_filler: Option<bool>,
     llm_generated_message_prompt_override: Option<String>,
     disable_until_first_user_message: Option<bool>,
 }
@@ -82,6 +86,11 @@ impl SoftTimeoutConfigWorkflowOverrideBuilder {
         self
     }
 
+    pub fn pause_after_filler(mut self, value: bool) -> Self {
+        self.pause_after_filler = Some(value);
+        self
+    }
+
     pub fn llm_generated_message_prompt_override(mut self, value: impl Into<String>) -> Self {
         self.llm_generated_message_prompt_override = Some(value.into());
         self
@@ -101,6 +110,7 @@ impl SoftTimeoutConfigWorkflowOverrideBuilder {
             use_llm_generated_message: self.use_llm_generated_message,
             randomize_fillers: self.randomize_fillers,
             max_soft_timeouts_per_generation: self.max_soft_timeouts_per_generation,
+            pause_after_filler: self.pause_after_filler,
             llm_generated_message_prompt_override: self.llm_generated_message_prompt_override,
             disable_until_first_user_message: self.disable_until_first_user_message,
         })

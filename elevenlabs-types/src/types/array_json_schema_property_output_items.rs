@@ -10,6 +10,8 @@ pub enum ArrayJsonSchemaPropertyOutputItems {
         ObjectJsonSchemaPropertyOutput(Box<ObjectJsonSchemaPropertyOutput>),
 
         ArrayJsonSchemaPropertyOutput(Box<ArrayJsonSchemaPropertyOutput>),
+
+        AnyOfJsonSchemaPropertyOutput(Box<AnyOfJsonSchemaPropertyOutput>),
 }
 
 impl ArrayJsonSchemaPropertyOutputItems {
@@ -23,6 +25,10 @@ impl ArrayJsonSchemaPropertyOutputItems {
 
     pub fn is_array_json_schema_property_output(&self) -> bool {
         matches!(self, Self::ArrayJsonSchemaPropertyOutput(_))
+    }
+
+    pub fn is_any_of_json_schema_property_output(&self) -> bool {
+        matches!(self, Self::AnyOfJsonSchemaPropertyOutput(_))
     }
 
 
@@ -67,6 +73,20 @@ impl ArrayJsonSchemaPropertyOutputItems {
                     _ => None,
                 }
     }
+
+    pub fn as_any_of_json_schema_property_output(&self) -> Option<&Box<AnyOfJsonSchemaPropertyOutput>> {
+        match self {
+                    Self::AnyOfJsonSchemaPropertyOutput(value) => Some(value),
+                    _ => None,
+                }
+    }
+
+    pub fn into_any_of_json_schema_property_output(self) -> Option<AnyOfJsonSchemaPropertyOutput> {
+        match self {
+                    Self::AnyOfJsonSchemaPropertyOutput(value) => Some(*value),
+                    _ => None,
+                }
+    }
 }
 
 impl fmt::Display for ArrayJsonSchemaPropertyOutputItems {
@@ -75,6 +95,7 @@ impl fmt::Display for ArrayJsonSchemaPropertyOutputItems {
             Self::LiteralJsonSchemaProperty(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ObjectJsonSchemaPropertyOutput(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
             Self::ArrayJsonSchemaPropertyOutput(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
+            Self::AnyOfJsonSchemaPropertyOutput(value) => write!(f, "{}", serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value))),
         }
     }
 }

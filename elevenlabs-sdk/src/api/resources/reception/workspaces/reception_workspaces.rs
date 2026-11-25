@@ -94,8 +94,10 @@ impl WorkspacesClient {
     ///         .reception
     ///         .workspaces
     ///         .create(
-    ///             &ProvisionResellerWorkspaceRequest {
+    ///             &ReceptionProvisionResellerWorkspaceRequest {
     ///                 business_name: "business_name".to_string(),
+    ///                 vertical: None,
+    ///                 charge_customer: None,
     ///                 subscription: None,
     ///                 phone_number: None,
     ///                 members: None,
@@ -109,7 +111,7 @@ impl WorkspacesClient {
     /// ```
     pub async fn create(
         &self,
-        request: &ProvisionResellerWorkspaceRequest,
+        request: &ReceptionProvisionResellerWorkspaceRequest,
         options: Option<RequestOptions>,
     ) -> Result<ProvisionResellerWorkspaceResponse, ApiError> {
         self.http_client

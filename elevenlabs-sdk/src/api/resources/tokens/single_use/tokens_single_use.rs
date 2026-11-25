@@ -1,5 +1,5 @@
 use crate::api::*;
-use crate::{ApiError, ClientConfig, HttpClient, RequestOptions};
+use crate::{ApiError, ClientConfig, HttpClient, QueryBuilder, RequestOptions};
 use reqwest::Method;
 
 pub struct SingleUseClient {
@@ -17,6 +17,7 @@ impl SingleUseClient {
     ///
     /// # Arguments
     ///
+    /// * `max_session_duration_seconds` - Closes the realtime transcription session opened with this token after this many seconds. Only for realtime_scribe tokens.
     /// * `options` - Additional request options such as headers, timeout, etc.
     ///
     /// # Returns
@@ -37,13 +38,21 @@ impl SingleUseClient {
     ///     client
     ///         .tokens
     ///         .single_use
-    ///         .create(&SingleUseTokenType::RealtimeScribe, None)
+    ///         .create(
+    ///             &SingleUseTokenType::RealtimeScribe,
+    ///             &CreateQueryRequest {
+    ///                 max_session_duration_seconds: Some(1),
+    ///                 ..Default::default()
+    ///             },
+    ///             None,
+    ///         )
     ///         .await;
     /// }
     /// ```
     pub async fn create(
         &self,
         token_type: &SingleUseTokenType,
+        request: &CreateQueryRequest,
         options: Option<RequestOptions>,
     ) -> Result<SingleUseTokenResponseModel, ApiError> {
         self.http_client
@@ -51,7 +60,12 @@ impl SingleUseClient {
                 Method::POST,
                 &format!("v1/single-use-token/{}", token_type),
                 None,
-                None,
+                QueryBuilder::new()
+                    .int(
+                        "max_session_duration_seconds",
+                        request.max_session_duration_seconds.clone(),
+                    )
+                    .build(),
                 options,
             )
             .await

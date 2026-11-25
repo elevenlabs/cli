@@ -54,6 +54,7 @@ pub enum ReceptionAgentInfoResponseCurrency {
     Ngn,
     Kes,
     Pkr,
+    Gel,
     /// This variant is used for forward compatibility.
     /// If the server sends a value not recognized by the current SDK version,
     /// it will be captured here with the raw string value.
@@ -110,6 +111,7 @@ impl Serialize for ReceptionAgentInfoResponseCurrency {
             Self::Ngn => serializer.serialize_str("NGN"),
             Self::Kes => serializer.serialize_str("KES"),
             Self::Pkr => serializer.serialize_str("PKR"),
+            Self::Gel => serializer.serialize_str("GEL"),
             Self::__Unknown(val) => serializer.serialize_str(val),
         }
     }
@@ -167,6 +169,7 @@ impl<'de> Deserialize<'de> for ReceptionAgentInfoResponseCurrency {
             "NGN" => Ok(Self::Ngn),
             "KES" => Ok(Self::Kes),
             "PKR" => Ok(Self::Pkr),
+            "GEL" => Ok(Self::Gel),
             _ => Ok(Self::__Unknown(value)),
         }
     }
@@ -223,6 +226,7 @@ impl fmt::Display for ReceptionAgentInfoResponseCurrency {
             Self::Ngn => write!(f, "NGN"),
             Self::Kes => write!(f, "KES"),
             Self::Pkr => write!(f, "PKR"),
+            Self::Gel => write!(f, "GEL"),
             Self::__Unknown(val) => write!(f, "{}", val),
         }
     }

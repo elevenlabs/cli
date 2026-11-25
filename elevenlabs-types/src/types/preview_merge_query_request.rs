@@ -8,7 +8,7 @@ pub struct PreviewMergeQueryRequest {
     /// The ID of the target branch to merge into.
     #[serde(default)]
     pub target_branch_id: String,
-    /// When true, source branch changes always win conflicts regardless of timestamps
+    /// When true, the preview keeps the source branch's value for every conflict, as a merge with `force` does. Without it, a merge with conflicts needs `conflict_resolutions`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub force: Option<bool>,
     /// Whether to include the workflow nodes and edges generated from structured procedures. When false, the workflow contains only authored elements.

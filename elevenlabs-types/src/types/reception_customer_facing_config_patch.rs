@@ -41,9 +41,9 @@ pub struct ReceptionCustomerFacingConfigPatch {
     /// The first message the agent says when starting a conversation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_message: Option<String>,
-    /// When true, callers cannot interrupt the receptionist while the first message is being delivered. Use when the greeting carries a recording or legal notice callers must hear in full.
+    /// How the first message plays. interruptible: callers can talk over it. uninterruptible: it always plays to the end. recording_notice: it opens with a short 'this call may be recorded' notice in the receptionist's language, spoken by a separate voice, and always plays to the end.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub disable_first_message_interruptions: Option<bool>,
+    pub first_message_mode: Option<FirstMessageMode>,
     /// Allow the end_call system tool during conversations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enable_end_call_tool: Option<bool>,
@@ -88,7 +88,7 @@ pub struct ReceptionCustomerFacingConfigPatchBuilder {
     language: Option<SupportedLang>,
     additional_languages: Option<Vec<SupportedLang>>,
     first_message: Option<String>,
-    disable_first_message_interruptions: Option<bool>,
+    first_message_mode: Option<FirstMessageMode>,
     enable_end_call_tool: Option<bool>,
     enable_skip_turn_tool: Option<bool>,
     enable_play_keypad_touch_tone_tool: Option<bool>,
@@ -159,8 +159,8 @@ impl ReceptionCustomerFacingConfigPatchBuilder {
         self
     }
 
-    pub fn disable_first_message_interruptions(mut self, value: bool) -> Self {
-        self.disable_first_message_interruptions = Some(value);
+    pub fn first_message_mode(mut self, value: FirstMessageMode) -> Self {
+        self.first_message_mode = Some(value);
         self
     }
 
@@ -214,7 +214,7 @@ impl ReceptionCustomerFacingConfigPatchBuilder {
             language: self.language,
             additional_languages: self.additional_languages,
             first_message: self.first_message,
-            disable_first_message_interruptions: self.disable_first_message_interruptions,
+            first_message_mode: self.first_message_mode,
             enable_end_call_tool: self.enable_end_call_tool,
             enable_skip_turn_tool: self.enable_skip_turn_tool,
             enable_play_keypad_touch_tone_tool: self.enable_play_keypad_touch_tone_tool,

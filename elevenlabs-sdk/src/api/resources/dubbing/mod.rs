@@ -138,7 +138,7 @@ impl DubbingClient {
     ///     client
     ///         .dubbing
     ///         .create(
-    ///             &CreateRequest {
+    ///             &CreateRequest2 {
     ///                 file: b"test file content".to_vec(),
     ///                 csv_file: b"test file content".to_vec(),
     ///                 foreground_audio_file: b"test file content".to_vec(),

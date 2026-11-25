@@ -5,7 +5,7 @@ use super::*;
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct QueryParamsJsonSchemaOutput {
     #[serde(default)]
-    pub properties: HashMap<String, LiteralJsonSchemaProperty>,
+    pub properties: HashMap<String, QueryParamsJsonSchemaOutputPropertiesValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
 }
@@ -19,12 +19,12 @@ impl QueryParamsJsonSchemaOutput {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[non_exhaustive]
 pub struct QueryParamsJsonSchemaOutputBuilder {
-    properties: Option<HashMap<String, LiteralJsonSchemaProperty>>,
+    properties: Option<HashMap<String, QueryParamsJsonSchemaOutputPropertiesValue>>,
     required: Option<Vec<String>>,
 }
 
 impl QueryParamsJsonSchemaOutputBuilder {
-    pub fn properties(mut self, value: HashMap<String, LiteralJsonSchemaProperty>) -> Self {
+    pub fn properties(mut self, value: HashMap<String, QueryParamsJsonSchemaOutputPropertiesValue>) -> Self {
         self.properties = Some(value);
         self
     }
