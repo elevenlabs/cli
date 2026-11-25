@@ -2,14 +2,14 @@
 //! signing in, the manual key path on a remote machine, or, when the project
 //! already has a key, whatever `check` says about it.
 
+use fern_cli_sdk::error::CliError;
+use fern_cli_sdk::openapi::AppContext;
 use super::check;
 use super::connect;
 use super::manual::{self, NO_BROWSER};
 use super::project::Project;
 use super::reply::{Next, Reply};
 use super::session::Session;
-use fern_cli_sdk::error::CliError;
-use fern_cli_sdk::openapi::AppContext;
 
 const SIGN_IN: &str = "Next, I'll open the ElevenLabs approval page in your browser. Sign in (or create an account) and click Authorize.";
 const SIGN_IN_LINK: &str = "Next, I'll give you the link to the ElevenLabs approval page. Open it, sign in (or create an account) and click Authorize.";

@@ -320,16 +320,11 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
         skills.is_dir() && skills.starts_with(home.path()) && !skills.starts_with(cwd.path()),
         "{r}"
     );
-    assert_eq!(
-        std::fs::read_dir(&skills).unwrap().count(),
-        0,
-        "a new folder"
-    );
+    assert_eq!(std::fs::read_dir(&skills).unwrap().count(), 0, "a new folder");
     let fetch = r["details"]["fetch_skills"].as_str().unwrap();
     assert!(
         fetch.starts_with("curl -fsSL -o ")
-            && fetch
-                .contains("https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz")
+            && fetch.contains("https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz")
             && fetch.contains(&format!("-C {}", skills.display())),
         "{fetch}"
     );
@@ -364,16 +359,10 @@ async fn check_verifies_the_key_secures_the_file_and_asks_for_the_code() {
         &["onboard", "check"],
     ));
     assert_eq!(r["next"], "load_key", "{r}");
-    assert!(
-        say(&r).ends_with("nothing in the app loads .env.local yet."),
-        "{r}"
-    );
+    assert!(say(&r).ends_with("nothing in the app loads .env.local yet."), "{r}");
     assert_eq!(r["run"], "elevenlabs onboard check --env-path .env.local");
     assert!(
-        r["details"]["load_key"]
-            .as_str()
-            .unwrap()
-            .contains("`node --env-file=.env.local`"),
+        r["details"]["load_key"].as_str().unwrap().contains("`node --env-file=.env.local`"),
         "{r}"
     );
 
@@ -654,18 +643,11 @@ async fn the_reply_is_json_even_when_prose_is_asked_for() {
     let server = MockServer::start().await;
     user_endpoint_accepting(&server, KEY).await;
     let (home, cwd) = temp();
-    write(
-        cwd.path(),
-        ".env.local",
-        &format!("ELEVENLABS_API_KEY={KEY}\n"),
-    );
+    write(cwd.path(), ".env.local", &format!("ELEVENLABS_API_KEY={KEY}\n"));
     for flag in [&["--human"][..], &["--format", "table"][..]] {
         let args: Vec<&str> = ["onboard", "check"].iter().chain(flag).copied().collect();
         let r = reply(&mut cli(home.path(), cwd.path(), &server.uri(), &args));
-        assert!(
-            r["instruction"].as_str().is_some() && r["details"].is_object(),
-            "{flag:?}: {r}"
-        );
+        assert!(r["instruction"].as_str().is_some() && r["details"].is_object(), "{flag:?}: {r}");
     }
 }
 
@@ -998,7 +980,8 @@ async fn init_hands_on_to_sign_in() {
     let (home, cwd) = temp();
 
     let r = reply(
-        cli(home.path(), cwd.path(), &server.uri(), &["onboard", "init"]).env("CLAUDECODE", "1"),
+        cli(home.path(), cwd.path(), &server.uri(), &["onboard", "init"])
+            .env("CLAUDECODE", "1"),
     );
     assert_eq!(r["next"], "run", "{r}");
     assert!(say(&r).contains("approval page in your browser"), "{r}");
@@ -1006,10 +989,7 @@ async fn init_hands_on_to_sign_in() {
     assert!(r["rules"]
         .to_string()
         .contains("Never open, print or cat the env file"));
-    assert!(
-        !cwd.path().join(".claude").exists(),
-        "no skills are installed"
-    );
+    assert!(!cwd.path().join(".claude").exists(), "no skills are installed");
 
     // Flags go on to the next command.
     let r = reply(
@@ -1127,14 +1107,8 @@ async fn init_checks_a_key_that_is_already_there() {
         &["onboard", "init"],
     ));
     assert_eq!(r["next"], "ask_what_to_build", "{r}");
-    assert!(
-        say(&r).ends_with("or should I just add the SDK for now?"),
-        "{r}"
-    );
-    assert_eq!(
-        r["run"],
-        "elevenlabs onboard check --answered --env-path .env.local"
-    );
+    assert!(say(&r).ends_with("or should I just add the SDK for now?"), "{r}");
+    assert_eq!(r["run"], "elevenlabs onboard check --answered --env-path .env.local");
     assert_eq!(r["details"]["env_file"], ".env.local");
     assert!(r["rules"].as_array().is_some_and(|r| !r.is_empty()), "{r}");
 

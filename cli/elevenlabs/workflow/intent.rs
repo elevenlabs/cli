@@ -382,18 +382,16 @@ mod tests {
 
     #[test]
     fn accepts_non_english_and_round_trips_it() {
-        let clean = sanitize("mehrere Sprecher mit unterschiedlichen voice_ids in einem Durchlauf")
-            .unwrap();
+        let clean =
+            sanitize("mehrere Sprecher mit unterschiedlichen voice_ids in einem Durchlauf")
+                .unwrap();
         let encoded = encode_header(&clean).unwrap();
         assert!(encoded.is_ascii());
 
         let accented = sanitize("gerar diálogo em português com duas vozes").unwrap();
         let encoded = encode_header(&accented).unwrap();
         assert!(encoded.is_ascii(), "header values must be ASCII");
-        assert!(
-            encoded.contains("%C3%A1"),
-            "expected UTF-8 percent-encoding"
-        );
+        assert!(encoded.contains("%C3%A1"), "expected UTF-8 percent-encoding");
         let decoded = percent_encoding::percent_decode_str(&encoded)
             .decode_utf8()
             .unwrap();
@@ -429,10 +427,7 @@ mod tests {
     #[test]
     fn rejects_control_characters() {
         assert_eq!(sanitize("goal\nsecond line"), Err(DropReason::ControlChars));
-        assert_eq!(
-            sanitize("goal\r\nsecond line"),
-            Err(DropReason::ControlChars)
-        );
+        assert_eq!(sanitize("goal\r\nsecond line"), Err(DropReason::ControlChars));
         assert_eq!(sanitize("goal\tand more"), Err(DropReason::ControlChars));
         // A trailing newline is just sloppy quoting — trim it rather than
         // punish the agent for it.
@@ -492,10 +487,7 @@ mod tests {
             sanitize("read /Users/jane/projects/agent.json"),
             Err(DropReason::Path)
         );
-        assert_eq!(
-            sanitize("open C:\\Users\\jane\\a.json"),
-            Err(DropReason::Path)
-        );
+        assert_eq!(sanitize("open C:\\Users\\jane\\a.json"), Err(DropReason::Path));
         // Relative project paths are structure, not personal data.
         assert!(sanitize("push agent_configs/support.json").is_ok());
     }
