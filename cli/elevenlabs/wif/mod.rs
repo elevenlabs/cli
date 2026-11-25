@@ -37,6 +37,9 @@ const WIF_CONFIG_FLAG: &str = "--wif-config";
 /// Flags that pass an API key explicitly: the global one and the per-operation header parameter.
 const API_KEY_FLAGS: &[&str] = &["--api-key", "--xi-api-key"];
 const SCHEME_NAME: &str = "WorkloadIdentityFederation";
+const CLI_NAME: &str = "elevenlabs";
+/// The scheme name the generated `main.rs` gives its `PkceLoginFlow`.
+const OAUTH_SCHEME: &str = "OAuth";
 
 /// The WIF credentials this process uses, once precedence picked them.
 static ACTIVE: OnceLock<Arc<WifAuth>> = OnceLock::new();
@@ -69,6 +72,11 @@ pub fn register(app: CliApp) -> CliApp {
     // Before anything else, and before `CliApp::run` loads `.env`: WIF never reads that file.
     env::capture();
     let argv: Vec<OsString> = std::env::args_os().collect();
+    // `auth login/logout/status` list the raw bindings and would see the login scheme twice.
+    // They never send an API request, so WIF stays out of them.
+    if first_positional(&argv).as_deref() == Some("auth") {
+        return app;
+    }
     match select(&argv, &env::var) {
         Ok(Selection::None) => app,
         Ok(Selection::Wif { path }) => {
@@ -128,6 +136,43 @@ fn select(argv: &[OsString], env: &dyn Fn(&str) -> Option<String>) -> Result<Sel
 /// value rather than removal blocks that, since the CLI's `.env` loader never overrides a set variable.
 fn shadow_env_api_key() {
     std::env::set_var(API_KEY_ENV, "");
+}
+
+/// The first non-flag argument, skipping flag values like the CLI's own early dispatch does.
+///
+/// An unlisted boolean flag makes this skip the token after it, which can only miss `auth`, never
+/// mistake an API command for it.
+fn first_positional(argv: &[OsString]) -> Option<String> {
+    const BOOLEAN_FLAGS: &[&str] = &[
+        "debug",
+        "dry-run",
+        "help",
+        "human",
+        "no-extract",
+        "no-pager",
+        "no-retry",
+        "no-stream",
+        "page-all",
+        "q",
+        "quiet",
+        "version",
+    ];
+    let mut skip_next = false;
+    for arg in argv.iter().skip(1).map(|a| a.to_string_lossy()) {
+        if std::mem::take(&mut skip_next) {
+            continue;
+        }
+        if arg == "--" {
+            return None;
+        }
+        if let Some(flag) = arg.strip_prefix('-') {
+            skip_next =
+                !arg.contains('=') && !BOOLEAN_FLAGS.contains(&flag.trim_start_matches('-'));
+            continue;
+        }
+        return Some(arg.into_owned());
+    }
+    None
 }
 
 /// The value of `--flag v` or `--flag=v` before any `--`, if non-empty.
@@ -256,12 +301,38 @@ fn origin(url: &str) -> Result<String, WifError> {
 struct WifScheme(Arc<WifAuth>);
 
 impl AuthSchemeBuilder for WifScheme {
+    /// Bound under the OAuth login's scheme: the builder keeps the last binding of a name, so this
+    /// replaces the stored-login provider for requests (which would otherwise win, being first),
+    /// while `auth login`, `logout` and `status` keep working through the login flow.
     fn into_binding(self) -> (String, SchemeBinding) {
         (
-            SCHEME_NAME.to_string(),
+            OAUTH_SCHEME.to_string(),
             SchemeBinding::Custom(Arc::new(WifAuthProvider(self.0))),
         )
     }
+}
+
+/// Whether `elevenlabs auth login` stored a credential for the active profile.
+fn has_stored_login() -> bool {
+    fern_cli_sdk::auth::active_store()
+        .get(
+            CLI_NAME,
+            &fern_cli_sdk::profiles::keyring_account(OAUTH_SCHEME),
+        )
+        .ok()
+        .flatten()
+        .is_some_and(|v| !v.is_empty())
+}
+
+/// Refuses to choose between a WIF config and a stored login: either may be the identity meant.
+fn check_no_stored_login() -> Result<(), WifError> {
+    static STORED_LOGIN: OnceLock<bool> = OnceLock::new();
+    if *STORED_LOGIN.get_or_init(has_stored_login) {
+        return Err(config_invalid(format!(
+            "a WIF config is set and so is an `{CLI_NAME} auth login` session; run `{CLI_NAME} auth logout` or drop the WIF config"
+        )));
+    }
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -289,6 +360,7 @@ impl AuthProvider for WifAuthProvider {
         request: reqwest::RequestBuilder,
         _endpoint: &EndpointAuthMetadata,
     ) -> Result<reqwest::RequestBuilder, CliError> {
+        check_no_stored_login()?;
         self.0.authorize(request)
     }
 }
@@ -307,6 +379,61 @@ fn print_identity_token(_matches: &clap::ArgMatches, ctx: &AppContext) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fern_cli_sdk::auth::{active_store, set_active_store, KeyringStore, MockKeyringStore};
+
+    #[test]
+    fn first_positional_skips_flags_and_their_values() {
+        assert_eq!(
+            first_positional(&argv(&["auth", "logout"])).as_deref(),
+            Some("auth")
+        );
+        assert_eq!(
+            first_positional(&argv(&[
+                "--wif-config",
+                "w.json",
+                "--human",
+                "auth",
+                "status"
+            ]))
+            .as_deref(),
+            Some("auth")
+        );
+        assert_eq!(
+            first_positional(&argv(&["--format=json", "user", "get"])).as_deref(),
+            Some("user")
+        );
+        // A flag value that happens to read "auth" is not the command.
+        assert_eq!(
+            first_positional(&argv(&["--base-url", "auth", "user"])).as_deref(),
+            Some("user")
+        );
+        assert_eq!(first_positional(&argv(&["--", "auth"])), None);
+    }
+
+    /// WIF replaces the stored-login provider only while it binds the same scheme name.
+    #[test]
+    fn generated_main_still_names_the_login_scheme_oauth() {
+        let main = include_str!("../main.rs");
+        assert!(
+            main.contains(&format!("PkceLoginFlow::new(\"{OAUTH_SCHEME}\")")),
+            "the generated login scheme was renamed; update OAUTH_SCHEME"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn a_stored_login_is_detected() {
+        let previous = active_store();
+        let store = Arc::new(MockKeyringStore::new());
+        set_active_store(store.clone());
+        let before = has_stored_login();
+        store
+            .set(CLI_NAME, OAUTH_SCHEME, "{\"access_token\":\"t\"}")
+            .unwrap();
+        let after = has_stored_login();
+        set_active_store(previous);
+        assert!(!before && after, "before {before}, after {after}");
+    }
 
     fn argv(args: &[&str]) -> Vec<OsString> {
         std::iter::once("elevenlabs")

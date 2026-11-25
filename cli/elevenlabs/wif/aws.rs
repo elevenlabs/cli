@@ -1,12 +1,14 @@
 //! AWS source: STS GetWebIdentityToken signed with SigV4, without the AWS SDK.
 
+use std::io::Read;
+
 use hmac::{Hmac, Mac};
 use reqwest::Url;
 use sha2::{Digest, Sha256};
 
 use super::error::{describe_http_error, source_unavailable, WifError};
-use super::sources::get;
-use super::urls::require_https_or_loopback;
+use super::sources::{get, MAX_SOURCE_TOKEN_BYTES};
+use super::urls::{is_loopback, require_https_or_loopback};
 
 const IMDS_DEFAULT: &str = "http://169.254.169.254/";
 const ECS_RELATIVE_HOST: &str = "http://169.254.170.2";
@@ -111,10 +113,15 @@ async fn credentials(http: &reqwest::Client, imds: &mut Imds<'_>) -> Result<Cred
     let full = env("AWS_CONTAINER_CREDENTIALS_FULL_URI");
     let relative = env("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI");
     if full.is_some() || relative.is_some() {
-        let url =
-            full.unwrap_or_else(|| format!("{ECS_RELATIVE_HOST}{}", relative.unwrap_or_default()));
+        let url = match full {
+            Some(full) => {
+                require_container_uri(&full)?;
+                full
+            }
+            None => format!("{ECS_RELATIVE_HOST}{}", relative.unwrap_or_default()),
+        };
         let mut request = http.get(&url);
-        if let Some(token) = env("AWS_CONTAINER_AUTHORIZATION_TOKEN") {
+        if let Some(token) = container_authorization()? {
             request = request.header("Authorization", token);
         }
         let response = request.send().await.map_err(|e| {
@@ -138,6 +145,57 @@ async fn credentials(http: &reqwest::Client, imds: &mut Imds<'_>) -> Result<Cred
         .get(&format!("meta-data/iam/security-credentials/{role}"))
         .await?;
     parse_credentials(&text, "IMDS credentials")
+}
+
+/// The AWS SDKs' rule for a full container credentials URI: https, or http to loopback or to the
+/// ECS and EKS Pod Identity agent addresses, so the authorization token never crosses a network in clear.
+fn require_container_uri(uri: &str) -> Result<(), WifError> {
+    const CONTAINER_HOSTS: &[&str] = &["169.254.170.2", "169.254.170.23", "[fd00:ec2::23]"];
+    let ok = Url::parse(uri).is_ok_and(|u| match u.scheme() {
+        "https" => true,
+        "http" => u
+            .host_str()
+            .is_some_and(|h| is_loopback(h) || CONTAINER_HOSTS.contains(&h)),
+        _ => false,
+    });
+    if ok {
+        Ok(())
+    } else {
+        Err(source_unavailable(
+            "AWS_CONTAINER_CREDENTIALS_FULL_URI must be https, loopback, or an ECS or EKS container address",
+        ))
+    }
+}
+
+/// The container credentials authorization: AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE (EKS Pod
+/// Identity) first, as the AWS SDKs read it, else AWS_CONTAINER_AUTHORIZATION_TOKEN.
+fn container_authorization() -> Result<Option<String>, WifError> {
+    let Some(path) = env("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE") else {
+        return Ok(env("AWS_CONTAINER_AUTHORIZATION_TOKEN"));
+    };
+    let mut data = Vec::new();
+    std::fs::File::open(&path)
+        .and_then(|f| {
+            f.take(MAX_SOURCE_TOKEN_BYTES as u64 + 1)
+                .read_to_end(&mut data)
+        })
+        .map_err(|e| {
+            source_unavailable(format!(
+                "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE {path}: {e}"
+            ))
+        })?;
+    if data.len() > MAX_SOURCE_TOKEN_BYTES {
+        return Err(source_unavailable(
+            "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE is over 16 KB",
+        ));
+    }
+    let token = String::from_utf8_lossy(&data).trim().to_string();
+    if token.is_empty() {
+        return Err(source_unavailable(
+            "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE is empty",
+        ));
+    }
+    Ok(Some(token))
 }
 
 fn parse_credentials(text: &str, at: &str) -> Result<Credentials, WifError> {
@@ -257,7 +315,31 @@ fn amz_date(t: std::time::SystemTime) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::amz_date;
+    use super::{amz_date, require_container_uri};
+
+    #[test]
+    fn container_uri_needs_https_or_a_local_address() {
+        for ok in [
+            "https://creds.example.com/v1",
+            "http://169.254.170.2/v2/credentials/abc",
+            "http://169.254.170.23/v1/credentials",
+            "http://[fd00:ec2::23]/v1/credentials",
+            "http://127.0.0.1:8080/creds",
+            "http://localhost/creds",
+            "http://[::1]/creds",
+        ] {
+            assert!(require_container_uri(ok).is_ok(), "{ok}");
+        }
+        for bad in [
+            "http://creds.example.com/v1",
+            "http://169.254.170.3/v1",
+            "http://169.254.170.2.evil.com/v1",
+            "ftp://169.254.170.2/v1",
+            "not a url",
+        ] {
+            assert!(require_container_uri(bad).is_err(), "{bad}");
+        }
+    }
     use std::time::{Duration, UNIX_EPOCH};
 
     #[test]
