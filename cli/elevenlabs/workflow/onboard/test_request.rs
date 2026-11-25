@@ -1,6 +1,6 @@
 //! `onboard test`: the test request the developer said yes to. One short
 //! line of text to speech with the project's key, saved where the agent can
-//! point them to play it. It never runs on its own: `check` only offers it.
+//! point them to play it. It never runs on its own: the key step's reply only offers it.
 
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
@@ -29,12 +29,7 @@ pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Rep
         .file(&project)
         .map(|f| project.show(f))
         .unwrap_or_else(|| "your shell".into());
-    let code = if project.wired() {
-        " and ElevenLabs is in your code"
-    } else {
-        ""
-    };
-    let set_up = format!("ElevenLabs is set up: your key is in {location}{code}.");
+    let set_up = format!("ElevenLabs is set up: your key is in {location}.");
     let client = ctx.http_config().build_client()?;
     let url = format!(
         "{}/v1/text-to-speech/{DEFAULT_VOICE_ID}",

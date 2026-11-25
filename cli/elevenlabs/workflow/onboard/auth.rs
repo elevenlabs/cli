@@ -1,20 +1,18 @@
-//! The sign-in: the same browser flow as `auth login`, plus the two query
-//! parameters that ask the approval page for a key, and the account check
+//! The sign-in: the same browser flow as `auth login`, plus the query
+//! parameter that asks the approval page for a key, and the account check
 //! that a key on the clipboard has to pass.
 
 use std::sync::OnceLock;
-use std::time::Duration;
 
+use fern_cli_sdk::auth::{active_store, LoginContext, LoginFlow, PkceLoginFlow, TokenBundle};
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
 
-use super::super::loopback;
 use super::super::platform;
 use super::super::say::run_async as block_on;
 use super::super::settings;
 use super::super::telemetry;
-use super::session::{LastSignIn, SIGN_IN_MINUTES};
 
 pub(super) const CLI_NAME: &str = "elevenlabs";
 
@@ -87,14 +85,15 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
     })
 }
 
-/// Sign in through the browser, asking the page for a key. `previous` is how
-/// the last sign-in for this project ended, for the page to record. Returns
-/// the access token.
+/// Sign in through the browser exactly as `auth login` does, asking the page
+/// for a key. It waits for the approval as `auth login` waits, prints the
+/// link to stderr, and stores the sign-in where `auth login` stores it.
+/// Returns the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
-    previous: Option<&LastSignIn>,
+    retry: bool,
 ) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
@@ -107,34 +106,46 @@ pub(super) fn sign_in(
     let params = authorize_params(
         on.then(|| (platform::detect(), platform::install_source())),
         on.then(platform::agent).flatten(),
-        previous.filter(|_| on),
+        (on && retry).then_some("timed-out"),
     );
-    let params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
-    block_on(loopback::sign_in(loopback::Login {
-        cli_name: CLI_NAME,
-        scheme: &config.scheme,
-        client_id: &config.client_id,
-        authorize_url,
-        token_url: &token_url,
-        scopes: &config.scopes,
-        redirect_host: &config.redirect_host,
-        redirect_ports: &config.redirect_ports,
-        success_url: &config.success_url,
-        error_url: &config.error_url,
-        params: &params,
-        no_browser,
-        timeout: Duration::from_secs(SIGN_IN_MINUTES * 60),
-    }))
+    PkceLoginFlow::new(&config.scheme)
+        .client_id(&config.client_id)
+        .authorization_url(authorize_url)
+        .token_url(&token_url)
+        .scopes(&config.scopes)
+        .redirect_host(&config.redirect_host)
+        .redirect_ports(config.redirect_ports.iter().copied())
+        .success_redirect_url(&config.success_url)
+        .error_redirect_url(&config.error_url)
+        .authorization_params(params)
+        .run(&LoginContext {
+            cli_name: CLI_NAME.to_string(),
+            no_browser,
+        })?;
+    stored_access_token().ok_or_else(|| {
+        CliError::Other(anyhow::anyhow!(
+            "the sign-in finished, but its token could not be read back"
+        ))
+    })
+}
+
+/// The access token `auth login` (and so the sign-in above) stored.
+fn stored_access_token() -> Option<String> {
+    let scheme = &sign_in_config().ok()?.scheme;
+    let raw = active_store().get(CLI_NAME, scheme).ok().flatten()?;
+    let token = TokenBundle::parse_or_raw(&raw).access_token;
+    (!token.is_empty()).then_some(token)
 }
 
 /// What the sign-in adds to the approval link: the page should hand over a
-/// key, and, with telemetry on, where the CLI runs, how it was installed,
-/// which coding agent ran it and how this project's last sign-in ended. The
-/// page records them for a sign-in that never gets to make an API call.
+/// key, and, with telemetry on, where the CLI runs, how it was installed and
+/// which coding agent ran it. The page records them for a sign-in that never
+/// gets to make an API call. `previous` is how the sign-in this one retries
+/// ended, a fixed word.
 pub(super) fn authorize_params(
     platform: Option<((&'static str, Option<&'static str>), &'static str)>,
     agent: Option<&'static str>,
-    previous: Option<&LastSignIn>,
+    previous: Option<&'static str>,
 ) -> Vec<(&'static str, String)> {
     let mut params = vec![("key_handoff", "clipboard".to_string())];
     if let Some(((os, env), install)) = platform {
@@ -148,10 +159,7 @@ pub(super) fn authorize_params(
         params.push(("cli_agent", agent.into()));
     }
     if let Some(previous) = previous {
-        params.push(("cli_prev", previous.outcome.into()));
-        if let Some(id) = &previous.id {
-            params.push(("cli_prev_id", id.clone()));
-        }
+        params.push(("cli_prev", previous.into()));
     }
     params
 }

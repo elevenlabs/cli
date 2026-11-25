@@ -618,12 +618,10 @@ command typed in those editors' terminals. Nothing else about the machine is
 sent: no paths, hostnames or ids. `onboard` puts the same values on the
 sign-in's approval link.
 
-`onboard` also says how the project's last sign-in ended, when it ended in the
-past day: `signin/<outcome>` on its requests, and `cli_prev` on the next
-approval link, where `<outcome>` is a fixed word such as `timed-out`,
-`stopped` or `no-key`. The link also carries `cli_prev_id`, the start of a
-SHA-256 hash of that sign-in's `state`, so it can be matched to its approval
-page; the state itself is never sent.
+`onboard` also says how a sign-in ended, as a fixed word such as `created`,
+`no-key` or `clipboard-error`: `signin/<outcome>` on one request once it has
+signed in. The retry of an approval that timed out puts `cli_prev=timed-out`
+on its approval link.
 
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.

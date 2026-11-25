@@ -84,19 +84,23 @@ pub fn command_scope(command: &'static str) -> CommandScope {
     command_scope_with(command, None)
 }
 
-/// [`command_scope`], with one more fixed tag after the command's (`onboard`
-/// adds how the last sign-in ended). Built from fixed words by the caller,
-/// like the command tag.
+/// [`command_scope`], with one more fixed tag after the command's. Built from
+/// fixed words by the caller, like the command tag.
 pub fn command_scope_with(command: &'static str, extra: Option<String>) -> CommandScope {
-    let key = suffix_env_key();
-    let previous = std::env::var(&key).ok();
-    let tag = match extra {
+    tag_scope(&match extra {
         Some(extra) => format!("cmd/{command} {extra}"),
         None => format!("cmd/{command}"),
-    };
+    })
+}
+
+/// One more fixed tag after those already set, on the requests of every client
+/// built until the scope drops (`onboard` adds how a sign-in ended).
+pub fn tag_scope(tag: &str) -> CommandScope {
+    let key = suffix_env_key();
+    let previous = std::env::var(&key).ok();
     let combined = match previous.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         Some(existing) => format!("{existing} {tag}"),
-        None => tag,
+        None => tag.to_string(),
     };
     // Single-threaded: one command is dispatched per process, and the request
     // futures run on a current-thread runtime via `sdk::block_on`.
