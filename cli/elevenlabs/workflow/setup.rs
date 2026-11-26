@@ -15,9 +15,11 @@ use std::time::{Duration, Instant};
 
 use fern_cli_sdk::app::CliApp;
 use fern_cli_sdk::error::CliError;
+use fern_cli_sdk::openapi::AppContext;
 use serde::Serialize;
 
-const CURSOR_PAGE: &str = "https://cursor.com/marketplace/elevenlabs";
+/// What to do in Cursor, which has no plugin command.
+const CURSOR_STEP: &str = "open https://cursor.com/marketplace/elevenlabs and select Install";
 
 /// A coding agent found on this machine, with the program that runs it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,17 +27,6 @@ pub(super) enum Agent {
     ClaudeCode(PathBuf),
     Codex(PathBuf),
     Cursor,
-}
-
-/// One command that installs the plugin.
-struct Step {
-    args: &'static [&'static str],
-    /// Whether its result decides the agent's. A command that prepares the
-    /// marketplace never does: a refresh fails while the plugin is installed
-    /// and working when GitHub can't be reached, and an `add` is refused when
-    /// a marketplace of that name came from elsewhere. Without a marketplace,
-    /// the install fails anyway.
-    decides: bool,
 }
 
 impl Agent {
@@ -47,20 +38,30 @@ impl Agent {
         }
     }
 
-    /// The commands that install the plugin, in order. These work on every
-    /// version of each agent.
-    fn steps(&self) -> &'static [Step] {
+    /// The commands that install the plugin, in order, each with whether its
+    /// result decides the agent's. These work on every version of each agent.
+    /// A command that prepares the marketplace never decides: a refresh fails
+    /// while the plugin is installed and working when GitHub can't be
+    /// reached, and an `add` is refused when a marketplace of that name came
+    /// from elsewhere. Without a marketplace, the install fails anyway.
+    fn steps(&self) -> &'static [(bool, &'static [&'static str])] {
         match self {
             Agent::ClaudeCode(_) => &[
-                Step { decides: false, args: &["plugin", "marketplace", "add", "elevenlabs/plugin"] },
-                Step { decides: false, args: &["plugin", "marketplace", "update", "elevenlabs"] },
-                Step { decides: true, args: &["plugin", "install", "elevenlabs@elevenlabs"] },
-                Step { decides: true, args: &["plugin", "update", "elevenlabs@elevenlabs"] },
+                (
+                    false,
+                    &["plugin", "marketplace", "add", "elevenlabs/plugin"],
+                ),
+                (false, &["plugin", "marketplace", "update", "elevenlabs"]),
+                (true, &["plugin", "install", "elevenlabs@elevenlabs"]),
+                (true, &["plugin", "update", "elevenlabs@elevenlabs"]),
             ],
             Agent::Codex(_) => &[
-                Step { decides: false, args: &["plugin", "marketplace", "add", "elevenlabs/plugin"] },
-                Step { decides: false, args: &["plugin", "marketplace", "upgrade", "elevenlabs"] },
-                Step { decides: true, args: &["plugin", "add", "elevenlabs@elevenlabs"] },
+                (
+                    false,
+                    &["plugin", "marketplace", "add", "elevenlabs/plugin"],
+                ),
+                (false, &["plugin", "marketplace", "upgrade", "elevenlabs"]),
+                (true, &["plugin", "add", "elevenlabs@elevenlabs"]),
             ],
             Agent::Cursor => &[],
         }
@@ -93,9 +94,10 @@ pub(super) struct Outcome {
     pub finish: Option<&'static str>,
 }
 
-/// How long one agent command, and the whole run, may take. The whole run
-/// stays under the two minutes coding agents give a shell command, so the
-/// agent that ran `onboard setup` always gets its reply.
+/// How long one agent command, and the whole run, may take. The whole run,
+/// and the [`count`] requests after it (two at most, of [`COUNT_LIMIT`]
+/// each), stay under the two minutes Claude Code gives a shell command, so
+/// the agent that ran `onboard setup` always gets its reply.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Limits {
     pub command: Duration,
@@ -137,7 +139,9 @@ pub(super) fn found(
 
 /// Whether `path` is a program called `claude`, as Windows spells it or not.
 fn is_claude(path: &Path) -> bool {
-    let name = path.file_name().map(|n| n.to_string_lossy().to_ascii_lowercase());
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_ascii_lowercase());
     matches!(name.as_deref(), Some("claude" | "claude.exe"))
 }
 
@@ -172,15 +176,25 @@ fn shell_var(name: &str) -> Option<String> {
     }
 }
 
-/// `name` in `env`. Windows ignores the case of a name: PowerShell and cmd
-/// pass the search path as `Path`.
+/// How `name` is spelled in `env`. Windows ignores the case of a name:
+/// PowerShell and cmd pass the search path as `Path`.
+fn key_of<'a>(
+    env: &'a HashMap<OsString, OsString>,
+    name: &str,
+    windows: bool,
+) -> Option<&'a OsString> {
+    match env.get_key_value(OsStr::new(name)) {
+        Some((key, _)) => Some(key),
+        None if windows => env.keys().find(|k| k.eq_ignore_ascii_case(name)),
+        None => None,
+    }
+}
+
+/// `name` in `env`, spelled as [`key_of`] finds it.
 fn env_var(env: &HashMap<OsString, OsString>, name: &str, windows: bool) -> Option<String> {
-    let value = match env.get(OsStr::new(name)) {
-        Some(value) => value,
-        None if windows => env.iter().find(|(k, _)| k.eq_ignore_ascii_case(name))?.1,
-        None => return None,
-    };
-    value.to_str().map(str::to_string)
+    env[key_of(env, name, windows)?]
+        .to_str()
+        .map(str::to_string)
 }
 
 /// The folders on the search path `path` whose programs may run, in order.
@@ -211,17 +225,12 @@ pub(super) fn on_path(name: &str, path: Option<&OsStr>, windows: bool) -> Option
 
 /// Keep only the [`searched`] folders on the search path in `env`, so a
 /// program the agent starts by name, such as `node` or `git`, is never the
-/// project's either. The variable keeps the name [`env_var`] finds it by;
+/// project's either. The variable keeps the name [`key_of`] finds it by;
 /// on Windows, where `Path` and `PATH` are one variable, no other spelling is
 /// left beside it. Without a search path, none is added.
 fn with_searched_path(env: &mut HashMap<OsString, OsString>, windows: bool) {
-    let name = match env.get_key_value(OsStr::new("PATH")) {
-        Some((name, _)) => name.clone(),
-        None if windows => match env.keys().find(|k| k.eq_ignore_ascii_case("PATH")) {
-            Some(name) => name.clone(),
-            None => return,
-        },
-        None => return,
+    let Some(name) = key_of(env, "PATH", windows).cloned() else {
+        return;
     };
     // A folder whose name holds the separator can't be joined back in.
     let dirs: Vec<PathBuf> = searched(&env[&name])
@@ -265,7 +274,10 @@ pub(super) fn run_program(
         (Err(e), _) | (_, Err(e)) => return Err(format!("couldn't start it: {e}")),
     };
     if !home.is_dir() {
-        return Err(format!("couldn't start it: the home folder {} is missing", home.display()));
+        return Err(format!(
+            "couldn't start it: the home folder {} is not a folder",
+            home.display()
+        ));
     }
     let mut command = Command::new(program);
     command
@@ -298,7 +310,10 @@ pub(super) fn run_program(
             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
             _ => {
                 stop_all(&mut child);
-                return Err(format!("ran out of time after {} and was stopped", seconds(limit)));
+                return Err(format!(
+                    "ran out of time after {} and was stopped",
+                    seconds(limit)
+                ));
             }
         }
     };
@@ -336,12 +351,17 @@ fn stop_all(child: &mut std::process::Child) {
         unsafe { libc::kill(-group, libc::SIGKILL) };
     }
     #[cfg(windows)]
-    let _ = Command::new("taskkill")
-        .args(["/PID", &child.id().to_string(), "/T", "/F"])
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
+    if let Some(root) = shell_var("SystemRoot")
+        .map(PathBuf::from)
+        .filter(|r| r.is_absolute())
+    {
+        let _ = Command::new(root.join("System32").join("taskkill.exe"))
+            .args(["/PID", &child.id().to_string(), "/T", "/F"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
     let _ = child.kill();
     let _ = child.wait();
     // A program being started as the group is killed can miss the signal,
@@ -372,29 +392,14 @@ mod interrupt {
         CAUGHT.store(signal, Ordering::SeqCst);
     }
 
-    /// Catches the signals, holding the handlers from before.
-    pub struct Catch([libc::sighandler_t; 2]);
-
-    impl Catch {
-        pub fn start() -> Catch {
-            CAUGHT.store(0, Ordering::SeqCst);
-            let handler = note as extern "C" fn(libc::c_int) as libc::sighandler_t;
-            Catch(SIGNALS.map(|signal| {
-                let previous = unsafe { libc::signal(signal, handler) };
-                // A signal the parent chose to ignore stays ignored.
-                if previous == libc::SIG_IGN {
-                    unsafe { libc::signal(signal, libc::SIG_IGN) };
-                }
-                previous
-            }))
-        }
-
-        /// Put the earlier handlers back, then exit if a signal came meanwhile.
-        pub fn finish(self) {
-            for (signal, previous) in SIGNALS.iter().zip(self.0) {
-                unsafe { libc::signal(*signal, previous) };
+    /// Catch the signals from now until this process exits.
+    pub fn catch() {
+        let handler = note as extern "C" fn(libc::c_int) as libc::sighandler_t;
+        for signal in SIGNALS {
+            // A signal the parent chose to ignore stays ignored.
+            if unsafe { libc::signal(signal, handler) } == libc::SIG_IGN {
+                unsafe { libc::signal(signal, libc::SIG_IGN) };
             }
-            exit_if_caught();
         }
     }
 
@@ -442,12 +447,19 @@ fn clean_last_line(bytes: &[u8]) -> Option<String> {
             '\t' => Some(' '),
             '\n' | '\r' => Some(c),
             '\u{2028}' | '\u{2029}' => Some('\n'),
-            '\u{61c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => None,
+            '\u{61c}'
+            | '\u{200e}'
+            | '\u{200f}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2066}'..='\u{2069}' => None,
             c if c.is_control() => None,
             c => Some(c),
         })
         .collect();
-    let line = text.split(['\n', '\r']).map(str::trim).rfind(|l| !l.is_empty())?;
+    let line = text
+        .split(['\n', '\r'])
+        .map(str::trim)
+        .rfind(|l| !l.is_empty())?;
     Some(match line.char_indices().nth(LINE_MAX - 1) {
         Some((at, _)) if line[at..].chars().nth(1).is_some() => format!("{}…", &line[..at]),
         _ => line.to_string(),
@@ -458,6 +470,7 @@ fn clean_last_line(bytes: &[u8]) -> Option<String> {
 /// its arguments and how long it may take; `elapsed` says how much of the
 /// whole run's time is used. An agent reached after that time is up counts
 /// as failed, and one that fails shows its first failed command.
+#[allow(clippy::type_complexity)]
 pub(super) fn install(
     agents: &[Agent],
     limits: Limits,
@@ -475,20 +488,26 @@ pub(super) fn install(
             };
             let program = match agent {
                 Agent::ClaudeCode(p) | Agent::Codex(p) => p,
-                Agent::Cursor => return outcome(true, format!("open {CURSOR_PAGE} and select Install")),
+                Agent::Cursor => return outcome(true, CURSOR_STEP.into()),
             };
-            let name = program.file_stem().unwrap_or(program.as_os_str()).to_string_lossy();
+            let name = program
+                .file_stem()
+                .unwrap_or(program.as_os_str())
+                .to_string_lossy();
             let mut first_failed = None;
-            for step in agent.steps() {
+            for &(decides, args) in agent.steps() {
                 let left = limits.total.saturating_sub(elapsed());
                 if left.is_zero() {
-                    let message = format!("ran out of time: setup stops after {}", seconds(limits.total));
+                    let message = format!(
+                        "ran out of time: setup stops after {}",
+                        seconds(limits.total)
+                    );
                     return outcome(false, message);
                 }
-                if let Err(why) = run(program, step.args, limits.command.min(left)) {
+                if let Err(why) = run(program, args, limits.command.min(left)) {
                     let failed = first_failed
-                        .get_or_insert_with(|| format!("`{name} {}` {why}", step.args.join(" ")));
-                    if step.decides {
+                        .get_or_insert_with(|| format!("`{name} {}` {why}", args.join(" ")));
+                    if decides {
                         return outcome(false, failed.clone());
                     }
                 }
@@ -499,39 +518,90 @@ pub(super) fn install(
         .collect()
 }
 
-/// Everything `setup --yes` does: install into the agents found. A Ctrl-C
-/// or SIGTERM meanwhile stops the command running and exits.
-pub(super) fn run(agents: &[Agent], home: &Path, limits: Limits) -> Vec<Outcome> {
+/// Everything `setup` does: install into the agents found. A Ctrl-C or
+/// SIGTERM meanwhile stops the command running and exits.
+pub(super) fn run(agents: &[Agent], home: &Path) -> Vec<Outcome> {
     #[cfg(unix)]
-    let catch = interrupt::Catch::start();
+    interrupt::catch();
     let started = Instant::now();
     let outcomes = install(
         agents,
-        limits,
+        LIMITS,
         &|program, args, limit| run_program(program, args, limit, home),
         &|| started.elapsed(),
     );
     #[cfg(unix)]
-    catch.finish();
+    interrupt::exit_if_caught();
     outcomes
 }
 
-/// What `setup` does for each agent, before it does it.
-fn plan(agents: &[Agent]) -> Vec<String> {
-    agents
+/// How long each [`count`] request may take.
+pub(super) const COUNT_LIMIT: Duration = Duration::from_secs(5);
+
+/// With telemetry on, one request per agent the run tried, made by `send`,
+/// tagged `cmd/<command>.<agent>.<installed or failed>`, or one tagged
+/// `cmd/<command>.none` when neither Claude Code nor Codex was found: the
+/// backend counts an authenticated request by such a tag. `send` makes the
+/// account request with the key it has, if any; its answer changes nothing.
+pub(super) fn count(command: &str, outcomes: &[Outcome], send: &dyn Fn()) {
+    if !super::telemetry::enabled() {
+        return;
+    }
+    let mut tags: Vec<String> = outcomes
         .iter()
-        .map(|agent| match agent {
-            Agent::ClaudeCode(p) | Agent::Codex(p) => format!(
-                "{} ({}): install the ElevenLabs plugin (skills and the hosted MCP server)",
-                agent.name(),
-                p.display()
-            ),
-            Agent::Cursor => format!("Cursor: open {CURSOR_PAGE} and select Install"),
+        .filter_map(|o| {
+            let agent = match o.agent {
+                "Claude Code" => "claude_code",
+                "Codex" => "codex",
+                _ => return None,
+            };
+            let outcome = if o.ok { "installed" } else { "failed" };
+            Some(format!("cmd/{command}.{agent}.{outcome}"))
         })
-        .collect()
+        .collect();
+    if tags.is_empty() {
+        tags.push(format!("cmd/{command}.none"));
+    }
+    for tag in tags {
+        let _scope = super::api::tag_scope(&tag);
+        send();
+    }
 }
 
-/// What `setup --yes` and `onboard setup` say for `outcomes`, a sentence or
+/// `GET /v1/user` with the credentials every hand-written command uses: an
+/// `ELEVENLABS_API_KEY` or the sign-in `auth login` stored. With neither,
+/// nothing is sent, since the request would go without credentials.
+fn account_request(ctx: &AppContext) {
+    let stored = fern_cli_sdk::auth::active_store()
+        .get(
+            "elevenlabs",
+            &fern_cli_sdk::profiles::keyring_account("OAuth"),
+        )
+        .ok()
+        .flatten();
+    let key = std::env::var("ELEVENLABS_API_KEY").ok();
+    if !key.into_iter().chain(stored).any(|v| !v.is_empty()) {
+        return;
+    }
+    let client = crate::sdk::client(ctx);
+    let request = client
+        .user
+        .http_client
+        .execute_request_raw::<serde_json::Value>(
+            reqwest::Method::GET,
+            "v1/user",
+            None,
+            None,
+            None,
+        );
+    let _ = super::say::run_async(tokio::time::timeout(COUNT_LIMIT, request));
+}
+
+/// What `setup` and `onboard setup` say with the CLI's global `--dry-run`,
+/// which they honour by installing nothing.
+pub(super) const DRY_RUN: &str = "Nothing was installed, because of --dry-run.";
+
+/// What `setup` and `onboard setup` say for `outcomes`, a sentence or
 /// two per line, and whether any failed. With no agent found, how to get the
 /// skills.
 pub(super) fn report(outcomes: &[Outcome]) -> (Vec<String>, bool) {
@@ -551,7 +621,11 @@ pub(super) fn report(outcomes: &[Outcome]) -> (Vec<String>, bool) {
         .map(|o| {
             let failed = if o.ok { "" } else { "failed: " };
             // An error line can end a sentence of its own, or be cut with `…`.
-            let stop = if o.message.ends_with(['.', '!', '?', '…']) { "" } else { "." };
+            let stop = if o.message.ends_with(['.', '!', '?', '…']) {
+                ""
+            } else {
+                "."
+            };
             let mut line = format!("{}: {failed}{}{stop}", o.agent, o.message);
             if let Some(finish) = o.finish {
                 line.push_str(&format!(" To finish, {finish}."));
@@ -569,11 +643,7 @@ pub(super) fn report(outcomes: &[Outcome]) -> (Vec<String>, bool) {
 /// The installed CLI, or npx when npx started this process (it sets
 /// `npm_command=exec`), so the next command runs the same, latest CLI.
 pub(super) fn cli_prefix() -> &'static str {
-    cli_prefix_for(std::env::var("npm_command").ok().as_deref())
-}
-
-pub(super) fn cli_prefix_for(npm_command: Option<&str>) -> &'static str {
-    if npm_command == Some("exec") {
+    if std::env::var("npm_command").is_ok_and(|c| c == "exec") {
         "npx -y @elevenlabs/cli@latest"
     } else {
         "elevenlabs"
@@ -582,7 +652,7 @@ pub(super) fn cli_prefix_for(npm_command: Option<&str>) -> &'static str {
 
 /// The command to run `setup` again by hand.
 pub(super) fn later_command() -> String {
-    format!("{} setup --yes", cli_prefix())
+    format!("{} setup", cli_prefix())
 }
 
 /// The question that offers `setup` at the end of onboarding, or `None`
@@ -602,22 +672,21 @@ pub(super) fn question(agents: &[Agent]) -> Option<String> {
     ))
 }
 
-fn handle(matches: &clap::ArgMatches) -> Result<(), CliError> {
-    let home = home()
-        .ok_or_else(|| CliError::Validation("No home folder found (HOME is not set).".into()))?;
-    let agents = found_here(&home);
-    let install = matches.get_flag("yes") && !super::util::dry_run_flag(matches);
-    if !install && !agents.is_empty() {
-        for line in plan(&agents) {
-            println!("{line}");
-        }
-        println!("Nothing was changed. Run `{}` to do it.", later_command());
+fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    if super::util::dry_run_flag(matches) {
+        println!("{DRY_RUN}");
         return Ok(());
     }
-    let (lines, failed) = report(&run(&agents, &home, LIMITS));
+    let variable = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    let home = home().ok_or_else(|| {
+        CliError::Validation(format!("No home folder found ({variable} is not set)."))
+    })?;
+    let outcomes = run(&found_here(&home), &home);
+    let (lines, failed) = report(&outcomes);
     for line in lines {
         println!("{line}");
     }
+    count("setup", &outcomes, &|| account_request(ctx));
     if failed {
         std::process::exit(1);
     }
@@ -628,13 +697,9 @@ pub fn register(app: CliApp) -> CliApp {
     app.command(
         clap::Command::new("setup")
             .about("Install the ElevenLabs plugin (skills and the hosted MCP server) into your coding agents")
-            .arg(
-                clap::Arg::new("yes")
-                    .long("yes")
-                    .action(clap::ArgAction::SetTrue)
-                    .help("Install; without it, setup only says what it would do"),
-            ),
-        Box::new(|matches, _ctx| handle(matches)),
+            // Coding agents add it by habit; `setup` needs no confirming.
+            .arg(clap::Arg::new("yes").long("yes").action(clap::ArgAction::SetTrue).hide(true)),
+        Box::new(|matches, ctx| handle(matches, super::util::downcast_ctx(ctx)?)),
     )
 }
 

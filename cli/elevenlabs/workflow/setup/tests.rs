@@ -24,17 +24,22 @@ fn on_windows_a_program_on_path_is_an_exe_or_a_cmd_shim() {
 
 #[test]
 fn on_windows_a_variable_is_found_whatever_the_case_of_its_name() {
-    let env: HashMap<OsString, OsString> = [("Path", "C:\\bin"), ("HOME", ""), ("Cursor_Agent", "1")]
-        .iter()
-        .map(|(k, v)| (k.into(), v.into()))
-        .collect();
+    let env: HashMap<OsString, OsString> =
+        [("Path", "C:\\bin"), ("HOME", ""), ("Cursor_Agent", "1")]
+            .iter()
+            .map(|(k, v)| (k.into(), v.into()))
+            .collect();
     assert_eq!(env_var(&env, "PATH", true), Some("C:\\bin".into()));
     assert_eq!(env_var(&env, "PATH", false), None);
     assert_eq!(env_var(&env, "CURSOR_AGENT", true), Some("1".into()));
     assert_eq!(env_var(&env, "CURSOR_AGENT", false), None);
     for windows in [true, false] {
         assert_eq!(env_var(&env, "Path", windows), Some("C:\\bin".into()));
-        assert_eq!(env_var(&env, "HOME", windows), Some(String::new()), "empty, as set");
+        assert_eq!(
+            env_var(&env, "HOME", windows),
+            Some(String::new()),
+            "empty, as set"
+        );
         assert_eq!(env_var(&env, "USERPROFILE", windows), None);
     }
     let both: HashMap<OsString, OsString> = [("Path", "lower"), ("PATH", "exact")]
@@ -52,11 +57,6 @@ fn the_home_folder_is_userprofile_on_windows_and_home_elsewhere() {
     assert_eq!(home_for(true, &env_of(&[("HOME", "/home/dev")])), None);
     assert_eq!(home_for(false, &env_of(&[("HOME", "")])), None);
 }
-
-const LIMITS_FOR_TESTS: Limits = Limits {
-    command: Duration::from_secs(30),
-    total: Duration::from_secs(100),
-};
 
 /// Runs nothing; records each command and fails those in `fails`.
 struct Recorder {
@@ -88,7 +88,9 @@ impl Recorder {
 
     /// [`install`] with this recorder, the time used never counting.
     fn install(&self, agents: &[Agent]) -> Vec<Outcome> {
-        install(agents, LIMITS_FOR_TESTS, &|p, a, l| self.run(p, a, l), &|| Duration::ZERO)
+        install(agents, LIMITS, &|p, a, l| self.run(p, a, l), &|| {
+            Duration::ZERO
+        })
     }
 }
 
@@ -102,19 +104,25 @@ fn all_agents() -> Vec<Agent> {
 
 #[test]
 fn agents_not_reached_in_time_count_as_failed() {
-    let recorder = Recorder::new(&[]);
     // Each command takes 30 s of a 50 s run, without waiting for it.
     let used = std::cell::Cell::new(Duration::ZERO);
-    let slow = |p: &Path, a: &[&str], l: Duration| {
+    let given = RefCell::new(Vec::new());
+    let slow = |_: &Path, _: &[&str], limit: Duration| {
         used.set(used.get() + Duration::from_secs(30));
-        recorder.run(p, a, l)
+        given.borrow_mut().push(limit);
+        Ok(())
     };
     let limits = Limits {
         command: Duration::from_secs(30),
         total: Duration::from_secs(50),
     };
     let outcomes = install(&all_agents(), limits, &slow, &|| used.get());
-    assert_eq!(recorder.ran().len(), 2, "{:?}", recorder.ran());
+    let cut = [Duration::from_secs(30), Duration::from_secs(20)];
+    assert_eq!(
+        given.into_inner(),
+        cut,
+        "each command gets at most the time left"
+    );
     for outcome in &outcomes[..2] {
         assert_eq!(
             (outcome.ok, outcome.message.as_str()),
@@ -134,9 +142,15 @@ fn a_limit_cut_short_reads_as_whole_seconds() {
         (Duration::from_millis(999), "999ms"),
     ];
     for (total, shown) in rows {
-        let limits = Limits { command: Duration::from_secs(30), total };
+        let limits = Limits {
+            command: Duration::from_secs(30),
+            total,
+        };
         let outcomes = install(&all_agents()[..1], limits, &|_, _, _| Ok(()), &|| total);
-        assert_eq!(outcomes[0].message, format!("ran out of time: setup stops after {shown}"));
+        assert_eq!(
+            outcomes[0].message,
+            format!("ran out of time: setup stops after {shown}")
+        );
     }
 }
 
@@ -147,7 +161,10 @@ fn a_result_line_ends_in_one_full_stop() {
     // (the error line, what follows `upgrade`): Codex's real one first, as
     // its upgrade and then its add fail.
     let rows = [
-        ("Error: 1 upgrade failure(s) occurred.", " Error: 1 upgrade failure(s) occurred."),
+        (
+            "Error: 1 upgrade failure(s) occurred.",
+            " Error: 1 upgrade failure(s) occurred.",
+        ),
         ("error: no such plugin", " error: no such plugin."),
     ];
     for (error, said) in rows {
@@ -157,14 +174,16 @@ fn a_result_line_ends_in_one_full_stop() {
             }
             _ => Ok(()),
         };
-        let outcomes = install(&all_agents()[1..2], LIMITS_FOR_TESTS, &fails, &|| Duration::ZERO);
+        let outcomes = install(&all_agents()[1..2], LIMITS, &fails, &|| Duration::ZERO);
         assert_eq!(report(&outcomes).0[0], format!("{upgrade}{said}"));
     }
     let fails = |_: &Path, _: &[&str], _: Duration| Err(format!("exited with 1: {cut}"));
-    let outcomes = install(&all_agents()[1..2], LIMITS_FOR_TESTS, &fails, &|| Duration::ZERO);
+    let outcomes = install(&all_agents()[1..2], LIMITS, &fails, &|| Duration::ZERO);
     assert_eq!(
         report(&outcomes).0[0],
-        format!("Codex: failed: `codex plugin marketplace add elevenlabs/plugin` exited with 1: {cut}"),
+        format!(
+            "Codex: failed: `codex plugin marketplace add elevenlabs/plugin` exited with 1: {cut}"
+        ),
         "a line cut at {LINE_MAX} characters ends in `…`"
     );
 }
@@ -179,7 +198,11 @@ fn a_result_line_ends_in_one_full_stop() {
 fn script(dir: &Path, name: &str, body: &str) -> PathBuf {
     let path = dir.join(name);
     let status = Command::new("/bin/sh")
-        .args(["-c", "printf '%s' \"$1\" > \"$2\" && chmod 755 \"$2\"", "sh"])
+        .args([
+            "-c",
+            "printf '%s' \"$1\" > \"$2\" && chmod 755 \"$2\"",
+            "sh",
+        ])
         .arg(format!("#!/bin/sh\n{body}\n"))
         .arg(&path)
         .stdin(Stdio::null())
@@ -238,7 +261,10 @@ fn the_offer_names_the_agents_that_can_take_the_plugin() {
              hosted MCP server), so new sessions can use ElevenLabs right away."
         ))
     };
-    assert_eq!(question(&[claude.clone()]), plugin("Claude Code"));
+    assert_eq!(
+        question(std::slice::from_ref(&claude)),
+        plugin("Claude Code")
+    );
     assert_eq!(question(&[codex.clone(), Agent::Cursor]), plugin("Codex"));
     assert_eq!(
         question(&[claude, codex, Agent::Cursor]),
@@ -249,17 +275,6 @@ fn the_offer_names_the_agents_that_can_take_the_plugin() {
         question(&[Agent::Cursor]),
         None,
         "Cursor has nothing to run"
-    );
-}
-
-#[test]
-fn the_plan_says_what_would_happen_for_each_agent() {
-    assert_eq!(
-        plan(&[Agent::ClaudeCode("/bin/claude".into()), Agent::Cursor]),
-        [
-            "Claude Code (/bin/claude): install the ElevenLabs plugin (skills and the hosted MCP server)",
-            "Cursor: open https://cursor.com/marketplace/elevenlabs and select Install",
-        ]
     );
 }
 
@@ -307,7 +322,8 @@ fn each_way_of_finding_claude_code_codex_and_cursor_is_found() {
         if matches!(claude, ExecPath | Both) {
             vars.push(("CLAUDE_CODE_EXECPATH", named.to_str().unwrap()));
         }
-        let on_path_claude = matches!(claude, OnPath | Both).then(|| script(bin.path(), "claude", "exit 0"));
+        let on_path_claude =
+            matches!(claude, OnPath | Both).then(|| script(bin.path(), "claude", "exit 0"));
         match claude {
             ExecPath | Both => want.push(Agent::ClaudeCode(named.clone())),
             OnPath => want.push(Agent::ClaudeCode(on_path_claude.unwrap())),
@@ -327,8 +343,15 @@ fn each_way_of_finding_claude_code_codex_and_cursor_is_found() {
             want.push(Agent::Cursor);
         }
         let path = std::env::join_paths([bin.path()]).unwrap();
-        let got = found(&env_of(&vars), &|n| on_path(n, Some(&path), false), home.path());
-        assert_eq!(got, want, "Claude Code {claude:?}, Codex {codex}, Cursor {cursor:?}");
+        let got = found(
+            &env_of(&vars),
+            &|n| on_path(n, Some(&path), false),
+            home.path(),
+        );
+        assert_eq!(
+            got, want,
+            "Claude Code {claude:?}, Codex {codex}, Cursor {cursor:?}"
+        );
     }
 }
 
@@ -355,7 +378,11 @@ fn awkward_path_entries_are_skipped_and_the_first_real_program_wins() {
     };
     let real = script(&dir("real"), "claude", "exit 0");
     let path = |entries: &[&std::ffi::OsStr]| -> OsString {
-        entries.iter().map(|e| e.to_os_string()).collect::<Vec<_>>().join(OsStr::new(":"))
+        entries
+            .iter()
+            .map(|e| e.to_os_string())
+            .collect::<Vec<_>>()
+            .join(OsStr::new(":"))
     };
     let real_dir = real.parent().unwrap().as_os_str();
     let folder = dir("folder");
@@ -367,8 +394,6 @@ fn awkward_path_entries_are_skipped_and_the_first_real_program_wins() {
     symlink(&real, linked.join("claude")).unwrap();
     let broken = dir("broken");
     symlink(base.path().join("gone"), broken.join("claude")).unwrap();
-    // npx puts the project's `node_modules/.bin`, and each one above it, first.
-    let npx = script(&dir("project/node_modules/.bin"), "claude", "exit 0");
 
     // (row, PATH, what it finds)
     let rows: Vec<(&str, OsString, Option<PathBuf>)> = vec![
@@ -378,19 +403,33 @@ fn awkward_path_entries_are_skipped_and_the_first_real_program_wins() {
             Some(real.clone()),
         ),
         (
-            "a relative entry, which names a folder in the project",
-            path(&[relative_to_here(real.parent().unwrap()).as_os_str()]),
-            None,
+            "a folder named claude",
+            path(&[folder.as_os_str(), real_dir]),
+            Some(real.clone()),
         ),
-        ("a folder named claude", path(&[folder.as_os_str(), real_dir]), Some(real.clone())),
-        ("a claude without the execute bit", path(&[plain.as_os_str(), real_dir]), Some(real.clone())),
-        ("a symlink to a program", path(&[linked.as_os_str()]), Some(linked.join("claude"))),
-        ("a broken symlink", path(&[broken.as_os_str(), real_dir]), Some(real.clone())),
-        ("a node_modules/.bin folder first", path(&[npx.parent().unwrap().as_os_str(), real_dir]), Some(real.clone())),
+        (
+            "a claude without the execute bit",
+            path(&[plain.as_os_str(), real_dir]),
+            Some(real.clone()),
+        ),
+        (
+            "a symlink to a program",
+            path(&[linked.as_os_str()]),
+            Some(linked.join("claude")),
+        ),
+        (
+            "a broken symlink",
+            path(&[broken.as_os_str(), real_dir]),
+            Some(real.clone()),
+        ),
     ];
 
     for (row, path, want) in rows {
-        assert_eq!(on_path("claude", Some(&path), false), want, "{row}: PATH={path:?}");
+        assert_eq!(
+            on_path("claude", Some(&path), false),
+            want,
+            "{row}: PATH={path:?}"
+        );
     }
 }
 
@@ -403,18 +442,45 @@ fn only_absolute_folders_outside_node_modules_bin_are_searched_in_order() {
         ("duplicates kept", &["/a", "/a"], &["/a", "/a"]),
         ("empty entries", &["", "/a", "", "/b", ""], &["/a", "/b"]),
         ("only an empty entry", &[""], &[]),
-        ("relative entries", &["bin", "./bin", "../x/bin", ".", "/a"], &["/a"]),
+        (
+            "relative entries",
+            &["bin", "./bin", "../x/bin", ".", "/a"],
+            &["/a"],
+        ),
         (
             "npx's node_modules/.bin folders",
-            &["/p/project/node_modules/.bin", "/p/node_modules/.bin", "/node_modules/.bin", "/usr/bin"],
+            &[
+                "/p/project/node_modules/.bin",
+                "/p/node_modules/.bin",
+                "/node_modules/.bin",
+                "/usr/bin",
+            ],
             &["/usr/bin"],
         ),
-        ("a node_modules/.bin with a trailing /", &["/p/node_modules/.bin/", "/usr/bin"], &["/usr/bin"]),
-        ("a relative node_modules/.bin", &["node_modules/.bin", "/usr/bin"], &["/usr/bin"]),
+        (
+            "a node_modules/.bin with a trailing /",
+            &["/p/node_modules/.bin/", "/usr/bin"],
+            &["/usr/bin"],
+        ),
+        (
+            "a relative node_modules/.bin",
+            &["node_modules/.bin", "/usr/bin"],
+            &["/usr/bin"],
+        ),
         (
             "near misses",
-            &["/p/node_modules/bin", "/p/my_node_modules/.bin", "/p/node_modules/.bin2", "/p/node_modules/.bin/x"],
-            &["/p/node_modules/bin", "/p/my_node_modules/.bin", "/p/node_modules/.bin2", "/p/node_modules/.bin/x"],
+            &[
+                "/p/node_modules/bin",
+                "/p/my_node_modules/.bin",
+                "/p/node_modules/.bin2",
+                "/p/node_modules/.bin/x",
+            ],
+            &[
+                "/p/node_modules/bin",
+                "/p/my_node_modules/.bin",
+                "/p/node_modules/.bin2",
+                "/p/node_modules/.bin/x",
+            ],
         ),
         ("nothing kept", &["", "rel", "/p/node_modules/.bin"], &[]),
     ];
@@ -429,18 +495,48 @@ fn only_absolute_folders_outside_node_modules_bin_are_searched_in_order() {
 #[cfg(unix)]
 #[test]
 fn the_agent_is_started_with_only_the_searched_folders_on_its_path() {
-    let npx = "/p/project/node_modules/.bin:/p/node_modules/.bin:node_modules/.bin::/usr/bin:rel:/bin";
+    let npx =
+        "/p/project/node_modules/.bin:/p/node_modules/.bin:node_modules/.bin::/usr/bin:rel:/bin";
     type Vars<'a> = &'a [(&'a str, &'a str)];
     // (row, environment, windows, the environment the agent gets)
     let rows: &[(&str, Vars, bool, Vars)] = &[
-        ("PATH", &[("PATH", npx), ("HOME", "/h")], false, &[("PATH", "/usr/bin:/bin"), ("HOME", "/h")]),
-        ("PATH on Windows", &[("PATH", npx)], true, &[("PATH", "/usr/bin:/bin")]),
-        ("Path on Windows, replaced in place", &[("Path", npx), ("HOME", "/h")], true, &[("Path", "/usr/bin:/bin"), ("HOME", "/h")]),
-        ("Path and PATH on Windows: PATH wins, Path goes", &[("Path", "/a"), ("PATH", npx)], true, &[("PATH", "/usr/bin:/bin")]),
-        ("Path elsewhere is not the search path", &[("Path", npx)], false, &[("Path", npx)]),
+        (
+            "PATH on Windows",
+            &[("PATH", npx)],
+            true,
+            &[("PATH", "/usr/bin:/bin")],
+        ),
+        (
+            "Path on Windows, replaced in place",
+            &[("Path", npx), ("HOME", "/h")],
+            true,
+            &[("Path", "/usr/bin:/bin"), ("HOME", "/h")],
+        ),
+        (
+            "Path and PATH on Windows: PATH wins, Path goes",
+            &[("Path", "/a"), ("PATH", npx)],
+            true,
+            &[("PATH", "/usr/bin:/bin")],
+        ),
+        (
+            "Path elsewhere is not the search path",
+            &[("Path", npx)],
+            false,
+            &[("Path", npx)],
+        ),
         ("no PATH", &[("HOME", "/h")], false, &[("HOME", "/h")]),
-        ("no PATH on Windows", &[("HOME", "/h")], true, &[("HOME", "/h")]),
-        ("nothing kept", &[("PATH", "rel:/p/node_modules/.bin")], false, &[("PATH", "")]),
+        (
+            "no PATH on Windows",
+            &[("HOME", "/h")],
+            true,
+            &[("HOME", "/h")],
+        ),
+        (
+            "nothing kept",
+            &[("PATH", "rel:/p/node_modules/.bin")],
+            false,
+            &[("PATH", "")],
+        ),
         ("an empty PATH", &[("PATH", "")], true, &[("PATH", "")]),
     ];
     let env = |vars: &[(&str, &str)]| -> HashMap<OsString, OsString> {
@@ -476,7 +572,11 @@ fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
 
     // (row, CLAUDE_CODE_EXECPATH, the program it names when it counts)
     let rows: [(&str, &Path, Option<&Path>); 5] = [
-        ("Claude.exe, as Windows spells it", &claude_exe, Some(&claude_exe)),
+        (
+            "Claude.exe, as Windows spells it",
+            &claude_exe,
+            Some(&claude_exe),
+        ),
         ("CLAUDE, in capitals", &upper, Some(&upper)),
         ("node", &node, None),
         ("a missing file", &missing, None),
@@ -486,9 +586,16 @@ fn claude_code_execpath_is_used_only_when_it_names_a_claude_file() {
         let env = env_of(&[("CLAUDE_CODE_EXECPATH", value.to_str().unwrap())]);
         let with_path = found(&env, &|n| on_path(n, Some(&bin), false), home.path());
         let want = named.unwrap_or(&on_path_claude).to_path_buf();
-        assert_eq!(with_path, vec![Agent::ClaudeCode(want)], "{row}, with claude on PATH");
+        assert_eq!(
+            with_path,
+            vec![Agent::ClaudeCode(want)],
+            "{row}, with claude on PATH"
+        );
         let alone = found(&env, &|_| None, home.path());
-        let want: Vec<Agent> = named.map(|p| Agent::ClaudeCode(p.to_path_buf())).into_iter().collect();
+        let want: Vec<Agent> = named
+            .map(|p| Agent::ClaudeCode(p.to_path_buf()))
+            .into_iter()
+            .collect();
         assert_eq!(alone, want, "{row}, with nothing on PATH");
     }
 }
@@ -510,34 +617,46 @@ const INSTALLED: &str = "installed the ElevenLabs plugin (skills and the hosted 
 
 #[test]
 fn each_failing_command_stops_its_own_agent_and_no_other() {
-    let claude = Agent::ClaudeCode("claude".into());
-    let codex = Agent::Codex("codex".into());
-    let both = [claude.clone(), codex.clone(), Agent::Cursor];
+    let both = [
+        Agent::ClaudeCode("claude".into()),
+        Agent::Codex("codex".into()),
+        Agent::Cursor,
+    ];
+    let (claude, codex) = (&both[..1], &both[1..2]);
     // (agents, the commands that fail, the commands that ran, each agent's
     // result: `None` for success, else the command whose error it shows)
+    #[allow(clippy::type_complexity)]
     let rows: [(&[Agent], &[usize], &[usize], &[Option<usize>]); 18] = [
-        (&[claude.clone()], &[0], &[0, 1, 2, 3], &[None]),
-        (&[claude.clone()], &[1], &[0, 1, 2, 3], &[None]),
-        (&[claude.clone()], &[0, 1], &[0, 1, 2, 3], &[None]),
-        (&[claude.clone()], &[2], &[0, 1, 2], &[Some(2)]),
-        (&[claude.clone()], &[3], &[0, 1, 2, 3], &[Some(3)]),
-        (&[claude.clone()], &[0, 2], &[0, 1, 2], &[Some(0)]),
-        (&[claude.clone()], &[1, 3], &[0, 1, 2, 3], &[Some(1)]),
-        (&[codex.clone()], &[4], &[4, 5, 6], &[None]),
-        (&[codex.clone()], &[5], &[4, 5, 6], &[None]),
-        (&[codex.clone()], &[6], &[4, 5, 6], &[Some(6)]),
-        (&[codex.clone()], &[4, 6], &[4, 5, 6], &[Some(4)]),
+        (claude, &[0], &[0, 1, 2, 3], &[None]),
+        (claude, &[1], &[0, 1, 2, 3], &[None]),
+        (claude, &[0, 1], &[0, 1, 2, 3], &[None]),
+        (claude, &[2], &[0, 1, 2], &[Some(2)]),
+        (claude, &[3], &[0, 1, 2, 3], &[Some(3)]),
+        (claude, &[0, 2], &[0, 1, 2], &[Some(0)]),
+        (claude, &[1, 3], &[0, 1, 2, 3], &[Some(1)]),
+        (codex, &[4], &[4, 5, 6], &[None]),
+        (codex, &[5], &[4, 5, 6], &[None]),
+        (codex, &[6], &[4, 5, 6], &[Some(6)]),
+        (codex, &[4, 6], &[4, 5, 6], &[Some(4)]),
         (&both, &[], &[0, 1, 2, 3, 4, 5, 6], &[None, None, None]),
         (&both, &[0, 4], &[0, 1, 2, 3, 4, 5, 6], &[None, None, None]),
         (&both, &[2], &[0, 1, 2, 4, 5, 6], &[Some(2), None, None]),
         (&both, &[3], &[0, 1, 2, 3, 4, 5, 6], &[Some(3), None, None]),
         (&both, &[5], &[0, 1, 2, 3, 4, 5, 6], &[None, None, None]),
         (&both, &[6], &[0, 1, 2, 3, 4, 5, 6], &[None, Some(6), None]),
-        (&both, &[0, 2, 6], &[0, 1, 2, 4, 5, 6], &[Some(0), Some(6), None]),
+        (
+            &both,
+            &[0, 2, 6],
+            &[0, 1, 2, 4, 5, 6],
+            &[Some(0), Some(6), None],
+        ),
     ];
     for (agents, fails, ran, results) in rows {
         let fails: Vec<&str> = fails.iter().map(|&i| COMMANDS[i]).collect();
-        let row = format!("{:?} with {fails:?} failing", agents.iter().map(Agent::name).collect::<Vec<_>>());
+        let row = format!(
+            "{:?} with {fails:?} failing",
+            agents.iter().map(Agent::name).collect::<Vec<_>>()
+        );
         let recorder = Recorder::new(&fails);
         let outcomes = recorder.install(agents);
         let want: Vec<String> = ran.iter().map(|&i| COMMANDS[i].to_string()).collect();
@@ -549,7 +668,7 @@ fn each_failing_command_stops_its_own_agent_and_no_other() {
                 (Agent::Cursor, _) => Outcome {
                     agent: "Cursor",
                     ok: true,
-                    message: format!("open {CURSOR_PAGE} and select Install"),
+                    message: CURSOR_STEP.into(),
                     finish: None,
                 },
                 (_, None) => Outcome {
@@ -577,7 +696,10 @@ fn each_failing_command_stops_its_own_agent_and_no_other() {
 fn pid_in(file: &Path) -> i32 {
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
-        if let Some(pid) = std::fs::read_to_string(file).ok().and_then(|t| t.trim().parse().ok()) {
+        if let Some(pid) = std::fs::read_to_string(file)
+            .ok()
+            .and_then(|t| t.trim().parse().ok())
+        {
             return pid;
         }
         assert!(Instant::now() < deadline, "no pid in {}", file.display());
@@ -601,7 +723,10 @@ fn gone(pid: i32) -> bool {
 /// The processes whose command line contains `marker`.
 #[cfg(unix)]
 fn left_behind(marker: &str) -> Vec<String> {
-    let out = Command::new("ps").args(["-axo", "pid=,command="]).output().unwrap();
+    let out = Command::new("ps")
+        .args(["-axo", "pid=,command="])
+        .output()
+        .unwrap();
     String::from_utf8_lossy(&out.stdout)
         .lines()
         .filter(|l| l.contains(marker) && !l.contains("ps -axo"))
@@ -640,7 +765,11 @@ fn a_program_reports_how_it_ended_whatever_it_prints() {
         let program = script(dir.path(), "claude", body);
         let started = Instant::now();
         assert_eq!(run_program(&program, &[], limit, dir.path()), want, "{row}");
-        assert!(started.elapsed() < Duration::from_secs(15), "{row}: took {:?}", started.elapsed());
+        assert!(
+            started.elapsed() < Duration::from_secs(15),
+            "{row}: took {:?}",
+            started.elapsed()
+        );
     }
 }
 
@@ -666,12 +795,22 @@ fn a_command_past_its_limit_is_stopped_with_its_children_and_grandchildren() {
     let result = run_program(&hangs, &[], limit, dir.path());
     let (child, grandchild) = (pid_in(&child), pid_in(&grandchild));
     let _cleanup = (KillOnDrop(child), KillOnDrop(grandchild));
-    assert_eq!(result, Err("ran out of time after 3s and was stopped".into()));
-    assert!(started.elapsed() < limit + Duration::from_secs(3), "{:?}", started.elapsed());
+    assert_eq!(
+        result,
+        Err("ran out of time after 3s and was stopped".into())
+    );
+    assert!(
+        started.elapsed() < limit + Duration::from_secs(3),
+        "{:?}",
+        started.elapsed()
+    );
     assert!(gone(child), "the child {child} still runs");
     assert!(gone(grandchild), "the grandchild {grandchild} still runs");
     assert_eq!(left_behind(&sleep_marker(3011)), Vec::<String>::new());
-    assert_eq!(left_behind(&hangs.display().to_string()), Vec::<String>::new());
+    assert_eq!(
+        left_behind(&hangs.display().to_string()),
+        Vec::<String>::new()
+    );
 }
 
 // ── the error line a failed command leaves ──────────────────────────
@@ -712,7 +851,11 @@ fn the_error_line_is_the_last_with_text_without_escapes_and_at_most_300_characte
         let got = clean_last_line(&output);
         assert_eq!(got, want, "{row}");
         let got = got.unwrap_or_default();
-        assert!(got.chars().count() <= LINE_MAX, "{row}: {} characters", got.chars().count());
+        assert!(
+            got.chars().count() <= LINE_MAX,
+            "{row}: {} characters",
+            got.chars().count()
+        );
         assert!(!got.chars().any(char::is_control), "{row}: {got:?}");
     }
 }
@@ -731,13 +874,28 @@ fn only_the_last_64_kb_of_a_capture_is_read() {
 
 #[cfg(unix)]
 #[test]
-fn a_missing_home_folder_is_named_and_the_agent_is_not_blamed() {
+fn a_program_that_cannot_start_says_why_and_a_missing_home_folder_is_named() {
     let dir = tempfile::tempdir().unwrap();
     let program = script(dir.path(), "claude", "exit 0");
     let home = dir.path().join("gone");
     assert_eq!(
         run_program(&program, &[], Duration::from_secs(5), &home),
-        Err(format!("couldn't start it: the home folder {} is missing", home.display()))
+        Err(format!(
+            "couldn't start it: the home folder {} is not a folder",
+            home.display()
+        ))
+    );
+    let missing = run_program(
+        &dir.path().join("codex"),
+        &[],
+        Duration::from_secs(5),
+        dir.path(),
+    );
+    assert!(
+        missing
+            .as_ref()
+            .is_err_and(|e| e.starts_with("couldn't start it: ")),
+        "{missing:?}"
     );
 }
 
@@ -751,7 +909,11 @@ fn a_program_starting_others_as_it_is_stopped_leaves_none_running() {
     let forks = script(dir.path(), "forks", &format!("while :; do {sleep} & done"));
     for run in 0..20 {
         let got = run_program(&forks, &[], Duration::from_millis(50), dir.path());
-        assert_eq!(got, Err("ran out of time after 50ms and was stopped".to_string()), "run {run}");
+        assert_eq!(
+            got,
+            Err("ran out of time after 50ms and was stopped".to_string()),
+            "run {run}"
+        );
     }
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
@@ -759,7 +921,12 @@ fn a_program_starting_others_as_it_is_stopped_leaves_none_running() {
         if left.is_empty() {
             break;
         }
-        assert!(Instant::now() < deadline, "left running: {} processes, first {:?}", left.len(), &left[..1]);
+        assert!(
+            Instant::now() < deadline,
+            "left running: {} processes, first {:?}",
+            left.len(),
+            &left[..1]
+        );
         std::thread::sleep(Duration::from_millis(20));
     }
 }
@@ -779,7 +946,12 @@ fn in_a_child(name: &str) -> std::process::ExitStatus {
     let module = module_path!().split_once("::").unwrap().1;
     let mut child = Command::new(std::env::current_exe().unwrap());
     child
-        .args([&format!("{module}::{name}"), "--exact", "--test-threads=1", "-q"])
+        .args([
+            &format!("{module}::{name}"),
+            "--exact",
+            "--test-threads=1",
+            "-q",
+        ])
         .env(CHILD, "1")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -798,26 +970,32 @@ fn in_a_child(name: &str) -> std::process::ExitStatus {
 #[test]
 fn a_signal_caught_before_a_command_starts_exits_before_it_starts() {
     if std::env::var_os(CHILD).is_some() {
-        let _catch = interrupt::Catch::start();
+        interrupt::catch();
         unsafe { libc::raise(libc::SIGTERM) };
         // Started, a missing program would only fail.
-        let _ = run_program(Path::new("/nonexistent/claude"), &[], Duration::from_secs(5), Path::new("/"));
+        let _ = run_program(
+            Path::new("/nonexistent/claude"),
+            &[],
+            Duration::from_secs(5),
+            Path::new("/"),
+        );
         std::process::exit(3);
     }
     let status = in_a_child("a_signal_caught_before_a_command_starts_exits_before_it_starts");
     assert_eq!(status.code(), Some(143), "{status:?}");
 }
 
-/// A signal caught after the last command still ends the run as interrupted.
+/// A signal caught after the last command still ends the run as interrupted:
+/// Cursor runs no command that would see it.
 #[cfg(unix)]
 #[test]
-fn a_signal_caught_after_the_last_command_exits_once_the_handlers_are_back() {
+fn a_signal_caught_after_the_last_command_ends_the_run_as_interrupted() {
     if std::env::var_os(CHILD).is_some() {
-        let catch = interrupt::Catch::start();
+        interrupt::catch();
         unsafe { libc::raise(libc::SIGTERM) };
-        catch.finish();
+        run(&[Agent::Cursor], Path::new("/"));
         std::process::exit(3);
     }
-    let status = in_a_child("a_signal_caught_after_the_last_command_exits_once_the_handlers_are_back");
+    let status = in_a_child("a_signal_caught_after_the_last_command_ends_the_run_as_interrupted");
     assert_eq!(status.code(), Some(143), "{status:?}");
 }

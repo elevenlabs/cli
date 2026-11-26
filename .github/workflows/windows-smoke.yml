@@ -61,11 +61,12 @@ jobs:
           function New-TempFolder {
             New-Item -ItemType Directory (Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid()))
           }
-          # A stand-in that logs its arguments, one line per run.
-          function New-StandIn($folder, $name) {
+          # A stand-in that logs its arguments, one line per run, and runs $also first.
+          function New-StandIn($folder, $name, $also) {
             Set-Content -Encoding ascii -Path (Join-Path $folder "$name.cmd") -Value @(
               '@echo off'
               "echo %*>>`"$(Join-Path $folder "$name.log")`""
+              $also
               'exit /b 0'
             )
           }
@@ -84,8 +85,10 @@ jobs:
             }
           }
           $bin = (New-Item -ItemType Directory (Join-Path (New-TempFolder).FullName 'agents (test) dir')).FullName
-          New-StandIn $bin 'claude'
-          New-StandIn $bin 'codex'
+          New-StandIn $bin 'claude' ''
+          New-StandIn $bin 'codex' ''
+          $failing = (New-TempFolder).FullName
+          New-StandIn $failing 'claude' 'echo %* | findstr /C:"plugin install" >nul && (>&2 echo install refused& exit /b 1)'
           $basePath = $env:Path
           # Spelled `Path` whatever the runner passed.
           function Set-SearchPath($first) {
@@ -103,11 +106,6 @@ jobs:
 
           elevenlabs setup
           if ($LASTEXITCODE -ne 0) { throw "setup exited with $LASTEXITCODE" }
-          Assert-Ran $bin 'claude' @() 'setup without --yes ran a Claude Code command'
-          Assert-Ran $bin 'codex' @() 'setup without --yes ran a Codex command'
-
-          elevenlabs setup --yes
-          if ($LASTEXITCODE -ne 0) { throw "setup --yes exited with $LASTEXITCODE" }
           Assert-Ran $bin 'claude' @(
             'plugin marketplace add elevenlabs/plugin'
             'plugin marketplace update elevenlabs'
@@ -119,6 +117,21 @@ jobs:
             'plugin marketplace upgrade elevenlabs'
             'plugin add elevenlabs@elevenlabs'
           ) 'Expected the three Codex commands'
+
+          Set-SearchPath $failing
+          $out = (elevenlabs setup) -join "`n"
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 1) { throw "setup with a failing install exited with $code, not 1" }
+          $refused = 'Claude Code: failed: `claude plugin install elevenlabs@elevenlabs` exited with 1: install refused'
+          if (-not $out.Contains($refused)) { throw "setup didn't show the install's error" }
+          Assert-Ran $failing 'claude' @(
+            'plugin marketplace add elevenlabs/plugin'
+            'plugin marketplace update elevenlabs'
+            'plugin install elevenlabs@elevenlabs'
+          ) 'Expected Claude Code to stop at the failed install'
+          # The failed setup above exited 1 on purpose, and pwsh would end the step with it.
+          exit 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

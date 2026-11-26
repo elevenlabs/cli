@@ -36,7 +36,9 @@ fn cli(home: &Path, cwd: &Path, server: &str, args: &[&str]) -> Command {
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("ELEVENLABS_ONBOARD_NO_CLIPBOARD", "1")
         // A browser reaches this machine unless a test says otherwise.
-        .env("DISPLAY", ":0");
+        .env("DISPLAY", ":0")
+        // No coding agent of the developer's is found, or set up.
+        .env("PATH", "/usr/bin:/bin");
     for var in [
         "ELEVENLABS_API_KEY",
         "ELEVENLABS_BASE_URL",
@@ -49,6 +51,9 @@ fn cli(home: &Path, cwd: &Path, server: &str, args: &[&str]) -> Command {
         "REMOTE_CONTAINERS",
         "CLAUDECODE",
         "CLAUDE_CODE_ENTRYPOINT",
+        "CLAUDE_CODE_EXECPATH",
+        "CLAUDE_CONFIG_DIR",
+        "CODEX_HOME",
         "CODEX_THREAD_ID",
         "CODEX_SANDBOX",
         "CODEX_SANDBOX_NETWORK_DISABLED",
@@ -1274,4 +1279,222 @@ fn callback_ports_busy() -> bool {
     [8484, 8483, 8482]
         .iter()
         .any(|p| std::net::TcpStream::connect(("localhost", *p)).is_ok())
+}
+
+// ── the offer to set up the coding agents, and `onboard setup` ──────
+
+/// Stand-ins for `names` in a folder of their own, each adding the command it
+/// was given to `ran` there, written by a short-lived `sh` (a script this
+/// process held open could fail to start in another test's fork on Linux).
+/// Returns a PATH with only them and the system's tools.
+#[cfg(unix)]
+fn stand_ins(dir: &Path, names: &[&str]) -> String {
+    for name in names {
+        let script = format!(
+            "#!/bin/sh\necho \"{name} $*\" >> '{}'\n",
+            dir.join("ran").display()
+        );
+        let status = Command::new("/bin/sh")
+            .args([
+                "-c",
+                "printf '%s' \"$1\" > \"$2\" && chmod 755 \"$2\"",
+                "sh",
+                &script,
+            ])
+            .arg(dir.join(name))
+            .status()
+            .unwrap();
+        assert!(status.success());
+    }
+    format!("{}:/usr/bin:/bin", dir.display())
+}
+
+fn ran(dir: &Path) -> Vec<String> {
+    let text = std::fs::read_to_string(dir.join("ran")).unwrap_or_default();
+    text.lines().map(str::to_string).collect()
+}
+
+/// A mock whose text-to-speech request answers `status`.
+async fn speech(status: u16) -> MockServer {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/text-to-speech/{VOICE}")))
+        .respond_with(ResponseTemplate::new(status).set_body_bytes(b"ID3".to_vec()))
+        .mount(&server)
+        .await;
+    server
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_test_request_that_worked_offers_setup_when_claude_code_or_codex_is_here() {
+    let server = speech(200).await;
+    let bin = tempfile::tempdir().unwrap();
+    let agents = stand_ins(bin.path(), &["claude", "codex"]);
+    let test = |path: &str, cursor: bool| {
+        let (home, cwd) = temp();
+        if cursor {
+            std::fs::create_dir(home.path().join(".cursor")).unwrap();
+        }
+        write(
+            cwd.path(),
+            ".env.local",
+            &format!("ELEVENLABS_API_KEY={KEY}\n"),
+        );
+        let args = ["onboard", "test", "--no-browser"];
+        let r = reply(cli(home.path(), cwd.path(), &server.uri(), &args).env("PATH", path));
+        let clip = r["details"]["audio_file"].as_str().unwrap().to_string();
+        (say(&r).replace(&clip, "<clip>"), r)
+    };
+
+    let (said, r) = test(&agents, false);
+    assert_eq!(r["next"], "offer_setup", "{r}");
+    assert_eq!(
+        r["details"]["question"],
+        "Want me to set ElevenLabs up in Claude Code and Codex too? It installs the ElevenLabs plugin (skills \
+         and the hosted MCP server), so new sessions can use ElevenLabs right away."
+    );
+    assert_eq!(
+        r["run"],
+        "elevenlabs onboard setup --env-path .env.local --no-browser"
+    );
+    assert!(
+        r["instruction"]
+            .as_str()
+            .unwrap()
+            .contains("`details.question`"),
+        "{r}"
+    );
+    assert_eq!(
+        ran(bin.path()),
+        Vec::<String>::new(),
+        "offering runs nothing"
+    );
+    // With nothing to install into, the reply is the `done` it always was.
+    for (row, cursor) in [("only Cursor", true), ("no agent", false)] {
+        let (plain, r) = test("/usr/bin:/bin", cursor);
+        assert_eq!(r["next"], "done", "{row}: {r}");
+        assert!(
+            r.get("run").is_none() && r["details"].get("question").is_none(),
+            "{row}: {r}"
+        );
+        assert_eq!(plain, said, "{row}: the same say");
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_test_request_that_failed_never_offers_setup() {
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let path = stand_ins(bin.path(), &["claude"]);
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    for status in [402, 500] {
+        let server = speech(status).await;
+        let r = reply(
+            cli(home.path(), cwd.path(), &server.uri(), &["onboard", "test"]).env("PATH", &path),
+        );
+        assert_eq!(r["next"], "done", "{status}: {r}");
+        assert!(
+            r.get("run").is_none() && r["details"].get("question").is_none(),
+            "{status}: {r}"
+        );
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn onboard_setup_installs_in_each_agent_and_counts_each_only_with_telemetry_on() {
+    let server = speech(200).await;
+    user_endpoint_accepting(&server, KEY).await;
+    let (home, cwd) = temp();
+    std::fs::create_dir(home.path().join(".cursor")).unwrap();
+    let bin = tempfile::tempdir().unwrap();
+    let path = stand_ins(bin.path(), &["claude", "codex"]);
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    let setup = |telemetry: &str| {
+        let args = [
+            "onboard",
+            "setup",
+            "--env-path",
+            ".env.local",
+            "--telemetry",
+            telemetry,
+        ];
+        reply(cli(home.path(), cwd.path(), &server.uri(), &args).env("PATH", &path))
+    };
+
+    let r = setup("on");
+    assert_eq!(r["next"], "done", "{r}");
+    assert!(r.get("run").is_none(), "{r}");
+    assert_eq!(
+        ran(bin.path()),
+        [
+            "claude plugin marketplace add elevenlabs/plugin",
+            "claude plugin marketplace update elevenlabs",
+            "claude plugin install elevenlabs@elevenlabs",
+            "claude plugin update elevenlabs@elevenlabs",
+            "codex plugin marketplace add elevenlabs/plugin",
+            "codex plugin marketplace upgrade elevenlabs",
+            "codex plugin add elevenlabs@elevenlabs",
+        ]
+    );
+    assert_eq!(
+        say(&r),
+        "Claude Code: installed the ElevenLabs plugin (skills and the hosted MCP server). To finish, restart \
+         Claude Code, then run /mcp and sign in to the ElevenLabs MCP server. Codex: installed the ElevenLabs \
+         plugin (skills and the hosted MCP server). To finish, restart Codex, then run `codex mcp login \
+         elevenlabs` in a terminal to sign in to the ElevenLabs MCP server. Cursor: open \
+         https://cursor.com/marketplace/elevenlabs and select Install."
+    );
+    assert_eq!(r["details"]["setup"].as_array().unwrap().len(), 3, "{r}");
+    setup("off");
+    assert_eq!(ran(bin.path()).len(), 14, "installed both times");
+    // One account request with the project's key per agent tried, with telemetry on only.
+    let requests = server.received_requests().await.unwrap();
+    let tags: Vec<String> = requests
+        .iter()
+        .map(|r| {
+            assert_eq!(r.url.path(), "/v1/user");
+            assert_eq!(r.headers["xi-api-key"], KEY);
+            let agent = r.headers["user-agent"].to_str().unwrap();
+            let tags: Vec<&str> = agent.split(' ').filter(|t| t.starts_with("cmd/")).collect();
+            tags.join(" ")
+        })
+        .collect();
+    assert_eq!(
+        tags,
+        ["cmd/onboard.setup.claude_code.installed", "cmd/onboard.setup.codex.installed"]
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn onboard_setup_with_dry_run_installs_nothing() {
+    let server = MockServer::start().await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let path = stand_ins(bin.path(), &["claude", "codex"]);
+    write(
+        cwd.path(),
+        ".env.local",
+        &format!("ELEVENLABS_API_KEY={KEY}\n"),
+    );
+    let args = ["onboard", "setup", "--dry-run"];
+    let r = reply(cli(home.path(), cwd.path(), &server.uri(), &args).env("PATH", &path));
+    assert_eq!(r["next"], "done", "{r}");
+    assert_eq!(say(&r), "Nothing was installed, because of --dry-run.");
+    assert_eq!(ran(bin.path()), Vec::<String>::new(), "nothing ran");
+    assert!(
+        server.received_requests().await.unwrap().is_empty(),
+        "no request"
+    );
 }

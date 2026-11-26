@@ -15,6 +15,7 @@ pub(super) enum Next {
     Fix,
     Integrate,
     OfferTest,
+    OfferSetup,
     Done,
 }
 
@@ -60,6 +61,11 @@ impl Next {
                  your reply with the question in `say`, as it is, and end your turn. If they say yes, \
                  run `run`: that command is the test request, so don't run their app in its place. If \
                  they say no, run nothing."
+            }
+            Next::OfferSetup => {
+                "Tell the user `say`, then anything they still have to do themselves, like installing the \
+                 packages you added. Then end your reply with the question in `details.question`, as it \
+                 is, and end your turn. If they say yes, run `run`. If they say no, run nothing."
             }
             Next::Done => {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \
@@ -132,12 +138,7 @@ impl Reply {
 /// started this process (it sets `npm_command=exec`), so the agent keeps
 /// running the same, latest CLI; otherwise the installed `elevenlabs`.
 pub(super) fn command(args: &str) -> String {
-    let cli = if std::env::var("npm_command").is_ok_and(|c| c == "exec") {
-        "npx -y @elevenlabs/cli@latest"
-    } else {
-        "elevenlabs"
-    };
-    format!("{cli} onboard {args}")
+    format!("{} onboard {args}", super::super::setup::cli_prefix())
 }
 
 /// Print a reply (or one a background sign-in saved). Always JSON, whatever

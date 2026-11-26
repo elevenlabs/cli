@@ -7,6 +7,8 @@
 //!   older name)
 //! - `check`: verify a key the developer added by hand (`status` is an alias)
 //! - `test`: a short text-to-speech request, only when the developer says yes
+//! - `setup`: install ElevenLabs in the developer's coding agents, when the
+//!   test request's reply offered it and they said yes
 
 mod auth;
 mod browser;
@@ -44,12 +46,42 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
             let _scope = api::command_scope("onboard.check");
             check::handle(sub, ctx)?
         }
+        // Its requests carry tags of their own: see `setup::count`.
+        "setup" => setup(sub, ctx)?,
         _ => {
             let _scope = api::command_scope("onboard.test");
             test_request::handle(sub, ctx)?
         }
     };
     reply::emit(&reply.to_value())
+}
+
+/// `onboard setup`: what `setup` does, as a `done` reply, counted with the
+/// project's key (`setup::count`).
+fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, CliError> {
+    use super::setup;
+    let later = setup::later_command();
+    let done = |say: String| reply::Reply::new(reply::Next::Done, say);
+    if super::util::dry_run_flag(matches) {
+        return Ok(done(setup::DRY_RUN.into()));
+    }
+    let key = project::Project::open(matches)?.key();
+    let Some(home) = setup::home() else {
+        return Ok(done(format!(
+            "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
+             later, run `{later}`."
+        )));
+    };
+    let outcomes = setup::run(&setup::found_here(&home), &home);
+    setup::count("onboard.setup", &outcomes, &|| {
+        let (Some(key), Ok(client)) = (&key, ctx.http_config().build_client()) else {
+            return;
+        };
+        let url = format!("{}/v1/user", auth::api_base(ctx));
+        let request = client.get(url).header("xi-api-key", &key.value);
+        let _ = super::say::run_async(request.timeout(setup::COUNT_LIMIT).send());
+    });
+    Ok(done(setup::report(&outcomes).0.join(" ")).detail("setup", &outcomes))
 }
 
 /// `--env-path`, not `--env-file`: through npx, Node takes `--env-file` for itself (for any
@@ -127,6 +159,14 @@ fn onboard_command() -> clap::Command {
         .subcommand(
             clap::Command::new("test")
                 .about("Make a short text-to-speech request with the project's key (ask the developer first)")
+                .arg(env_file_arg())
+                .arg(no_browser_arg()),
+        )
+        .subcommand(
+            clap::Command::new("setup")
+                // Run only when the test request's reply offers it and the developer says yes.
+                .hide(true)
+                .about("Install ElevenLabs in the coding agents on this machine, as `elevenlabs setup` does")
                 .arg(env_file_arg())
                 .arg(no_browser_arg()),
         )

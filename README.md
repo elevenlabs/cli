@@ -529,23 +529,15 @@ elevenlabs components add conversation-bar
 
 ## Set up your coding agents
 
-`elevenlabs setup` installs the [ElevenLabs plugin](https://github.com/elevenlabs/plugin) (the ElevenLabs skills and the hosted MCP server) into the coding agents it finds, through each agent's own plugin command:
-
 ```bash
-elevenlabs setup         # say what it would do, and change nothing (so does --dry-run)
-elevenlabs setup --yes   # do it
+elevenlabs setup
 ```
 
-- **Claude Code** (when run inside it, the program in `CLAUDE_CODE_EXECPATH` if that is `claude`, else `claude` on `PATH`): `claude plugin marketplace add elevenlabs/plugin`, `claude plugin marketplace update elevenlabs`, `claude plugin install elevenlabs@elevenlabs`, then `claude plugin update elevenlabs@elevenlabs`.
-- **Codex** (`codex` on `PATH`): `codex plugin marketplace add elevenlabs/plugin`, `codex plugin marketplace upgrade elevenlabs`, then `codex plugin add elevenlabs@elevenlabs`.
-- **Cursor** (a `~/.cursor` folder, or run inside Cursor) has no install command: `setup` prints the link to [its marketplace page](https://cursor.com/marketplace/elevenlabs), where you select Install.
-- **None of these**: `setup` changes nothing and says how to install only the [ElevenLabs skills](https://github.com/elevenlabs/skills), with `npx skills add elevenlabs/skills`.
+`setup` installs the [ElevenLabs plugin](https://github.com/elevenlabs/plugin) (the ElevenLabs skills and the hosted MCP server) into Claude Code and Codex through each agent's own plugin commands, and prints the link to Cursor's marketplace page, where you select Install. With none of them found, it says how to install the [ElevenLabs skills](https://github.com/elevenlabs/skills) alone. A terminal can't see a Claude Code that lives only in the Claude desktop app, so there, ask Claude to run `elevenlabs setup` for you.
 
-A terminal can't see a Claude Code that lives only in the Claude desktop app, so there, ask Claude to run `elevenlabs setup --yes` for you.
+To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` in a terminal for Codex. Running `setup` again updates the plugin when GitHub can be reached. When an agent's install fails, `setup` exits 1 with that agent's error. To install the plugin by hand, see [its manual installation steps](https://github.com/elevenlabs/plugin#manual-installation).
 
-Running it again updates the plugin. Each agent command may take 30 seconds and the whole run 100; `setup` exits 1 when an agent's install fails, with that agent's error and the command to try again (a failed marketplace command alone doesn't fail an agent). Agent commands run in your home folder, never in the project, and a `claude` or `codex` in a `node_modules/.bin` folder on `PATH` (npx puts the project's there) is never run. The agent starts without those folders on its `PATH`, so a `node` or `git` there doesn't run either. Pressing Ctrl-C stops the one running along with anything it started. To finish, restart the agent and sign in to the ElevenLabs MCP server: run `/mcp` in Claude Code, or `codex mcp login elevenlabs` in a terminal for Codex.
-
-When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), the flow can end by offering to do this for you; saying yes runs `onboard setup`, which does what `setup --yes` does.
+When onboarding through a coding agent (`npx -y @elevenlabs/cli@latest onboard init`), a test request that works ends by offering to do this for you when Claude Code or Codex is found; saying yes runs `onboard setup`, which does what `setup` does.
 
 ## Usage
 
@@ -665,10 +657,14 @@ sign-in's approval link.
 signed in. The retry of an approval that timed out puts `cli_prev=timed-out`
 on its approval link.
 
-When you accept the offer to set up your coding agents at the end of
-onboarding, `onboard setup` makes one account request (`GET /v1/user`, tagged
-`cmd/onboard.setup`) with the project's key, so we can count how many people
-accept it; with telemetry off it makes none.
+`setup`, and `onboard setup` when you accept the offer to set up your coding
+agents after onboarding's test request, make one account request
+(`GET /v1/user`) for each of Claude Code and Codex they tried, tagged
+`cmd/setup.<agent>.<outcome>` (`cmd/onboard.setup.…` for the second), such as
+`cmd/setup.codex.installed` or `cmd/setup.claude_code.failed`, or one tagged
+`cmd/setup.none` when neither was found, so we can count how many people use
+it and how it goes. They go only with telemetry on and a key: the project's
+for `onboard setup`; for `setup`, `ELEVENLABS_API_KEY` or your `auth login`.
 
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.

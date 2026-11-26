@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 
 use super::super::api::api_error_message;
 use super::super::say::{run_async as block_on, DEFAULT_MODEL_ID, DEFAULT_VOICE_ID, MP3_FORMAT};
+use super::super::setup;
 use super::auth;
 use super::project::Project;
 use super::reply::{Next, Reply};
@@ -61,9 +62,15 @@ pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Rep
         status == 402 || (status == 401 && error["detail"]["status"] == "quota_exceeded");
     let reply = if (200..300).contains(&status) {
         let clip = save(&body)?;
-        done(format!(
-            "Your first request worked. Play {clip} to hear it. {set_up}"
-        ))
+        let say = format!("Your first request worked. Play {clip} to hear it. {set_up}");
+        // Once it works, the developer's coding agents can take ElevenLabs too.
+        let question = setup::home().and_then(|home| setup::question(&setup::found_here(&home)));
+        match question {
+            Some(question) => Reply::new(Next::OfferSetup, say)
+                .run(&project.next("setup"))
+                .detail("question", question),
+            None => done(say),
+        }
         .detail("audio_file", clip)
     } else if no_credits {
         done(format!(

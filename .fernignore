@@ -51,6 +51,7 @@ tests/agents_graph_test.rs
 tests/workflow_diagram_test.rs
 tests/push_exit_code_test.rs
 tests/wif_test.rs
+tests/setup_test.rs
 .fern/replay.lock
 .fern/replay.yml
 .gitattributes
