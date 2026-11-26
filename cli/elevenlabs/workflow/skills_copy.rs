@@ -110,6 +110,27 @@ pub(super) fn guide(dir: &Path, name: &str) -> Result<PathBuf, String> {
     }
 }
 
+/// `onboard skills <dir>`, what onboarding's hand-over names in
+/// `details.fetch_skills`.
+pub(super) fn command() -> clap::Command {
+    clap::Command::new("skills")
+        .about("Download the ElevenLabs skills into a folder, one folder per skill")
+        .arg(clap::Arg::new("dir").value_name("DIR").required(true))
+}
+
+/// Prints the skills it put in the folder, one name a line. A failure says the
+/// agent may go on without one, as the hand-over does.
+pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
+    let dir = matches.get_one::<String>("dir").map_or("", String::as_str);
+    let names = fetch(ctx, Path::new(dir)).map_err(|why| {
+        CliError::Other(anyhow::anyhow!(
+            "download the ElevenLabs skills: {why}. Go on without a skill."
+        ))
+    })?;
+    println!("{}", names.join("\n"));
+    Ok(())
+}
+
 /// Only a copy on this machine may stand in for GitHub's, and only the shell
 /// that started the CLI may name it: `given` is the shell's own value, from
 /// before the runtime loaded the project's `.env`.

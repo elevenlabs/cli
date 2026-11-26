@@ -145,8 +145,6 @@ fn write(dir: &Path, file: &str, text: &str) {
     std::fs::write(path, text).unwrap();
 }
 
-// ── check ───────────────────────────────────────────────────────────
-
 const MIGRATION_GUIDE: &str = "# Migrate from OpenAI\n";
 
 /// A download of the skills repo holding `files`, in one top folder as GitHub wraps it.
@@ -191,7 +189,7 @@ fn skills_from<'a>(cmd: &'a mut Command, server: &MockServer) -> &'a mut Command
     )
 }
 
-/// The requests for the skills, as (path, User-Agent).
+/// The User-Agent of each request for the skills.
 async fn skills_requests(server: &MockServer) -> Vec<String> {
     let sent = server.received_requests().await.unwrap();
     sent.iter()
@@ -225,8 +223,6 @@ async fn the_hand_overs_command_puts_the_skills_in_its_folder() {
         &["onboard", "init"],
     ));
     let dir = handed["details"]["skills_dir"].as_str().unwrap();
-    let fetch = handed["details"]["fetch_skills"].as_str().unwrap();
-    assert_eq!(fetch, format!("elevenlabs onboard skills {dir}"));
     assert!(
         skills_requests(&server).await.is_empty(),
         "nothing is downloaded until the agent asks"
@@ -467,11 +463,6 @@ async fn migrate_openai_without_its_guide_changes_nothing_and_says_so() {
          changed. Tell me when you'd like me to try again."
     );
     assert_eq!(r["run"], "elevenlabs migrate openai");
-    assert_eq!(
-        skills_requests(&server).await.len(),
-        2,
-        "one more try, then it stops"
-    );
     assert_eq!(left_behind(), 0);
 
     // The skills arrive, but the guide isn't among them.

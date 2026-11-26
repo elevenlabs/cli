@@ -40,7 +40,7 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
         .subcommand()
         .ok_or_else(|| CliError::Validation("Start with `elevenlabs onboard init`.".into()))?;
     if name == "skills" {
-        return skills(sub, ctx);
+        return skills_copy::handle(sub, ctx);
     }
     let reply = match name {
         // These set their own request tag: the sign-in counts as `connect`.
@@ -55,33 +55,16 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
             test_request::handle(sub, ctx)?
         }
     };
-    if sub.get_one::<String>("from").is_some() && reply.next == reply::Next::Integrate {
+    if sub.try_get_one::<String>("from").ok().flatten().is_some()
+        && reply.next == reply::Next::Integrate
+    {
         count_migration(sub, ctx);
     }
     reply::emit(&reply.to_value())
 }
 
-/// `onboard skills <dir>`: what the hand-over's `details.fetch_skills` runs. It
-/// prints the skills it put in `dir`, one name a line; a failure says the agent
-/// may go on without one, as the hand-over does.
-fn skills(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
-    let dir = matches
-        .get_one::<String>("dir")
-        .map(String::as_str)
-        .unwrap_or_default();
-    let names = skills_copy::fetch(ctx, std::path::Path::new(dir)).map_err(|why| {
-        CliError::Other(anyhow::anyhow!(
-            "download the ElevenLabs skills: {why}. Go on without a skill."
-        ))
-    })?;
-    println!("{}", names.join("\n"));
-    Ok(())
-}
-
-/// With telemetry on, one account request under the migration's own name when
-/// a step of `migrate`'s hand-off (`--from`, which every reply's `run` passes
-/// on) finds a working key: nothing else tells a migration from any other
-/// sign-in. Its answer changes nothing.
+/// With telemetry on, one more account request, named `migrate.openai`, when a
+/// step of `migrate`'s hand-off finds a working key. Its answer changes nothing.
 fn count_migration(matches: &clap::ArgMatches, ctx: &AppContext) {
     if !telemetry::enabled() {
         return;
@@ -182,11 +165,7 @@ fn onboard_command() -> clap::Command {
                 .arg(no_browser_arg())
                 .arg(from_arg()),
         )
-        .subcommand(
-            clap::Command::new("skills")
-                .about("Download the ElevenLabs skills into a folder, one folder per skill")
-                .arg(clap::Arg::new("dir").value_name("DIR").required(true)),
-        )
+        .subcommand(skills_copy::command())
 }
 
 /// The environment as the shell gave it, from before the runtime loads a

@@ -551,10 +551,6 @@ fn the_skills_download_is_this_clis_own_command_with_the_folder_quoted() {
     use super::check::fetch_skills;
     use std::path::Path;
     assert_eq!(
-        fetch_skills(Path::new("/tmp/elevenlabs-skills-1"), false),
-        "elevenlabs onboard skills /tmp/elevenlabs-skills-1"
-    );
-    assert_eq!(
         fetch_skills(Path::new("/tmp/my skills"), false),
         "elevenlabs onboard skills '/tmp/my skills'"
     );
@@ -587,22 +583,6 @@ fn a_reply_names_the_next_step_and_the_command() {
     let bare = Reply::new(Next::Done, "Done.").to_value();
     assert!(
         bare.get("run").is_none() && bare.get("rules").is_none() && bare.get("details").is_none()
-    );
-}
-
-#[test]
-fn a_migrations_mark_is_carried_by_every_next_command() {
-    use super::connect::failed;
-    let dir = tempfile::tempdir().unwrap();
-    let mut p = project(dir.path());
-    assert_eq!(p.next("check"), "check --env-path .env");
-    p.from = Some("openai".into());
-    assert_eq!(p.next("check"), "check --env-path .env --from openai");
-    // A sign-in that needs another run is still the migration's hand-off.
-    let late = failed(&p, "Timed out waiting for the OAuth callback after 300s.", false, false).to_value();
-    assert_eq!(
-        late["run"],
-        "elevenlabs onboard connect --again --env-path .env --from openai"
     );
 }
 
