@@ -275,7 +275,7 @@ pub(super) fn run_program(
     };
     if !home.is_dir() {
         return Err(format!(
-            "couldn't start it: the home folder {} is not a folder",
+            "couldn't start it: there is no home folder at {}",
             home.display()
         ));
     }

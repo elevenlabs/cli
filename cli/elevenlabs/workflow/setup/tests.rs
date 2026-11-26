@@ -881,7 +881,7 @@ fn a_program_that_cannot_start_says_why_and_a_missing_home_folder_is_named() {
     assert_eq!(
         run_program(&program, &[], Duration::from_secs(5), &home),
         Err(format!(
-            "couldn't start it: the home folder {} is not a folder",
+            "couldn't start it: there is no home folder at {}",
             home.display()
         ))
     );
