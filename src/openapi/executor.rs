@@ -434,6 +434,10 @@ pub(crate) fn multipart_has_stdin(parts: &Option<Vec<MultipartPart>>) -> bool {
     }
 }
 
+/// Upper bound for a server-supplied `Retry-After`. A hostile server must not
+/// be able to park the CLI for hours with a single header.
+const MAX_RETRY_AFTER_SECS: u64 = 2;
+
 /// Parse a `Retry-After` header value into a `Duration`.
 ///
 /// HTTP/1.1 allows two forms (RFC 7231 §7.1.3): a non-negative integer
@@ -447,12 +451,19 @@ pub(crate) fn parse_retry_after(value: &str, now: std::time::SystemTime) -> Opti
     }
     // Numeric seconds first — cheaper and far more common in practice.
     if let Ok(secs) = trimmed.parse::<u64>() {
-        return Some(std::time::Duration::from_secs(secs));
+        return Some(std::time::Duration::from_secs(
+            secs.min(MAX_RETRY_AFTER_SECS),
+        ));
     }
     // HTTP-date (IMF-fixdate / RFC 850 / asctime). `httpdate::parse_http_date`
     // accepts all three formats per RFC 7231.
     if let Ok(target) = httpdate::parse_http_date(trimmed) {
-        return Some(target.duration_since(now).unwrap_or(std::time::Duration::ZERO));
+        return Some(
+            target
+                .duration_since(now)
+                .unwrap_or(std::time::Duration::ZERO)
+                .min(std::time::Duration::from_secs(MAX_RETRY_AFTER_SECS)),
+        );
     }
     None
 }
@@ -5726,7 +5737,7 @@ mod tests {
     fn test_parse_retry_after_numeric_seconds() {
         let now = std::time::SystemTime::now();
         let d = parse_retry_after("5", now).expect("numeric form");
-        assert_eq!(d, std::time::Duration::from_secs(5));
+        assert_eq!(d, std::time::Duration::from_secs(MAX_RETRY_AFTER_SECS));
     }
 
     #[test]
@@ -5741,7 +5752,7 @@ mod tests {
         assert!(parse_retry_after("", std::time::SystemTime::now()).is_none());
         // Common server spelling has surrounding whitespace; we trim.
         let d = parse_retry_after("  10  ", std::time::SystemTime::now()).unwrap();
-        assert_eq!(d, std::time::Duration::from_secs(10));
+        assert_eq!(d, std::time::Duration::from_secs(MAX_RETRY_AFTER_SECS));
     }
 
     #[test]
@@ -5752,7 +5763,11 @@ mod tests {
         let fmt = httpdate::fmt_http_date(target);
         let d = parse_retry_after(&fmt, now).expect("http-date form parses");
         // Allow slight skew because `fmt_http_date` rounds to seconds.
-        assert!(d.as_secs() >= 59 && d.as_secs() <= 60, "got {d:?}");
+        assert_eq!(
+            d,
+            std::time::Duration::from_secs(MAX_RETRY_AFTER_SECS),
+            "got {d:?}"
+        );
     }
 
     #[test]
