@@ -9,11 +9,12 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 
 use super::super::settings;
+use super::super::skills_copy;
 use super::auth::{check_key, sign_in_config, KeyCheck};
 use super::env_file::{self, API_KEY_ENV};
 use super::manual::{self, NO_BROWSER};
 use super::project::{last4, shell_arg, Key, Project};
-use super::reply::{Next, Reply};
+use super::reply::{command, Next, Reply};
 
 pub(super) fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<Reply, CliError> {
     let project = Project::open(matches)?;
@@ -83,9 +84,6 @@ pub(super) const WHAT_TO_BUILD: &str =
 /// What the developer is told about the test request before they answer.
 const TEST_OFFER: &str = "Want me to send a test request? It makes a short text-to-speech clip with your key and uses a few credits.";
 
-/// The ElevenLabs skills, the whole repo in one download.
-const SKILLS_ARCHIVE: &str = "https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz";
-
 /// The one reply after a working key is in place: where the key is, what the
 /// app needs to get it, where the skills are, and the test request to offer
 /// at the end. `key_file` is the file the key is in, as the developer knows
@@ -96,7 +94,7 @@ pub(super) fn integrate(
     key_file: Option<&str>,
     say: &str,
 ) -> Result<Reply, CliError> {
-    let dir = skills_dir()?;
+    let dir = skills_copy::new_dir()?;
     let app = app_origin()?;
     let reply = Reply::new(Next::Integrate, say)
         .run(&project.next("check --written"))
@@ -142,34 +140,17 @@ pub(super) fn app_origin_for(residency: &str, authorize_url: &str) -> Result<Str
         .map_err(|e| CliError::Other(anyhow::anyhow!("read the sign-in page's address: {e}")))
 }
 
-/// A new folder for the skills in the system's temp folder, never the
-/// project, so nothing lands in the developer's repo. Its name is random, so
-/// no one can have put anything there first.
-fn skills_dir() -> Result<std::path::PathBuf, CliError> {
-    tempfile::Builder::new()
-        .prefix("elevenlabs-skills-")
-        .tempdir()
-        .map(tempfile::TempDir::keep)
-        .map_err(|e| CliError::Other(anyhow::anyhow!("create a folder for the ElevenLabs skills: {e}")))
-}
-
-/// The command that downloads the skills into `dir`, one folder per skill.
-/// Two commands, not `curl | tar`: Windows PowerShell 5.1 corrupts binary
-/// pipes, and its `curl` is another program, hence `curl.exe`.
+/// The command that downloads the skills into `dir`, one folder per skill:
+/// this CLI's own (`onboard skills`), so it is the same in every shell.
 pub(super) fn fetch_skills(dir: &std::path::Path, windows: bool) -> String {
-    let archive = dir.join("skills.tar.gz");
-    if windows {
-        let (archive, dir) = (archive.display(), dir.display());
-        format!(
-            "curl.exe -fsSL -o \"{archive}\" {SKILLS_ARCHIVE}; tar -xzf \"{archive}\" -C \"{dir}\" --strip-components=1"
-        )
+    let dir = dir.display().to_string();
+    // Double quotes hold a Windows path in PowerShell, cmd and Git Bash alike.
+    let dir = if windows {
+        format!("\"{dir}\"")
     } else {
-        let archive = shell_arg(&archive.display().to_string());
-        let dir = shell_arg(&dir.display().to_string());
-        format!(
-            "curl -fsSL -o {archive} {SKILLS_ARCHIVE} && tar -xzf {archive} -C {dir} --strip-components=1"
-        )
-    }
+        shell_arg(&dir)
+    };
+    command(&format!("skills {dir}"))
 }
 
 /// No key anywhere: the developer is mid-paste, or it's time to sign in.
