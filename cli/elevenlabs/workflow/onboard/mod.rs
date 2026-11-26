@@ -65,7 +65,10 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
 /// prints the skills it put in `dir`, one name a line; a failure says the agent
 /// may go on without one, as the hand-over does.
 fn skills(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
-    let dir = matches.get_one::<String>("dir").map(String::as_str).unwrap_or_default();
+    let dir = matches
+        .get_one::<String>("dir")
+        .map(String::as_str)
+        .unwrap_or_default();
     let names = skills_copy::fetch(ctx, std::path::Path::new(dir)).map_err(|why| {
         CliError::Other(anyhow::anyhow!(
             "download the ElevenLabs skills: {why}. Go on without a skill."

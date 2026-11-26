@@ -51,10 +51,9 @@ fn migrate_command() -> clap::Command {
         .about("Move a project to ElevenLabs from a coding agent. Start with `migrate openai`.")
         .subcommand_required(true)
         .arg_required_else_help(true)
-        .subcommand(
-            clap::Command::new("openai")
-                .about("Move this project's OpenAI text to speech and transcription code to ElevenLabs"),
-        )
+        .subcommand(clap::Command::new("openai").about(
+            "Move this project's OpenAI text to speech and transcription code to ElevenLabs",
+        ))
 }
 
 pub fn register(app: CliApp) -> CliApp {
