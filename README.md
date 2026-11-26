@@ -644,6 +644,10 @@ sign-in's approval link.
 signed in. The retry of an approval that timed out puts `cli_prev=timed-out`
 on its approval link.
 
+When `migrate openai` hands a project off to `onboard`, the step that finds a
+working key makes one more request to your account, named
+`cmd/migrate.openai`, so migrations can be counted.
+
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.
 `--telemetry on` turns it back on for one command. Turning it off does not

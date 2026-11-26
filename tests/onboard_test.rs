@@ -266,12 +266,10 @@ async fn check_verifies_the_key_secures_the_file_and_hands_over_the_rest() {
         "{r}"
     );
     assert_eq!(std::fs::read_dir(&skills).unwrap().count(), 0, "a new folder");
-    let fetch = r["details"]["fetch_skills"].as_str().unwrap();
-    assert!(
-        fetch.starts_with("curl -fsSL -o ")
-            && fetch.contains("https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz")
-            && fetch.contains(&format!("-C {}", skills.display())),
-        "{fetch}"
+    // Filling it is this CLI's own command, so it is the same in every shell.
+    assert_eq!(
+        r["details"]["fetch_skills"],
+        format!("elevenlabs onboard skills {}", skills.display())
     );
     // The check secured the file.
     #[cfg(unix)]
@@ -1181,7 +1179,7 @@ fn onboard_lists_its_steps_and_stays_out_of_the_top_level_help() {
         .output()
         .unwrap();
     let help = all_output(&out);
-    for step in ["init", "check", "test"] {
+    for step in ["init", "check", "test", "skills"] {
         assert!(help.contains(step), "help lacks {step}:\n{help}");
     }
     assert!(!help.contains("connect"), "the older name stays hidden:\n{help}");
@@ -1199,13 +1197,14 @@ fn onboard_lists_its_steps_and_stays_out_of_the_top_level_help() {
     }
     // The old name still parses, but isn't offered: through npx, Node takes it.
     assert!(!help.contains("--env-file"), "{help}");
-    for hidden in ["--authorize-url", "--wait", "--worker"] {
+    for hidden in ["--authorize-url", "--wait", "--worker", "--from"] {
         assert!(!help.contains(hidden), "{hidden} stays hidden:\n{help}");
     }
     let top = cli(home.path(), cwd.path(), OFFLINE, &["--help"])
         .output()
         .unwrap();
-    assert!(!String::from_utf8_lossy(&top.stdout).contains("onboard"));
+    let top = String::from_utf8_lossy(&top.stdout);
+    assert!(!top.contains("onboard") && !top.contains("migrate"), "{top}");
 }
 
 // ── the sign-in ─────────────────────────────────────────────────────

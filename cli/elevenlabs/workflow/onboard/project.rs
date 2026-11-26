@@ -25,6 +25,8 @@ pub(super) struct Project {
     pub env_display: String,
     /// `--no-browser`: the developer opens the link themselves (port forwarding).
     pub no_browser: bool,
+    /// `--from`: the migration that handed the project over, so it can be counted.
+    pub from: Option<String>,
 }
 
 /// Where the key the SDK would use comes from.
@@ -69,6 +71,7 @@ impl Project {
             .map_err(|e| CliError::Other(anyhow::anyhow!("read the working directory: {e}")))?;
         let mut project = Self::at(dir, arg::<String>(matches, "env-file"));
         project.no_browser = arg::<bool>(matches, "no-browser").unwrap_or(false);
+        project.from = arg::<String>(matches, "from");
         Ok(project)
     }
 
@@ -82,11 +85,12 @@ impl Project {
             dir,
             stack,
             no_browser: false,
+            from: None,
         }
     }
 
     /// The next command's arguments: `step`, plus the flags of this run that it
-    /// takes (`--no-browser`), so following `run` never loses one. The env file
+    /// takes (`--no-browser`, `--from`), so following `run` never loses one. The env file
     /// is always named, so every later step uses the same file even if the
     /// project's stack (and so the default) changes.
     pub fn next(&self, step: &str) -> String {
@@ -96,6 +100,9 @@ impl Project {
         }
         if self.no_browser {
             cmd.push_str(" --no-browser");
+        }
+        if let Some(from) = &self.from {
+            cmd.push_str(&format!(" --from {from}"));
         }
         cmd
     }

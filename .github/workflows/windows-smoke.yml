@@ -10,11 +10,17 @@ name: windows-smoke
 # answers the way the approval page does when the developer clicks Deny, which
 # shows the browser's callback reaches the sign-in and the command ends on a
 # reply.
+#
+# It also hands an agent the ElevenLabs skills the two ways the CLI does: the
+# command `onboard`'s hand-over names, run as printed in Git Bash and in
+# PowerShell, and `migrate openai`, which copies them itself.
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - cli/elevenlabs/workflow/onboard/**
+      - cli/elevenlabs/workflow/skills_copy.rs
+      - cli/elevenlabs/workflow/migrate.rs
       - .github/workflows/windows-smoke.yml
 
 jobs:
@@ -109,3 +115,79 @@ jobs:
       - name: Show the sign-in's output
         if: failure()
         run: cat "$RUNNER_TEMP/onboard-stderr.log" || true
+
+      - name: Hand over the skills in Git Bash and PowerShell
+        env:
+          CLI: ${{ github.event_name == 'pull_request' && 'elevenlabs' || 'npx -y @elevenlabs/cli@latest' }}
+          API: http://127.0.0.1:8765
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          cd "$work"
+
+          # A stand-in for ElevenLabs that accepts any key, so `init` reaches its
+          # hand-over, and that serves a skills download holding a migration guide.
+          mkdir -p repo/skills-main/migrate-from-openai
+          echo "# Migrate from OpenAI" > repo/skills-main/migrate-from-openai/SKILL.md
+          tar -czf skills.tar.gz -C repo skills-main
+          cat > server.js << 'EOF'
+          const http = require("http");
+          const fs = require("fs");
+          http
+            .createServer((req, res) => {
+              if (req.url === "/skills.tar.gz") return res.end(fs.readFileSync("skills.tar.gz"));
+              res.setHeader("content-type", "application/json");
+              res.end(JSON.stringify({ user_id: "smoke" }));
+            })
+            .listen(8765, "127.0.0.1");
+          EOF
+          node server.js &
+          server=$!
+          trap 'kill "$server" 2> /dev/null || true' EXIT
+          for _ in $(seq 1 50); do
+            curl -fsS -o /dev/null "$API/v1/user" && break
+            sleep 0.2
+          done
+
+          mkdir project
+          cd project
+          npm init -y > /dev/null
+          echo "ELEVENLABS_API_KEY=sk_0123456789abcdef0123456789abcdef01234567" > .env
+
+          # Git Bash: the hand-over's own command, as printed, with GitHub's real download.
+          reply=$($CLI --base-url "$API" onboard init)
+          fetch=$(jq -r .details.fetch_skills <<< "$reply")
+          dir=$(jq -r .details.skills_dir <<< "$reply")
+          echo "$fetch"
+          names=$(eval "$fetch")
+          echo "$names"
+          if ! grep -qx "text-to-speech" <<< "$names" || [[ ! -f "$(cygpath -u "$dir")/text-to-speech/SKILL.md" ]]; then
+            echo "::error::Git Bash: the skills aren't in $dir"
+            exit 1
+          fi
+
+          # PowerShell: the same, from a reply of its own.
+          cat > skills.ps1 << 'EOF'
+          $ErrorActionPreference = "Stop"
+          $reply = Invoke-Expression "$env:CLI --base-url $env:API onboard init" | ConvertFrom-Json
+          Write-Host $reply.details.fetch_skills
+          Invoke-Expression $reply.details.fetch_skills
+          if ($LASTEXITCODE -ne 0) { throw "PowerShell: the skills command failed" }
+          $guide = Join-Path $reply.details.skills_dir "text-to-speech\SKILL.md"
+          if (-not (Test-Path $guide)) { throw "PowerShell: no skill at $guide" }
+          EOF
+          pwsh -NoProfile -File skills.ps1
+
+          # `migrate openai` copies the skills itself and names the guide.
+          reply=$(ELEVENLABS_SKILLS_ARCHIVE="$API/skills.tar.gz" $CLI migrate openai)
+          echo "$reply"
+          guide=$(jq -r .details.guide <<< "$reply")
+          if [[ "$(jq -r .next <<< "$reply")" != "follow_guide" ]] || ! grep -q "Migrate from OpenAI" "$(cygpath -u "$guide")"; then
+            echo "::error::migrate openai didn't hand over its guide"
+            exit 1
+          fi
+          left=$(ls -A | grep -vx -e .env -e .gitignore -e package.json -e skills.ps1 || true)
+          if [[ -n "$left" ]]; then
+            echo "::error::Something was left in the project: $left"
+            exit 1
+          fi

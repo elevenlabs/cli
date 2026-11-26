@@ -23,6 +23,7 @@ mod flows_wait;
 mod graph;
 mod intent;
 mod mermaid;
+mod migrate;
 mod onboard;
 mod platform;
 mod project;
@@ -30,6 +31,7 @@ mod residency;
 mod say;
 mod settings;
 mod skills;
+mod skills_copy;
 mod telemetry;
 mod templates;
 mod tests;
@@ -48,6 +50,7 @@ pub fn register(app: CliApp) -> CliApp {
     // var, which the generated commands read when their client is built.
     let app = telemetry::register(app);
     let app = onboard::register(app);
+    let app = migrate::register(app);
     let app = agents::register(app);
     let app = templates::register(app);
     let app = diagram::register(app);

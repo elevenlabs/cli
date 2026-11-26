@@ -7,8 +7,9 @@
 //!   older name)
 //! - `check`: verify a key the developer added by hand (`status` is an alias)
 //! - `test`: a short text-to-speech request, only when the developer says yes
+//! - `skills`: download the ElevenLabs skills, when the hand-over's agent needs one
 
-mod auth;
+pub(super) mod auth;
 mod browser;
 mod check;
 mod clipboard;
@@ -16,7 +17,7 @@ mod connect;
 mod env_file;
 mod manual;
 mod project;
-mod reply;
+pub(super) mod reply;
 mod test_request;
 #[cfg(test)]
 mod tests;
@@ -30,12 +31,17 @@ use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 
 use super::api;
+use super::skills_copy;
+use super::telemetry;
 use super::util::downcast_ctx;
 
 fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> {
     let (name, sub) = matches
         .subcommand()
         .ok_or_else(|| CliError::Validation("Start with `elevenlabs onboard init`.".into()))?;
+    if name == "skills" {
+        return skills_copy::handle(sub, ctx);
+    }
     let reply = match name {
         // These set their own request tag: the sign-in counts as `connect`.
         "init" => connect::handle("onboard.init", sub, ctx)?,
@@ -49,7 +55,24 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
             test_request::handle(sub, ctx)?
         }
     };
+    if sub.try_get_one::<String>("from").ok().flatten().is_some()
+        && reply.next == reply::Next::Integrate
+    {
+        count_migration(sub, ctx);
+    }
     reply::emit(&reply.to_value())
+}
+
+/// With telemetry on, one more account request, named `migrate.openai`, when a
+/// step of `migrate`'s hand-off finds a working key. Its answer changes nothing.
+fn count_migration(matches: &clap::ArgMatches, ctx: &AppContext) {
+    if !telemetry::enabled() {
+        return;
+    }
+    if let Some(key) = project::Project::open(matches).ok().and_then(|p| p.key()) {
+        let _scope = api::command_scope("migrate.openai");
+        let _ = auth::check_key(ctx, &key.value);
+    }
 }
 
 /// `--env-path`, not `--env-file`: through npx, Node takes `--env-file` for itself (for any
@@ -99,6 +122,16 @@ fn key_step(name: &'static str, about: &'static str) -> clap::Command {
                 .hide(true)
                 .help("A local approval page to open instead of production (development only)"),
         )
+        .arg(from_arg())
+}
+
+/// Passed by `migrate`'s reply and carried by every `run` after it, so its
+/// hand-off can be counted on whichever step finds the working key.
+fn from_arg() -> clap::Arg {
+    clap::Arg::new("from")
+        .long("from")
+        .value_parser(["openai"])
+        .hide(true)
 }
 
 fn onboard_command() -> clap::Command {
@@ -122,14 +155,17 @@ fn onboard_command() -> clap::Command {
                 // What older replies asked for: `check` no longer has stages.
                 .arg(flag("answered", "").hide(true))
                 // Passed by the hand-over reply's `run`, once the code is written.
-                .arg(flag("written", "The code is written: end on the test offer").hide(true)),
+                .arg(flag("written", "The code is written: end on the test offer").hide(true))
+                .arg(from_arg()),
         )
         .subcommand(
             clap::Command::new("test")
                 .about("Make a short text-to-speech request with the project's key (ask the developer first)")
                 .arg(env_file_arg())
-                .arg(no_browser_arg()),
+                .arg(no_browser_arg())
+                .arg(from_arg()),
         )
+        .subcommand(skills_copy::command())
 }
 
 /// The environment as the shell gave it, from before the runtime loads a
@@ -137,7 +173,7 @@ fn onboard_command() -> clap::Command {
 static SHELL_ENV: OnceLock<HashMap<OsString, OsString>> = OnceLock::new();
 
 /// The shell's own environment, once `register` has run (always, but in unit tests).
-fn shell_env() -> Option<&'static HashMap<OsString, OsString>> {
+pub(super) fn shell_env() -> Option<&'static HashMap<OsString, OsString>> {
     SHELL_ENV.get()
 }
 

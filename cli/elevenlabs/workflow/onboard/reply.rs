@@ -1,7 +1,8 @@
 //! The one shape every step prints, so an agent follows the flow without
 //! interpreting prose: what to do next, the exact command, and what to tell
 //! the developer. `say` is always written to the developer; what the agent
-//! does is `next`, spelled out in `instruction`, and `run`.
+//! does is `next`, spelled out in `instruction`, and `run`. `migrate` prints
+//! the same shape, so an agent reads both the same way.
 
 use fern_cli_sdk::error::CliError;
 use serde::Serialize;
@@ -9,13 +10,15 @@ use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub(super) enum Next {
+pub(in super::super) enum Next {
     Run,
     AskUser,
     Fix,
     Integrate,
     OfferTest,
     Done,
+    /// Not an `onboard` step: a command that hands the agent a skill to follow (`migrate`).
+    FollowGuide,
 }
 
 impl Next {
@@ -65,6 +68,15 @@ impl Next {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \
                  packages you added, in one or two concrete steps. There's nothing left to run."
             }
+            Next::FollowGuide => {
+                "Tell the user `say`. Then read `details.guide` and follow it from its first step to \
+                 its last: it is the whole task, and it says when you're done. It is one of the \
+                 ElevenLabs skills, which are in `details.skills_dir`, one folder per skill, outside the \
+                 project, so read it and the files it points to with shell commands like `cat` (file \
+                 search tools may not look there). Where the guide covers something, do it the guide's \
+                 way, not from memory or from the SDK's own files. Don't run `run` now: it is the \
+                 command for the guide's last step, which asks the user first."
+            }
         }
     }
 }
@@ -80,7 +92,7 @@ const RULES: &[&str] = &[
 ];
 
 #[derive(Debug, Serialize)]
-pub(super) struct Reply {
+pub(in super::super) struct Reply {
     pub next: Next,
     pub instruction: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -110,6 +122,12 @@ impl Reply {
         self
     }
 
+    /// The next command when it isn't an `onboard` step.
+    pub fn run_cli(mut self, args: &str) -> Self {
+        self.run = Some(cli_command(args));
+        self
+    }
+
     pub fn detail(mut self, key: &str, value: impl Serialize) -> Self {
         self.details.insert(
             key.into(),
@@ -128,23 +146,28 @@ impl Reply {
     }
 }
 
-/// `onboard <args>` as the developer's shell would run it: under npx when npx
-/// started this process (it sets `npm_command=exec`), so the agent keeps
-/// running the same, latest CLI; otherwise the installed `elevenlabs`.
+/// `onboard <args>` as the developer's shell would run it.
 pub(super) fn command(args: &str) -> String {
+    cli_command(&format!("onboard {args}"))
+}
+
+/// A command of this CLI as the developer's shell would run it: under npx when
+/// npx started this process (it sets `npm_command=exec`), so the agent keeps
+/// running the same, latest CLI; otherwise the installed `elevenlabs`.
+fn cli_command(args: &str) -> String {
     let cli = if std::env::var("npm_command").is_ok_and(|c| c == "exec") {
         "npx -y @elevenlabs/cli@latest"
     } else {
         "elevenlabs"
     };
-    format!("{cli} onboard {args}")
+    format!("{cli} {args}")
 }
 
 /// Print a reply (or one a background sign-in saved). Always JSON, whatever
 /// stdout is and whatever `--human` or `--format` says: only agents run these
 /// steps, often in pseudo-terminals, and prose would drop the instruction. On
 /// one line, so an agent that pipes it through `grep` or `tail` keeps all of it.
-pub(super) fn emit(reply: &Value) -> Result<(), CliError> {
+pub(in super::super) fn emit(reply: &Value) -> Result<(), CliError> {
     let text = serde_json::to_string(reply)
         .map_err(|e| CliError::Other(anyhow::anyhow!("{e}")))?;
     println!("{text}");

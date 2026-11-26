@@ -547,22 +547,17 @@ fn the_one_reply_names_no_product_and_hands_the_rest_to_the_agent() {
 }
 
 #[test]
-fn the_skills_download_is_two_commands_that_quote_the_folder() {
+fn the_skills_download_is_this_clis_own_command_with_the_folder_quoted() {
     use super::check::fetch_skills;
-    let url = "https://github.com/elevenlabs/skills/archive/refs/heads/main.tar.gz";
-    let unix = fetch_skills(std::path::Path::new("/tmp/my skills"), false);
+    use std::path::Path;
     assert_eq!(
-        unix,
-        format!(
-            "curl -fsSL -o '/tmp/my skills/skills.tar.gz' {url} && tar -xzf '/tmp/my skills/skills.tar.gz' -C '/tmp/my skills' --strip-components=1"
-        )
+        fetch_skills(Path::new("/tmp/my skills"), false),
+        "elevenlabs onboard skills '/tmp/my skills'"
     );
-    let windows = fetch_skills(std::path::Path::new(r"C:\Temp\s"), true);
-    assert!(
-        windows.starts_with("curl.exe -fsSL -o \"C:\\Temp\\s")
-            && windows.contains(&format!("{url}; tar -xzf \""))
-            && !windows.contains('|'),
-        "{windows}"
+    // One spelling for PowerShell, cmd and Git Bash.
+    assert_eq!(
+        fetch_skills(Path::new(r"C:\Users\A B\Temp\s"), true),
+        "elevenlabs onboard skills \"C:\\Users\\A B\\Temp\\s\""
     );
 }
 
@@ -754,7 +749,10 @@ fn every_clipboard_outcome_has_its_reply() {
     let details = &stored["details"];
     assert_eq!(details["question"], super::check::WHAT_TO_BUILD);
     assert!(details["load_key"].as_str().unwrap().contains(".env"));
-    assert!(details["fetch_skills"].as_str().unwrap().contains("skills.tar.gz"));
+    assert!(details["fetch_skills"]
+        .as_str()
+        .unwrap()
+        .starts_with("elevenlabs onboard skills "));
     assert!(details["agent_links"]
         .as_str()
         .unwrap()
