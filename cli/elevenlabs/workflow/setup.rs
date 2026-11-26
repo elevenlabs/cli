@@ -392,9 +392,19 @@ mod interrupt {
         CAUGHT.store(signal, Ordering::SeqCst);
     }
 
-    /// Catch the signals from now until this process exits.
+    /// Catch the signals from now until [`release`].
     pub fn catch() {
-        let handler = note as extern "C" fn(libc::c_int) as libc::sighandler_t;
+        handle(note as extern "C" fn(libc::c_int) as libc::sighandler_t);
+    }
+
+    /// Give the signals their usual effect back, so a Ctrl-C ends whatever
+    /// this process does next, and exit now if one was caught meanwhile.
+    pub fn release() {
+        handle(libc::SIG_DFL);
+        exit_if_caught();
+    }
+
+    fn handle(handler: libc::sighandler_t) {
         for signal in SIGNALS {
             // A signal the parent chose to ignore stays ignored.
             if unsafe { libc::signal(signal, handler) } == libc::SIG_IGN {
@@ -531,7 +541,7 @@ pub(super) fn run(agents: &[Agent], home: &Path) -> Vec<Outcome> {
         &|| started.elapsed(),
     );
     #[cfg(unix)]
-    interrupt::exit_if_caught();
+    interrupt::release();
     outcomes
 }
 
@@ -542,7 +552,8 @@ pub(super) const COUNT_LIMIT: Duration = Duration::from_secs(5);
 /// tagged `cmd/<command>.<agent>.<installed or failed>`, or one tagged
 /// `cmd/<command>.none` when neither Claude Code nor Codex was found: the
 /// backend counts an authenticated request by such a tag. `send` makes the
-/// account request with the key it has, if any; its answer changes nothing.
+/// account request (`onboard::count_request`) with the key it has, if any;
+/// its answer changes nothing.
 pub(super) fn count(command: &str, outcomes: &[Outcome], send: &dyn Fn()) {
     if !super::telemetry::enabled() {
         return;
@@ -566,35 +577,6 @@ pub(super) fn count(command: &str, outcomes: &[Outcome], send: &dyn Fn()) {
         let _scope = super::api::tag_scope(&tag);
         send();
     }
-}
-
-/// `GET /v1/user` with the credentials every hand-written command uses: an
-/// `ELEVENLABS_API_KEY` or the sign-in `auth login` stored. With neither,
-/// nothing is sent, since the request would go without credentials.
-fn account_request(ctx: &AppContext) {
-    let stored = fern_cli_sdk::auth::active_store()
-        .get(
-            "elevenlabs",
-            &fern_cli_sdk::profiles::keyring_account("OAuth"),
-        )
-        .ok()
-        .flatten();
-    let key = std::env::var("ELEVENLABS_API_KEY").ok();
-    if !key.into_iter().chain(stored).any(|v| !v.is_empty()) {
-        return;
-    }
-    let client = crate::sdk::client(ctx);
-    let request = client
-        .user
-        .http_client
-        .execute_request_raw::<serde_json::Value>(
-            reqwest::Method::GET,
-            "v1/user",
-            None,
-            None,
-            None,
-        );
-    let _ = super::say::run_async(tokio::time::timeout(COUNT_LIMIT, request));
 }
 
 /// What `setup` and `onboard setup` say with the CLI's global `--dry-run`,
@@ -686,7 +668,16 @@ fn handle(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError> 
     for line in lines {
         println!("{line}");
     }
-    count("setup", &outcomes, &|| account_request(ctx));
+    // Only a key in the environment counts a plain `setup`: a stored sign-in
+    // is not read just for this, since the system keychain may ask the user.
+    let key = std::env::var("ELEVENLABS_API_KEY")
+        .ok()
+        .filter(|k| !k.is_empty());
+    count("setup", &outcomes, &|| {
+        if let Some(key) = &key {
+            super::onboard::count_request(ctx, key);
+        }
+    });
     if failed {
         std::process::exit(1);
     }

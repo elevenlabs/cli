@@ -65,7 +65,8 @@ fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, C
     if super::util::dry_run_flag(matches) {
         return Ok(done(setup::DRY_RUN.into()));
     }
-    let key = project::Project::open(matches)?.key();
+    // The key only counts the run, so a project that can't be read stops nothing.
+    let key = project::Project::open(matches).ok().and_then(|p| p.key());
     let Some(home) = setup::home() else {
         return Ok(done(format!(
             "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
@@ -74,14 +75,22 @@ fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, C
     };
     let outcomes = setup::run(&setup::found_here(&home), &home);
     setup::count("onboard.setup", &outcomes, &|| {
-        let (Some(key), Ok(client)) = (&key, ctx.http_config().build_client()) else {
-            return;
-        };
-        let url = format!("{}/v1/user", auth::api_base(ctx));
-        let request = client.get(url).header("xi-api-key", &key.value);
-        let _ = super::say::run_async(request.timeout(setup::COUNT_LIMIT).send());
+        if let Some(key) = &key {
+            count_request(ctx, &key.value);
+        }
     });
     Ok(done(setup::report(&outcomes).0.join(" ")).detail("setup", &outcomes))
+}
+
+/// The account request that counts a `setup` run (see `setup::count`), with
+/// `key`, to the host every key of this run goes to. Its answer changes nothing.
+pub(super) fn count_request(ctx: &AppContext, key: &str) {
+    let Ok(client) = ctx.http_config().build_client() else {
+        return;
+    };
+    let url = format!("{}/v1/user", auth::api_base(ctx));
+    let request = client.get(url).header("xi-api-key", key);
+    let _ = super::say::run_async(request.timeout(super::setup::COUNT_LIMIT).send());
 }
 
 /// `--env-path`, not `--env-file`: through npx, Node takes `--env-file` for itself (for any

@@ -556,9 +556,10 @@ async fn with_a_key_and_telemetry_on_setup_counts_each_agent_it_tried() {
     let bin = tempfile::tempdir().unwrap();
     let agents = stand_ins(bin.path(), true);
     let empty = tempfile::tempdir().unwrap();
+    let uri = server.uri();
     let setup = |path: &str, args: &[&str], key: bool, code: i32| {
-        let mut cmd = cli(home.path(), cwd.path(), path, args);
-        cmd.env("ELEVENLABS_BASE_URL", server.uri());
+        let args = [&["--base-url", uri.as_str()], args].concat();
+        let mut cmd = cli(home.path(), cwd.path(), path, &args);
         if key {
             cmd.env("ELEVENLABS_API_KEY", KEY);
         }
@@ -585,4 +586,40 @@ async fn with_a_key_and_telemetry_on_setup_counts_each_agent_it_tried() {
         0,
     );
     assert_eq!(counted(&server, KEY).await, want);
+}
+
+/// The installs are over when the count is made, so Ctrl-C has its usual
+/// effect again: it ends `setup` at once, not after the requests' time limit.
+#[tokio::test]
+async fn an_interrupt_while_a_run_is_counted_ends_setup_at_once() {
+    use std::os::unix::process::ExitStatusExt;
+    let server = wiremock::MockServer::start().await;
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .respond_with(wiremock::ResponseTemplate::new(200).set_delay(Duration::from_secs(4)))
+        .mount(&server)
+        .await;
+    let (home, cwd) = temp();
+    let bin = tempfile::tempdir().unwrap();
+    let agents = stand_ins(bin.path(), false);
+    let uri = server.uri();
+    let mut cmd = cli(
+        home.path(),
+        cwd.path(),
+        &agents,
+        &["--base-url", &uri, "setup"],
+    );
+    cmd.env(
+        "ELEVENLABS_API_KEY",
+        "sk_0123456789abcdef0123456789abcdef01234567",
+    );
+    let (mut setup, _kill) = start(cmd, libc::SIG_DFL);
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while server.received_requests().await.unwrap().is_empty() {
+        assert!(Instant::now() < deadline, "setup never counted the run");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(recorded(&bin.path().join("ran")).len(), INSTALLS.len());
+    unsafe { libc::kill(setup.id() as i32, libc::SIGINT) };
+    let status = exit_of(&mut setup, Duration::from_secs(2));
+    assert_eq!(status.signal(), Some(libc::SIGINT), "{status:?}");
 }

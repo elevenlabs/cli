@@ -664,7 +664,7 @@ agents after onboarding's test request, make one account request
 `cmd/setup.codex.installed` or `cmd/setup.claude_code.failed`, or one tagged
 `cmd/setup.none` when neither was found, so we can count how many people use
 it and how it goes. They go only with telemetry on and a key: the project's
-for `onboard setup`; for `setup`, `ELEVENLABS_API_KEY` or your `auth login`.
+for `onboard setup`; for `setup`, the `ELEVENLABS_API_KEY` in your environment.
 
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.
