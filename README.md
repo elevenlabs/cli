@@ -641,8 +641,9 @@ sign-in's approval link.
 
 `onboard` also says how a sign-in ended, as a fixed word such as `created`,
 `no-key` or `clipboard-error`: `signin/<outcome>` on one request once it has
-signed in. The retry of an approval that timed out puts `cli_prev=timed-out`
-on its approval link.
+signed in. The one retry of a sign-in that failed puts how it failed on its
+approval link, as `cli_prev` with a fixed word such as `timed-out` or
+`exchange-connect`.
 
 To turn it off, pass `--telemetry off` to any command, or set
 `ELEVENLABS_TELEMETRY=off` (or `DO_NOT_TRACK=1`) to turn it off everywhere.

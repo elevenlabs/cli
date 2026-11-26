@@ -42,8 +42,9 @@ pub(super) fn handle(
     }
     // The sign-in and the key's check count as `connect`, whichever step ran them.
     let _scope = api::command_scope("onboard.connect");
+    let again = previous(matches).is_some();
     Ok(sign_in_and_store(matches, ctx, &project)
-        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace, matches.get_flag("again")))
+        .unwrap_or_else(|e| failed(&project, &e.to_string(), replace, again))
         .with_rules())
 }
 
@@ -202,7 +203,7 @@ fn sign_in_and_store(
          running until it finishes, and don't end your turn while it waits: this command is what \
          receives the approval, so stopping it cancels the sign-in."
     );
-    let again = matches.get_flag("again");
+    let again = previous(matches);
     let token = match auth::sign_in(ctx, &authorize_url(matches)?, project.no_browser, again) {
         Ok(token) => token,
         Err(error) => {
@@ -213,7 +214,7 @@ fn sign_in_and_store(
                 project,
                 &error.to_string(),
                 matches.get_flag("replace"),
-                again,
+                again.is_some(),
             ));
         }
     };
@@ -294,33 +295,25 @@ pub(super) fn reply_for(project: &Project, outcome: &Outcome) -> Result<Reply, C
 
 /// A sign-in that ended before the clipboard step. `error` is the sign-in
 /// flow's message; a declined approval comes back as an `access_denied` error.
-/// `again` is set when this run was itself the retry of a timed-out approval.
+/// `again` is set when this run was itself the retry of a failed sign-in.
 pub(super) fn failed(project: &Project, error: &str, replace: bool, again: bool) -> Reply {
-    let retry = project.next(connect_step(replace));
-    let reply = if error.contains("returned error: access_denied") {
-        Reply::new(
+    let timed_out = error.contains("Timed out waiting");
+    let by_hand = format!(
+        "create a key at {} and paste it after {API_KEY_ENV}= in {}",
+        manual::API_KEYS_PAGE,
+        project.env_display
+    );
+    let (next, say) = if error.contains("returned error: access_denied") {
+        (
             Next::AskUser,
             format!(
-                "The approval was declined. Tell me if you want to try again, or create a key at {} and paste it \
-                 after {API_KEY_ENV}= in {} yourself (never into this chat).",
-                manual::API_KEYS_PAGE,
-                project.env_display
+                "The approval was declined. Tell me if you want to try again, or {by_hand} yourself \
+                 (never into this chat)."
             ),
         )
-    } else if error.contains("Timed out waiting") && !again {
-        // One retry without asking, marked so a second timeout goes back to the developer.
-        return Reply::new(
-            Next::Run,
-            format!(
-                "The approval page wasn't completed within {SIGN_IN_MINUTES} minutes, so {} again.",
-                project.approval()
-            ),
-        )
-        .run(&project.next(&format!("{} --again", connect_step(replace))))
-        .detail("key_status", "sign_in_failed");
-    } else if error.contains("Timed out waiting") {
-        // Twice in a row: the developer isn't there, so an agent never retries without end.
-        Reply::new(
+    } else if again && timed_out {
+        // Twice in a row: the developer isn't there.
+        (
             Next::AskUser,
             format!(
                 "The approval page wasn't completed in another {SIGN_IN_MINUTES} minutes. Tell me when \
@@ -328,10 +321,27 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool, again: bool)
                 project.approval()
             ),
         )
+    } else if again {
+        // The retry failed too, and one more would likely fail the same way.
+        (
+            Next::AskUser,
+            format!(
+                "The sign-in failed again. Tell me if you want to try once more, or {by_hand} yourself \
+                 (never into this chat)."
+            ),
+        )
+    } else if timed_out {
+        (
+            Next::Run,
+            format!(
+                "The approval page wasn't completed within {SIGN_IN_MINUTES} minutes, so {} again.",
+                project.approval()
+            ),
+        )
     } else if error.contains("state mismatch") {
         // An older approval page answered this sign-in. The error names the
         // `state` the browser sent, so its text is never repeated.
-        Reply::new(
+        (
             Next::Run,
             format!(
                 "That approval came from an older approval page, so it couldn't be used. {} again: \
@@ -346,15 +356,52 @@ pub(super) fn failed(project: &Project, error: &str, replace: bool, again: bool)
         } else {
             error
         };
-        Reply::new(
+        (
             Next::Run,
-            format!(
-                "The sign-in didn't finish ({error}). If it fails again, create a key at {} and paste it after \
-                 {API_KEY_ENV}= in {} instead.",
-                manual::API_KEYS_PAGE,
-                project.env_display
-            ),
+            format!("The sign-in didn't finish ({error}). If it fails again, {by_hand} instead."),
         )
     };
-    reply.run(&retry).detail("key_status", "sign_in_failed")
+    // A failed sign-in is retried once without asking. The retry says how this
+    // one failed, so its approval page records why, and a second failure goes
+    // back to the developer: an agent never retries without end.
+    let step = match next {
+        Next::Run => format!("{} --again {}", connect_step(replace), reason(error)),
+        _ => connect_step(replace).to_string(),
+    };
+    Reply::new(next, say)
+        .run(&project.next(&step))
+        .detail("key_status", "sign_in_failed")
+}
+
+/// The words a failed sign-in is reported as. The approval page records these and no others.
+pub(super) const REASONS: [&str; 6] = [
+    "timed-out",
+    "port-busy",
+    "exchange-server",
+    "exchange-refused",
+    "exchange-connect",
+    "sign-in-error",
+];
+
+/// How a sign-in failed, as one of [`REASONS`], from the sign-in flow's message.
+fn reason(error: &str) -> &'static str {
+    if error.contains("Timed out waiting") {
+        "timed-out"
+    } else if error.contains("Could not bind") {
+        "port-busy"
+    } else if error.contains("exchange failed (HTTP 5") {
+        "exchange-server"
+    } else if error.contains("exchange failed (HTTP") {
+        "exchange-refused"
+    } else if error.contains("exchange failed") {
+        // No answer at all: the sign-in server couldn't be reached.
+        "exchange-connect"
+    } else {
+        "sign-in-error"
+    }
+}
+
+/// How the sign-in this run retries failed, when it is a retry.
+fn previous(matches: &clap::ArgMatches) -> Option<&str> {
+    matches.get_one::<String>("again").map(String::as_str)
 }

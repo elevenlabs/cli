@@ -265,6 +265,9 @@ fn every_step_parses_its_flags_and_bare_onboard_is_refused() {
     assert!(parse(&["onboard", "check", "--answered"]).is_ok());
     assert!(parse(&["onboard", "check", "--written"]).is_ok());
     assert!(parse(&["onboard", "connect", "--again"]).is_ok());
+    // The retry of a failed sign-in says how it failed, in one of the fixed words only.
+    assert!(parse(&["onboard", "connect", "--again", "port-busy", "--replace"]).is_ok());
+    assert!(parse(&["onboard", "connect", "--again", "anything else"]).is_err());
 }
 
 #[test]
@@ -624,7 +627,7 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
     assert!(late["say"].as_str().unwrap().contains("5 minutes"));
     assert_eq!(
         late["run"],
-        "elevenlabs onboard connect --again --env-path .env --no-browser"
+        "elevenlabs onboard connect --again timed-out --env-path .env --no-browser"
     );
     // A second timeout in a row goes back to the developer: no retrying without end.
     let twice = failed(&p, timed_out, false, true).to_value();
@@ -637,6 +640,20 @@ fn a_failed_sign_in_says_what_to_do_and_keeps_its_flags() {
     let other = failed(&p, "no free callback port", false, false).to_value();
     assert!(other["say"].as_str().unwrap().contains("no free callback port"));
     assert_eq!(other["details"]["key_status"], "sign_in_failed");
+    // Any other failure is retried once too, and the retry says how the first one failed.
+    let run_after = |error: &str| failed(&p, error, false, false).to_value()["run"].to_string();
+    assert!(run_after("no free callback port").contains("connect --again sign-in-error --env-path"));
+    let unreachable = "PKCE token exchange failed: error sending request";
+    assert!(run_after(unreachable).contains("--again exchange-connect"));
+    assert!(run_after("PKCE token exchange failed (HTTP 400 Bad Request): no").contains("--again exchange-refused"));
+    assert!(run_after("PKCE token exchange failed (HTTP 502 Bad Gateway): no").contains("--again exchange-server"));
+    assert!(run_after("Could not bind any localhost callback port").contains("--again port-busy"));
+    // A retry that fails too goes back to the developer, with the way to add a key by hand.
+    let stuck = failed(&p, unreachable, false, true).to_value();
+    assert_eq!(stuck["next"], "ask_user");
+    let said = stuck["say"].as_str().unwrap();
+    assert!(said.contains("failed again") && said.contains("app/api/api-keys"), "{said}");
+    assert_eq!(stuck["run"], "elevenlabs onboard connect --env-path .env --no-browser");
     // An older approval page answered: the reply says which page to use, and repeats
     // nothing the browser sent.
     let old_page = failed(

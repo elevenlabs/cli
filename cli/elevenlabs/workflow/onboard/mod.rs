@@ -89,9 +89,17 @@ fn key_step(name: &'static str, about: &'static str) -> clap::Command {
         ))
         // What older replies asked for: there is no sign-in left to wait on.
         .arg(flag("wait", "").hide(true))
-        // Passed by the reply to a timed-out approval: if this run times out
-        // too, the reply asks the developer instead of retrying.
-        .arg(flag("again", "").hide(true))
+        // Passed by the reply to a failed sign-in, with how it failed: if this
+        // run fails too, the reply asks the developer instead of retrying.
+        // Alone, as older replies pass it, it means a timed-out approval.
+        .arg(
+            clap::Arg::new("again")
+                .long("again")
+                .num_args(0..=1)
+                .default_missing_value("timed-out")
+                .value_parser(connect::REASONS)
+                .hide(true),
+        )
         .arg(
             clap::Arg::new("authorize-url")
                 .long("authorize-url")
