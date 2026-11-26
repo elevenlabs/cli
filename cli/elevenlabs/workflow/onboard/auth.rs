@@ -174,7 +174,7 @@ pub(super) fn ports_free_on_both(registered: &[u16]) -> Vec<u16> {
 }
 
 /// The port to sign in on: the first one free on both addresses. The retry of
-/// a timed-out approval takes the one after it, so the page the first attempt
+/// a failed sign-in takes the one after it, so the page the first attempt
 /// left open can't answer the retry and end it. With none free on both, the
 /// registered ports as they are.
 pub(super) fn sign_in_ports(registered: &[u16], free: &[u16], retry: bool) -> Vec<u16> {
@@ -193,7 +193,7 @@ pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
-    retry: bool,
+    previous: Option<&str>,
 ) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
@@ -206,12 +206,12 @@ pub(super) fn sign_in(
     let params = authorize_params(
         on.then(|| (platform::detect(), platform::install_source())),
         on.then(platform::agent).flatten(),
-        (on && retry).then_some("timed-out"),
+        previous.filter(|_| on),
     );
     let ports = sign_in_ports(
         &config.redirect_ports,
         &ports_free_on_both(&config.redirect_ports),
-        retry,
+        previous.is_some(),
     );
     // `auth login` saves through the active store; onboard's stands in front of it.
     let store = Arc::new(KeepsUnsaved::over(active_store()));
@@ -245,7 +245,7 @@ pub(super) fn sign_in(
 pub(super) fn authorize_params(
     platform: Option<((&'static str, Option<&'static str>), &'static str)>,
     agent: Option<&'static str>,
-    previous: Option<&'static str>,
+    previous: Option<&str>,
 ) -> Vec<(&'static str, String)> {
     let mut params = vec![("key_handoff", "clipboard".to_string())];
     if let Some(((os, env), install)) = platform {

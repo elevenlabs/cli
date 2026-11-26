@@ -821,6 +821,39 @@ async fn two_sign_ins_on_one_machine_never_share_a_port() {
 }
 
 #[tokio::test]
+async fn a_failed_sign_in_is_retried_once_and_the_retry_says_why() {
+    let _turn = signing_in().await;
+    if callback_ports_busy() {
+        eprintln!("skipped: another sign-in is listening on the callback ports");
+        return;
+    }
+    // Nothing here answers the token request, so every approval fails after the browser's part.
+    let server = MockServer::start().await;
+    let authorize = format!("{}/app/oauth/authorize", server.uri());
+    let (home, cwd) = temp();
+    let start = |step: &[&str]| {
+        let mut args = vec!["onboard"];
+        args.extend_from_slice(step);
+        args.extend_from_slice(&["--no-browser", "--authorize-url", &authorize]);
+        SignIn::start(&mut cli(home.path(), cwd.path(), &server.uri(), &args))
+    };
+    let first = start(&["init"]);
+    approve(&first.url);
+    let r = first.reply();
+    assert_eq!(r["next"], "run", "{r}");
+    assert!(r["run"].to_string().contains("connect --again exchange-refused"), "{r}");
+
+    // The retry puts how the first one failed on its approval link. When it fails too,
+    // the developer is asked: nothing is tried a third time.
+    let retry = start(&["connect", "--again", "exchange-refused"]);
+    assert_eq!(query(&retry.url, "cli_prev"), "exchange-refused");
+    approve(&retry.url);
+    let r = retry.reply();
+    assert_eq!(r["next"], "ask_user", "{r}");
+    assert!(say(&r).contains("failed again"), "{r}");
+}
+
+#[tokio::test]
 async fn a_sign_in_that_cannot_be_saved_for_later_commands_still_counts() {
     let _turn = signing_in().await;
     if callback_ports_busy() {
