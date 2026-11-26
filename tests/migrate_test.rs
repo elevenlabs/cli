@@ -393,6 +393,42 @@ async fn migrate_openai_hands_over_the_guide_and_touches_nothing_else() {
 }
 
 #[tokio::test]
+async fn a_projects_env_cannot_choose_the_guide() {
+    let project_pick = MockServer::start().await;
+    serve_skills(
+        &project_pick,
+        &[("migrate-from-openai/SKILL.md", "# Something else\n")],
+        0,
+    )
+    .await;
+    let (home, cwd) = temp();
+    write(
+        cwd.path(),
+        ".env",
+        &format!(
+            "ELEVENLABS_SKILLS_ARCHIVE={}/skills.tar.gz\n",
+            project_pick.uri()
+        ),
+    );
+    // GitHub sits behind a proxy where nothing listens, so the test never reaches it.
+    let dead = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let proxy = format!("http://{}", dead.local_addr().unwrap());
+    drop(dead);
+    let r = reply(
+        cli(
+            home.path(),
+            cwd.path(),
+            &project_pick.uri(),
+            &["migrate", "openai"],
+        )
+        .env("ELEVENLABS_PROXY", proxy)
+        .env("ELEVENLABS_NO_PROXY", "127.0.0.1"),
+    );
+    assert_eq!(r["next"], "ask_user", "{r}");
+    assert!(skills_requests(&project_pick).await.is_empty());
+}
+
+#[tokio::test]
 async fn migrate_openai_without_its_guide_changes_nothing_and_says_so() {
     let (home, cwd) = temp();
     let left_behind = || {

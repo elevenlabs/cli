@@ -353,7 +353,7 @@ pub(super) fn check_key(ctx: &AppContext, key: &str) -> KeyCheck {
 }
 
 /// `base` without its trailing slash when its host is this machine.
-pub(super) fn loopback(base: &str) -> Option<String> {
+pub(in super::super) fn loopback(base: &str) -> Option<String> {
     let url = reqwest::Url::parse(base).ok()?;
     let host = url.host_str()?;
     let local = host.eq_ignore_ascii_case("localhost")

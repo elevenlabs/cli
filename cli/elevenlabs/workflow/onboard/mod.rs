@@ -9,7 +9,7 @@
 //! - `test`: a short text-to-speech request, only when the developer says yes
 //! - `skills`: download the ElevenLabs skills, when the hand-over's agent needs one
 
-mod auth;
+pub(super) mod auth;
 mod browser;
 mod check;
 mod clipboard;
@@ -194,7 +194,7 @@ fn onboard_command() -> clap::Command {
 static SHELL_ENV: OnceLock<HashMap<OsString, OsString>> = OnceLock::new();
 
 /// The shell's own environment, once `register` has run (always, but in unit tests).
-fn shell_env() -> Option<&'static HashMap<OsString, OsString>> {
+pub(super) fn shell_env() -> Option<&'static HashMap<OsString, OsString>> {
     SHELL_ENV.get()
 }
 

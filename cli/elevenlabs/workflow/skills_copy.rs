@@ -5,6 +5,7 @@
 //! `onboard`'s hand-over names the command that runs it, since its agent only
 //! fetches when a skill would help; `migrate` runs it straight away.
 
+use std::ffi::OsStr;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::time::Duration;
@@ -12,6 +13,7 @@ use std::time::Duration;
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 
+use super::onboard;
 use super::say::run_async as block_on;
 
 /// The whole repo in one download, from the host that GitHub's archive links
@@ -78,7 +80,9 @@ pub(super) fn fetch(ctx: &AppContext, dir: &Path) -> Result<Vec<String>, String>
         .http_config()
         .build_client()
         .map_err(|e| e.to_string())?;
-    let url = archive_url();
+    let url = archive_url(
+        onboard::shell_env().and_then(|env| env.get(OsStr::new(ARCHIVE_ENV))?.to_str()),
+    );
     // One more try covers a dropped connection. A second failure, or one that
     // another try can't change, is the answer.
     let files = match block_on(download(&client, &url, TRY_LIMIT)) {
@@ -106,24 +110,13 @@ pub(super) fn guide(dir: &Path, name: &str) -> Result<PathBuf, String> {
     }
 }
 
-/// Only a copy on this machine may stand in for GitHub's.
-fn archive_url() -> String {
-    std::env::var(ARCHIVE_ENV)
-        .ok()
-        .filter(|url| is_local(url))
-        .unwrap_or_else(|| ARCHIVE.to_string())
-}
-
-fn is_local(url: &str) -> bool {
-    reqwest::Url::parse(url).is_ok_and(|url| {
-        url.host_str().is_some_and(|host| {
-            host.eq_ignore_ascii_case("localhost")
-                || host
-                    .trim_matches(|c| c == '[' || c == ']')
-                    .parse::<std::net::IpAddr>()
-                    .is_ok_and(|ip| ip.is_loopback())
-        })
-    })
+/// Only a copy on this machine may stand in for GitHub's, and only the shell
+/// that started the CLI may name it: `given` is the shell's own value, from
+/// before the runtime loaded the project's `.env`.
+fn archive_url(given: Option<&str>) -> String {
+    given
+        .filter(|url| onboard::auth::loopback(url).is_some())
+        .map_or_else(|| ARCHIVE.to_string(), str::to_string)
 }
 
 /// One try: the archive, downloaded whole and unpacked in memory.
@@ -337,12 +330,13 @@ mod tests {
 
     #[test]
     fn only_a_copy_on_this_machine_replaces_github() {
-        assert!(is_local("http://127.0.0.1:8080/skills.tar.gz"));
-        assert!(is_local("http://localhost:8080/skills.tar.gz"));
-        assert!(is_local("http://[::1]:8080/skills.tar.gz"));
-        assert!(!is_local("https://example.com/skills.tar.gz"));
-        assert!(!is_local("https://127.0.0.1.example.com/skills.tar.gz"));
-        assert!(!is_local("skills.tar.gz"));
+        let local = "http://127.0.0.1:8080/skills.tar.gz";
+        assert_eq!(archive_url(Some(local)), local);
+        assert_eq!(
+            archive_url(Some("https://example.com/skills.tar.gz")),
+            ARCHIVE
+        );
+        assert_eq!(archive_url(None), ARCHIVE);
     }
 
     #[tokio::test]
