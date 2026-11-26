@@ -187,6 +187,7 @@ fn contains_secret(text: &str) -> bool {
     let lower = text.to_ascii_lowercase();
     const MARKERS: &[&str] = &[
         "sk_",
+        "sk-",
         "xi-api-key",
         "xi_api_key",
         "bearer ",
