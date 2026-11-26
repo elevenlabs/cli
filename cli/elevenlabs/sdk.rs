@@ -118,6 +118,7 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
                 },
             },
         },
+        audio_native: elevenlabs_sdk::api::AudioNativeClient { http_client: http_client.clone() },
         dubbing: elevenlabs_sdk::api::DubbingClient {
             http_client: http_client.clone(),
             project: elevenlabs_sdk::api::resources::dubbing::ProjectClient {
@@ -142,7 +143,6 @@ pub fn client(ctx: &AppContext) -> elevenlabs_sdk::api::ApiClient {
             transcripts: elevenlabs_sdk::api::resources::dubbing::TranscriptsClient { http_client: http_client.clone() },
         },
         models: elevenlabs_sdk::api::ModelsClient { http_client: http_client.clone() },
-        audio_native: elevenlabs_sdk::api::AudioNativeClient { http_client: http_client.clone() },
         content_provenance: elevenlabs_sdk::api::ContentProvenanceClient { http_client: http_client.clone() },
         usage: elevenlabs_sdk::api::UsageClient { http_client: http_client.clone() },
         pronunciation_dictionaries: elevenlabs_sdk::api::PronunciationDictionariesClient {

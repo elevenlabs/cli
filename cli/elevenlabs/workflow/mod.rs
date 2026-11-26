@@ -22,7 +22,6 @@ mod feedback;
 mod flows_wait;
 mod graph;
 mod intent;
-mod loopback;
 mod mermaid;
 mod onboard;
 mod platform;

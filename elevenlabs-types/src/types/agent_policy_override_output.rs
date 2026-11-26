@@ -11,6 +11,9 @@ pub struct AgentPolicyOverrideOutput {
     pub retry: Option<RetryPolicy>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub calling_periods: Option<Vec<CallingPeriod>>,
+    /// Replaces the inherited date overrides; unset inherits them and an empty list clears them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub date_overrides: Option<Vec<DateOverride>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data_collection: Option<DataCollectionConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -29,6 +32,7 @@ pub struct AgentPolicyOverrideOutputBuilder {
     timezone: Option<String>,
     retry: Option<RetryPolicy>,
     calling_periods: Option<Vec<CallingPeriod>>,
+    date_overrides: Option<Vec<DateOverride>>,
     data_collection: Option<DataCollectionConfig>,
     followup_context: Option<FollowupContextPolicy>,
 }
@@ -49,6 +53,11 @@ impl AgentPolicyOverrideOutputBuilder {
         self
     }
 
+    pub fn date_overrides(mut self, value: Vec<DateOverride>) -> Self {
+        self.date_overrides = Some(value);
+        self
+    }
+
     pub fn data_collection(mut self, value: DataCollectionConfig) -> Self {
         self.data_collection = Some(value);
         self
@@ -65,6 +74,7 @@ impl AgentPolicyOverrideOutputBuilder {
             timezone: self.timezone,
             retry: self.retry,
             calling_periods: self.calling_periods,
+            date_overrides: self.date_overrides,
             data_collection: self.data_collection,
             followup_context: self.followup_context,
         })

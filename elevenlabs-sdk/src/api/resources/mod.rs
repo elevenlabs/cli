@@ -14,9 +14,9 @@
 //! - **User**
 //! - **Access to voices created either by you or ElevenLabs.**
 //! - **Access, create and convert Studio Projects programmatically.**
+//! - **AudioNative**
 //! - **Dub audio and video content into other languages while preserving the original speaker's voice.**
 //! - **Access the different models of the platform.**
-//! - **AudioNative**
 //! - **ContentProvenance**
 //! - **Usage**
 //! - **PronunciationDictionaries**
@@ -87,9 +87,9 @@ pub struct ApiClient {
     pub user: UserClient,
     pub voices: VoicesClient,
     pub studio: StudioClient,
+    pub audio_native: AudioNativeClient,
     pub dubbing: DubbingClient,
     pub models: ModelsClient,
-    pub audio_native: AudioNativeClient,
     pub content_provenance: ContentProvenanceClient,
     pub usage: UsageClient,
     pub pronunciation_dictionaries: PronunciationDictionariesClient,
@@ -127,9 +127,9 @@ impl ApiClient {
             user: UserClient::new(config.clone())?,
             voices: VoicesClient::new(config.clone())?,
             studio: StudioClient::new(config.clone())?,
+            audio_native: AudioNativeClient::new(config.clone())?,
             dubbing: DubbingClient::new(config.clone())?,
             models: ModelsClient::new(config.clone())?,
-            audio_native: AudioNativeClient::new(config.clone())?,
             content_provenance: ContentProvenanceClient::new(config.clone())?,
             usage: UsageClient::new(config.clone())?,
             pronunciation_dictionaries: PronunciationDictionariesClient::new(config.clone())?,

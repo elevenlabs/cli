@@ -1,20 +1,22 @@
-//! The sign-in: the same browser flow as `auth login`, plus the two query
-//! parameters that ask the approval page for a key, and the account check
+//! The sign-in: the same browser flow as `auth login`, plus the query
+//! parameter that asks the approval page for a key, and the account check
 //! that a key on the clipboard has to pass.
 
-use std::sync::OnceLock;
-use std::time::Duration;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, TcpListener};
+use std::sync::{Arc, Mutex, OnceLock};
 
+use fern_cli_sdk::auth::{
+    active_store, set_active_store, KeyringStore, LoginContext, LoginFlow, PkceLoginFlow,
+    TokenBundle,
+};
 use fern_cli_sdk::error::CliError;
 use fern_cli_sdk::openapi::AppContext;
 use serde_json::Value;
 
-use super::super::loopback;
 use super::super::platform;
 use super::super::say::run_async as block_on;
 use super::super::settings;
 use super::super::telemetry;
-use super::session::{LastSignIn, SIGN_IN_MINUTES};
 
 pub(super) const CLI_NAME: &str = "elevenlabs";
 
@@ -87,14 +89,111 @@ fn parse_sign_in(main_rs: &str) -> Result<SignIn, String> {
     })
 }
 
-/// Sign in through the browser, asking the page for a key. `previous` is how
-/// the last sign-in for this project ended, for the page to record. Returns
-/// the access token.
+/// Where the sign-in is saved while onboard signs in: the usual place, but a
+/// sign-in that can't be saved there still counts. `auth login` fails a
+/// sign-in it can't save for later commands. Onboard only needs the token
+/// now, to check the key the approval page handed over, so a keychain that
+/// refuses this binary, or a sandbox, must not end a sign-in the developer
+/// has already approved. It also remembers what this sign-in saved, so the
+/// token is this sign-in's own, whatever another command writes meanwhile.
+#[derive(Debug)]
+pub(super) struct KeepsUnsaved {
+    usual: Arc<dyn KeyringStore>,
+    /// What the sign-in saved, and whether the usual place took it.
+    saved: Mutex<Option<(String, bool)>>,
+}
+
+impl KeepsUnsaved {
+    pub(super) fn over(usual: Arc<dyn KeyringStore>) -> Self {
+        Self {
+            usual,
+            saved: Mutex::new(None),
+        }
+    }
+
+    /// The access token of the sign-in saved through this store.
+    pub(super) fn access_token(&self) -> Option<String> {
+        let (raw, _) = self.saved.lock().ok()?.clone()?;
+        let token = TokenBundle::parse_or_raw(&raw).access_token;
+        (!token.is_empty()).then_some(token)
+    }
+}
+
+impl KeyringStore for KeepsUnsaved {
+    fn get(&self, service: &str, account: &str) -> Result<Option<String>, CliError> {
+        self.usual.get(service, account)
+    }
+
+    fn set(&self, service: &str, account: &str, value: &str) -> Result<(), CliError> {
+        let kept = self.usual.set(service, account, value);
+        if let Err(e) = &kept {
+            eprintln!("Signed in, but the sign-in couldn't be saved for later commands: {e}");
+        }
+        if let Ok(mut saved) = self.saved.lock() {
+            *saved = Some((value.to_string(), kept.is_ok()));
+        }
+        Ok(())
+    }
+
+    fn delete(&self, service: &str, account: &str) -> Result<(), CliError> {
+        self.usual.delete(service, account)
+    }
+
+    fn backend_label(&self) -> String {
+        match self.saved.lock().ok().and_then(|saved| saved.clone()) {
+            Some((_, false)) => "this command only".into(),
+            _ => self.usual.backend_label(),
+        }
+    }
+}
+
+/// The registered ports where nothing listens on either loopback address, in
+/// order. `auth login`'s listener takes one address of a port, so a second
+/// sign-in on the same machine gets the same port number on the other address,
+/// and the browser's callback for one reaches the other, which ends on a
+/// `state` that isn't its own. A port free on both keeps each sign-in on a
+/// port of its own.
+pub(super) fn ports_free_on_both(registered: &[u16]) -> Vec<u16> {
+    let free = |ip: IpAddr, port: u16| match TcpListener::bind((ip, port)) {
+        Ok(_) => true,
+        // Anything else is an address this machine doesn't have (IPv6 turned
+        // off), where nothing can be listening either.
+        Err(e) => !matches!(
+            e.kind(),
+            std::io::ErrorKind::AddrInUse | std::io::ErrorKind::PermissionDenied
+        ),
+    };
+    registered
+        .iter()
+        .copied()
+        .filter(|&port| {
+            free(IpAddr::V4(Ipv4Addr::LOCALHOST), port)
+                && free(IpAddr::V6(Ipv6Addr::LOCALHOST), port)
+        })
+        .collect()
+}
+
+/// The port to sign in on: the first one free on both addresses. The retry of
+/// a timed-out approval takes the one after it, so the page the first attempt
+/// left open can't answer the retry and end it. With none free on both, the
+/// registered ports as they are.
+pub(super) fn sign_in_ports(registered: &[u16], free: &[u16], retry: bool) -> Vec<u16> {
+    match free {
+        [] => registered.to_vec(),
+        [only] => vec![*only],
+        [first, second, ..] => vec![if retry { *second } else { *first }],
+    }
+}
+
+/// Sign in through the browser exactly as `auth login` does, asking the page
+/// for a key. It waits for the approval as `auth login` waits, prints the
+/// link to stderr, and stores the sign-in where `auth login` stores it when
+/// that place takes it. Returns the access token.
 pub(super) fn sign_in(
     ctx: &AppContext,
     authorize_url: &str,
     no_browser: bool,
-    previous: Option<&LastSignIn>,
+    retry: bool,
 ) -> Result<String, CliError> {
     let config = sign_in_config()?;
     // A local --base-url also moves the token endpoint, for testing against a local backend.
@@ -107,34 +206,46 @@ pub(super) fn sign_in(
     let params = authorize_params(
         on.then(|| (platform::detect(), platform::install_source())),
         on.then(platform::agent).flatten(),
-        previous.filter(|_| on),
+        (on && retry).then_some("timed-out"),
     );
-    let params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
-    block_on(loopback::sign_in(loopback::Login {
-        cli_name: CLI_NAME,
-        scheme: &config.scheme,
-        client_id: &config.client_id,
-        authorize_url,
-        token_url: &token_url,
-        scopes: &config.scopes,
-        redirect_host: &config.redirect_host,
-        redirect_ports: &config.redirect_ports,
-        success_url: &config.success_url,
-        error_url: &config.error_url,
-        params: &params,
-        no_browser,
-        timeout: Duration::from_secs(SIGN_IN_MINUTES * 60),
-    }))
+    let ports = sign_in_ports(
+        &config.redirect_ports,
+        &ports_free_on_both(&config.redirect_ports),
+        retry,
+    );
+    // `auth login` saves through the active store; onboard's stands in front of it.
+    let store = Arc::new(KeepsUnsaved::over(active_store()));
+    set_active_store(store.clone());
+    PkceLoginFlow::new(&config.scheme)
+        .client_id(&config.client_id)
+        .authorization_url(authorize_url)
+        .token_url(&token_url)
+        .scopes(&config.scopes)
+        .redirect_host(&config.redirect_host)
+        .redirect_ports(ports)
+        .success_redirect_url(&config.success_url)
+        .error_redirect_url(&config.error_url)
+        .authorization_params(params)
+        .run(&LoginContext {
+            cli_name: CLI_NAME.to_string(),
+            no_browser,
+        })?;
+    store.access_token().ok_or_else(|| {
+        CliError::Other(anyhow::anyhow!(
+            "the sign-in finished, but it returned no token"
+        ))
+    })
 }
 
 /// What the sign-in adds to the approval link: the page should hand over a
-/// key, and, with telemetry on, where the CLI runs, how it was installed,
-/// which coding agent ran it and how this project's last sign-in ended. The
-/// page records them for a sign-in that never gets to make an API call.
+/// key, and, with telemetry on, where the CLI runs, how it was installed and
+/// which coding agent ran it. The page records them for a sign-in that never
+/// gets to make an API call. `previous` is how the sign-in this one retries
+/// ended, a fixed word.
 pub(super) fn authorize_params(
     platform: Option<((&'static str, Option<&'static str>), &'static str)>,
     agent: Option<&'static str>,
-    previous: Option<&LastSignIn>,
+    previous: Option<&'static str>,
 ) -> Vec<(&'static str, String)> {
     let mut params = vec![("key_handoff", "clipboard".to_string())];
     if let Some(((os, env), install)) = platform {
@@ -148,10 +259,7 @@ pub(super) fn authorize_params(
         params.push(("cli_agent", agent.into()));
     }
     if let Some(previous) = previous {
-        params.push(("cli_prev", previous.outcome.into()));
-        if let Some(id) = &previous.id {
-            params.push(("cli_prev_id", id.clone()));
-        }
+        params.push(("cli_prev", previous.into()));
     }
     params
 }

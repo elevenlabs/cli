@@ -32,6 +32,9 @@ pub struct HistoryListQueryRequest {
     /// Source of the generated history item
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<HistoryListRequestSource>,
+    /// Sources of the generated history items, matching any of them. Cannot be combined with source.
+    #[serde(default)]
+    pub sources: Vec<Option<HistoryListRequestSourcesItem>>,
 }
 
 impl HistoryListQueryRequest {
@@ -52,6 +55,7 @@ pub struct HistoryListQueryRequestBuilder {
     sort_direction: Option<HistoryListRequestSortDirection>,
     search: Option<String>,
     source: Option<HistoryListRequestSource>,
+    sources: Option<Vec<Option<HistoryListRequestSourcesItem>>>,
 }
 
 impl HistoryListQueryRequestBuilder {
@@ -100,7 +104,14 @@ impl HistoryListQueryRequestBuilder {
         self
     }
 
+    pub fn sources(mut self, value: Vec<Option<HistoryListRequestSourcesItem>>) -> Self {
+        self.sources = Some(value);
+        self
+    }
+
     /// Consumes the builder and constructs a [`HistoryListQueryRequest`].
+    /// This method will fail if any of the following fields are not set:
+    /// - [`sources`](HistoryListQueryRequestBuilder::sources)
     pub fn build(self) -> Result<HistoryListQueryRequest, BuildError> {
         Ok(HistoryListQueryRequest {
             page_size: self.page_size,
@@ -112,6 +123,7 @@ impl HistoryListQueryRequestBuilder {
             sort_direction: self.sort_direction,
             search: self.search,
             source: self.source,
+            sources: self.sources.ok_or_else(|| BuildError::missing_field("sources"))?,
         })
     }
 }

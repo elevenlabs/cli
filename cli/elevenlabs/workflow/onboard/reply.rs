@@ -11,14 +11,10 @@ use serde_json::{Map, Value};
 #[serde(rename_all = "snake_case")]
 pub(super) enum Next {
     Run,
-    Wait,
     AskUser,
     Fix,
-    AskWhatToBuild,
-    WriteCode,
-    LoadKey,
+    Integrate,
     OfferTest,
-    OfferSetup,
     Done,
 }
 
@@ -28,51 +24,42 @@ impl Next {
     fn instruction(self) -> &'static str {
         match self {
             Next::Run => "Tell the user `say`, then run `run`.",
-            Next::Wait => {
-                "Show the user `say`, then run `run` right away, without ending your turn: it waits while they \
-                 approve in the browser. Whenever you give them the link, copy it whole, exactly as printed: \
-                 a shortened or edited link doesn't work."
-            }
             Next::AskUser => {
                 "Ask the user what `say` says and wait for their answer, then run `run`, unless they said no."
             }
             Next::Fix => "Do what `say` describes, then run `run`.",
-            Next::AskWhatToBuild => {
-                "Tell the user `say`, then end your turn and wait for their answer to its question. Ask \
-                 it even if they already said what they want, even just the SDK: their answer confirms \
-                 it. Write no code before they answer. When they have, run `run` before anything else, \
-                 without installing or writing anything first: its reply says how to write the code. If \
-                 you already asked and they answered, don't ask again, just run `run`."
+            // The whole of what comes after the key, in one reply: the CLI never
+            // reads the code to decide a next step, the coding agent knows the project.
+            Next::Integrate => {
+                "Tell the user `say`. The key is in place, so the rest is yours: build what the user asked \
+                 for with ElevenLabs. Only a request that says what the app should do with ElevenLabs \
+                 says what to build; one that asks to add, set up or use ElevenLabs, or for something \
+                 general like voice features, doesn't. If theirs doesn't, ask `details.question`, as it \
+                 is, and end your turn: write no code and install nothing until they answer, and don't \
+                 pick for them. If they only want the SDK, install it (`details.sdk_install`) and create \
+                 the client in one small file. Otherwise first run `details.fetch_skills`: it downloads \
+                 the ElevenLabs skills into `details.skills_dir`, one folder per skill, outside the \
+                 project, so list and read it with shell commands like `ls` and `cat` (file search tools \
+                 may not look there). If one fits, read its SKILL.md and the `references/` files it links \
+                 before writing any code, and write the code the way the skill shows, not from the SDK's \
+                 own files; if none fits, write it without one. Install the SDK. Whatever they asked \
+                 for, even nothing new, the app has to get the key, and an env file is only read if \
+                 something loads it. So find what loads the key's env file when the app starts, in \
+                 this project's own language and framework. If you can't point to it, make the app \
+                 load the file the way `details.load_key` says. That is part of the setup, not new \
+                 work. If it needs something made in ElevenLabs first, \
+                 like an agent, make it yourself with the key (load the env file in the command, never \
+                 print it), and when you're done give the user the links in `details.agent_links` with \
+                 its ID filled in. When the code is written (or if it already was), check your changes \
+                 are in place, then run `run`: its reply says how to finish."
             }
-            Next::WriteCode => {
-                "Tell the user `say`, then write what they asked for. If they only want the SDK, install \
-                 it (`details.sdk_install`) and create the client in one small file. Otherwise first run \
-                 `details.fetch_skills`: it downloads the ElevenLabs skills into `details.skills_dir`, one \
-                 folder per skill, outside the project, so list and read it with shell commands like `ls` \
-                 and `cat` (file search tools may not look there). If one fits what they want, read its \
-                 SKILL.md and the `references/` \
-                 files it links before writing any code, and write the code the way the skill shows, \
-                 not from the SDK's own files; if none fits, write it without one. If it needs something \
-                 made in ElevenLabs first, like an agent, make it yourself with the key (load the env \
-                 file in the command, never print it), not a script for the user to run. Install the \
-                 SDK, and make the app load the key the way `details.load_key` says. Then run `run` to \
-                 check it."
-            }
-            Next::LoadKey => {
-                "Tell the user `say`. The code already uses the SDK, but the app must load the key from \
-                 where it is now: do what `details.load_key` says and change nothing else. Then run `run` \
-                 to check it."
-            }
+            // The last word before the developer decides, handed over at the moment it is said.
             Next::OfferTest => {
-                "Say what you set up and anything the user still has to do themselves, like installing the \
-                 packages you added. Then end your reply with the question in `say`, as it is, and stop \
-                 there: until they answer, don't run the app or its start script, or make speech to try \
-                 it. Run `run` only if they say yes."
-            }
-            Next::OfferSetup => {
-                "Tell the user `say`, then anything they still have to do themselves, like installing the \
-                 packages you added, in one or two concrete steps. Then end your reply with the question in \
-                 `details.question`, as it is, and stop there. Run `run` only if they say yes."
+                "Say what you set up, how to run it, the links to any agent you made, and anything the \
+                 user still has to do themselves, like installing the packages you added. Then end \
+                 your reply with the question in `say`, as it is, and end your turn. If they say yes, \
+                 run `run`: that command is the test request, so don't run their app in its place. If \
+                 they say no, run nothing."
             }
             Next::Done => {
                 "Tell the user `say`, then anything they still have to do themselves, like installing the \
@@ -82,15 +69,14 @@ impl Next {
     }
 }
 
-/// Never relaxed by any step, so every reply that starts a flow carries them.
+/// Never relaxed by any step, so every reply that starts or finishes the key step carries them.
 const RULES: &[&str] = &[
-    "Never open, print or cat the env file; run `onboard check` to verify it.",
+    "Never open, print or cat the env file; run `onboard check` to verify the key.",
     "Never ask for an API key in chat, and never accept one pasted there.",
-    "Never put the key in code; the SDK reads ELEVENLABS_API_KEY.",
+    "Never put the key in code, or in anything that runs in the browser; the SDK reads ELEVENLABS_API_KEY.",
     "Never run git clean or delete untracked files.",
-    "Don't write or change any code until a reply's `next` is `write_code` or `load_key`.",
     "Put anything you download only to read, like a package or an archive, in a temp folder, never in the project.",
-    "Don't run the app (or its start script) or make speech to try it until the user says yes to the test request. API calls that what they asked for needs, like creating an agent, are fine. Once the code is written, run `onboard check` before you finish: it verifies the key and the code.",
+    "Don't run the app (or its start script) or make speech to try it until the user says yes to the test request. API calls that what they asked for needs, like creating an agent, are fine.",
 ];
 
 #[derive(Debug, Serialize)]
@@ -132,14 +118,6 @@ impl Reply {
         self
     }
 
-    /// This `done` reply, ending instead on the question that offers to set
-    /// ElevenLabs up in the developer's coding agents, which `run` does.
-    pub fn offer_setup(mut self, question: String, run: &str) -> Self {
-        self.next = Next::OfferSetup;
-        self.instruction = Next::OfferSetup.instruction();
-        self.run(run).detail("question", question)
-    }
-
     pub fn with_rules(mut self) -> Self {
         self.rules = RULES;
         self
@@ -154,7 +132,12 @@ impl Reply {
 /// started this process (it sets `npm_command=exec`), so the agent keeps
 /// running the same, latest CLI; otherwise the installed `elevenlabs`.
 pub(super) fn command(args: &str) -> String {
-    format!("{} onboard {args}", super::super::setup::cli_prefix())
+    let cli = if std::env::var("npm_command").is_ok_and(|c| c == "exec") {
+        "npx -y @elevenlabs/cli@latest"
+    } else {
+        "elevenlabs"
+    };
+    format!("{cli} onboard {args}")
 }
 
 /// Print a reply (or one a background sign-in saved). Always JSON, whatever

@@ -1,13 +1,12 @@
 //! `elevenlabs onboard`: set ElevenLabs up in a project from a coding agent.
-//! Each step prints what the agent does next (see [`reply`]), so the flow is
-//! driven by the CLI rather than by instructions the agent has to remember:
+//! One command puts a working API key in the project, and its reply hands the
+//! rest to the agent (see [`reply`]):
 //!
-//! - `init`: check the project, say what's next
-//! - `connect`: sign in in the browser and store an API key for the project
-//! - `check`: confirm the key and the integration (`status` is an alias)
+//! - `init`: sign in in the browser as `auth login` does, store the key the
+//!   approval page hands over, and say how to build with it (`connect` is its
+//!   older name)
+//! - `check`: verify a key the developer added by hand (`status` is an alias)
 //! - `test`: a short text-to-speech request, only when the developer says yes
-//! - `setup`: install ElevenLabs in the developer's coding agents, when the
-//!   flow offered it and they said yes
 
 mod auth;
 mod browser;
@@ -15,11 +14,9 @@ mod check;
 mod clipboard;
 mod connect;
 mod env_file;
-mod init;
 mod manual;
 mod project;
 mod reply;
-mod session;
 mod test_request;
 #[cfg(test)]
 mod tests;
@@ -39,104 +36,20 @@ fn dispatch(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<(), CliError
     let (name, sub) = matches
         .subcommand()
         .ok_or_else(|| CliError::Validation("Start with `elevenlabs onboard init`.".into()))?;
-    // The worker reports the sign-in before its own (see `connect::handle`).
-    let last = (name != "connect").then(last_sign_in).flatten();
-    let _scope = api::command_scope_with(
-        match name {
-            "init" => "onboard.init",
-            "connect" => "onboard.connect",
-            "check" => "onboard.check",
-            "setup" => "onboard.setup",
-            _ => "onboard.test",
-        },
-        sign_in_tag(last.as_ref()),
-    );
     let reply = match name {
-        "init" => Some(init::handle(sub, ctx)?.to_value()),
-        "connect" => connect::handle(sub, ctx)?,
-        "check" => Some(check::handle(sub, ctx)?.to_value()),
-        "setup" => Some(setup(sub, ctx)?.to_value()),
-        _ => Some(test_request::handle(sub, ctx)?.to_value()),
-    };
-    match reply {
-        Some(reply) => reply::emit(&reply),
-        None => Ok(()),
-    }
-}
-
-/// `onboard setup`: what `setup --yes` does, as a `done` reply. With
-/// telemetry on it first makes the account request `check` makes, so the
-/// offers accepted can be counted; its answer changes nothing.
-fn setup(matches: &clap::ArgMatches, ctx: &AppContext) -> Result<reply::Reply, CliError> {
-    let started = std::time::Instant::now();
-    let later = super::setup::later_command();
-    if super::util::dry_run_flag(matches) {
-        return Ok(reply::Reply::new(
-            reply::Next::Done,
-            format!(
-                "Nothing was installed in the coding agents, because of --dry-run. To set them up, run `{later}`."
-            ),
-        ));
-    }
-    let project = project::Project::open(matches)?;
-    if super::telemetry::enabled() {
-        if let Some(key) = project.key() {
-            let _ = auth::check_key(ctx, &key.value);
+        // These set their own request tag: the sign-in counts as `connect`.
+        "init" => connect::handle("onboard.init", sub, ctx)?,
+        "connect" => connect::handle("onboard.connect", sub, ctx)?,
+        "check" => {
+            let _scope = api::command_scope("onboard.check");
+            check::handle(sub, ctx)?
         }
-    }
-    let Some(home) = super::setup::home() else {
-        return Ok(reply::Reply::new(
-            reply::Next::Done,
-            format!(
-                "ElevenLabs could not be set up in the coding agents: no home folder was found. To try again \
-                 later, run `{later}`."
-            ),
-        ));
-    };
-    // The request's time comes out of the whole run's, so the reply still comes in time.
-    let limits = super::setup::Limits {
-        total: super::setup::LIMITS.total.saturating_sub(started.elapsed()),
-        ..super::setup::LIMITS
-    };
-    let outcomes = super::setup::run(&super::setup::found_here(&home), &home, limits);
-    let (say, _) = super::setup::report(&outcomes);
-    Ok(reply::Reply::new(reply::Next::Done, say.join(" ")).detail("setup", &outcomes))
-}
-
-/// `done`, the end of the flow, or, after a sign-in in this project, when a
-/// coding agent can take the plugin, the question that offers `setup`. Made
-/// once per sign-in.
-fn or_offer_setup(project: &project::Project, done: reply::Reply) -> reply::Reply {
-    let Ok(session) = session::Session::for_project(&project.dir) else {
-        return done;
-    };
-    if !session.setup_offer_due() {
-        return done;
-    }
-    let Some(home) = super::setup::home() else {
-        return done;
-    };
-    match super::setup::question(&super::setup::found_here(&home)) {
-        Some(question) => {
-            session.setup_offer_made();
-            done.offer_setup(question, &project.next("setup"))
+        _ => {
+            let _scope = api::command_scope("onboard.test");
+            test_request::handle(sub, ctx)?
         }
-        None => done,
-    }
-}
-
-/// `signin/<outcome>` with telemetry on, so a request after a failed sign-in
-/// says how it ended, even when the developer then adds a key by hand.
-fn sign_in_tag(sign_in: Option<&session::LastSignIn>) -> Option<String> {
-    sign_in
-        .filter(|_| super::telemetry::enabled())
-        .map(|sign_in| format!("signin/{}", sign_in.outcome))
-}
-
-/// How the sign-in for the project in the working folder last ended.
-fn last_sign_in() -> Option<session::LastSignIn> {
-    let dir = std::env::current_dir().ok()?;
-    session::Session::for_project(&dir).ok()?.last_sign_in()
+    };
+    reply::emit(&reply.to_value())
 }
 
 /// `--env-path`, not `--env-file`: through npx, Node takes `--env-file` for itself (for any
@@ -147,7 +60,7 @@ fn env_file_arg() -> clap::Arg {
         .long("env-path")
         .alias("env-file")
         .value_name("PATH")
-        .help("The env file for ELEVENLABS_API_KEY (default: .env for Python projects, else .env.local)")
+        .help("The env file for ELEVENLABS_API_KEY (default: .env, or .env.local when git tracks .env)")
 }
 
 fn flag(id: &'static str, help: &'static str) -> clap::Arg {
@@ -160,8 +73,32 @@ fn flag(id: &'static str, help: &'static str) -> clap::Arg {
 fn no_browser_arg() -> clap::Arg {
     flag(
         "no-browser",
-        "Don't open a browser; the reply gives the approval link to open",
+        "Don't open a browser; the approval link is printed to open by hand",
     )
+}
+
+/// `init` and `connect` are the same step, so they take the same flags.
+fn key_step(name: &'static str, about: &'static str) -> clap::Command {
+    clap::Command::new(name)
+        .about(about)
+        .arg(env_file_arg())
+        .arg(no_browser_arg())
+        .arg(flag(
+            "replace",
+            "Store a new key even if the project already has one",
+        ))
+        // What older replies asked for: there is no sign-in left to wait on.
+        .arg(flag("wait", "").hide(true))
+        // Passed by the reply to a timed-out approval: if this run times out
+        // too, the reply asks the developer instead of retrying.
+        .arg(flag("again", "").hide(true))
+        .arg(
+            clap::Arg::new("authorize-url")
+                .long("authorize-url")
+                .value_name("URL")
+                .hide(true)
+                .help("A local approval page to open instead of production (development only)"),
+        )
 }
 
 fn onboard_command() -> clap::Command {
@@ -171,49 +108,25 @@ fn onboard_command() -> clap::Command {
         .about("Set up ElevenLabs in this project from a coding agent. Start with `onboard init`.")
         .subcommand_required(true)
         .arg_required_else_help(true)
-        .subcommand(
-            clap::Command::new("init")
-                .about("Check the project and say what's next")
-                .arg(env_file_arg())
-                .arg(no_browser_arg()),
-        )
-        .subcommand(
-            clap::Command::new("connect")
-                .about("Sign in in the browser and store an API key for this project")
-                .arg(env_file_arg())
-                .arg(no_browser_arg())
-                .arg(flag("replace", "Store a new key even if the project already has one"))
-                .arg(flag("wait", "Keep waiting for an approval that is already open"))
-                .arg(
-                    clap::Arg::new("authorize-url")
-                        .long("authorize-url")
-                        .value_name("URL")
-                        .hide(true)
-                        .help("A local approval page to open instead of production (development only)"),
-                )
-                .arg(flag(session::WORKER_FLAG, "").hide(true))
-                .arg(flag(session::LAUNCH_FLAG, "").hide(true)),
-        )
+        .subcommand(key_step(
+            "init",
+            "Sign in in the browser, store an API key for this project, and say how to build with it",
+        ))
+        .subcommand(key_step("connect", "The same as `init`").hide(true))
         .subcommand(
             clap::Command::new("check")
                 .alias("status")
-                .about("Check the key and the integration, and say what's left")
+                .about("Check a key that was added by hand, and say how to build with it")
                 .arg(env_file_arg())
                 .arg(no_browser_arg())
-                // Passed by the question's `run` once the developer has said what to build.
-                .arg(flag("answered", "The developer has said what to build").hide(true)),
+                // What older replies asked for: `check` no longer has stages.
+                .arg(flag("answered", "").hide(true))
+                // Passed by the hand-over reply's `run`, once the code is written.
+                .arg(flag("written", "The code is written: end on the test offer").hide(true)),
         )
         .subcommand(
             clap::Command::new("test")
                 .about("Make a short text-to-speech request with the project's key (ask the developer first)")
-                .arg(env_file_arg())
-                .arg(no_browser_arg()),
-        )
-        .subcommand(
-            clap::Command::new("setup")
-                // Run only when the flow offers it and the developer says yes.
-                .hide(true)
-                .about("Install ElevenLabs in the coding agents on this machine, as `elevenlabs setup --yes` does")
                 .arg(env_file_arg())
                 .arg(no_browser_arg()),
         )

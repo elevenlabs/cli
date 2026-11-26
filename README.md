@@ -101,6 +101,27 @@ For a one-off call, pass it per command instead:
 elevenlabs user get --xi-api-key xi-...
 ```
 
+### Workload identity federation
+
+In CI and cloud workloads, the CLI can authenticate without a stored API key: it exchanges the workload's own OIDC token (GitHub Actions, GCP, AWS, Azure, a Kubernetes projected token file, or an environment variable) for a short-lived ElevenLabs token. Point it at a WIF config file, which holds identifiers only, never a secret:
+
+```json
+{
+  "type": "elevenlabs_workload_identity_federation",
+  "version": 1,
+  "pool": "urn:elevenlabs-xi:workload_identity_federation:<pool id>",
+  "resource": "urn:elevenlabs-xi:api_key:<api key id>",
+  "token_source": { "type": "github_actions" }
+}
+```
+
+```bash
+export ELEVENLABS_WIF_CONFIG=wif.json   # or: elevenlabs user get --wif-config wif.json
+elevenlabs user get
+```
+
+`--wif-config` beats `ELEVENLABS_API_KEY`, and `ELEVENLABS_API_KEY` beats `ELEVENLABS_WIF_CONFIG`. Passing both `--wif-config` and an API key flag is an error. Tokens stay in memory and are never written to disk. `elevenlabs wif print-identity-token` prints one, for use with other tools.
+
 ## Quick start
 
 List available commands:
@@ -639,12 +660,10 @@ command typed in those editors' terminals. Nothing else about the machine is
 sent: no paths, hostnames or ids. `onboard` puts the same values on the
 sign-in's approval link.
 
-`onboard` also says how the project's last sign-in ended, when it ended in the
-past day: `signin/<outcome>` on its requests, and `cli_prev` on the next
-approval link, where `<outcome>` is a fixed word such as `timed-out`,
-`stopped` or `no-key`. The link also carries `cli_prev_id`, the start of a
-SHA-256 hash of that sign-in's `state`, so it can be matched to its approval
-page; the state itself is never sent.
+`onboard` also says how a sign-in ended, as a fixed word such as `created`,
+`no-key` or `clipboard-error`: `signin/<outcome>` on one request once it has
+signed in. The retry of an approval that timed out puts `cli_prev=timed-out`
+on its approval link.
 
 When you accept the offer to set up your coding agents at the end of
 onboarding, `onboard setup` makes one account request (`GET /v1/user`, tagged

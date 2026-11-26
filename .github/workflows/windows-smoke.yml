@@ -1,22 +1,20 @@
 name: windows-smoke
 
 # Runs `onboard` on Windows the way the ElevenLabs Home prompt has a coding
-# agent run it: `onboard init`, then each reply's `run`, in Git Bash as Claude
-# Code does, reading each reply through a pipe. On a pull request it runs the
-# CLI built from the PR; run by hand, the published one through npx.
+# agent run it: `onboard init`, in Git Bash as Claude Code does, reading its
+# reply through a pipe. On a pull request it runs the CLI built from the PR;
+# run by hand, the published one through npx.
 #
-# No one is there to sign in, so it goes as far as a machine can alone: the
-# sign-in starts in the background and hands back the approval link. It then
+# No one is there to sign in, so it goes as far as a machine can alone: `init`
+# starts the sign-in `auth login` runs and prints its approval link. It then
 # answers the way the approval page does when the developer clicks Deny, which
-# shows the sign-in outlived the command that started it and that the
-# browser's callback reaches it, even with another program on one loopback
-# address of the first callback port.
+# shows the browser's callback reaches the sign-in and the command ends on a
+# reply.
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - cli/elevenlabs/workflow/onboard/**
-      - cli/elevenlabs/workflow/loopback.rs
       - cli/elevenlabs/workflow/setup.rs
       - cli/elevenlabs/workflow/setup/**
       - .github/workflows/windows-smoke.yml
@@ -137,43 +135,18 @@ jobs:
           npm init -y > /dev/null
           $CLI --version
 
-          # Run a command as an agent would, reading its reply (one line of
-          # JSON) through a pipe, and stop unless the reply comes back in time
-          # with the `next` expected.
-          step() {
-            echo "+ $1"
-            if ! timeout 90 bash -o pipefail -c "$1 | tail -n 1 > '$out'"; then
-              echo "::error::No reply within 90 s: the command failed, or something it started kept its output open"
-              exit 1
-            fi
-            reply=$(< "$out")
-            echo "$reply"
-            local next
-            next=$(jq -r .next <<< "$reply")
-            if [[ "$next" != "$2" ]]; then
-              echo "::error::Expected next=$2, got next=$next"
-              exit 1
-            fi
-          }
-
-          # Another program on one loopback address of the first callback
-          # port. Browsers dial [::1] first for `localhost`, so a sign-in that
-          # left [::1]:8484 to it would never get the callback.
-          node -e "require('http').createServer((q, s) => s.end('another program')).listen(8484, '::1')" > /dev/null 2>&1 &
-          for _ in $(seq 1 50); do
-            [[ "$(curl -sg http://[::1]:8484/ || true)" == "another program" ]] && break
+          # `init` is the sign-in: it waits for the approval in the foreground,
+          # as `auth login` does, with the link on stderr.
+          log="$RUNNER_TEMP/onboard-stderr.log"
+          $CLI onboard init --no-browser > "$out" 2> "$log" &
+          pid=$!
+          url=""
+          for _ in $(seq 1 300); do
+            url=$(grep -o 'URL: https://[^ ]*' "$log" | head -n 1 | cut -c6- || true)
+            [[ -n "$url" ]] && break
             sleep 0.2
           done
-          if [[ "$(curl -sg http://[::1]:8484/ || true)" != "another program" ]]; then
-            echo "::error::The other program didn't start on [::1]:8484"
-            exit 1
-          fi
-
-          step "$CLI onboard init" run
-          # Starts the sign-in, waits for an approval that never comes, then says to keep waiting.
-          step "$(jq -r .run <<< "$reply")" wait
-
-          url=$(jq -r .say <<< "$reply" | grep -o 'https://[^ ]*')
+          cat "$log"
           if [[ "$url" != https://elevenlabs.io/app/oauth/authorize\?*key_handoff=clipboard* ]]; then
             echo "::error::Unexpected approval link: $url"
             exit 1
@@ -181,19 +154,30 @@ jobs:
 
           # What the approval page does when the developer clicks Deny.
           callback=$(node -p 'new URL(process.argv[1]).searchParams.get("redirect_uri")' "$url")
-          if [[ "$callback" != "http://localhost:8483/callback" ]]; then
-            echo "::error::The sign-in should have moved off 8484, it listens at $callback"
-            exit 1
-          fi
           state=$(node -p 'new URL(process.argv[1]).searchParams.get("state")' "$url")
           curl -sS -o /dev/null -w "Callback answered %{http_code}\n" "$callback?error=access_denied&state=$state"
 
-          step "$(jq -r .run <<< "$reply")" ask_user
+          # The command ends on its reply: one line of JSON, read as an agent reads it.
+          for _ in $(seq 1 450); do
+            kill -0 "$pid" 2> /dev/null || break
+            sleep 0.2
+          done
+          if kill -0 "$pid" 2> /dev/null; then
+            echo "::error::No reply within 90 s of the Deny: the command kept waiting, or something it started kept it open"
+            exit 1
+          fi
+          reply=$(tail -n 1 "$out")
+          echo "$reply"
+          next=$(jq -r .next <<< "$reply")
+          if [[ "$next" != "ask_user" ]]; then
+            echo "::error::Expected next=ask_user, got next=$next"
+            exit 1
+          fi
           if ! jq -e '.say | contains("declined")' <<< "$reply" > /dev/null; then
             echo "::error::The sign-in didn't report the Deny"
             exit 1
           fi
 
-      - name: Show the sign-in log
+      - name: Show the sign-in's output
         if: failure()
-        run: cat ~/.elevenlabs/onboard/*/worker.log || true
+        run: cat "$RUNNER_TEMP/onboard-stderr.log" || true

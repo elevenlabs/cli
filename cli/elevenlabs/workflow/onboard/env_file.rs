@@ -6,7 +6,9 @@ use std::process::Command;
 use fern_cli_sdk::error::CliError;
 
 pub(super) const API_KEY_ENV: &str = "ELEVENLABS_API_KEY";
-pub(super) const DEFAULT_ENV_FILE: &str = ".env.local";
+pub(super) const DEFAULT_ENV_FILE: &str = ".env";
+/// Where the key goes when `.env` can't take it, or when it is already there.
+pub(super) const LOCAL_ENV_FILE: &str = ".env.local";
 pub(super) const PLACEHOLDER_NOTE: &str =
     "# Paste your ElevenLabs API key after the = below. Create one at \
      https://elevenlabs.io/app/api/api-keys?quickstart=true if you need to. Never paste it into a chat.";
@@ -116,7 +118,7 @@ pub(super) fn read(path: &Path) -> Result<String, CliError> {
 
 /// Write the whole file owner-only and atomically: a temp file next to it,
 /// then a rename, so a crash never leaves it truncated. Rename replaces a
-/// symlink rather than following it. Also used for the sign-in session's files.
+/// symlink rather than following it.
 pub(super) fn write(path: &Path, contents: &str) -> Result<(), CliError> {
     let (dir, name) = split(path);
     let tmp = dir.join(format!(".{name}.{}.tmp", std::process::id()));
@@ -177,18 +179,6 @@ pub(super) fn make_private(path: &Path) -> Result<bool, CliError> {
 
 pub(super) fn is_symlink(path: &Path) -> bool {
     std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
-}
-
-/// The `.env` a dotenv loader would read from `cwd` (the nearest one in the
-/// directory or its ancestors, as `dotenvy::dotenv()` searches) and its key,
-/// as [`file_key`] reads it. `None` when there is no such file.
-pub(super) fn nearest_dotenv(cwd: &Path) -> Option<(std::path::PathBuf, Option<String>)> {
-    let path = cwd
-        .ancestors()
-        .map(|dir| dir.join(".env"))
-        .find(|p| p.is_file())?;
-    let key = file_key(&std::fs::read_to_string(&path).ok()?);
-    Some((path, key))
 }
 
 pub(super) fn is_tracked(path: &Path) -> bool {

@@ -7,7 +7,7 @@ pub struct BodyMergeAMergeProposalV1ConvaiAgentsAgentIdMergeProposalsMergePropos
     /// Whether to archive the source branch after merging.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub archive_source_branch: Option<bool>,
-    /// Force source branch changes onto the target, overriding timestamp-based conflict resolution.
+    /// Keep the source branch's value for every conflict.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub force: Option<bool>,
 }
